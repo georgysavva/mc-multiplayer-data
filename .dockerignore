@@ -1,0 +1,8 @@
+node_modules
+npm-cache
+.dockerignore
+Dockerfile
+.git
+.gitignore
+**/*.log
+data

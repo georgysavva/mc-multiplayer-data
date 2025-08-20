@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "mineflayer": "github:Kevin-lkw/mineflayer",
+    "mineflayer-pathfinder": "github:Kevin-lkw/mineflayer-pathfinder",
+    "prismarine-viewer": "github:Kevin-lkw/prismarine-viewer"
+  }
+}
