@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # Force software Mesa (llvmpipe) and sensible GL versions
-ENV DISPLAY=:99
 ENV LIBGL_ALWAYS_SOFTWARE=1
 ENV GALLIUM_DRIVER=llvmpipe
 ENV MESA_GL_VERSION_OVERRIDE=3.3
@@ -38,8 +37,14 @@ RUN python -m pip install --upgrade pip setuptools wheel && \
 # Copy the bot script
 COPY . ./
 # Use a deterministic display
+ENV DISPLAY=:99
+ENV LIBGL_ALWAYS_SOFTWARE=1
+ENV GALLIUM_DRIVER=llvmpipe
+ENV MESA_GL_VERSION_OVERRIDE=3.3
+ENV MESA_GLSL_VERSION_OVERRIDE=330
 
 
+RUN chmod +x entrypoint.sh
 
 # Start Xvfb, verify GL, then run your app
-CMD ["python3", "run.py", "--name", "Bot", "--target", "village", "--output_path", "/output"]
+CMD ["./entrypoint.sh"]
