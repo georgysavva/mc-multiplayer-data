@@ -29,8 +29,8 @@ conn, addr=s.accept()
 print('Socket connected')
 
 out = cv2.VideoWriter('out.mp4', cv2.VideoWriter_fourcc(*'XVID'), 20, (512, 512))
-
-while True:
+i=0
+while i<100:
     length = recvint(conn)
     stringData = recvall(conn, int(length))
     img = cv2.imdecode(np.fromstring(stringData, dtype = np.uint8), cv2.IMREAD_UNCHANGED)
@@ -40,6 +40,6 @@ while True:
     print("receive frame")
 
     out.write(img)
-
+    i += 1
 
 out.release()
