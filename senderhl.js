@@ -15,27 +15,16 @@ bot.once("spawn", () => {
     width: 512,
     height: 512,
   });
-  bot.setControlState("jump", true);
 
-  client.on("data", (data) => {
-    const key = parseInt(data.toString(), 10);
-    // console.log(key)
-    bot.clearControlStates();
-    if (key === 32) {
-      // space
+  let count = 0;
+  const jumpLoop = async () => {
+    while (count < 100) {
       bot.setControlState("jump", true);
-    } else if (key === 81) {
-      // left arrow
-      bot.entity.yaw += 0.1;
-    } else if (key === 82) {
-      // top arrow
-      bot.setControlState("forward", true);
-    } else if (key === 83) {
-      // right arrow
-      bot.entity.yaw -= 0.1;
-    } else if (key === 84) {
-      // down arrow
-      bot.setControlState("back", true);
+      await new Promise((resolve) => setTimeout(resolve, 100)); // sleep 100ms
+      bot.setControlState("jump", false);
+      await new Promise((resolve) => setTimeout(resolve, 100)); // sleep 100ms
+      count++;
     }
-  });
+  };
+  jumpLoop();
 });

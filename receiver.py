@@ -38,12 +38,7 @@ while True:
     # example processing
     edges = cv2.Canny(img, 100, 200)
 
-    cv2.imshow('frame', img)
     out.write(img)
 
-    key = cv2.waitKey(1)
-    conn.send(str(key).encode())
-
-    if key == ord('q'): break
 
 out.release()
