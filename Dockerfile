@@ -36,6 +36,15 @@ RUN python -m pip install --upgrade pip setuptools wheel && \
 
 # Copy the bot script
 COPY . ./
+# Use a deterministic display
+ENV DISPLAY=:99
+ENV LIBGL_ALWAYS_SOFTWARE=1
+ENV GALLIUM_DRIVER=llvmpipe
+ENV MESA_GL_VERSION_OVERRIDE=3.3
+ENV MESA_GLSL_VERSION_OVERRIDE=330
 
 
-CMD ["xvfb-run", "--auto-servernum", "--server-args=-screen 0 1280x720x24 -ac +extension GLX +render -noreset", "python3", "run.py", "--name", "Bot", "--target", "village", "--output_path", "/output"]
+RUN chmod +x entrypoint.sh
+
+# Start Xvfb, verify GL, then run your app
+CMD ["./entrypoint.sh"]
