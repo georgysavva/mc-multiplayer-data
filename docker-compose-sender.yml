@@ -1,4 +1,0 @@
-services:
-  sender:
-    build: .
-    environment: {}
