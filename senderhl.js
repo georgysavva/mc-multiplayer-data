@@ -24,6 +24,7 @@ bot.once("spawn", () => {
       bot.setControlState("jump", false);
       await new Promise((resolve) => setTimeout(resolve, 100)); // sleep 100ms
       count++;
+      console.log("sender jump");
     }
   };
   jumpLoop();

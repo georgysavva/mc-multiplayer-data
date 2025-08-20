@@ -37,6 +37,7 @@ while True:
 
     # example processing
     edges = cv2.Canny(img, 100, 200)
+    print("receive frame")
 
     out.write(img)
 
