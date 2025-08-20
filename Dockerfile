@@ -1,16 +1,12 @@
 FROM node:22
 
-# OS deps for node-gyp + node-canvas + headless WebGL
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git build-essential python3 python3-pip python3-venv python-is-python3 pkg-config \
     libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
     libx11-dev libxi-dev libxext-dev libxrandr-dev libxinerama-dev libxcursor-dev \
-    # GL dev headers
     libgl1-mesa-dev libglu1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
-    # GL runtime (llvmpipe/DRI/EGL/GBM/OSMesa)
     libgl1-mesa-dri libegl1 libgles2 libgbm1 libosmesa6 \
-    # Xvfb + diagnostics
-    xvfb x11-utils mesa-utils \
+    xvfb xauth x11-utils mesa-utils \
   && rm -rf /var/lib/apt/lists/*
 
 # Force software Mesa (llvmpipe) and sensible GL versions
