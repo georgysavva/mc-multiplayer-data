@@ -9,12 +9,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb xauth x11-utils mesa-utils \
   && rm -rf /var/lib/apt/lists/*
 
-# Force software Mesa (llvmpipe) and sensible GL versions
+
+ENV DISPLAY=:99
 ENV LIBGL_ALWAYS_SOFTWARE=1
 ENV GALLIUM_DRIVER=llvmpipe
 ENV MESA_GL_VERSION_OVERRIDE=3.3
 ENV MESA_GLSL_VERSION_OVERRIDE=330
-
 # (Optional) library lookup hints
 ENV LIBGL_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/aarch64-linux-gnu:/usr/lib/x86_64-linux-gnu
@@ -37,11 +37,6 @@ RUN python -m pip install --upgrade pip setuptools wheel && \
 # Copy the bot script
 COPY . ./
 # Use a deterministic display
-ENV DISPLAY=:99
-ENV LIBGL_ALWAYS_SOFTWARE=1
-ENV GALLIUM_DRIVER=llvmpipe
-ENV MESA_GL_VERSION_OVERRIDE=3.3
-ENV MESA_GLSL_VERSION_OVERRIDE=330
 
 
 RUN chmod +x entrypoint.sh
