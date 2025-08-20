@@ -6,3 +6,4 @@ Dockerfile
 .gitignore
 **/*.log
 data
+output

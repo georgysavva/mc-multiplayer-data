@@ -2,6 +2,8 @@
   "dependencies": {
     "mineflayer": "github:Kevin-lkw/mineflayer",
     "mineflayer-pathfinder": "github:Kevin-lkw/mineflayer-pathfinder",
-    "prismarine-viewer": "github:Kevin-lkw/prismarine-viewer"
+    "prismarine-viewer": "github:Kevin-lkw/prismarine-viewer",
+    "canvas": "^3.1.0",
+    "node-canvas-webgl": "^0.3.0"
   }
 }
