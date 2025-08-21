@@ -3,12 +3,11 @@ const mineflayerViewer = require("prismarine-viewer").headless;
 
 const bot = mineflayer.createBot({
   username: "Bot",
-  host: "mc",
+  host: "127.0.0.1",
   port: 25565,
 });
 
 bot.once("spawn", () => {
-  // Stream frames over tcp to a server listening on port 8089, ends when the application stop
   const client = mineflayerViewer(bot, {
     output: "127.0.0.1:8089",
     frames: -1,

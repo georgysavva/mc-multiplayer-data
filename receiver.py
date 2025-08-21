@@ -16,6 +16,7 @@ def recvall(sock, count):
 
 def recvint(sock): return int.from_bytes(recvall(sock, 4), byteorder='little')
 
+print('before Socket created')
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 print('Socket created')
 
@@ -28,9 +29,9 @@ conn, addr=s.accept()
 
 print('Socket connected')
 
-out = cv2.VideoWriter('out.mp4', cv2.VideoWriter_fourcc(*'XVID'), 20, (512, 512))
+out = cv2.VideoWriter('/output/out.mp4', cv2.VideoWriter_fourcc(*'XVID'), 20, (512, 512))
 i=0
-while i<100:
+while i<250:
     length = recvint(conn)
     stringData = recvall(conn, int(length))
     img = cv2.imdecode(np.fromstring(stringData, dtype = np.uint8), cv2.IMREAD_UNCHANGED)
@@ -41,5 +42,5 @@ while i<100:
 
     out.write(img)
     i += 1
-
+print('finished')
 out.release()

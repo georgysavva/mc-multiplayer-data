@@ -39,7 +39,7 @@ COPY . ./
 # Use a deterministic display
 
 
-RUN chmod +x entrypoint.sh
+RUN chmod +x entrypoint_sender.sh
+RUN chmod +x entrypoint_receiver.sh
 
-# Start Xvfb, verify GL, then run your app
-CMD ["./entrypoint.sh"]
+CMD ["./entrypoint_sender.sh"]
