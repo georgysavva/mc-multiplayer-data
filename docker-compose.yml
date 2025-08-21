@@ -11,20 +11,47 @@ services:
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./data:/data
-  sender:
+  sender1:
     build: .
     depends_on:
       - mc
-      - receiver
-    environment: {}
+      - receiver1
+    environment:
+      PORT: 8089
+      NAME: Bot1
     network_mode: host
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./output:/output
     command: ./entrypoint_sender.sh
-  receiver:
+  receiver1:
     build: .
-    environment: {}
+    environment:
+      PORT: 8089
+      NAME: Bot1
+    network_mode: host
+    volumes:
+      # attach the relative directory 'data' to the container's /data path
+      - ./output:/output
+    command: ./entrypoint_receiver.sh
+  sender2:
+    build: .
+    depends_on:
+      - mc
+      - receiver2
+    environment:
+      PORT: 8090
+      NAME: Bot2
+    network_mode: host
+    volumes:
+      # attach the relative directory 'data' to the container's /data path
+      - ./output:/output
+    command: ./entrypoint_sender.sh
+  receiver2:
+    build: .
+    environment:
+      PORT: 8090
+      NAME: Bot2
     network_mode: host
     volumes:
       # attach the relative directory 'data' to the container's /data path

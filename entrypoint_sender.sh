@@ -24,4 +24,6 @@ echo "[entrypoint] GLX sanity check:"
 glxinfo -B || true  # don't hard-fail; just print if available
 
 echo "[entrypoint] Launching app..."
-exec python3 run.py --name Bot --target village --output_path /output
+# exec python3 run.py --name Bot --target village --output_path /output
+exec node senderhl.js --location nether_fortress --nvtype ABA --port $PORT --nvrange 15 --output_path /output --name $NAME
+
