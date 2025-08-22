@@ -192,98 +192,54 @@ function* lookaround() {
   });
 }
 bot.once("spawn", () => {
-  if (
-    args.location === "nether_bastion" ||
-    args.location === "nether_fortress"
-  ) {
-    bot.chat(
-      `/execute in minecraft:the_nether run tp @p ${tp_target.x} ${tp_target.y} ${tp_target.z}`
-    );
-  } else if (args.location === "end_city" || args.location === "end_mainland") {
-    bot.chat(
-      `/execute in minecraft:the_end run tp @p ${tp_target.x} ${tp_target.y} ${tp_target.z}`
-    );
-  } else {
-    bot.chat(
-      `/execute in minecraft:overworld run tp @p ${tp_target.x} ${tp_target.y} ${tp_target.z}`
-    );
-  }
-  let viewerStarted = false;
-
-  // Start the viewer immediately so receiver can accept the connection
-  const startViewer = () => {
-    if (!viewerStarted) {
-      console.log("Starting headless viewer");
-      mineflayerViewerhl(bot, {
-        output: `127.0.0.1:${args.port}`,
-        frames: -1,
-        width: 640,
-        height: 360,
-      });
-      viewerStarted = true;
-    }
-  };
-  startViewer();
-  // wait for 1 seconds to let the bot tp
+  console.log("Starting headless viewer");
+  mineflayerViewerhl(bot, {
+    output: `127.0.0.1:${args.port}`,
+    frames: -1,
+    width: 640,
+    height: 360,
+  });
+  const p = bot.entity.position;
+  console.log(
+    `Spawned at x=${p.x.toFixed(2)} y=${p.y.toFixed(2)} z=${p.z.toFixed(2)}`
+  );
   setTimeout(() => {
     // First move to a random position with inital range
-    bot.chat(
-      `/execute in minecraft:the_nether run tp @p ${tp_target.x} ${tp_target.y} ${tp_target.z}`
-    );
-    move(20);
-    bot.chat(
-      `/execute in minecraft:the_nether run tp @p ${tp_target.x} ${tp_target.y} ${tp_target.z}`
-    );
 
     // Track if we've started the viewer
-    let viewerStarted = false;
-
-    // Handle goal_reached events
-    bot.on("goal_reached", () => {
-      if (!viewerStarted) {
-        // This is the first goal_reached (initial move)
-        // Start lookaround after viewer is ready
-        startViewer();
-        let lk = lookaround();
-        bot.on("lookingdone", () => {
-          lk.next();
-        });
-        lk.next();
-      }
-      // Subsequent goal_reached events will be handled by the lookaround function
-    });
-
-    bot.on("path_update", (r) => {
-      const nodesPerTick = ((r.visitedNodes * 50) / r.time).toFixed(2);
+    console.log("Teleporting");
+    const x = bot.username === "Bot1" ? 66.0 : 68.0;
+    bot.chat(`/tp ${bot.username} ${x} ${55.0} ${77.0}`);
+    // bot.chat(
+    //   `/execute in minecraft:overworld run tp @p ${44.0} ${55.0} ${77.0}`
+    // );
+    setTimeout(async () => {
+      const p2 = bot.entity.position;
       console.log(
-        `I can get there in ${
-          r.path.length
-        } moves. Computation took ${r.time.toFixed(
+        `teleported to x=${p2.x.toFixed(2)} y=${p2.y.toFixed(
           2
-        )} ms (${nodesPerTick} nodes/tick). ${r.status}`
+        )} z=${p2.z.toFixed(2)}`
       );
-      if (r.status === "timeout") {
-        console.log("timeout, quit");
-        if (bot.viewer) {
-          bot.viewer.close();
-        }
-        bot.emit("abnormal_exit");
-        process.exit(1);
+      while (true) {
+        await spin360(1200);
       }
-    });
-
-    stuck_count = 0;
-    bot.on("path_stuck", () => {
-      stuck_count += 1;
-      if (stuck_count > 5) {
-        console.log("stuck for 5 times, quit");
-        // Close the viewer connection before exiting
-        if (bot.viewer) {
-          bot.viewer.close();
-        }
-        bot.emit("abnormal_exit");
-        process.exit(1);
-      }
-    });
+      // setTimeout(() => {
+      //   bot.emit("endtask");
+      // }, 5000);
+    }, 1000);
   }, 1000);
 });
+
+async function spin360(durationMs = 1200) {
+  const steps = 60; // higher = smoother
+  const startYaw = bot.entity.yaw; // current yaw
+  const pitch = bot.entity.pitch; // keep current pitch
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  for (let i = 1; i <= steps; i++) {
+    const yaw = startYaw + (i * 2 * Math.PI) / steps;
+    await bot.look(yaw, pitch, true); // true = force immediate head turn
+    await sleep(durationMs / steps);
+  }
+}

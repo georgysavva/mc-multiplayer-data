@@ -25,5 +25,5 @@ glxinfo -B || true  # don't hard-fail; just print if available
 
 echo "[entrypoint] Launching app..."
 # exec python3 run.py --name Bot --target village --output_path /output
-exec node senderhl.js --location nether_fortress --nvtype ABA --port $PORT --nvrange 15 --output_path /output --name $NAME
+exec node senderhl.js --location snowy_village_1 --nvtype ABA --port $PORT --nvrange 15 --output_path /output --name $NAME
 
