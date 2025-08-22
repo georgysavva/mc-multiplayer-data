@@ -1,7 +1,11 @@
 const mineflayer = require("mineflayer");
 const minimist = require("minimist");
-const mineflayerViewerhl = require("prismarine-viewer").headless;
-const mineflayerViewer = require("prismarine-viewer").mineflayer;
+const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
+const mineflayerVersion = require("mineflayer/package.json").version;
+console.log("mineflayer version:", mineflayerVersion);
+const prismarineVersion =
+  require("prismarine-viewer-colalab/package.json").version;
+console.log("prismarine-viewer version:", prismarineVersion);
 const {
   pathfinder,
   Movements,
@@ -31,8 +35,9 @@ const bot = mineflayer.createBot({
   username: args.name,
   host: "127.0.0.1",
   port: 25565,
+  version: "1.21.1",
 });
-
+console.log("bot version", bot.version);
 bot.loadPlugin(pathfinder);
 
 /*
@@ -193,12 +198,17 @@ function* lookaround() {
 }
 bot.once("spawn", () => {
   console.log("Starting headless viewer");
-  mineflayerViewerhl(bot, {
-    output: `127.0.0.1:${args.port}`,
-    frames: -1,
-    width: 640,
-    height: 360,
-  });
+  mineflayerViewerhl(
+    bot,
+    {},
+    {
+      // output: `${args.output_path}/output.mp4`,
+      output: `127.0.0.1:${args.port}`,
+      frames: 220,
+      width: 640,
+      height: 360,
+    }
+  );
   const p = bot.entity.position;
   console.log(
     `Spawned at x=${p.x.toFixed(2)} y=${p.y.toFixed(2)} z=${p.z.toFixed(2)}`

@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1-mesa-dev libglu1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
     libgl1-mesa-dri libegl1 libgles2 libgbm1 libosmesa6 \
     xvfb xauth x11-utils mesa-utils \
+    ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 
 
