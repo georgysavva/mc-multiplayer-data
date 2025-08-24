@@ -41,7 +41,7 @@ COPY . ./
 # Use a deterministic display
 
 
-RUN chmod +x entrypoint_sender.sh
+RUN chmod +x entrypoint_senders.sh
 RUN chmod +x entrypoint_receiver.sh
 
 CMD ["./entrypoint_sender.sh"]

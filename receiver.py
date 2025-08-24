@@ -17,11 +17,10 @@ HOST = ""
 PORT = 8089
 
 
-def process_frame_worker(frame_queue, output_path, time_now, name):
-    """后台处理帧的worker函数"""
-    print("saving to ", f"{output_path}/{time_now}_{name}.avi")
+def process_frame_worker(frame_queue, output_path, time_now):
+    print("saving to ", f"{output_path}/{time_now}.avi")
     out = cv2.VideoWriter(
-        f"{output_path}/{time_now}_{name}.avi",
+        f"{output_path}/{time_now}.avi",
         cv2.VideoWriter_fourcc(*"MJPG"),
         20,
         (640, 360),
@@ -30,7 +29,6 @@ def process_frame_worker(frame_queue, output_path, time_now, name):
 
     while True:
         try:
-            # 从队列获取数据，设置超时以避免无限等待
             data = frame_queue.get(timeout=5)
             if data is None:  # 结束信号
                 break
@@ -48,12 +46,8 @@ def process_frame_worker(frame_queue, output_path, time_now, name):
             pos["yaw"] = round(pos["yaw"], 3)
             pos["pitch"] = round(pos["pitch"], 3)
 
-            # 添加位置信息
             pos["extra_info"] = {
                 "seed": 42,
-                "location": args.location,
-                "nvtype": args.nvtype,
-                "nvrange": args.nvrange,
             }
             action_data.append(pos)
 
@@ -89,7 +83,7 @@ def process_frame_worker(frame_queue, output_path, time_now, name):
     # 清理工作
     out.release()
     print("Total frames processed:", len(action_data))
-    with open(os.path.join(output_path, f"{time_now}_{name}.json"), "w") as f:
+    with open(os.path.join(output_path, f"{time_now}.json"), "w") as f:
         json.dump(action_data, f)
 
 
@@ -122,16 +116,8 @@ def get_recv_buffer_used(sock):
 
 # 解析命令行参数
 argparser = argparse.ArgumentParser(description="Receiver script")
-argparser.add_argument(
-    "--location", type=str, default="default_location", help="minecraft location(biome)"
-)
-argparser.add_argument("--name", type=str, default="Bot", help="minecraft bot name")
-argparser.add_argument(
-    "--nvtype", type=str, default="normal", help="ABA, ABCA or centered"
-)
+argparser.add_argument("--name", type=str, required=True, help="minecraft bot name")
 argparser.add_argument("--port", type=int, default=8089, help="Port number")
-argparser.add_argument("--nvrange", type=int, default=30, help="range")
-argparser.add_argument("--teaser", action="store_true", help="teaser mode")
 argparser.add_argument("--output_path", type=str, required=True, help="output path")
 
 args = argparser.parse_args()
@@ -139,10 +125,8 @@ PORT = args.port
 
 # 创建输出目录
 time_now = datetime.now().strftime("%m-%d_%H-%M-%S")
-output_path = f"{args.output_path}/{args.nvtype}/{args.location}/{args.nvrange}"
+output_path = f"{args.output_path}/{args.name}/"
 
-if args.teaser:
-    output_path = f"./teaser_data"
 if not os.path.exists(output_path):
     os.makedirs(output_path)
 
@@ -151,21 +135,20 @@ frame_queue = Queue()
 
 # 启动后台处理进程
 processor = Thread(
-    target=process_frame_worker, args=(frame_queue, output_path, time_now, args.name)
+    target=process_frame_worker, args=(frame_queue, output_path, time_now)
 )
 processor.daemon = True
 processor.start()
 
 # 设置socket
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print("Socket created")
+print(f"Socket created at {PORT} for {args.name}")
 
 s.bind((HOST, PORT))
 print("Socket bind complete")
 s.listen(10)
 print("Socket now listening")
 
-# 设置连接超时时间为60秒
 s.settimeout(60)
 try:
     conn, addr = s.accept()
@@ -184,7 +167,7 @@ try:
     while True:
         t0 = time.time()
         pos_length = recvint(conn)
-        if pos_length == 0 or img_count == 250:
+        if pos_length == 0 or img_count == 100:
             print(f"recv 0 length, normal end. {pos_length} {img_count}")
             retcode = 0
             break
@@ -217,16 +200,12 @@ try:
         img = cv2.imdecode(
             np.frombuffer(stringData, dtype=np.uint8), cv2.IMREAD_UNCHANGED
         )
-        if args.teaser:
-            # directly save the image
-            if img_count % 5 == 0:
-                cv2.imwrite(os.path.join(output_path, f"{img_count}.png"), img)
-        else:
-            try:
-                frame_queue.put((img, pos), timeout=1)
-            except Queue.Full:
-                print("Queue full, dropping frame")
-            continue
+        print(f"received {img_count}")
+        try:
+            frame_queue.put((img, pos), timeout=1)
+        except Queue.Full:
+            print("Queue full, dropping frame")
+        continue
 
         t1 = time.time()
         # print(f"Processed in {(t1 - t0)*1000:.2f}ms")
