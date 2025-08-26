@@ -31,7 +31,8 @@ WORKDIR /usr/src/app
 # Install dependencies first to leverage Docker layer caching
 COPY package.json ./
 RUN npm install 
-RUN echo "33602ba936805c6de8d8b19aca21cf5c77604271" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "1" && npm install github:georgysavva/mineflayer
+RUN echo "18" && npm install github:georgysavva/prismarine-viewer-colalab
 COPY requirements.txt ./
 RUN python -m pip install --upgrade pip setuptools wheel && \
     python -m pip install --no-cache-dir -r requirements.txt

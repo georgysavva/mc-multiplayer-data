@@ -5,6 +5,7 @@ import json
 import os
 import socket
 import time
+import traceback
 from datetime import datetime
 from pathlib import Path
 from queue import Empty, Queue
@@ -153,7 +154,7 @@ while True:
         s.close()
         exit(1)
 
-    conn.settimeout(10)
+    # conn.settimeout(10)
     conn.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1024 * 1024)  # 1MB
     print(f"Socket connected {id}")
 
@@ -176,7 +177,7 @@ while True:
                 print("Error receiving position data")
                 retcode = 1
                 break
-
+            print("pos data: ", pos_data.decode("utf-8"))
             pos = json.loads(pos_data.decode("utf-8"))
             pos["frame_count"] = img_count
             length = recvint(conn)
@@ -208,6 +209,7 @@ while True:
         retcode = 1
     except Exception as e:
         print(f"Error: {e}")
+        traceback.print_exc()
         retcode = 1
     finally:
         frame_queue.put(None)

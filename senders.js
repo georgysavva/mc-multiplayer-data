@@ -2,6 +2,10 @@ const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 
 // two-bots-run-together.js
 const minimist = require("minimist");
+console.log(
+  "prismarine-viewer-colalab version:",
+  require("prismarine-viewer-colalab/package.json").version
+);
 const mineflayer = require("mineflayer");
 const {
   pathfinder,

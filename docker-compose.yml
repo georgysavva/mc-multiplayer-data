@@ -11,7 +11,7 @@ services:
       ENFORCE_SECURE_PROFILE: false
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data4:/data
+      - ./data5:/data
   senders:
     build: .
     depends_on:
