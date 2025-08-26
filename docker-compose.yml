@@ -5,15 +5,13 @@ services:
     network_mode: host
     environment:
       EULA: "TRUE"
-      OPS: |
-        Bot1
-        Bot2
       VERSION: 1.21
+      MODE: creative
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data3:/data
+      - ./data4:/data
   senders:
     build: .
     depends_on:

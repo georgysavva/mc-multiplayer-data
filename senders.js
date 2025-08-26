@@ -74,24 +74,30 @@ const botB = makeBot({
 
 linkBotsToChase(botA, botB);
 linkBotsToChase(botB, botA);
+// setTimeout(() => {
+// }, 5000);
 
 /**
  * Make follower bot continually pathfind toward the other bot as soon as both are in-world.
  * Uses GoalFollow with dynamic=true so the path updates as the target moves.
  */
 function linkBotsToChase(follower, leader) {
-  const leaderName = leader.username;
   let interval = null;
 
   function tryStartFollowing() {
+    const leaderName = leader.username;
     const targetEntity =
       follower.players[leaderName] && follower.players[leaderName].entity;
     if (!targetEntity) return;
 
-    console.log(`[${follower.username}] following ${leaderName}…`);
+    console.log(
+      `[${follower.username}] ${follower.entity.position} following ${leaderName}… ${leader.entity.position}`
+    );
     follower.pathfinder.setGoal(new GoalFollow(targetEntity, 1), true); // range=1, dynamic=true
     clearInterval(interval);
-    interval = null;
+    follower.on("goal_reached", () => {
+      console.log(`[${follower.username}] reached goal: ${leaderName}`);
+    });
   }
 
   // Start trying after follower has spawned
@@ -103,25 +109,10 @@ function linkBotsToChase(follower, leader) {
   // When either spawns, re-arm the follow logic
   follower.once("spawn", armFollow);
   leader.once("spawn", armFollow);
-
-  // If the leader entity despawns/respawns, re-arm
-  // follower.on('entityGone', (entity) => {
-  //   const current = follower.players[leaderName] && follower.players[leaderName].entity;
-  //   if (entity && current && entity.id === current.id) {
-  //     console.log(`[${follower.username}] lost sight of ${leaderName}, reacquiring…`);
-  //     armFollow();
-  //   }
-  // });
-
-  // // If movement gets stuck, you can periodically “nudge” replans (optional)
-  // setInterval(() => {
-  //   if (!follower.entity) return;
-  //   // If not currently pathfinding, try to re-acquire
-  //   if (!follower.pathfinder.isMoving()) {
-  //     const targetEntity = follower.players[leaderName] && follower.players[leaderName].entity;
-  //     if (targetEntity) {
-  //       follower.pathfinder.setGoal(new GoalFollow(targetEntity, 1), true);
-  //     }
-  //   }
-  // }, 5000);
 }
+
+setTimeout(() => {
+  console.log("ending");
+  botA.emit("endtask");
+  botB.emit("endtask");
+}, 150000);

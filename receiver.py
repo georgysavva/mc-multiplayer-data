@@ -17,10 +17,10 @@ HOST = ""
 PORT = 8089
 
 
-def process_frame_worker(frame_queue, output_path, time_now):
-    print("saving to ", f"{output_path}/{time_now}.avi")
+def process_frame_worker(frame_queue, output_path):
+    print("saving to ", f"{output_path}.avi")
     out = cv2.VideoWriter(
-        f"{output_path}/{time_now}.avi",
+        f"{output_path}.avi",
         cv2.VideoWriter_fourcc(*"MJPG"),
         20,
         (640, 360),
@@ -35,9 +35,6 @@ def process_frame_worker(frame_queue, output_path, time_now):
 
             img, pos = data
             img_count = pos.get("frame_count", 0)
-
-            if img_count < 20:  # 跳过前20帧
-                continue
 
             # x,y,z,yaw,pitch 保留三位小数
             pos["x"] = round(pos["x"], 3)
@@ -83,7 +80,7 @@ def process_frame_worker(frame_queue, output_path, time_now):
     # 清理工作
     out.release()
     print("Total frames processed:", len(action_data))
-    with open(os.path.join(output_path, f"{time_now}.json"), "w") as f:
+    with open(output_path + ".json", "w") as f:
         json.dump(action_data, f)
 
 
@@ -117,6 +114,7 @@ def get_recv_buffer_used(sock):
 # 解析命令行参数
 argparser = argparse.ArgumentParser(description="Receiver script")
 argparser.add_argument("--name", type=str, required=True, help="minecraft bot name")
+argparser.add_argument("--start_id", type=int, default=0, help="minecraft bot name")
 argparser.add_argument("--port", type=int, default=8089, help="Port number")
 argparser.add_argument("--output_path", type=str, required=True, help="output path")
 
@@ -124,21 +122,6 @@ args = argparser.parse_args()
 PORT = args.port
 
 # 创建输出目录
-time_now = datetime.now().strftime("%m-%d_%H-%M-%S")
-output_path = f"{args.output_path}/{args.name}/"
-
-if not os.path.exists(output_path):
-    os.makedirs(output_path)
-
-# 创建帧处理队列
-frame_queue = Queue()
-
-# 启动后台处理进程
-processor = Thread(
-    target=process_frame_worker, args=(frame_queue, output_path, time_now)
-)
-processor.daemon = True
-processor.start()
 
 # 设置socket
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -149,83 +132,85 @@ print("Socket bind complete")
 s.listen(10)
 print("Socket now listening")
 
-s.settimeout(60)
-try:
-    conn, addr = s.accept()
-except socket.timeout:
-    print("No connection received within 60 seconds, exiting...")
-    s.close()
-    exit(1)
+id = args.start_id
+while True:
+    output_path = f"{args.output_path}/{args.name}_{id}"
 
-conn.settimeout(10)
-conn.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1024 * 1024)  # 1MB
-print("Socket connected")
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
 
-img_count = 0
-retcode = 0
-try:
-    while True:
-        t0 = time.time()
-        pos_length = recvint(conn)
-        if pos_length == 0 or img_count == 100:
-            print(f"recv 0 length, normal end. {pos_length} {img_count}")
-            retcode = 0
-            break
+    # 创建帧处理队列
+    frame_queue = Queue()
 
-        pos_data = recvall(conn, pos_length)
-        if pos_data is None:
-            print("Error receiving position data")
-            retcode = 1
-            break
+    # 启动后台处理进程
+    processor = Thread(target=process_frame_worker, args=(frame_queue, output_path))
+    processor.daemon = True
+    processor.start()
+    try:
+        conn, addr = s.accept()
+    except socket.timeout:
+        print("No connection received within 60 seconds, exiting...")
+        s.close()
+        exit(1)
 
-        pos = json.loads(pos_data.decode("utf-8"))
-        pos["frame_count"] = img_count
-        length = recvint(conn)
-        if length == 0:
-            print("ERROR! recv 0 image length")
-            retcode = 1
-            break
+    conn.settimeout(10)
+    conn.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1024 * 1024)  # 1MB
+    print(f"Socket connected {id}")
 
-        stringData = recvall(conn, int(length))
-        if stringData is None:
-            print("[Error] Received None instead of valid image data")
-            retcode = 1
-            break
+    img_count = 0
+    retcode = 0
+    try:
+        while True:
+            t0 = time.time()
+            try:
+                pos_length = recvint(conn)
+            except Exception as e:
+                pos_length = 0
+            if pos_length == 0:
+                print(f"recv 0 length, normal end. {id}")
+                retcode = 0
+                break
 
-        img_count += 1
-        if img_count > 2500:
-            print("img_count > 2500, probably stuck, quit")
-            retcode = 1
-            break
-        img = cv2.imdecode(
-            np.frombuffer(stringData, dtype=np.uint8), cv2.IMREAD_UNCHANGED
-        )
-        print(f"received {img_count}")
-        try:
-            frame_queue.put((img, pos), timeout=1)
-        except Queue.Full:
-            print("Queue full, dropping frame")
-        continue
+            pos_data = recvall(conn, pos_length)
+            if pos_data is None:
+                print("Error receiving position data")
+                retcode = 1
+                break
 
-        t1 = time.time()
-        # print(f"Processed in {(t1 - t0)*1000:.2f}ms")
+            pos = json.loads(pos_data.decode("utf-8"))
+            pos["frame_count"] = img_count
+            length = recvint(conn)
+            if length == 0:
+                print("ERROR! recv 0 image length")
+                retcode = 1
+                break
 
-except socket.timeout:
-    print("Socket timeout")
-    retcode = 1
-except Exception as e:
-    print(f"Error: {e}")
-    retcode = 1
-finally:
-    if retcode == 0:
+            stringData = recvall(conn, int(length))
+            if stringData is None:
+                print("[Error] Received None instead of valid image data")
+                retcode = 1
+                break
+
+            img_count += 1
+            img = cv2.imdecode(
+                np.frombuffer(stringData, dtype=np.uint8), cv2.IMREAD_UNCHANGED
+            )
+            try:
+                frame_queue.put((img, pos))
+            except Queue.Full:
+                print("Queue full, dropping frame")
+            continue
+
+            # print(f"Processed in {(t1 - t0)*1000:.2f}ms")
+
+    except socket.timeout:
+        print("Socket timeout")
+        retcode = 1
+    except Exception as e:
+        print(f"Error: {e}")
+        retcode = 1
+    finally:
         frame_queue.put(None)
-        processor.join(timeout=50)
-    else:
-        avi_path = os.path.join(output_path, f"{time_now}.avi")
-        if os.path.exists(avi_path):
-            os.remove(avi_path)
-        json_path = os.path.join(output_path, f"{time_now}.json")
-        if os.path.exists(json_path):
-            os.remove(json_path)
-    conn.close()
-    exit(retcode)
+        processor.join()
+        conn.close()
+        id += 1
