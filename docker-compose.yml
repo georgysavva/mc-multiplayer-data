@@ -21,7 +21,7 @@ services:
     network_mode: host
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output:/output
+      - ./output2:/output
     command: ./entrypoint_senders.sh
   receiver1:
     build: .
@@ -32,7 +32,7 @@ services:
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output:/output
+      - ./output2:/output
     command: ./entrypoint_receiver.sh
   receiver2:
     build: .
@@ -43,5 +43,14 @@ services:
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output:/output
+      - ./output2:/output
     command: ./entrypoint_receiver.sh
+
+  align:
+    build: .
+    network_mode: host
+    tty: true
+    volumes:
+      # attach the relative directory 'data' to the container's /data path
+      - ./output2:/output
+    command: python align_videos.py --dir /output --name1 Alpha_0 --name2 Bravo_0

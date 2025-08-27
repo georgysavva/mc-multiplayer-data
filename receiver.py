@@ -125,6 +125,9 @@ PORT = args.port
 # 创建输出目录
 
 # 设置socket
+
+if not os.path.exists(args.output_path):
+    os.makedirs(args.output_path)
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 print(f"Socket created at {PORT} for {args.name}")
 
@@ -135,13 +138,10 @@ print("Socket now listening")
 
 id = args.start_id
 while True:
-    output_path = f"{args.output_path}/{args.name}_{id}"
-
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
 
     # 创建帧处理队列
     frame_queue = Queue()
+    output_path = f"{args.output_path}/{args.name}_{id}"
 
     # 启动后台处理进程
     processor = Thread(target=process_frame_worker, args=(frame_queue, output_path))
