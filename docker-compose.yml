@@ -7,11 +7,14 @@ services:
       EULA: "TRUE"
       VERSION: 1.21
       MODE: creative
+      OPS: |
+        Alpha
+        Bravo
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data5:/data
+      - ./data14:/data
   senders:
     build: .
     depends_on:
@@ -26,7 +29,7 @@ services:
   receiver1:
     build: .
     environment:
-      PORT: 8090
+      PORT: 8091
       NAME: Alpha
     network_mode: host
     tty: true
@@ -37,7 +40,7 @@ services:
   receiver2:
     build: .
     environment:
-      PORT: 8091
+      PORT: 8092
       NAME: Bravo
     network_mode: host
     tty: true
@@ -46,11 +49,11 @@ services:
       - ./output2:/output
     command: ./entrypoint_receiver.sh
 
-  align:
+  script:
     build: .
     network_mode: host
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./output2:/output
-    command: python align_videos.py --dir /output --name1 Alpha_0 --name2 Bravo_0
+    command: python align_videos.py --dir /output --name1 Alpha_2 --name2 Bravo_2

@@ -19,14 +19,9 @@ PORT = 8089
 
 
 def process_frame_worker(frame_queue, output_path):
-    print("saving to ", f"{output_path}.avi")
-    out = cv2.VideoWriter(
-        f"{output_path}.avi",
-        cv2.VideoWriter_fourcc(*"MJPG"),
-        20,
-        (640, 360),
-    )
     action_data = []
+    frames = []
+    out = None
 
     while True:
         try:
@@ -49,7 +44,7 @@ def process_frame_worker(frame_queue, output_path):
             }
             action_data.append(pos)
 
-            # 写入视频
+            # Store frames for later processing
             if img is None:
                 print(f"Error: Received None image at frame {img_count}")
                 continue
@@ -60,7 +55,8 @@ def process_frame_worker(frame_queue, output_path):
                 print(f"Error: Empty image at frame {img_count}")
                 continue
 
-            out.write(img)
+            frames.append(img)
+            
         except Empty:
             # print("Frame queue timeout (no new frames in 5 seconds)")
             continue
@@ -78,11 +74,34 @@ def process_frame_worker(frame_queue, output_path):
                 )
             continue
 
+    # Calculate real FPS and cap at 20
+    print("Total frames processed:", len(action_data))
+    if len(action_data) > 1:
+        real_fps = len(action_data) / ((action_data[-1]['renderTime'] - action_data[0]['renderTime']) / 1000)
+        video_fps = min(real_fps, 20)
+    else:
+        real_fps = 0
+        video_fps = 20
+    
+    print("Real FPS:", real_fps)
+    print("Video FPS (capped at 20):", video_fps)
+    
+    # Now create video writer with calculated FPS and write all frames
+    out = cv2.VideoWriter(
+        f"{output_path}.mp4",
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        video_fps,
+        (640, 360),
+    )
+    
+    for frame in frames:
+        out.write(frame)
+    
     # 清理工作
     out.release()
-    print("Total frames processed:", len(action_data))
     with open(output_path + ".json", "w") as f:
         json.dump(action_data, f)
+    print("saved to ", f"{output_path}.mp4")
 
 
 def recvall(sock, count):
@@ -141,7 +160,8 @@ while True:
 
     # 创建帧处理队列
     frame_queue = Queue()
-    output_path = f"{args.output_path}/{args.name}_{id}"
+    now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = f"{args.output_path}/{now_str}_{args.name}"
 
     # 启动后台处理进程
     processor = Thread(target=process_frame_worker, args=(frame_queue, output_path))

@@ -29,13 +29,14 @@ ENV PATH="/opt/venv/bin:${PATH}"
 WORKDIR /usr/src/app
 
 # Install dependencies first to leverage Docker layer caching
-COPY package.json ./
-RUN npm install 
-RUN echo "1" && npm install github:georgysavva/mineflayer
-RUN echo "18" && npm install github:georgysavva/prismarine-viewer-colalab
 COPY requirements.txt ./
 RUN python -m pip install --upgrade pip setuptools wheel && \
     python -m pip install --no-cache-dir -r requirements.txt
+COPY package.json ./
+RUN npm install 
+RUN echo "35" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "41" && npm install github:georgysavva/mineflayer
+RUN echo "47" && npm install github:georgysavva/mineflayer-pathfinder
 
 # Copy the bot script
 COPY . ./
