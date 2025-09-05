@@ -176,8 +176,13 @@ class BotCoordinator extends EventEmitter {
         socket.on('data', (data) => {
           try {
             const message = JSON.parse(data.toString());
-            console.log(`[Coordinator] Received: ${message.eventName}`);
-            this.emit(message.eventName, message.eventParams);
+            const listenerCount = this.listenerCount(message.eventName);
+            if (listenerCount > 0) {
+              console.log(`[Coordinator] Received: ${message.eventName} (${listenerCount} listeners) - emitting`);
+              this.emit(message.eventName, message.eventParams);
+            } else {
+              console.log(`[Coordinator] Received: ${message.eventName} (no listeners)`);
+            }
           } catch (err) {
             console.error('[Coordinator] Parse error:', err);
           }
@@ -203,8 +208,13 @@ class BotCoordinator extends EventEmitter {
     client.on('data', (data) => {
       try {
         const message = JSON.parse(data.toString());
-        console.log(`[Client] Received: ${message.eventName}`);
-        this.emit(message.eventName, message.eventParams);
+        const listenerCount = this.listenerCount(message.eventName);
+        if (listenerCount > 0) {
+          console.log(`[Client] Received: ${message.eventName} (${listenerCount} listeners) - emitting`);
+          this.emit(message.eventName, message.eventParams);
+        } else {
+          console.log(`[Client] Received: ${message.eventName} (no listeners)`);
+        }
       } catch (err) {
         console.error('[Client] Parse error:', err);
       }
@@ -218,15 +228,15 @@ class BotCoordinator extends EventEmitter {
   sendToOtherBot(eventName, eventParams, location, iterationID) {
     if (this.otherBotConnection) {
       const message = JSON.stringify({ eventName, eventParams });
-      console.log(`[sendToOtherBot] [iter ${iterationID}] ${location}: Sending ${eventName}`);
+      console.log(`[sendToOtherBot] [iter ${iterationID}] ${location}: Sending ${eventName} (connection available)`);
       this.otherBotConnection.write(message);
     } else {
-      console.log(`[sendToOtherBot] [iter ${iterationID}] ${location}: No connection to other bot`);
+      console.log(`[sendToOtherBot] [iter ${iterationID}] ${location}: No connection to other bot for ${eventName}`);
     }
   }
 
-  onEvent(eventName, handler) {
-    this.on(eventName, handler);
+  onceEvent(eventName, handler) {
+    this.once(eventName, handler);
   }
 }
 
@@ -353,7 +363,7 @@ function getOnSpawnFn(bot, host, receiverPort, botRng, coordinator) {
       height: 360,
     });
     const iterationID = 0;
-    coordinator.onEvent(
+    coordinator.onceEvent(
       "alignPositionsPhase",
       getOnAlignPositionsPhaseFn(bot, botRng, coordinator, iterationID)
     );
@@ -417,7 +427,7 @@ function getOnAlignPositionsPhaseFn(bot, botRng, coordinator, iterationID) {
     });
 
     console.log(`[iter ${iterationID}] [${bot.username}] reached midpoint`);
-    coordinator.onEvent(
+    coordinator.onceEvent(
       "resetPositionsPhase",
       getOnResetPositionsPhaseFn(bot, botRng, coordinator, iterationID)
     );
@@ -445,7 +455,7 @@ function getOnResetPositionsPhaseFn(bot, botRng, coordinator, iterationID) {
       }] resetting position with distance ${distance.toFixed(2)}`
     );
     await move(bot, distance);
-    coordinator.onEvent(
+    coordinator.onceEvent(
       "walkAndLookPhase",
       getOnWalkAndLookPhaseFn(bot, botRng, coordinator, iterationID)
     );
@@ -476,7 +486,7 @@ function getOnWalkAndLookPhaseFn(bot, botRng, coordinator, iterationID) {
     );
     await run(bot, durationMs);
     if (iterationID == args.iterations_num_per_episode - 1) {
-      coordinator.onEvent(
+      coordinator.onceEvent(
         "stopPhase",
         getOnStopPhaseFn(bot, botRng, coordinator, iterationID)
       );
@@ -488,7 +498,7 @@ function getOnWalkAndLookPhaseFn(bot, botRng, coordinator, iterationID) {
       );
       return;
     }
-    coordinator.onEvent(
+    coordinator.onceEvent(
       "alignPositionsPhase",
       getOnAlignPositionsPhaseFn(bot, botRng, coordinator, iterationID + 1)
     );
