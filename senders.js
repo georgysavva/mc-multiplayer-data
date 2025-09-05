@@ -506,17 +506,13 @@ const botA = makeBot({
   port: args.port,
 });
 
-// const botB = makeBot({
-//   username: args.b,
-//   host: args.host,
-//   port: args.port,
-// });
+const botB = makeBot({
+  username: args.b,
+  host: args.host,
+  port: args.port,
+});
 const botsRngSeed = Date.now().toString();
 const botARng = seedrandom(botsRngSeed);
 const botBRng = seedrandom(botsRngSeed);
-botA.once(
-  "spawn",
-  getOnSpawnFn(botA, args.host, args.a_port, botARng, undefined)
-);
-// botA.once("spawn", getOnSpawnFn(botA, args.host, args.a_port, botARng, botB));
-// botB.once("spawn", getOnSpawnFn(botB, args.host, args.b_port, botBRng, botA));
+botA.once("spawn", getOnSpawnFn(botA, args.host, args.a_port, botARng, botB));
+botB.once("spawn", getOnSpawnFn(botB, args.host, args.b_port, botBRng, botA));
