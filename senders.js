@@ -17,6 +17,8 @@ const {
   Movements,
   goals: { GoalNear, GoalNearXZ, GoalBlock, GoalFollow },
 } = require("mineflayer-pathfinder");
+const net = require('net');
+const EventEmitter = require('events');
 
 const mcDataLoader = require("minecraft-data");
 const Vec3 = require("vec3").Vec3;
@@ -25,10 +27,11 @@ const args = minimist(process.argv.slice(2), {
   default: {
     host: "127.0.0.1",
     port: 25565,
-    a_port: 8091,
-    b_port: 8092,
-    a: "Alpha",
-    b: "Bravo",
+    receiver_port: 8091,
+    bot_name: "Alpha",
+    bot_id: "A",
+    coord_port: 9000,
+    is_coordinator: false,
     iterations_num_per_episode: 3,
   },
 });
@@ -155,17 +158,75 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const rand = (min, max) => Math.random() * (max - min) + min;
 const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-function emitWithLog(bot, eventName, eventParams, location, iterationID) {
-  const listenerCount = bot.listenerCount(eventName);
-  if (listenerCount > 0) {
-    console.log(
-      `[emitWithLog] [iter ${iterationID}] ${location}: Emitting ${eventName} to ${bot.username} (${listenerCount} listeners)`
-    );
-    bot.emit(eventName, eventParams);
-  } else {
-    console.log(
-      `[emitWithLog] [iter ${iterationID}] ${location}: No listeners for ${eventName} on ${bot.username}`
-    );
+class BotCoordinator extends EventEmitter {
+  constructor(isCoordinator, coordPort) {
+    super();
+    this.isCoordinator = isCoordinator;
+    this.coordPort = coordPort;
+    this.otherBotConnection = null;
+    this.server = null;
+    this.setupConnection();
+  }
+
+  setupConnection() {
+    if (this.isCoordinator) {
+      this.server = net.createServer((socket) => {
+        console.log('[Coordinator] Other bot connected');
+        this.otherBotConnection = socket;
+        socket.on('data', (data) => {
+          try {
+            const message = JSON.parse(data.toString());
+            console.log(`[Coordinator] Received: ${message.eventName}`);
+            this.emit(message.eventName, message.eventParams);
+          } catch (err) {
+            console.error('[Coordinator] Parse error:', err);
+          }
+        });
+        socket.on('close', () => {
+          console.log('[Coordinator] Other bot disconnected');
+          this.otherBotConnection = null;
+        });
+      });
+      this.server.listen(this.coordPort, () => {
+        console.log(`[Coordinator] Server listening on port ${this.coordPort}`);
+      });
+    } else {
+      this.connectToCoordinator();
+    }
+  }
+
+  connectToCoordinator() {
+    const client = net.createConnection({ port: this.coordPort }, () => {
+      console.log('[Client] Connected to coordinator');
+      this.otherBotConnection = client;
+    });
+    client.on('data', (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        console.log(`[Client] Received: ${message.eventName}`);
+        this.emit(message.eventName, message.eventParams);
+      } catch (err) {
+        console.error('[Client] Parse error:', err);
+      }
+    });
+    client.on('close', () => {
+      console.log('[Client] Disconnected from coordinator');
+      this.otherBotConnection = null;
+    });
+  }
+
+  sendToOtherBot(eventName, eventParams, location, iterationID) {
+    if (this.otherBotConnection) {
+      const message = JSON.stringify({ eventName, eventParams });
+      console.log(`[sendToOtherBot] [iter ${iterationID}] ${location}: Sending ${eventName}`);
+      this.otherBotConnection.write(message);
+    } else {
+      console.log(`[sendToOtherBot] [iter ${iterationID}] ${location}: No connection to other bot`);
+    }
+  }
+
+  onEvent(eventName, handler) {
+    this.on(eventName, handler);
   }
 }
 
@@ -272,7 +333,7 @@ async function run(bot, durationMs) {
   }
 }
 
-function getOnSpawnFn(bot, host, receiverPort, botRng, otherBot) {
+function getOnSpawnFn(bot, host, receiverPort, botRng, coordinator) {
   return async () => {
     await sleep(10000);
     const mcData = mcDataLoader(bot.version);
@@ -292,12 +353,11 @@ function getOnSpawnFn(bot, host, receiverPort, botRng, otherBot) {
       height: 360,
     });
     const iterationID = 0;
-    bot.once(
+    coordinator.onEvent(
       "alignPositionsPhase",
-      getOnAlignPositionsPhaseFn(bot, botRng, otherBot, iterationID)
+      getOnAlignPositionsPhaseFn(bot, botRng, coordinator, iterationID)
     );
-    emitWithLog(
-      otherBot,
+    coordinator.sendToOtherBot(
       "alignPositionsPhase",
       bot.entity.position,
       "spawn phase end",
@@ -305,17 +365,16 @@ function getOnSpawnFn(bot, host, receiverPort, botRng, otherBot) {
     );
   };
 }
-function getOnAlignPositionsPhaseFn(bot, botRng, otherBot, iterationID) {
+function getOnAlignPositionsPhaseFn(bot, botRng, coordinator, iterationID) {
   return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
+    coordinator.sendToOtherBot(
       "alignPositionsPhase",
       bot.entity.position,
       "alignPositionsPhase beginning",
       iterationID
     );
     console.log(
-      `[iter ${iterationID}] [${bot.username}] aligns itself with ${otherBot.username} at ${otherBotPosition} (going to midpoint)`
+      `[iter ${iterationID}] [${bot.username}] aligns itself with other bot at ${JSON.stringify(otherBotPosition)} (going to midpoint)`
     );
 
     const botPosition = bot.entity.position.clone();
@@ -358,13 +417,11 @@ function getOnAlignPositionsPhaseFn(bot, botRng, otherBot, iterationID) {
     });
 
     console.log(`[iter ${iterationID}] [${bot.username}] reached midpoint`);
-    bot.once(
+    coordinator.onEvent(
       "resetPositionsPhase",
-
-      getOnResetPositionsPhaseFn(bot, botRng, otherBot, iterationID)
+      getOnResetPositionsPhaseFn(bot, botRng, coordinator, iterationID)
     );
-    emitWithLog(
-      otherBot,
+    coordinator.sendToOtherBot(
       "resetPositionsPhase",
       bot.entity.position.clone(),
       "alignPositionsPhase end",
@@ -372,10 +429,9 @@ function getOnAlignPositionsPhaseFn(bot, botRng, otherBot, iterationID) {
     );
   };
 }
-function getOnResetPositionsPhaseFn(bot, botRng, otherBot, iterationID) {
+function getOnResetPositionsPhaseFn(bot, botRng, coordinator, iterationID) {
   return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
+    coordinator.sendToOtherBot(
       "resetPositionsPhase",
       bot.entity.position.clone(),
       "resetPositionsPhase beginning",
@@ -389,12 +445,11 @@ function getOnResetPositionsPhaseFn(bot, botRng, otherBot, iterationID) {
       }] resetting position with distance ${distance.toFixed(2)}`
     );
     await move(bot, distance);
-    bot.once(
+    coordinator.onEvent(
       "walkAndLookPhase",
-      getOnWalkAndLookPhaseFn(bot, botRng, otherBot, iterationID)
+      getOnWalkAndLookPhaseFn(bot, botRng, coordinator, iterationID)
     );
-    emitWithLog(
-      otherBot,
+    coordinator.sendToOtherBot(
       "walkAndLookPhase",
       bot.entity.position.clone(),
       "resetPositionsPhase end",
@@ -402,10 +457,9 @@ function getOnResetPositionsPhaseFn(bot, botRng, otherBot, iterationID) {
     );
   };
 }
-function getOnWalkAndLookPhaseFn(bot, botRng, otherBot, iterationID) {
+function getOnWalkAndLookPhaseFn(bot, botRng, coordinator, iterationID) {
   return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
+    coordinator.sendToOtherBot(
       "walkAndLookPhase",
       bot.entity.position.clone(),
       "walkAndLookPhase beginning",
@@ -422,12 +476,11 @@ function getOnWalkAndLookPhaseFn(bot, botRng, otherBot, iterationID) {
     );
     await run(bot, durationMs);
     if (iterationID == args.iterations_num_per_episode - 1) {
-      bot.once(
+      coordinator.onEvent(
         "stopPhase",
-        getOnStopPhaseFn(bot, botRng, otherBot, iterationID)
+        getOnStopPhaseFn(bot, botRng, coordinator, iterationID)
       );
-      emitWithLog(
-        otherBot,
+      coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
         "walkAndLookPhase end",
@@ -435,12 +488,11 @@ function getOnWalkAndLookPhaseFn(bot, botRng, otherBot, iterationID) {
       );
       return;
     }
-    bot.once(
+    coordinator.onEvent(
       "alignPositionsPhase",
-      getOnAlignPositionsPhaseFn(bot, botRng, otherBot, iterationID + 1)
+      getOnAlignPositionsPhaseFn(bot, botRng, coordinator, iterationID + 1)
     );
-    emitWithLog(
-      otherBot,
+    coordinator.sendToOtherBot(
       "alignPositionsPhase",
       bot.entity.position.clone(),
       "walkAndLookPhase end",
@@ -449,13 +501,9 @@ function getOnWalkAndLookPhaseFn(bot, botRng, otherBot, iterationID) {
   };
 }
 
-let endedBots = 0;
-const totalBots = 2;
-
-function getOnStopPhaseFn(bot, botRng, otherBot, iterationID) {
+function getOnStopPhaseFn(bot, botRng, coordinator, iterationID) {
   return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
+    coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
       "stopPhase beginning",
@@ -465,15 +513,8 @@ function getOnStopPhaseFn(bot, botRng, otherBot, iterationID) {
     bot.emit("endtask");
     await sleep(5000);
 
-    // Track completed bots and exit when both are done
-    if (!endedBots) endedBots = 0;
-    endedBots++;
-    console.log(`[${bot.username}] task completed (${endedBots}/${totalBots})`);
-
-    if (endedBots >= totalBots) {
-      console.log("Both bots finished their tasks. Exiting program...");
-      process.exit(0);
-    }
+    console.log(`[${bot.username}] task completed`);
+    process.exit(0);
   };
 }
 
@@ -498,21 +539,16 @@ function makeBot({ username, host, port }) {
 }
 
 console.log("DEBUG environment variable:", process.env.DEBUG);
+console.log(`Starting bot: ${args.bot_name} (ID: ${args.bot_id})`);
+console.log(`Coordinator: ${args.is_coordinator}, Port: ${args.coord_port}`);
 
-
-const botA = makeBot({
-  username: args.a,
+const bot = makeBot({
+  username: args.bot_name,
   host: args.host,
   port: args.port,
 });
 
-const botB = makeBot({
-  username: args.b,
-  host: args.host,
-  port: args.port,
-});
+const coordinator = new BotCoordinator(args.is_coordinator, args.coord_port);
 const botsRngSeed = Date.now().toString();
-const botARng = seedrandom(botsRngSeed);
-const botBRng = seedrandom(botsRngSeed);
-botA.once("spawn", getOnSpawnFn(botA, args.host, args.a_port, botARng, botB));
-botB.once("spawn", getOnSpawnFn(botB, args.host, args.b_port, botBRng, botA));
+const botRng = seedrandom(botsRngSeed);
+bot.once("spawn", getOnSpawnFn(bot, args.host, args.receiver_port, botRng, coordinator));

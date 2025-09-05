@@ -12,7 +12,7 @@ services:
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./data22:/data
-  senders:
+  senders1:
     build: .
     depends_on:
       - mc
@@ -22,6 +22,30 @@ services:
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./output2:/output
+    environment:
+      BOT_NAME: Alpha
+      BOT_ID: A
+      RECEIVER_PORT: 8091
+      IS_COORDINATOR: "true"
+      COORD_PORT: 9000
+    command: ./entrypoint_senders.sh
+  senders2:
+    build: .
+    depends_on:
+      - mc
+      - receiver1
+      - receiver2
+      - senders1
+    network_mode: host
+    volumes:
+      # attach the relative directory 'data' to the container's /data path
+      - ./output2:/output
+    environment:
+      BOT_NAME: Bravo
+      BOT_ID: B
+      RECEIVER_PORT: 8092
+      IS_COORDINATOR: "false"
+      COORD_PORT: 9000
     command: ./entrypoint_senders.sh
   receiver1:
     build: .
