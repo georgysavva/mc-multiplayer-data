@@ -25,5 +25,6 @@ glxinfo -B || true  # don't hard-fail; just print if available
 
 echo "[entrypoint] Launching app..."
 # exec python3 run.py --name Bot --target village --output_path /output
+# exec env DEBUG="minecraft-protocol" node senders.js 
 exec node senders.js 
 

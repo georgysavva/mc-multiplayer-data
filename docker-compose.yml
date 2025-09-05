@@ -7,14 +7,11 @@ services:
       EULA: "TRUE"
       VERSION: 1.21
       MODE: creative
-      OPS: |
-        Alpha
-        Bravo
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data14:/data
+      - ./data22:/data
   senders:
     build: .
     depends_on:

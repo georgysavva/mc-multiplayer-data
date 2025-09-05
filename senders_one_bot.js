@@ -1,5 +1,7 @@
 const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const seedrandom = require("seedrandom");
+const { Worker } = require('worker_threads');
+const path = require('path');
 
 // Constants
 const MIN_WALK_DURATION_SEC = 7;
@@ -33,6 +35,63 @@ const args = minimist(process.argv.slice(2), {
   },
 });
 
+// Worker thread management
+let worker;
+let taskIdCounter = 0;
+const pendingTasks = new Map();
+
+function initializeWorker() {
+  worker = new Worker(path.join(__dirname, 'bot-worker.js'));
+  
+  worker.on('message', (message) => {
+    const { id, result, error } = message;
+    const pendingTask = pendingTasks.get(id);
+    
+    if (pendingTask) {
+      pendingTasks.delete(id);
+      if (error) {
+        pendingTask.reject(new Error(error));
+      } else {
+        pendingTask.resolve(result);
+      }
+    }
+  });
+  
+  worker.on('error', (error) => {
+    console.error('Worker error:', error);
+  });
+}
+
+function sendToWorker(type, data) {
+  return new Promise((resolve, reject) => {
+    const id = ++taskIdCounter;
+    pendingTasks.set(id, { resolve, reject });
+    worker.postMessage({ id, type, data });
+  });
+}
+
+// Initialize worker
+initializeWorker();
+
+function getWorldBlocks(bot, centerX, centerZ, range) {
+  const worldBlocks = {};
+  const minY = 0;
+  const maxY = 128;
+  
+  for (let x = centerX - range; x <= centerX + range; x++) {
+    for (let z = centerZ - range; z <= centerZ + range; z++) {
+      for (let y = minY; y <= maxY; y++) {
+        const block = bot.blockAt(new Vec3(x, y, z));
+        if (block) {
+          worldBlocks[`${x},${y},${z}`] = block.type;
+        }
+      }
+    }
+  }
+  
+  return worldBlocks;
+}
+
 function land_pos(bot, x, z) {
   const pos = new Vec3(x, 64, z);
   let block = bot.blockAt(pos);
@@ -57,44 +116,49 @@ function land_pos(bot, x, z) {
     }
   }
 }
-/*
-  [-range,range] 区域内的一个(x,z)，该位置的xz坐标上最高的非空气方块
-  *要求并且必须是泥土或者石头（放置goal在屋顶上的奇怪情况）
-  *要求距离tp点不超过80格, 并且距离起始点至少20格
-*/
 
-function random_pos(bot, range) {
+async function random_pos(bot, range) {
+  const start_pos = bot.entity.position.clone();
+  
+  // Get world blocks data for the worker
+  const worldBlocks = getWorldBlocks(bot, start_pos.x, start_pos.z, range);
+  
+  try {
+    const pos = await sendToWorker('generateRandomPosition', {
+      startPos: start_pos,
+      range: range,
+      worldBlocks: worldBlocks
+    });
+    
+    if (!pos) {
+      console.log(`[${bot.username}] Worker couldn't find valid position, falling back to original method`);
+      return random_pos_fallback(bot, range);
+    }
+    
+    return new Vec3(pos.x, pos.y, pos.z);
+  } catch (error) {
+    console.error(`[${bot.username}] Worker error, falling back to original method:`, error);
+    return random_pos_fallback(bot, range);
+  }
+}
+
+function random_pos_fallback(bot, range) {
   const start_pos = bot.entity.position.clone();
   while (true) {
     const x = Math.floor(Math.random() * range * 2) - range;
     const z = Math.floor(Math.random() * range * 2) - range;
     let limit = (range * 4) / 5;
     if (x * x + z * z < limit * limit) {
-      // ensure the distance is not to short
       continue;
     }
-    // ensure the distance is not to far away from village center
-    // dx = start_pos.x + x - tp_target.x;
-    // dz = start_pos.z + z - tp_target.z;
-    // if (dx * dx + dz * dz > 80 * 80) {
-    //   continue;
-    // }
-    // if (
-    //   args.location === "stronghold" ||
-    //   args.location === "nether_bastion" ||
-    //   args.location === "nether_fortress"
-    // ) {
-    //   return new Vec3(start_pos.x + x, start_pos.y, start_pos.z + z);
-    // }
     const pos = land_pos(bot, start_pos.x + x, start_pos.z + z);
     if (pos == null || Math.abs(pos.y - start_pos.y) > 10) {
       console.log(`[${bot.username}] rej null or y diff`);
       continue;
     }
-    landable = new Set([
+    const landable = new Set([
       bot.registry.blocksByName.dirt.id,
       bot.registry.blocksByName.stone.id,
-      // bot.registry.blocksByName.grass_path.id,
       bot.registry.blocksByName.sand.id,
       bot.registry.blocksByName.grass_block.id,
       bot.registry.blocksByName.snow.id,
@@ -112,7 +176,7 @@ function random_pos(bot, range) {
     ]);
     if (pos !== null) {
       const block = bot.blockAt(pos);
-      blockunder = bot.blockAt(pos.offset(0, -1, 0));
+      const blockunder = bot.blockAt(pos.offset(0, -1, 0));
       if (landable.has(block.type) && landable.has(blockunder.type)) {
         pos.y = pos.y + 1;
         return pos;
@@ -126,9 +190,7 @@ function random_pos(bot, range) {
     }
   }
 }
-/*
-  move to a random position in a range*range cube around the bot
-*/
+
 async function move(bot, range) {
   const pos = random_pos(bot, range);
   console.log(`${bot.username} moving to`, pos);
@@ -151,23 +213,10 @@ async function move(bot, range) {
     bot.on("goal_reached", onGoalReached);
   });
 }
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const rand = (min, max) => Math.random() * (max - min) + min;
 const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-function emitWithLog(bot, eventName, eventParams, location, iterationID) {
-  const listenerCount = bot.listenerCount(eventName);
-  if (listenerCount > 0) {
-    console.log(
-      `[emitWithLog] [iter ${iterationID}] ${location}: Emitting ${eventName} to ${bot.username} (${listenerCount} listeners)`
-    );
-    bot.emit(eventName, eventParams);
-  } else {
-    console.log(
-      `[emitWithLog] [iter ${iterationID}] ${location}: No listeners for ${eventName} on ${bot.username}`
-    );
-  }
-}
 
 function stopAll(bot) {
   for (const k of [
@@ -183,8 +232,8 @@ function stopAll(bot) {
   }
 }
 
-async function walk(bot, durationMs) {
-  const dir = choice(["forward", "back", "left", "right"]);
+async function walk(bot, durationMs, direction = null) {
+  const dir = direction || choice(["forward", "back", "left", "right"]);
   console.log(
     `[${bot.username}] Walking ${dir} for ${(durationMs / 1000).toFixed(1)}s`
   );
@@ -245,6 +294,51 @@ async function lookSideways(bot, targetYaw, durationMs) {
 }
 
 async function run(bot, durationMs) {
+  try {
+    // Plan action sequence in worker thread
+    const actionSequence = await sendToWorker('planActionSequence', {
+      durationMs: durationMs
+    });
+    
+    console.log(`[${bot.username}] Executing ${actionSequence.length} planned actions`);
+    
+    for (const actionPlan of actionSequence) {
+      try {
+        await executeAction(bot, actionPlan);
+      } catch (err) {
+        console.error(`[${bot.username}] Action error:`, err);
+      } finally {
+        stopAll(bot);
+      }
+      
+      // Small pause between actions
+      await sleep(300);
+    }
+  } catch (error) {
+    console.error(`[${bot.username}] Worker planning failed, falling back to original method:`, error);
+    await run_fallback(bot, durationMs);
+  }
+}
+
+async function executeAction(bot, actionPlan) {
+  const { type, duration, params } = actionPlan;
+  
+  switch (type) {
+    case 'walk':
+      await walk(bot, duration, params.direction);
+      break;
+    case 'jump':
+      await jump(bot, duration);
+      break;
+    case 'lookAround':
+      await lookSideways(bot, params.targetYaw, duration);
+      break;
+    default:
+      console.warn(`[${bot.username}] Unknown action type: ${type}`);
+  }
+}
+
+async function run_fallback(bot, durationMs) {
   const minMs = 2000;
   const maxMs = 5000;
   const actions = [
@@ -265,9 +359,8 @@ async function run(bot, durationMs) {
       stopAll(bot);
     }
 
-    // Only sleep if we have time remaining
     if (Date.now() + 300 < endTime) {
-      await sleep(300); // small pause between actions
+      await sleep(300);
     }
   }
 }
@@ -275,6 +368,15 @@ async function run(bot, durationMs) {
 function getOnSpawnFn(bot, host, receiverPort, botRng, otherBot) {
   return async () => {
     await sleep(10000);
+    
+    // Initialize worker with bot registry
+    try {
+      await sendToWorker('setBlockRegistry', bot.registry);
+      console.log(`[${bot.username}] Worker initialized with block registry`);
+    } catch (error) {
+      console.error(`[${bot.username}] Failed to initialize worker:`, error);
+    }
+    
     const mcData = mcDataLoader(bot.version);
     const moves = new Movements(bot, mcData);
     moves.allowSprinting = true; // makes them run
@@ -291,189 +393,16 @@ function getOnSpawnFn(bot, host, receiverPort, botRng, otherBot) {
       width: 640,
       height: 360,
     });
-    const iterationID = 0;
-    bot.once(
-      "alignPositionsPhase",
-      getOnAlignPositionsPhaseFn(bot, botRng, otherBot, iterationID)
-    );
-    emitWithLog(
-      otherBot,
-      "alignPositionsPhase",
-      bot.entity.position,
-      "spawn phase end",
-      iterationID
-    );
-  };
-}
-function getOnAlignPositionsPhaseFn(bot, botRng, otherBot, iterationID) {
-  return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
-      "alignPositionsPhase",
-      bot.entity.position,
-      "alignPositionsPhase beginning",
-      iterationID
-    );
-    console.log(
-      `[iter ${iterationID}] [${bot.username}] aligns itself with ${otherBot.username} at ${otherBotPosition} (going to midpoint)`
-    );
-
-    const botPosition = bot.entity.position.clone();
-
-    // Calculate midpoint between the two bots
-    const midpoint = new Vec3(
-      (botPosition.x + otherBotPosition.x) / 2,
-      (botPosition.y + otherBotPosition.y) / 2,
-      (botPosition.z + otherBotPosition.z) / 2
-    );
-
-    // Use land_pos to get proper ground level for the midpoint
-    const landPosition = land_pos(bot, midpoint.x, midpoint.z);
-    if (landPosition) {
-      midpoint.y = landPosition.y + 1;
-    }
-
-    console.log(
-      `[iter ${iterationID}] [${bot.username}] moving to midpoint: ${midpoint}`
-    );
-
-    // Move to the midpoint
-    const defaultMove = new Movements(bot);
-    defaultMove.allowSprinting = false;
-    bot.pathfinder.setMovements(defaultMove);
-    bot.pathfinder.setGoal(
-      new GoalBlock(midpoint.x, midpoint.y, midpoint.z),
-      false
-    );
-
-    // Wait for movement to complete using Promise
-    await new Promise((resolve) => {
-      const onGoalReached = () => {
-        bot.pathfinder.stop();
-        bot.clearControlStates();
-        bot.removeListener("goal_reached", onGoalReached);
-        resolve();
-      };
-      bot.on("goal_reached", onGoalReached);
-    });
-
-    console.log(`[iter ${iterationID}] [${bot.username}] reached midpoint`);
-    bot.once(
-      "resetPositionsPhase",
-
-      getOnResetPositionsPhaseFn(bot, botRng, otherBot, iterationID)
-    );
-    emitWithLog(
-      otherBot,
-      "resetPositionsPhase",
-      bot.entity.position.clone(),
-      "alignPositionsPhase end",
-      iterationID
-    );
-  };
-}
-function getOnResetPositionsPhaseFn(bot, botRng, otherBot, iterationID) {
-  return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
-      "resetPositionsPhase",
-      bot.entity.position.clone(),
-      "resetPositionsPhase beginning",
-      iterationID
-    );
-    const distance =
-      MIN_RESET_DISTANCE + botRng() * (MAX_RESET_DISTANCE - MIN_RESET_DISTANCE);
-    console.log(
-      `[iter ${iterationID}] [${
-        bot.username
-      }] resetting position with distance ${distance.toFixed(2)}`
-    );
-    await move(bot, distance);
-    bot.once(
-      "walkAndLookPhase",
-      getOnWalkAndLookPhaseFn(bot, botRng, otherBot, iterationID)
-    );
-    emitWithLog(
-      otherBot,
-      "walkAndLookPhase",
-      bot.entity.position.clone(),
-      "resetPositionsPhase end",
-      iterationID
-    );
-  };
-}
-function getOnWalkAndLookPhaseFn(bot, botRng, otherBot, iterationID) {
-  return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
-      "walkAndLookPhase",
-      bot.entity.position.clone(),
-      "walkAndLookPhase beginning",
-      iterationID
-    );
-    const durationSec =
-      MIN_WALK_DURATION_SEC +
-      botRng() * (MAX_WALK_DURATION_SEC - MIN_WALK_DURATION_SEC);
-    const durationMs = Math.floor(durationSec * 1000);
-    console.log(
-      `[iter ${iterationID}] [${
-        bot.username
-      }] starting walk and look phase for ${durationSec.toFixed(2)}s`
-    );
-    await run(bot, durationMs);
-    if (iterationID == args.iterations_num_per_episode - 1) {
-      bot.once(
-        "stopPhase",
-        getOnStopPhaseFn(bot, botRng, otherBot, iterationID)
-      );
-      emitWithLog(
-        otherBot,
-        "stopPhase",
-        bot.entity.position.clone(),
-        "walkAndLookPhase end",
-        iterationID
-      );
-      return;
-    }
-    bot.once(
-      "alignPositionsPhase",
-      getOnAlignPositionsPhaseFn(bot, botRng, otherBot, iterationID + 1)
-    );
-    emitWithLog(
-      otherBot,
-      "alignPositionsPhase",
-      bot.entity.position.clone(),
-      "walkAndLookPhase end",
-      iterationID
-    );
-  };
-}
-
-let endedBots = 0;
-const totalBots = 2;
-
-function getOnStopPhaseFn(bot, botRng, otherBot, iterationID) {
-  return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
-      "stopPhase",
-      bot.entity.position.clone(),
-      "stopPhase beginning",
-      iterationID
-    );
-    console.log(`[iter ${iterationID}] [${bot.username}] stops recording`);
+    const t0 = Date.now();
+    console.log("DEBUG moving 175");
+    await move(bot, 175);
+    await run(bot, 40000)
+    const t1 = Date.now();
+    const durationSec = ((t1 - t0) / 1000).toFixed(2);
+    console.log(`[${bot.username}] move(175) took ${durationSec}s`);
     bot.emit("endtask");
-    await sleep(5000);
 
-    // Track completed bots and exit when both are done
-    if (!endedBots) endedBots = 0;
-    endedBots++;
-    console.log(`[${bot.username}] task completed (${endedBots}/${totalBots})`);
-
-    if (endedBots >= totalBots) {
-      console.log("Both bots finished their tasks. Exiting program...");
-      process.exit(0);
-    }
+    const iterationID = 0;
   };
 }
 
@@ -488,7 +417,13 @@ function makeBot({ username, host, port }) {
 
   bot.loadPlugin(pathfinder);
 
-  bot.on("end", () => console.log(`[${bot.username}] disconnected.`));
+  bot.on("end", () => {
+    console.log(`[${bot.username}] disconnected.`);
+    // Cleanup worker when bot disconnects
+    if (worker) {
+      worker.terminate();
+    }
+  });
   bot.on("kicked", (reason) =>
     console.log(`[${bot.username}] kicked:`, reason)
   );
@@ -499,24 +434,30 @@ function makeBot({ username, host, port }) {
 
 console.log("DEBUG environment variable:", process.env.DEBUG);
 
-
 const botA = makeBot({
   username: args.a,
   host: args.host,
   port: args.port,
 });
 
-// const botB = makeBot({
-//   username: args.b,
-//   host: args.host,
-//   port: args.port,
-// });
 const botsRngSeed = Date.now().toString();
 const botARng = seedrandom(botsRngSeed);
 const botBRng = seedrandom(botsRngSeed);
 botA.once(
   "spawn",
   getOnSpawnFn(botA, args.host, args.a_port, botARng, undefined)
-);
-// botA.once("spawn", getOnSpawnFn(botA, args.host, args.a_port, botARng, botB));
-// botB.once("spawn", getOnSpawnFn(botB, args.host, args.b_port, botBRng, botA));
+);// Cleanup worker on process exit
+process.on('SIGINT', () => {
+  console.log('\nShutting down...');
+  if (worker) {
+    worker.terminate();
+  }
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  if (worker) {
+    worker.terminate();
+  }
+  process.exit(0);
+});
