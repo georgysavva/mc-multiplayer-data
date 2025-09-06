@@ -17,8 +17,8 @@ const {
   Movements,
   goals: { GoalNear, GoalNearXZ, GoalBlock, GoalFollow },
 } = require("mineflayer-pathfinder");
-const net = require('net');
-const EventEmitter = require('events');
+const net = require("net");
+const EventEmitter = require("events");
 
 const mcDataLoader = require("minecraft-data");
 const Vec3 = require("vec3").Vec3;
@@ -35,6 +35,10 @@ const args = minimist(process.argv.slice(2), {
     iterations_num_per_episode: 3,
   },
 });
+
+// Convert is_coordinator string to boolean
+args.is_coordinator =
+  args.is_coordinator === "true" || args.is_coordinator === true;
 
 function land_pos(bot, x, z) {
   const pos = new Vec3(x, 64, z);
@@ -171,24 +175,28 @@ class BotCoordinator extends EventEmitter {
   setupConnection() {
     if (this.isCoordinator) {
       this.server = net.createServer((socket) => {
-        console.log('[Coordinator] Other bot connected');
+        console.log("[Coordinator] Other bot connected");
         this.otherBotConnection = socket;
-        socket.on('data', (data) => {
+        socket.on("data", (data) => {
           try {
             const message = JSON.parse(data.toString());
             const listenerCount = this.listenerCount(message.eventName);
             if (listenerCount > 0) {
-              console.log(`[Coordinator] Received: ${message.eventName} (${listenerCount} listeners) - emitting`);
+              console.log(
+                `[Coordinator] Received: ${message.eventName} (${listenerCount} listeners) - emitting`
+              );
               this.emit(message.eventName, message.eventParams);
             } else {
-              console.log(`[Coordinator] Received: ${message.eventName} (no listeners)`);
+              console.log(
+                `[Coordinator] Received: ${message.eventName} (no listeners)`
+              );
             }
           } catch (err) {
-            console.error('[Coordinator] Parse error:', err);
+            console.error("[Coordinator] Parse error:", err);
           }
         });
-        socket.on('close', () => {
-          console.log('[Coordinator] Other bot disconnected');
+        socket.on("close", () => {
+          console.log("[Coordinator] Other bot disconnected");
           this.otherBotConnection = null;
         });
       });
@@ -202,25 +210,27 @@ class BotCoordinator extends EventEmitter {
 
   connectToCoordinator() {
     const client = net.createConnection({ port: this.coordPort }, () => {
-      console.log('[Client] Connected to coordinator');
+      console.log("[Client] Connected to coordinator");
       this.otherBotConnection = client;
     });
-    client.on('data', (data) => {
+    client.on("data", (data) => {
       try {
         const message = JSON.parse(data.toString());
         const listenerCount = this.listenerCount(message.eventName);
         if (listenerCount > 0) {
-          console.log(`[Client] Received: ${message.eventName} (${listenerCount} listeners) - emitting`);
+          console.log(
+            `[Client] Received: ${message.eventName} (${listenerCount} listeners) - emitting`
+          );
           this.emit(message.eventName, message.eventParams);
         } else {
           console.log(`[Client] Received: ${message.eventName} (no listeners)`);
         }
       } catch (err) {
-        console.error('[Client] Parse error:', err);
+        console.error("[Client] Parse error:", err);
       }
     });
-    client.on('close', () => {
-      console.log('[Client] Disconnected from coordinator');
+    client.on("close", () => {
+      console.log("[Client] Disconnected from coordinator");
       this.otherBotConnection = null;
     });
   }
@@ -228,10 +238,14 @@ class BotCoordinator extends EventEmitter {
   sendToOtherBot(eventName, eventParams, location, iterationID) {
     if (this.otherBotConnection) {
       const message = JSON.stringify({ eventName, eventParams });
-      console.log(`[sendToOtherBot] [iter ${iterationID}] ${location}: Sending ${eventName} (connection available)`);
+      console.log(
+        `[sendToOtherBot] [iter ${iterationID}] ${location}: Sending ${eventName} (connection available)`
+      );
       this.otherBotConnection.write(message);
     } else {
-      console.log(`[sendToOtherBot] [iter ${iterationID}] ${location}: No connection to other bot for ${eventName}`);
+      console.log(
+        `[sendToOtherBot] [iter ${iterationID}] ${location}: No connection to other bot for ${eventName}`
+      );
     }
   }
 
@@ -384,7 +398,11 @@ function getOnAlignPositionsPhaseFn(bot, botRng, coordinator, iterationID) {
       iterationID
     );
     console.log(
-      `[iter ${iterationID}] [${bot.username}] aligns itself with other bot at ${JSON.stringify(otherBotPosition)} (going to midpoint)`
+      `[iter ${iterationID}] [${
+        bot.username
+      }] aligns itself with other bot at ${JSON.stringify(
+        otherBotPosition
+      )} (going to midpoint)`
     );
 
     const botPosition = bot.entity.position.clone();
@@ -557,8 +575,11 @@ const bot = makeBot({
   host: args.host,
   port: args.port,
 });
-
+console.log("coordinator", args.is_coordinator, args.coord_port);
 const coordinator = new BotCoordinator(args.is_coordinator, args.coord_port);
 const botsRngSeed = Date.now().toString();
 const botRng = seedrandom(botsRngSeed);
-bot.once("spawn", getOnSpawnFn(bot, args.host, args.receiver_port, botRng, coordinator));
+bot.once(
+  "spawn",
+  getOnSpawnFn(bot, args.host, args.receiver_port, botRng, coordinator)
+);
