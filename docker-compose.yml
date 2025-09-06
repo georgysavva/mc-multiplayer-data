@@ -7,17 +7,33 @@ services:
       EULA: "TRUE"
       VERSION: 1.21
       MODE: creative
+      OPS: |
+        Alpha
+        Bravo
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
+      RCON_PASSWORD: change-me
+      # LEVEL_TYPE: "minecraft:single_biome_surface"
+      # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
+      LEVEL_TYPE: minecraft:flat
+      GENERATOR_SETTINGS: >-
+        {
+          "layers": [
+            { "block": "minecraft:bedrock", "height": 1 },
+            { "block": "minecraft:stone",   "height": 124 },
+            { "block": "minecraft:dirt",    "height": 2 },
+            { "block": "minecraft:grass_block", "height": 1 }
+          ],
+          "biome": "minecraft:plains"
+        }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data22:/data
+      - ./data33:/data
   senders1:
     build: .
     depends_on:
       - mc
       - receiver1
-      - receiver2
     network_mode: host
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -27,13 +43,12 @@ services:
       BOT_ID: A
       RECEIVER_PORT: 8091
       IS_COORDINATOR: "true"
-      COORD_PORT: 9000
+      COORD_PORT: 8090
     command: ./entrypoint_senders.sh
   senders2:
     build: .
     depends_on:
       - mc
-      - receiver1
       - receiver2
       - senders1
     network_mode: host
@@ -45,7 +60,7 @@ services:
       BOT_ID: B
       RECEIVER_PORT: 8092
       IS_COORDINATOR: "false"
-      COORD_PORT: 9000
+      COORD_PORT: 8090
     command: ./entrypoint_senders.sh
   receiver1:
     build: .

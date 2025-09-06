@@ -34,6 +34,7 @@ RUN python -m pip install --upgrade pip setuptools wheel && \
     python -m pip install --no-cache-dir -r requirements.txt
 COPY package.json ./
 RUN npm install 
+RUN npm i rcon-client
 RUN echo "35" && npm install github:georgysavva/prismarine-viewer-colalab
 RUN echo "41" && npm install github:georgysavva/mineflayer
 RUN echo "47" && npm install github:georgysavva/mineflayer-pathfinder

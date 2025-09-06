@@ -25,8 +25,7 @@ glxinfo -B || true  # don't hard-fail; just print if available
 
 echo "[entrypoint] Launching app..."
 echo "[entrypoint] Bot config: ${BOT_NAME:-Alpha} (${BOT_ID:-A}), Coordinator: ${IS_COORDINATOR:-true}"
-# exec python3 run.py --name Bot --target village --output_path /output
-# exec env DEBUG="minecraft-protocol" node senders.js 
+# exec node senders_simple.js 
 exec node senders.js \
   --bot_name "${BOT_NAME:-Alpha}" \
   --bot_id "${BOT_ID:-A}" \
