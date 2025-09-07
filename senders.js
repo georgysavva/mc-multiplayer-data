@@ -1,13 +1,16 @@
 const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const seedrandom = require("seedrandom");
+const { Rcon } = require("rcon-client");
 
 // Constants
-const MIN_WALK_DURATION_SEC = 7;
-const MAX_WALK_DURATION_SEC = 13;
-const MIN_ALIGN_RADIUS = 4;
-const MAX_ALIGN_RADIUS = 8;
-const MIN_RESET_DISTANCE = 5;
-const MAX_RESET_DISTANCE = 10;
+const MIN_WALK_DISTANCE = 1;
+const MAX_WALK_DISTANCE = 3;
+const MIN_BOTS_DISTANCE = 7;
+const MAX_BOTS_DISTANCE = 13;
+const CAMERA_SPEED_DEGREES_PER_SEC = 90;
+const JUMP_PROBABILITY = 0.25;
+const MIN_JUMP_DURATION_SEC = 1;
+const MAX_JUMP_DURATION_SEC = 3;
 
 // two-bots-run-together.js
 const minimist = require("minimist");
@@ -23,19 +26,29 @@ const EventEmitter = require("events");
 const mcDataLoader = require("minecraft-data");
 const Vec3 = require("vec3").Vec3;
 
+async function rconTp(name, x, y, z) {
+  const rcon = await Rcon.connect({
+    host: "127.0.0.1",
+    port: 25575,
+    password: "change-me",
+  });
+  const res = await rcon.send(`tp ${name} ${x} ${y} ${z}`);
+  await rcon.end();
+  return res;
+}
+
 const args = minimist(process.argv.slice(2), {
   default: {
     host: "127.0.0.1",
     port: 25565,
     receiver_port: 8091,
     bot_name: "Alpha",
-    bot_id: "A",
+    other_bot_name: "Bravo",
     coord_port: 8093,
     other_coord_port: 8094,
     iterations_num_per_episode: 3,
   },
 });
-
 
 function land_pos(bot, x, z) {
   const pos = new Vec3(x, 64, z);
@@ -160,9 +173,9 @@ const rand = (min, max) => Math.random() * (max - min) + min;
 const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 class BotCoordinator extends EventEmitter {
-  constructor(botId, coordPort, otherCoordPort) {
+  constructor(botName, coordPort, otherCoordPort) {
     super();
-    this.botId = botId;
+    this.botName = botName;
     this.coordPort = coordPort;
     this.otherCoordPort = otherCoordPort;
     this.clientConnection = null;
@@ -170,50 +183,54 @@ class BotCoordinator extends EventEmitter {
   }
 
   async setupConnections() {
-    console.log(`[${this.botId}] Setting up connections...`);
-    
+    console.log(`[${this.botName}] Setting up connections...`);
+
     // Set up server and client connections in parallel and wait for both to be ready
     const [serverReady, clientReady] = await Promise.all([
       this.setupServer(),
-      this.setupClient()
+      this.setupClient(),
     ]);
-    
-    console.log(`[${this.botId}] All connections established - server ready: ${serverReady}, client ready: ${clientReady}`);
+
+    console.log(
+      `[${this.botName}] All connections established - server ready: ${serverReady}, client ready: ${clientReady}`
+    );
     return { serverReady, clientReady };
   }
 
   setupServer() {
     return new Promise((resolve) => {
       this.server = net.createServer((socket) => {
-        console.log(`[${this.botId} Server] Other bot connected`);
+        console.log(`[${this.botName} Server] Other bot connected`);
         socket.on("data", (data) => {
           try {
             const message = JSON.parse(data.toString());
             const listenerCount = this.listenerCount(message.eventName);
             if (listenerCount > 0) {
               console.log(
-                `[${this.botId} Server] Received: ${message.eventName} (${listenerCount} listeners) - emitting`
+                `[${this.botName} Server] Received: ${message.eventName} (${listenerCount} listeners) - emitting`
               );
               this.emit(message.eventName, message.eventParams);
             } else {
               console.log(
-                `[${this.botId} Server] Received: ${message.eventName} (no listeners)`
+                `[${this.botName} Server] Received: ${message.eventName} (no listeners)`
               );
             }
           } catch (err) {
-            console.error(`[${this.botId} Server] Parse error:`, err);
+            console.error(`[${this.botName} Server] Parse error:`, err);
           }
         });
         socket.on("close", () => {
-          console.log(`[${this.botId} Server] Other bot disconnected`);
+          console.log(`[${this.botName} Server] Other bot disconnected`);
         });
-        
+
         // Resolve when the other bot connects to our server
         resolve(true);
       });
-      
+
       this.server.listen(this.coordPort, () => {
-        console.log(`[${this.botId} Server] Listening on port ${this.coordPort}, waiting for other bot to connect...`);
+        console.log(
+          `[${this.botName} Server] Listening on port ${this.coordPort}, waiting for other bot to connect...`
+        );
       });
     });
   }
@@ -221,23 +238,31 @@ class BotCoordinator extends EventEmitter {
   setupClient() {
     return new Promise((resolve) => {
       const attemptConnection = () => {
-        this.clientConnection = net.createConnection({ port: this.otherCoordPort }, () => {
-          console.log(`[${this.botId} Client] Connected to other bot's server on port ${this.otherCoordPort}`);
-          resolve(true);
-        });
-        
+        this.clientConnection = net.createConnection(
+          { port: this.otherCoordPort },
+          () => {
+            console.log(
+              `[${this.botName} Client] Connected to other bot's server on port ${this.otherCoordPort}`
+            );
+            resolve(true);
+          }
+        );
+
         this.clientConnection.on("error", (err) => {
-          console.log(`[${this.botId} Client] Connection failed, retrying in 2s:`, err.message);
+          console.log(
+            `[${this.botName} Client] Connection failed, retrying in 2s:`,
+            err.message
+          );
           setTimeout(attemptConnection, 2000);
         });
-        
+
         this.clientConnection.on("close", () => {
-          console.log(`[${this.botId} Client] Disconnected from other bot`);
+          console.log(`[${this.botName} Client] Disconnected from other bot`);
           this.clientConnection = null;
           setTimeout(attemptConnection, 2000); // Auto-reconnect
         });
       };
-      
+
       attemptConnection();
     });
   }
@@ -275,16 +300,97 @@ function stopAll(bot) {
   }
 }
 
-async function walk(bot, durationMs) {
+async function walk(bot, distance) {
+  const startPos = bot.entity.position.clone();
   const dir = choice(["forward", "back", "left", "right"]);
+
+  // Define the reverse direction
+  const reverseDir = {
+    forward: "back",
+    back: "forward",
+    left: "right",
+    right: "left",
+  };
+
   console.log(
-    `[${bot.username}] Walking ${dir} for ${(durationMs / 1000).toFixed(1)}s`
+    `[${
+      bot.username
+    }] Walking ${dir} for ${distance} blocks from position (${startPos.x.toFixed(
+      2
+    )}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)})`
   );
+
+  // Walk in the chosen direction until we reach the target distance
   bot.setControlState(dir, true);
+
+  let actualDistance = 0;
   try {
-    await sleep(durationMs);
+    while (bot.entity.position.distanceTo(startPos) < distance) {
+      await sleep(50); // Check position every 50ms
+    }
+    actualDistance = bot.entity.position.distanceTo(startPos);
   } finally {
     bot.setControlState(dir, false);
+  }
+
+  const reachedPos = bot.entity.position.clone();
+  console.log(
+    `[${bot.username}] Reached distance ${actualDistance.toFixed(
+      2
+    )} blocks at position (${reachedPos.x.toFixed(2)}, ${reachedPos.y.toFixed(
+      2
+    )}, ${reachedPos.z.toFixed(2)})`
+  );
+
+  // Randomly jump before returning based on jump probability
+  if (Math.random() < JUMP_PROBABILITY) {
+    const jumpDurationSec =
+      MIN_JUMP_DURATION_SEC +
+      Math.random() * (MAX_JUMP_DURATION_SEC - MIN_JUMP_DURATION_SEC);
+    const jumpDurationMs = Math.floor(jumpDurationSec * 1000);
+    console.log(
+      `[${bot.username}] Jumping for ${jumpDurationSec.toFixed(
+        1
+      )}s before returning`
+    );
+    await jump(bot, jumpDurationMs);
+  }
+
+  // Now return to the starting position by walking in the reverse direction
+  console.log(
+    `[${bot.username}] Returning to starting position by walking ${reverseDir[dir]}`
+  );
+
+  bot.setControlState(reverseDir[dir], true);
+
+  try {
+    // Walk back until we're close to the starting position
+    while (bot.entity.position.distanceTo(startPos) > 1.0) {
+      await sleep(50); // Check position every 50ms
+    }
+  } finally {
+    bot.setControlState(reverseDir[dir], false);
+  }
+
+  const finalDistance = bot.entity.position.distanceTo(startPos);
+  console.log(
+    `[${bot.username}] Returned to within ${finalDistance.toFixed(
+      2
+    )} blocks of starting position`
+  );
+
+  // Randomly jump after returning to start position
+  if (Math.random() < JUMP_PROBABILITY) {
+    const jumpDurationSec =
+      MIN_JUMP_DURATION_SEC +
+      Math.random() * (MAX_JUMP_DURATION_SEC - MIN_JUMP_DURATION_SEC);
+    const jumpDurationMs = Math.floor(jumpDurationSec * 1000);
+    console.log(
+      `[${bot.username}] Jumping for ${jumpDurationSec.toFixed(
+        1
+      )}s after returning to start`
+    );
+    await jump(bot, jumpDurationMs);
   }
 }
 
@@ -301,49 +407,78 @@ async function jump(bot, durationMs) {
   }
 }
 
-async function lookAround(bot, durationMs) {
-  console.log(
-    `[${bot.username}] Looking around for ${(durationMs / 1000).toFixed(1)}s`
-  );
-  const yaw = rand(-Math.PI, Math.PI);
-  await lookSideways(bot, yaw, durationMs);
-}
+async function lookAtSmooth(bot, targetPosition, degreesPerSecond) {
+  const botPosition = bot.entity.position;
 
-async function lookSideways(bot, targetYaw, durationMs) {
-  console.log(
-    `[${bot.username}] Looking sideways to yaw ${targetYaw.toFixed(2)} over ${(
-      durationMs / 1000
-    ).toFixed(1)}s`
-  );
+  // Calculate the vector from bot to target
+  const dx = targetPosition.x - botPosition.x;
+  const dy = targetPosition.y - botPosition.y;
+  const dz = targetPosition.z - botPosition.z;
 
-  const startPitch = bot.entity.pitch;
+  // Calculate target yaw (horizontal rotation)
+  const targetYaw = Math.atan2(-dx, -dz); // Minecraft coordinate system
+
+  // Calculate target pitch (vertical rotation)
+  const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+  const targetPitch = -Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
+
   const startYaw = bot.entity.yaw;
+  const startPitch = bot.entity.pitch;
+
+  // Calculate angle differences, handling wrapping for yaw
+  let yawDiff = targetYaw - startYaw;
+  // Normalize yaw difference to [-π, π] for shortest rotation
+  while (yawDiff > Math.PI) yawDiff -= 2 * Math.PI;
+  while (yawDiff < -Math.PI) yawDiff += 2 * Math.PI;
+
+  const pitchDiff = targetPitch - startPitch;
+
+  // Calculate total angular distance in radians
+  const totalAngleDistance = Math.sqrt(
+    yawDiff * yawDiff + pitchDiff * pitchDiff
+  );
+
+  // Convert speed from degrees per second to radians per second
+  const radiansPerSecond = (degreesPerSecond * Math.PI) / 180;
+
+  // Calculate total time needed
+  const totalTimeMs = (totalAngleDistance / radiansPerSecond) * 1000;
+
+  console.log(
+    `[${bot.username}] Looking at (${targetPosition.x.toFixed(
+      2
+    )}, ${targetPosition.y.toFixed(2)}, ${targetPosition.z.toFixed(
+      2
+    )}) at ${degreesPerSecond}°/s over ${(totalTimeMs / 1000).toFixed(2)}s`
+  );
+
   const startTime = Date.now();
-  const endTime = startTime + durationMs;
+  const endTime = startTime + totalTimeMs;
+  const updateInterval = 50; // 50ms intervals
 
   while (Date.now() < endTime) {
     const elapsed = Date.now() - startTime;
-    const progress = elapsed / durationMs;
+    const progress = Math.min(elapsed / totalTimeMs, 1.0);
 
-    // Linear interpolation between start and target yaw
-    const currentYaw = startYaw + (targetYaw - startYaw) * progress;
+    // Smooth interpolation using easing function (ease-out)
+    const easedProgress = 1 - Math.pow(1 - progress, 2);
 
-    bot.look(currentYaw, startPitch, true);
-    await sleep(50); // Small delay for smooth movement
+    // Calculate current angles
+    const currentYaw = startYaw + yawDiff * easedProgress;
+    const currentPitch = startPitch + pitchDiff * easedProgress;
+
+    bot.look(currentYaw, currentPitch, true);
+
+    if (progress >= 1.0) break;
+    await sleep(updateInterval);
   }
 
-  // Ensure we end exactly at the target yaw
-  bot.look(targetYaw, startPitch, true);
+  // Ensure we end exactly at the target angles
+  bot.look(targetYaw, targetPitch, true);
 }
 
 async function run(bot, durationMs) {
-  const minMs = 2000;
-  const maxMs = 5000;
-  const actions = [
-    () => walk(bot, rand(minMs, maxMs)),
-    () => jump(bot, rand(minMs * 0.6, maxMs * 0.8)),
-    () => lookAround(bot, rand(minMs, maxMs)),
-  ];
+  const actions = [() => walk(bot, rand(MIN_WALK_DISTANCE, MAX_WALK_DISTANCE))];
 
   const endTime = Date.now() + durationMs;
 
@@ -366,133 +501,199 @@ async function run(bot, durationMs) {
 
 function getOnSpawnFn(bot, host, receiverPort, botRng, coordinator) {
   return async () => {
-    await sleep(10000);
-    const mcData = mcDataLoader(bot.version);
-    const moves = new Movements(bot, mcData);
-    moves.allowSprinting = true; // makes them run
-    moves.canDig = false; // keep it simple; no digging
-    bot.pathfinder.setMovements(moves);
+    // const mcData = mcDataLoader(bot.version);
+    // const moves = new Movements(bot, mcData);
+    // moves.allowSprinting = true; // makes them run
+    // moves.canDig = false; // keep it simple; no digging
+    // bot.pathfinder.setMovements(moves);
+    mineflayerViewerhl(bot, {
+      output: `${host}:${receiverPort}`,
+      width: 640,
+      height: 360,
+    });
     const { x, y, z } = bot.entity.position;
     console.log(
       `[${bot.username}] spawned at (${x.toFixed(2)}, ${y.toFixed(
         2
       )}, ${z.toFixed(2)})`
     );
-    mineflayerViewerhl(bot, {
-      output: `${host}:${receiverPort}`,
-      width: 640,
-      height: 360,
-    });
     const iterationID = 0;
     coordinator.onceEvent(
-      "alignPositionsPhase",
-      getOnAlignPositionsPhaseFn(bot, botRng, coordinator, iterationID)
+      "waitForViewerPhase",
+      getOnWaitForViewerPhaseFn(
+        bot,
+        botRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name
+      )
     );
     coordinator.sendToOtherBot(
-      "alignPositionsPhase",
+      "waitForViewerPhase",
       bot.entity.position,
       "spawn phase end",
       iterationID
     );
   };
 }
-function getOnAlignPositionsPhaseFn(bot, botRng, coordinator, iterationID) {
+function getOnWaitForViewerPhaseFn(
+  bot,
+  botRng,
+  coordinator,
+  iterationID,
+  otherBotName
+) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
-      "alignPositionsPhase",
-      bot.entity.position,
-      "alignPositionsPhase beginning",
+      "waitForViewerPhase",
+      bot.entity.position.clone(),
+      "waitForViewerPhase beginning",
       iterationID
     );
     console.log(
+      `[iter ${iterationID}] [${bot.username}] waiting for viewer to initialize`
+    );
+    await sleep(5000);
+    coordinator.onceEvent(
+      "teleportPhase",
+      getOnTeleportPhaseFn(
+        bot,
+        botRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name
+      )
+    );
+    coordinator.sendToOtherBot(
+      "teleportPhase",
+      bot.entity.position.clone(),
+      "waitForViewerPhase end",
+      iterationID
+    );
+  };
+}
+function getOnTeleportPhaseFn(
+  bot,
+  botRng,
+  coordinator,
+  iterationID,
+  otherBotName
+) {
+  return async (otherBotPosition) => {
+    coordinator.sendToOtherBot(
+      "teleportPhase",
+      bot.entity.position,
+      "teleportPhase beginning",
+      iterationID
+    );
+
+    // Generate desired distance between bots using botRng
+    const desiredDistance =
+      MIN_BOTS_DISTANCE + botRng() * (MAX_BOTS_DISTANCE - MIN_BOTS_DISTANCE);
+
+    // Calculate current positions and distance
+    const currentPos = bot.entity.position.clone();
+    const otherPos = otherBotPosition.clone();
+    const currentDistance = currentPos.distanceTo(otherPos);
+
+    console.log(
       `[iter ${iterationID}] [${
         bot.username
-      }] aligns itself with other bot at ${JSON.stringify(
-        otherBotPosition
-      )} (going to midpoint)`
+      }] current distance: ${currentDistance.toFixed(
+        2
+      )}, desired: ${desiredDistance.toFixed(2)}`
     );
 
-    const botPosition = bot.entity.position.clone();
+    let newX, newZ;
 
-    // Calculate midpoint between the two bots
-    const midpoint = new Vec3(
-      (botPosition.x + otherBotPosition.x) / 2,
-      (botPosition.y + otherBotPosition.y) / 2,
-      (botPosition.z + otherBotPosition.z) / 2
-    );
+    // Handle case where both bots are at the same coordinate
+    if (currentDistance < 0.01) {
+      console.log(
+        `[iter ${iterationID}] [${bot.username}] bots at same position, using random angle`
+      );
 
-    // Use land_pos to get proper ground level for the midpoint
-    const landPosition = land_pos(bot, midpoint.x, midpoint.z);
-    if (landPosition) {
-      midpoint.y = landPosition.y + 1;
+      // Pick a random angle from RNG
+      const angle = botRng() * 2 * Math.PI;
+
+      // Move half the desired distance in the chosen direction
+      const moveDistance = desiredDistance / 2;
+
+      // Bot A moves in initial direction, Bot B moves in opposite direction
+      if (bot.username < otherBotName) {
+        newX = currentPos.x + moveDistance * Math.cos(angle);
+        newZ = currentPos.z + moveDistance * Math.sin(angle);
+      } else {
+        newX = currentPos.x - moveDistance * Math.cos(angle);
+        newZ = currentPos.z - moveDistance * Math.sin(angle);
+      }
+    } else {
+      // Normal case: move along the line connecting the two bots
+      const movementDistance = (desiredDistance - currentDistance) / 2;
+
+      // Calculate unit vector from this bot to the other bot
+      const dx = otherPos.x - currentPos.x;
+      const dz = otherPos.z - currentPos.z;
+      const lineDistance = Math.sqrt(dx * dx + dz * dz);
+      const unitX = dx / lineDistance;
+      const unitZ = dz / lineDistance;
+
+      // Calculate new position (move away from other bot if expanding, toward if contracting)
+      newX = currentPos.x - movementDistance * unitX;
+      newZ = currentPos.z - movementDistance * unitZ;
     }
 
+    // Use land_pos to determine proper Y coordinate
+    const landPosition = land_pos(bot, newX, newZ);
+    const newY = landPosition ? landPosition.y + 1 : currentPos.y;
+
     console.log(
-      `[iter ${iterationID}] [${bot.username}] moving to midpoint: ${midpoint}`
+      `[iter ${iterationID}] [${bot.username}] teleporting to (${newX.toFixed(
+        2
+      )}, ${newY.toFixed(2)}, ${newZ.toFixed(2)})`
     );
 
-    // Move to the midpoint
-    const defaultMove = new Movements(bot);
-    defaultMove.allowSprinting = false;
-    bot.pathfinder.setMovements(defaultMove);
-    bot.pathfinder.setGoal(
-      new GoalBlock(midpoint.x, midpoint.y, midpoint.z),
-      false
-    );
+    // Teleport using rcon
+    try {
+      await rconTp(
+        bot.username,
+        Math.floor(newX),
+        Math.floor(newY),
+        Math.floor(newZ)
+      );
+      await sleep(1000);
+      console.log(`[iter ${iterationID}] [${bot.username}] teleport completed`);
+    } catch (error) {
+      console.error(
+        `[iter ${iterationID}] [${bot.username}] teleport failed:`,
+        error
+      );
+    }
 
-    // Wait for movement to complete using Promise
-    await new Promise((resolve) => {
-      const onGoalReached = () => {
-        bot.pathfinder.stop();
-        bot.clearControlStates();
-        bot.removeListener("goal_reached", onGoalReached);
-        resolve();
-      };
-      bot.on("goal_reached", onGoalReached);
-    });
-
-    console.log(`[iter ${iterationID}] [${bot.username}] reached midpoint`);
-    coordinator.onceEvent(
-      "resetPositionsPhase",
-      getOnResetPositionsPhaseFn(bot, botRng, coordinator, iterationID)
-    );
-    coordinator.sendToOtherBot(
-      "resetPositionsPhase",
-      bot.entity.position.clone(),
-      "alignPositionsPhase end",
-      iterationID
-    );
-  };
-}
-function getOnResetPositionsPhaseFn(bot, botRng, coordinator, iterationID) {
-  return async (otherBotPosition) => {
-    coordinator.sendToOtherBot(
-      "resetPositionsPhase",
-      bot.entity.position.clone(),
-      "resetPositionsPhase beginning",
-      iterationID
-    );
-    const distance =
-      MIN_RESET_DISTANCE + botRng() * (MAX_RESET_DISTANCE - MIN_RESET_DISTANCE);
-    console.log(
-      `[iter ${iterationID}] [${
-        bot.username
-      }] resetting position with distance ${distance.toFixed(2)}`
-    );
-    await move(bot, distance);
     coordinator.onceEvent(
       "walkAndLookPhase",
-      getOnWalkAndLookPhaseFn(bot, botRng, coordinator, iterationID)
+      getOnWalkAndLookPhaseFn(
+        bot,
+        botRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name
+      )
     );
     coordinator.sendToOtherBot(
       "walkAndLookPhase",
       bot.entity.position.clone(),
-      "resetPositionsPhase end",
+      "teleportPhase end",
       iterationID
     );
   };
 }
-function getOnWalkAndLookPhaseFn(bot, botRng, coordinator, iterationID) {
+function getOnWalkAndLookPhaseFn(
+  bot,
+  botRng,
+  coordinator,
+  iterationID,
+  otherBotName
+) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       "walkAndLookPhase",
@@ -501,19 +702,67 @@ function getOnWalkAndLookPhaseFn(bot, botRng, coordinator, iterationID) {
       iterationID
     );
     const durationSec =
-      MIN_WALK_DURATION_SEC +
-      botRng() * (MAX_WALK_DURATION_SEC - MIN_WALK_DURATION_SEC);
+      MIN_WALK_DISTANCE + botRng() * (MAX_WALK_DISTANCE - MIN_WALK_DISTANCE);
     const durationMs = Math.floor(durationSec * 1000);
+
+    // Define three walking phase modes and randomly pick one using botRng
+    const walkingModes = [
+      "both_bots_walk",
+      "lower_name_walks",
+      "bigger_name_walks",
+    ];
+    const selectedMode =
+      walkingModes[Math.floor(botRng() * walkingModes.length)];
+
     console.log(
       `[iter ${iterationID}] [${
         bot.username
-      }] starting walk and look phase for ${durationSec.toFixed(2)}s`
+      }] starting walk phase for ${durationSec.toFixed(
+        2
+      )}s - mode: ${selectedMode}`
     );
-    await run(bot, durationMs);
+
+    // Determine if this bot should walk based on the selected mode
+    let shouldThisBotWalk = false;
+
+    switch (selectedMode) {
+      case "both_bots_walk":
+        shouldThisBotWalk = true;
+        break;
+      case "lower_name_walks":
+        shouldThisBotWalk = bot.username < otherBotName;
+        break;
+      case "bigger_name_walks":
+        shouldThisBotWalk = bot.username > otherBotName;
+        break;
+    }
+
+    console.log(
+      `[iter ${iterationID}] [${bot.username}] will ${
+        shouldThisBotWalk ? "walk" : "sleep"
+      } during this phase`
+    );
+
+    // Look at the other bot smoothly at the start of the phase
+    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+
+    // Either run() or sleep() based on the mode
+    if (shouldThisBotWalk) {
+      await run(bot, durationMs);
+    } else {
+      await sleep(durationMs);
+    }
+
     if (iterationID == args.iterations_num_per_episode - 1) {
       coordinator.onceEvent(
         "stopPhase",
-        getOnStopPhaseFn(bot, botRng, coordinator, iterationID)
+        getOnStopPhaseFn(
+          bot,
+          botRng,
+          coordinator,
+          iterationID,
+          args.other_bot_name
+        )
       );
       coordinator.sendToOtherBot(
         "stopPhase",
@@ -524,11 +773,17 @@ function getOnWalkAndLookPhaseFn(bot, botRng, coordinator, iterationID) {
       return;
     }
     coordinator.onceEvent(
-      "alignPositionsPhase",
-      getOnAlignPositionsPhaseFn(bot, botRng, coordinator, iterationID + 1)
+      "walkAndLookPhase",
+      getOnWalkAndLookPhaseFn(
+        bot,
+        botRng,
+        coordinator,
+        iterationID + 1,
+        args.other_bot_name
+      )
     );
     coordinator.sendToOtherBot(
-      "alignPositionsPhase",
+      "walkAndLookPhase",
       bot.entity.position.clone(),
       "walkAndLookPhase end",
       iterationID
@@ -536,7 +791,7 @@ function getOnWalkAndLookPhaseFn(bot, botRng, coordinator, iterationID) {
   };
 }
 
-function getOnStopPhaseFn(bot, botRng, coordinator, iterationID) {
+function getOnStopPhaseFn(bot, botRng, coordinator, iterationID, otherBotName) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       "stopPhase",
@@ -575,22 +830,30 @@ function makeBot({ username, host, port }) {
 
 async function main() {
   console.log("DEBUG environment variable:", process.env.DEBUG);
-  console.log(`Starting bot: ${args.bot_name} (ID: ${args.bot_id})`);
-  console.log(`Coordinator: ${args.bot_id}, Ports: ${args.coord_port}/${args.other_coord_port}`);
+  console.log(`Starting bot: ${args.bot_name}`);
+  console.log(
+    `Coordinator: ${args.bot_name}, Ports: ${args.coord_port}/${args.other_coord_port}`
+  );
 
   const bot = makeBot({
     username: args.bot_name,
     host: args.host,
     port: args.port,
   });
-  
+
   console.log("Setting up coordinator connections...");
-  const coordinator = new BotCoordinator(args.bot_id, args.coord_port, args.other_coord_port);
-  
+  const coordinator = new BotCoordinator(
+    args.bot_name,
+    args.coord_port,
+    args.other_coord_port
+  );
+
   // Wait for both connections to be established
   await coordinator.setupConnections();
-  console.log("All coordinator connections ready, proceeding with bot spawn...");
-  
+  console.log(
+    "All coordinator connections ready, proceeding with bot spawn..."
+  );
+
   const botsRngSeed = Date.now().toString();
   const botRng = seedrandom(botsRngSeed);
   bot.once(
