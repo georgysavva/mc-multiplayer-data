@@ -3,7 +3,7 @@
 Video Alignment Script
 
 Aligns two MP4 videos based on timestamp data from corresponding JSON files
-and creates a single video with frames concatenated horizontally.
+and creates a single video with frames concatenated vertically with a separator.
 
 Usage:
     python align_videos.py video1.mp4 video1.json video2.mp4 video2.json ./output/
@@ -134,7 +134,7 @@ def align_videos(
     threshold_ms: float = 50.0,
 ):
     """
-    Align two videos based on timestamp data and create horizontally concatenated output.
+    Align two videos based on timestamp data and create vertically concatenated output.
 
     Args:
         video1_path: Path to first video
@@ -177,8 +177,8 @@ def align_videos(
     print(f"Video 2: {width2}x{height2}")
 
     # Assume videos have same dimensions as specified
-    if height1 != height2:
-        print(f"Warning: Video heights differ ({height1} vs {height2})")
+    if width1 != width2:
+        print(f"Warning: Video widths differ ({width1} vs {width2})")
 
     # Compute FPS from aligned frame timestamps
     first_idx1, first_idx2 = aligned_pairs[0]
@@ -197,8 +197,8 @@ def align_videos(
 
     print(f"Computed FPS from timestamps: {output_fps:.2f}")
 
-    output_width = width1 + width2
-    output_height = max(height1, height2)
+    output_width = max(width1, width2)
+    output_height = height1 + height2 + 10  # Add 10 pixels for separator
 
     # Initialize video writer
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
@@ -230,14 +230,19 @@ def align_videos(
                 print(f"Warning: Failed to read frames at indices {idx1}, {idx2}")
                 continue
 
-            # Ensure frames have the same height for concatenation
-            if frame1.shape[0] != frame2.shape[0]:
-                target_height = min(frame1.shape[0], frame2.shape[0])
-                frame1 = frame1[:target_height, :, :]
-                frame2 = frame2[:target_height, :, :]
+            # Ensure frames have the same width for vertical concatenation
+            if frame1.shape[1] != frame2.shape[1]:
+                target_width = min(frame1.shape[1], frame2.shape[1])
+                frame1 = frame1[:, :target_width, :]
+                frame2 = frame2[:, :target_width, :]
 
-            # Horizontally concatenate frames
-            combined_frame = np.hstack((frame1, frame2))
+            # Create 10-pixel black separator strip
+            separator_height = 10
+            separator_width = max(frame1.shape[1], frame2.shape[1])
+            separator = np.zeros((separator_height, separator_width, 3), dtype=np.uint8)
+
+            # Vertically concatenate frames with separator
+            combined_frame = np.vstack((frame1, separator, frame2))
 
             # Write frame to output video
             out.write(combined_frame)
@@ -255,7 +260,7 @@ def align_videos(
 def main():
     """Main function to handle command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Align two MP4 videos based on timestamp data and create horizontally concatenated output.",
+        description="Align two MP4 videos based on timestamp data and create vertically concatenated output.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

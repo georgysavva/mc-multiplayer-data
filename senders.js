@@ -3,14 +3,18 @@ const seedrandom = require("seedrandom");
 const { Rcon } = require("rcon-client");
 
 // Constants
-const MIN_WALK_DISTANCE = 1;
-const MAX_WALK_DISTANCE = 3;
-const MIN_BOTS_DISTANCE = 7;
-const MAX_BOTS_DISTANCE = 13;
+const MIN_WALK_DISTANCE = 3;
+const MAX_WALK_DISTANCE = 4;
+const MIN_BOTS_DISTANCE = 9;
+const MAX_BOTS_DISTANCE = 10;
 const CAMERA_SPEED_DEGREES_PER_SEC = 90;
 const JUMP_PROBABILITY = 0.25;
 const MIN_JUMP_DURATION_SEC = 1;
 const MAX_JUMP_DURATION_SEC = 3;
+const MIN_RUN_ACTIONS = 3;
+const MAX_RUN_ACTIONS = 5;
+const MIN_SLEEP_BETWEEN_ACTIONS_SEC = 1.5;
+const MAX_SLEEP_BETWEEN_ACTIONS_SEC = 3;
 
 // two-bots-run-together.js
 const minimist = require("minimist");
@@ -47,6 +51,7 @@ const args = minimist(process.argv.slice(2), {
     coord_port: 8093,
     other_coord_port: 8094,
     iterations_num_per_episode: 3,
+    bot_rng_seed: "12345",
   },
 });
 
@@ -201,23 +206,44 @@ class BotCoordinator extends EventEmitter {
     return new Promise((resolve) => {
       this.server = net.createServer((socket) => {
         console.log(`[${this.botName} Server] Other bot connected`);
+        let buffer = "";
+
         socket.on("data", (data) => {
-          try {
-            const message = JSON.parse(data.toString());
-            const listenerCount = this.listenerCount(message.eventName);
-            if (listenerCount > 0) {
-              console.log(
-                `[${this.botName} Server] Received: ${message.eventName} (${listenerCount} listeners) - emitting`
-              );
-              this.emit(message.eventName, message.eventParams);
-            } else {
-              console.log(
-                `[${this.botName} Server] Received: ${message.eventName} (no listeners)`
-              );
+          buffer += data.toString();
+          let lines = buffer.split("\n");
+
+          // Keep the last incomplete line in the buffer
+          buffer = lines.pop();
+
+          // Process each complete line
+          lines.forEach((line) => {
+            if (line.trim()) {
+              try {
+                const message = JSON.parse(line);
+                const listenerCount = this.listenerCount(message.eventName);
+                if (listenerCount > 0) {
+                  console.log(
+                    `[${this.botName} Server] Received: ${message.eventName} (${listenerCount} listeners) - emitting`
+                  );
+                  this.emit(message.eventName, message.eventParams);
+                } else {
+                  console.log(
+                    `[${this.botName} Server] Received: ${message.eventName} (no listeners)`
+                  );
+                }
+              } catch (err) {
+                console.error(
+                  `[${
+                    this.botName
+                  } Server] Parse error: ${err}, message: ${data.toString()}`
+                );
+                console.error(
+                  `[${this.botName} Server] Problematic line:`,
+                  line
+                );
+              }
             }
-          } catch (err) {
-            console.error(`[${this.botName} Server] Parse error:`, err);
-          }
+          });
         });
         socket.on("close", () => {
           console.log(`[${this.botName} Server] Other bot disconnected`);
@@ -273,7 +299,7 @@ class BotCoordinator extends EventEmitter {
       console.log(
         `[sendToOtherBot] [iter ${iterationID}] ${location}: Sending ${eventName} via client connection`
       );
-      this.clientConnection.write(message);
+      this.clientConnection.write(message + "\n");
     } else {
       console.log(
         `[sendToOtherBot] [iter ${iterationID}] ${location}: No client connection available for ${eventName}`
@@ -477,35 +503,50 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond) {
   bot.look(targetYaw, targetPitch, true);
 }
 
-async function run(bot, durationMs) {
+async function run(bot, actionCount) {
   const actions = [() => walk(bot, rand(MIN_WALK_DISTANCE, MAX_WALK_DISTANCE))];
 
-  const endTime = Date.now() + durationMs;
+  console.log(`[${bot.username}] Running ${actionCount} actions`);
 
-  while (Date.now() < endTime) {
+  for (let i = 0; i < actionCount; i++) {
+    // Sleep before each action, including the first one
+    const sleepTimeSec =
+      MIN_SLEEP_BETWEEN_ACTIONS_SEC +
+      Math.random() *
+        (MAX_SLEEP_BETWEEN_ACTIONS_SEC - MIN_SLEEP_BETWEEN_ACTIONS_SEC);
+    const sleepTimeMs = Math.floor(sleepTimeSec * 1000);
+    console.log(
+      `[${bot.username}] Sleeping for ${sleepTimeSec.toFixed(
+        2
+      )}s before action ${i + 1}`
+    );
+    await sleep(sleepTimeMs);
+
     const action = choice(actions);
     try {
+      console.log(`[${bot.username}] Executing action ${i + 1}/${actionCount}`);
       await action();
     } catch (err) {
       console.error(`[${bot.username}] Action error:`, err);
     } finally {
       stopAll(bot);
     }
-
-    // Only sleep if we have time remaining
-    if (Date.now() + 300 < endTime) {
-      await sleep(300); // small pause between actions
-    }
   }
 }
 
-function getOnSpawnFn(bot, host, receiverPort, botRng, coordinator) {
+function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
   return async () => {
     // const mcData = mcDataLoader(bot.version);
     // const moves = new Movements(bot, mcData);
     // moves.allowSprinting = true; // makes them run
     // moves.canDig = false; // keep it simple; no digging
     // bot.pathfinder.setMovements(moves);
+    // Wait for both connections to be established
+    console.log("Setting up coordinator connections...");
+    await coordinator.setupConnections();
+    console.log(
+      "All coordinator connections ready, proceeding with bot spawn..."
+    );
     mineflayerViewerhl(bot, {
       output: `${host}:${receiverPort}`,
       width: 640,
@@ -522,7 +563,7 @@ function getOnSpawnFn(bot, host, receiverPort, botRng, coordinator) {
       "waitForViewerPhase",
       getOnWaitForViewerPhaseFn(
         bot,
-        botRng,
+        sharedBotRng,
         coordinator,
         iterationID,
         args.other_bot_name
@@ -538,7 +579,7 @@ function getOnSpawnFn(bot, host, receiverPort, botRng, coordinator) {
 }
 function getOnWaitForViewerPhaseFn(
   bot,
-  botRng,
+  sharedBotRng,
   coordinator,
   iterationID,
   otherBotName
@@ -558,7 +599,7 @@ function getOnWaitForViewerPhaseFn(
       "teleportPhase",
       getOnTeleportPhaseFn(
         bot,
-        botRng,
+        sharedBotRng,
         coordinator,
         iterationID,
         args.other_bot_name
@@ -574,7 +615,7 @@ function getOnWaitForViewerPhaseFn(
 }
 function getOnTeleportPhaseFn(
   bot,
-  botRng,
+  sharedBotRng,
   coordinator,
   iterationID,
   otherBotName
@@ -587,13 +628,14 @@ function getOnTeleportPhaseFn(
       iterationID
     );
 
-    // Generate desired distance between bots using botRng
+    // Generate desired distance between bots using sharedBotRng
     const desiredDistance =
-      MIN_BOTS_DISTANCE + botRng() * (MAX_BOTS_DISTANCE - MIN_BOTS_DISTANCE);
+      MIN_BOTS_DISTANCE +
+      sharedBotRng() * (MAX_BOTS_DISTANCE - MIN_BOTS_DISTANCE);
 
     // Calculate current positions and distance
     const currentPos = bot.entity.position.clone();
-    const otherPos = otherBotPosition.clone();
+    const otherPos = otherBotPosition;
     const currentDistance = currentPos.distanceTo(otherPos);
 
     console.log(
@@ -613,7 +655,7 @@ function getOnTeleportPhaseFn(
       );
 
       // Pick a random angle from RNG
-      const angle = botRng() * 2 * Math.PI;
+      const angle = sharedBotRng() * 2 * Math.PI;
 
       // Move half the desired distance in the chosen direction
       const moveDistance = desiredDistance / 2;
@@ -668,12 +710,13 @@ function getOnTeleportPhaseFn(
         error
       );
     }
+    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
 
     coordinator.onceEvent(
       "walkAndLookPhase",
       getOnWalkAndLookPhaseFn(
         bot,
-        botRng,
+        sharedBotRng,
         coordinator,
         iterationID,
         args.other_bot_name
@@ -689,7 +732,7 @@ function getOnTeleportPhaseFn(
 }
 function getOnWalkAndLookPhaseFn(
   bot,
-  botRng,
+  sharedBotRng,
   coordinator,
   iterationID,
   otherBotName
@@ -701,25 +744,21 @@ function getOnWalkAndLookPhaseFn(
       "walkAndLookPhase beginning",
       iterationID
     );
-    const durationSec =
-      MIN_WALK_DISTANCE + botRng() * (MAX_WALK_DISTANCE - MIN_WALK_DISTANCE);
-    const durationMs = Math.floor(durationSec * 1000);
+    const actionCount =
+      MIN_RUN_ACTIONS +
+      Math.floor(sharedBotRng() * (MAX_RUN_ACTIONS - MIN_RUN_ACTIONS + 1));
 
-    // Define three walking phase modes and randomly pick one using botRng
+    // Define three walking phase modes and randomly pick one using sharedBotRng
     const walkingModes = [
       "both_bots_walk",
       "lower_name_walks",
       "bigger_name_walks",
     ];
     const selectedMode =
-      walkingModes[Math.floor(botRng() * walkingModes.length)];
+      walkingModes[Math.floor(sharedBotRng() * walkingModes.length)];
 
     console.log(
-      `[iter ${iterationID}] [${
-        bot.username
-      }] starting walk phase for ${durationSec.toFixed(
-        2
-      )}s - mode: ${selectedMode}`
+      `[iter ${iterationID}] [${bot.username}] starting walk phase with ${actionCount} actions - mode: ${selectedMode}`
     );
 
     // Determine if this bot should walk based on the selected mode
@@ -748,9 +787,12 @@ function getOnWalkAndLookPhaseFn(
 
     // Either run() or sleep() based on the mode
     if (shouldThisBotWalk) {
-      await run(bot, durationMs);
+      await run(bot, actionCount);
     } else {
-      await sleep(durationMs);
+      // Bot doesn't run, so no sleep is needed
+      console.log(
+        `[iter ${iterationID}] [${bot.username}] not walking this phase`
+      );
     }
 
     if (iterationID == args.iterations_num_per_episode - 1) {
@@ -758,7 +800,7 @@ function getOnWalkAndLookPhaseFn(
         "stopPhase",
         getOnStopPhaseFn(
           bot,
-          botRng,
+          sharedBotRng,
           coordinator,
           iterationID,
           args.other_bot_name
@@ -776,7 +818,7 @@ function getOnWalkAndLookPhaseFn(
       "walkAndLookPhase",
       getOnWalkAndLookPhaseFn(
         bot,
-        botRng,
+        sharedBotRng,
         coordinator,
         iterationID + 1,
         args.other_bot_name
@@ -791,7 +833,13 @@ function getOnWalkAndLookPhaseFn(
   };
 }
 
-function getOnStopPhaseFn(bot, botRng, coordinator, iterationID, otherBotName) {
+function getOnStopPhaseFn(
+  bot,
+  sharedBotRng,
+  coordinator,
+  iterationID,
+  otherBotName
+) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       "stopPhase",
@@ -828,7 +876,7 @@ function makeBot({ username, host, port }) {
   return bot;
 }
 
-async function main() {
+function main() {
   console.log("DEBUG environment variable:", process.env.DEBUG);
   console.log(`Starting bot: ${args.bot_name}`);
   console.log(
@@ -840,27 +888,18 @@ async function main() {
     host: args.host,
     port: args.port,
   });
-
-  console.log("Setting up coordinator connections...");
+  const botsRngSeed = args.bot_rng_seed;
+  const sharedBotRng = seedrandom(botsRngSeed);
   const coordinator = new BotCoordinator(
     args.bot_name,
     args.coord_port,
     args.other_coord_port
   );
-
-  // Wait for both connections to be established
-  await coordinator.setupConnections();
-  console.log(
-    "All coordinator connections ready, proceeding with bot spawn..."
-  );
-
-  const botsRngSeed = Date.now().toString();
-  const botRng = seedrandom(botsRngSeed);
   bot.once(
     "spawn",
-    getOnSpawnFn(bot, args.host, args.receiver_port, botRng, coordinator)
+    getOnSpawnFn(bot, args.host, args.receiver_port, sharedBotRng, coordinator)
   );
 }
 
 // Run the main function
-main().catch(console.error);
+main();

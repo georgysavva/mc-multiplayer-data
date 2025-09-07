@@ -31,5 +31,6 @@ exec node senders.js \
   --other_bot_name "${OTHER_BOT_NAME:-Bravo}" \
   --receiver_port "${RECEIVER_PORT:-8091}" \
   --coord_port "${COORD_PORT:-8093}" \
-  --other_coord_port "${OTHER_COORD_PORT:-8094}" 
+  --other_coord_port "${OTHER_COORD_PORT:-8094}" \
+  --bot_rng_seed "${BOT_RNG_SEED:-}" 
 

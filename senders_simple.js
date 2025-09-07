@@ -269,7 +269,7 @@ async function run(bot, durationMs) {
   }
 }
 
-function getOnSpawnFn(bot, host, receiverPort, botRng, otherBot) {
+function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, otherBot) {
   return async () => {
     await sleep(10000);
     const mcData = mcDataLoader(bot.version);
