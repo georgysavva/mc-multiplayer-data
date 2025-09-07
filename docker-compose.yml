@@ -42,8 +42,8 @@ services:
       BOT_NAME: Alpha
       BOT_ID: A
       RECEIVER_PORT: 8091
-      IS_COORDINATOR: "true"
-      COORD_PORT: 8090
+      COORD_PORT: 8093
+      OTHER_COORD_PORT: 8094
     command: ./entrypoint_senders.sh
   senders2:
     build: .
@@ -59,8 +59,8 @@ services:
       BOT_NAME: Bravo
       BOT_ID: B
       RECEIVER_PORT: 8092
-      IS_COORDINATOR: "false"
-      COORD_PORT: 8090
+      COORD_PORT: 8094
+      OTHER_COORD_PORT: 8093
     command: ./entrypoint_senders.sh
   receiver1:
     build: .

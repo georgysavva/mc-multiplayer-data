@@ -30,15 +30,12 @@ const args = minimist(process.argv.slice(2), {
     receiver_port: 8091,
     bot_name: "Alpha",
     bot_id: "A",
-    coord_port: 9000,
-    is_coordinator: false,
+    coord_port: 8093,
+    other_coord_port: 8094,
     iterations_num_per_episode: 3,
   },
 });
 
-// Convert is_coordinator string to boolean
-args.is_coordinator =
-  args.is_coordinator === "true" || args.is_coordinator === true;
 
 function land_pos(bot, x, z) {
   const pos = new Vec3(x, 64, z);
@@ -163,88 +160,98 @@ const rand = (min, max) => Math.random() * (max - min) + min;
 const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 class BotCoordinator extends EventEmitter {
-  constructor(isCoordinator, coordPort) {
+  constructor(botId, coordPort, otherCoordPort) {
     super();
-    this.isCoordinator = isCoordinator;
+    this.botId = botId;
     this.coordPort = coordPort;
-    this.otherBotConnection = null;
+    this.otherCoordPort = otherCoordPort;
+    this.clientConnection = null;
     this.server = null;
-    this.setupConnection();
   }
 
-  setupConnection() {
-    if (this.isCoordinator) {
+  async setupConnections() {
+    console.log(`[${this.botId}] Setting up connections...`);
+    
+    // Set up server and client connections in parallel and wait for both to be ready
+    const [serverReady, clientReady] = await Promise.all([
+      this.setupServer(),
+      this.setupClient()
+    ]);
+    
+    console.log(`[${this.botId}] All connections established - server ready: ${serverReady}, client ready: ${clientReady}`);
+    return { serverReady, clientReady };
+  }
+
+  setupServer() {
+    return new Promise((resolve) => {
       this.server = net.createServer((socket) => {
-        console.log("[Coordinator] Other bot connected");
-        this.otherBotConnection = socket;
+        console.log(`[${this.botId} Server] Other bot connected`);
         socket.on("data", (data) => {
           try {
             const message = JSON.parse(data.toString());
             const listenerCount = this.listenerCount(message.eventName);
             if (listenerCount > 0) {
               console.log(
-                `[Coordinator] Received: ${message.eventName} (${listenerCount} listeners) - emitting`
+                `[${this.botId} Server] Received: ${message.eventName} (${listenerCount} listeners) - emitting`
               );
               this.emit(message.eventName, message.eventParams);
             } else {
               console.log(
-                `[Coordinator] Received: ${message.eventName} (no listeners)`
+                `[${this.botId} Server] Received: ${message.eventName} (no listeners)`
               );
             }
           } catch (err) {
-            console.error("[Coordinator] Parse error:", err);
+            console.error(`[${this.botId} Server] Parse error:`, err);
           }
         });
         socket.on("close", () => {
-          console.log("[Coordinator] Other bot disconnected");
-          this.otherBotConnection = null;
+          console.log(`[${this.botId} Server] Other bot disconnected`);
         });
+        
+        // Resolve when the other bot connects to our server
+        resolve(true);
       });
+      
       this.server.listen(this.coordPort, () => {
-        console.log(`[Coordinator] Server listening on port ${this.coordPort}`);
+        console.log(`[${this.botId} Server] Listening on port ${this.coordPort}, waiting for other bot to connect...`);
       });
-    } else {
-      this.connectToCoordinator();
-    }
+    });
   }
 
-  connectToCoordinator() {
-    const client = net.createConnection({ port: this.coordPort }, () => {
-      console.log("[Client] Connected to coordinator");
-      this.otherBotConnection = client;
-    });
-    client.on("data", (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        const listenerCount = this.listenerCount(message.eventName);
-        if (listenerCount > 0) {
-          console.log(
-            `[Client] Received: ${message.eventName} (${listenerCount} listeners) - emitting`
-          );
-          this.emit(message.eventName, message.eventParams);
-        } else {
-          console.log(`[Client] Received: ${message.eventName} (no listeners)`);
-        }
-      } catch (err) {
-        console.error("[Client] Parse error:", err);
-      }
-    });
-    client.on("close", () => {
-      console.log("[Client] Disconnected from coordinator");
-      this.otherBotConnection = null;
+  setupClient() {
+    return new Promise((resolve) => {
+      const attemptConnection = () => {
+        this.clientConnection = net.createConnection({ port: this.otherCoordPort }, () => {
+          console.log(`[${this.botId} Client] Connected to other bot's server on port ${this.otherCoordPort}`);
+          resolve(true);
+        });
+        
+        this.clientConnection.on("error", (err) => {
+          console.log(`[${this.botId} Client] Connection failed, retrying in 2s:`, err.message);
+          setTimeout(attemptConnection, 2000);
+        });
+        
+        this.clientConnection.on("close", () => {
+          console.log(`[${this.botId} Client] Disconnected from other bot`);
+          this.clientConnection = null;
+          setTimeout(attemptConnection, 2000); // Auto-reconnect
+        });
+      };
+      
+      attemptConnection();
     });
   }
 
   sendToOtherBot(eventName, eventParams, location, iterationID) {
-    if (this.otherBotConnection) {
+    if (this.clientConnection) {
       const message = JSON.stringify({ eventName, eventParams });
       console.log(
-        `[sendToOtherBot] [iter ${iterationID}] ${location}: Sending ${eventName} (connection available)`
+        `[sendToOtherBot] [iter ${iterationID}] ${location}: Sending ${eventName} via client connection`
       );
-      this.otherBotConnection.write(message);
+      this.clientConnection.write(message);
     } else {
       console.log(
-        `[sendToOtherBot] [iter ${iterationID}] ${location}: No connection to other bot for ${eventName}`
+        `[sendToOtherBot] [iter ${iterationID}] ${location}: No client connection available for ${eventName}`
       );
     }
   }
@@ -566,20 +573,31 @@ function makeBot({ username, host, port }) {
   return bot;
 }
 
-console.log("DEBUG environment variable:", process.env.DEBUG);
-console.log(`Starting bot: ${args.bot_name} (ID: ${args.bot_id})`);
-console.log(`Coordinator: ${args.is_coordinator}, Port: ${args.coord_port}`);
+async function main() {
+  console.log("DEBUG environment variable:", process.env.DEBUG);
+  console.log(`Starting bot: ${args.bot_name} (ID: ${args.bot_id})`);
+  console.log(`Coordinator: ${args.bot_id}, Ports: ${args.coord_port}/${args.other_coord_port}`);
 
-const bot = makeBot({
-  username: args.bot_name,
-  host: args.host,
-  port: args.port,
-});
-console.log("coordinator", args.is_coordinator, args.coord_port);
-const coordinator = new BotCoordinator(args.is_coordinator, args.coord_port);
-const botsRngSeed = Date.now().toString();
-const botRng = seedrandom(botsRngSeed);
-bot.once(
-  "spawn",
-  getOnSpawnFn(bot, args.host, args.receiver_port, botRng, coordinator)
-);
+  const bot = makeBot({
+    username: args.bot_name,
+    host: args.host,
+    port: args.port,
+  });
+  
+  console.log("Setting up coordinator connections...");
+  const coordinator = new BotCoordinator(args.bot_id, args.coord_port, args.other_coord_port);
+  
+  // Wait for both connections to be established
+  await coordinator.setupConnections();
+  console.log("All coordinator connections ready, proceeding with bot spawn...");
+  
+  const botsRngSeed = Date.now().toString();
+  const botRng = seedrandom(botsRngSeed);
+  bot.once(
+    "spawn",
+    getOnSpawnFn(bot, args.host, args.receiver_port, botRng, coordinator)
+  );
+}
+
+// Run the main function
+main().catch(console.error);
