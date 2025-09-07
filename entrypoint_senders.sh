@@ -24,11 +24,11 @@ echo "[entrypoint] GLX sanity check:"
 glxinfo -B || true  # don't hard-fail; just print if available
 
 echo "[entrypoint] Launching app..."
-echo "[entrypoint] Bot config: ${BOT_NAME:-Alpha} (${BOT_ID:-A}), Ports: ${COORD_PORT:-8093}/${OTHER_COORD_PORT:-8094}"
+echo "[entrypoint] Bot config: ${BOT_NAME:-Alpha} <-> ${OTHER_BOT_NAME:-Bravo}, Ports: ${COORD_PORT:-8093}/${OTHER_COORD_PORT:-8094}"
 # exec node senders_simple.js 
 exec node senders.js \
   --bot_name "${BOT_NAME:-Alpha}" \
-  --bot_id "${BOT_ID:-A}" \
+  --other_bot_name "${OTHER_BOT_NAME:-Bravo}" \
   --receiver_port "${RECEIVER_PORT:-8091}" \
   --coord_port "${COORD_PORT:-8093}" \
   --other_coord_port "${OTHER_COORD_PORT:-8094}" 

@@ -40,7 +40,7 @@ services:
       - ./output2:/output
     environment:
       BOT_NAME: Alpha
-      BOT_ID: A
+      OTHER_BOT_NAME: Bravo
       RECEIVER_PORT: 8091
       COORD_PORT: 8093
       OTHER_COORD_PORT: 8094
@@ -57,7 +57,7 @@ services:
       - ./output2:/output
     environment:
       BOT_NAME: Bravo
-      BOT_ID: B
+      OTHER_BOT_NAME: Alpha
       RECEIVER_PORT: 8092
       COORD_PORT: 8094
       OTHER_COORD_PORT: 8093
