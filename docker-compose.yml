@@ -45,6 +45,7 @@ services:
       COORD_PORT: 8093
       OTHER_COORD_PORT: 8094
       BOT_RNG_SEED: "12345"
+      EPISODES_NUM: 10
     command: ./entrypoint_senders.sh
   senders2:
     build: .
@@ -63,6 +64,7 @@ services:
       COORD_PORT: 8094
       OTHER_COORD_PORT: 8093
       BOT_RNG_SEED: "12345"
+      EPISODES_NUM: 10
     command: ./entrypoint_senders.sh
   receiver1:
     build: .

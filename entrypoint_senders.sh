@@ -32,5 +32,6 @@ exec node senders.js \
   --receiver_port "${RECEIVER_PORT:-8091}" \
   --coord_port "${COORD_PORT:-8093}" \
   --other_coord_port "${OTHER_COORD_PORT:-8094}" \
-  --bot_rng_seed "${BOT_RNG_SEED:-}" 
+  --bot_rng_seed "${BOT_RNG_SEED:-}" \
+  --episodes_num "${EPISODES_NUM:-1}" 
 

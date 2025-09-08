@@ -604,7 +604,6 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
 
       if (episodeNum < args.episodes_num) {
         console.log(`[${bot.username}] Preparing for next episode...`);
-        await sleep(2000); // Brief pause between episodes
       }
     }
 
@@ -812,8 +811,7 @@ function getOnWalkAndLookPhaseFn(
           sharedBotRng,
           coordinator,
           iterationID,
-          args.other_bot_name,
-          bot._currentEpisodeResolve
+          args.other_bot_name
         )
       );
       coordinator.sendToOtherBot(
@@ -849,8 +847,7 @@ function getOnStopPhaseFn(
   sharedBotRng,
   coordinator,
   iterationID,
-  otherBotName,
-  episodeResolve
+  otherBotName
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
@@ -873,9 +870,39 @@ function getOnStopPhaseFn(
       `[iter ${iterationID}] [${bot.username}] episode ended, connection closed`
     );
 
-    await sleep(5000);
+    coordinator.onceEvent(
+      "stoppedPhase",
+      getOnStoppedPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        otherBotName,
+        bot._currentEpisodeResolve
+      )
+    );
+  };
+}
 
-    console.log(`[${bot.username}] episode completed`);
+function getOnStoppedPhaseFn(
+  bot,
+  sharedBotRng,
+  coordinator,
+  iterationID,
+  otherBotName,
+  episodeResolve
+) {
+  return async (otherBotPosition) => {
+    coordinator.sendToOtherBot(
+      "stoppedPhase",
+      bot.entity.position.clone(),
+      "stoppedPhase beginning",
+      iterationID
+    );
+
+    await sleep(3000);
+
+    console.log(`[${bot.username}] stopped`);
     // Resolve the episode promise instead of exiting
     episodeResolve();
   };
