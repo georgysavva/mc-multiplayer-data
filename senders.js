@@ -715,7 +715,7 @@ function getOnTeleportPhaseFn(
     console.log(
       `[iter ${iterationID}] [${bot.username}] starting episode recording`
     );
-    bot.emit("startepisode", episodeNum === 1 ? 500 : 0);
+    bot.emit("startepisode", episodeNum === 1 ? 50 : 0);
     await sleep(episodeNum === 1 ? 6000 : 1000);
 
     coordinator.onceEvent(
@@ -880,6 +880,12 @@ function getOnStopPhaseFn(
         otherBotName,
         bot._currentEpisodeResolve
       )
+    );
+    coordinator.sendToOtherBot(
+      "stoppedPhase",
+      bot.entity.position.clone(),
+      "StopPhase end",
+      iterationID
     );
   };
 }
