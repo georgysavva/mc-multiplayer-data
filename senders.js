@@ -595,6 +595,10 @@ function getOnWaitForViewerPhaseFn(
       `[iter ${iterationID}] [${bot.username}] waiting for viewer to initialize`
     );
     await sleep(5000);
+    console.log(
+      `[iter ${iterationID}] [${bot.username}] starting episode recording`
+    );
+    bot.emit("startepisode");
     coordinator.onceEvent(
       "teleportPhase",
       getOnTeleportPhaseFn(
@@ -848,7 +852,19 @@ function getOnStopPhaseFn(
       iterationID
     );
     console.log(`[iter ${iterationID}] [${bot.username}] stops recording`);
-    bot.emit("endtask");
+    bot.emit("endepisode");
+
+    // Wait for the connection to actually close
+    console.log(
+      `[iter ${iterationID}] [${bot.username}] waiting for episode to end...`
+    );
+    await new Promise((resolve) => {
+      bot.once("episodeended", resolve);
+    });
+    console.log(
+      `[iter ${iterationID}] [${bot.username}] episode ended, connection closed`
+    );
+
     await sleep(5000);
 
     console.log(`[${bot.username}] task completed`);
