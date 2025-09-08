@@ -595,10 +595,6 @@ function getOnWaitForViewerPhaseFn(
       `[iter ${iterationID}] [${bot.username}] waiting for viewer to initialize`
     );
     await sleep(5000);
-    console.log(
-      `[iter ${iterationID}] [${bot.username}] starting episode recording`
-    );
-    bot.emit("startepisode");
     coordinator.onceEvent(
       "teleportPhase",
       getOnTeleportPhaseFn(
@@ -715,6 +711,11 @@ function getOnTeleportPhaseFn(
       );
     }
     await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+    console.log(
+      `[iter ${iterationID}] [${bot.username}] starting episode recording`
+    );
+    bot.emit("startepisode");
+    await sleep(1000);
 
     coordinator.onceEvent(
       "walkAndLookPhase",
