@@ -52,6 +52,7 @@ const args = minimist(process.argv.slice(2), {
     other_coord_port: 8094,
     iterations_num_per_episode: 3,
     bot_rng_seed: "12345",
+    episodes_num: 1,
   },
 });
 
@@ -534,6 +535,40 @@ async function run(bot, actionCount) {
   }
 }
 
+async function runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum) {
+  console.log(`[${bot.username}] Starting episode ${episodeNum}`);
+
+  return new Promise((resolve) => {
+    bot._currentEpisodeResolve = resolve;
+
+    const { x, y, z } = bot.entity.position;
+    console.log(
+      `[${bot.username}] episode ${episodeNum} at (${x.toFixed(2)}, ${y.toFixed(
+        2
+      )}, ${z.toFixed(2)})`
+    );
+
+    const iterationID = 0;
+    coordinator.onceEvent(
+      "teleportPhase",
+      getOnTeleportPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name,
+        episodeNum
+      )
+    );
+    coordinator.sendToOtherBot(
+      "teleportPhase",
+      bot.entity.position.clone(),
+      "spawnPhase end",
+      iterationID
+    );
+  });
+}
+
 function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
   return async () => {
     // const mcData = mcDataLoader(bot.version);
@@ -547,70 +582,36 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
     console.log(
       "All coordinator connections ready, proceeding with bot spawn..."
     );
+
+    // Initialize viewer once for the entire program
     mineflayerViewerhl(bot, {
       output: `${host}:${receiverPort}`,
       width: 640,
       height: 360,
     });
+
     const { x, y, z } = bot.entity.position;
     console.log(
       `[${bot.username}] spawned at (${x.toFixed(2)}, ${y.toFixed(
         2
       )}, ${z.toFixed(2)})`
     );
-    const iterationID = 0;
-    coordinator.onceEvent(
-      "waitForViewerPhase",
-      getOnWaitForViewerPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name
-      )
-    );
-    coordinator.sendToOtherBot(
-      "waitForViewerPhase",
-      bot.entity.position,
-      "spawn phase end",
-      iterationID
-    );
-  };
-}
-function getOnWaitForViewerPhaseFn(
-  bot,
-  sharedBotRng,
-  coordinator,
-  iterationID,
-  otherBotName
-) {
-  return async (otherBotPosition) => {
-    coordinator.sendToOtherBot(
-      "waitForViewerPhase",
-      bot.entity.position.clone(),
-      "waitForViewerPhase beginning",
-      iterationID
-    );
+
+    // Run multiple episodes
+    for (let episodeNum = 1; episodeNum <= args.episodes_num; episodeNum++) {
+      await runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum);
+      console.log(`[${bot.username}] Episode ${episodeNum} completed`);
+
+      if (episodeNum < args.episodes_num) {
+        console.log(`[${bot.username}] Preparing for next episode...`);
+        await sleep(2000); // Brief pause between episodes
+      }
+    }
+
     console.log(
-      `[iter ${iterationID}] [${bot.username}] waiting for viewer to initialize`
+      `[${bot.username}] All ${args.episodes_num} episodes completed`
     );
-    await sleep(5000);
-    coordinator.onceEvent(
-      "teleportPhase",
-      getOnTeleportPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name
-      )
-    );
-    coordinator.sendToOtherBot(
-      "teleportPhase",
-      bot.entity.position.clone(),
-      "waitForViewerPhase end",
-      iterationID
-    );
+    process.exit(0);
   };
 }
 function getOnTeleportPhaseFn(
@@ -618,7 +619,8 @@ function getOnTeleportPhaseFn(
   sharedBotRng,
   coordinator,
   iterationID,
-  otherBotName
+  otherBotName,
+  episodeNum
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
@@ -714,8 +716,8 @@ function getOnTeleportPhaseFn(
     console.log(
       `[iter ${iterationID}] [${bot.username}] starting episode recording`
     );
-    bot.emit("startepisode");
-    await sleep(1000);
+    bot.emit("startepisode", episodeNum === 1 ? 500 : 0);
+    await sleep(episodeNum === 1 ? 6000 : 1000);
 
     coordinator.onceEvent(
       "walkAndLookPhase",
@@ -724,7 +726,8 @@ function getOnTeleportPhaseFn(
         sharedBotRng,
         coordinator,
         iterationID,
-        args.other_bot_name
+        args.other_bot_name,
+        episodeNum
       )
     );
     coordinator.sendToOtherBot(
@@ -740,7 +743,8 @@ function getOnWalkAndLookPhaseFn(
   sharedBotRng,
   coordinator,
   iterationID,
-  otherBotName
+  otherBotName,
+  episodeNum
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
@@ -808,7 +812,8 @@ function getOnWalkAndLookPhaseFn(
           sharedBotRng,
           coordinator,
           iterationID,
-          args.other_bot_name
+          args.other_bot_name,
+          bot._currentEpisodeResolve
         )
       );
       coordinator.sendToOtherBot(
@@ -826,7 +831,8 @@ function getOnWalkAndLookPhaseFn(
         sharedBotRng,
         coordinator,
         iterationID + 1,
-        args.other_bot_name
+        args.other_bot_name,
+        episodeNum
       )
     );
     coordinator.sendToOtherBot(
@@ -843,7 +849,8 @@ function getOnStopPhaseFn(
   sharedBotRng,
   coordinator,
   iterationID,
-  otherBotName
+  otherBotName,
+  episodeResolve
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
@@ -868,8 +875,9 @@ function getOnStopPhaseFn(
 
     await sleep(5000);
 
-    console.log(`[${bot.username}] task completed`);
-    process.exit(0);
+    console.log(`[${bot.username}] episode completed`);
+    // Resolve the episode promise instead of exiting
+    episodeResolve();
   };
 }
 

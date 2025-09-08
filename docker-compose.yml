@@ -37,7 +37,7 @@ services:
     network_mode: host
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output2:/output
+      - ./output3:/output
     environment:
       BOT_NAME: Alpha
       OTHER_BOT_NAME: Bravo
@@ -55,7 +55,7 @@ services:
     network_mode: host
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output2:/output
+      - ./output3:/output
     environment:
       BOT_NAME: Bravo
       OTHER_BOT_NAME: Alpha
@@ -73,7 +73,7 @@ services:
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output2:/output
+      - ./output3:/output
     command: ./entrypoint_receiver.sh
   receiver2:
     build: .
@@ -84,7 +84,7 @@ services:
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output2:/output
+      - ./output3:/output
     command: ./entrypoint_receiver.sh
 
   script:
@@ -93,5 +93,5 @@ services:
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output2:/output
+      - ./output3:/output
     command: python align_videos.py /output/20250907_173011_Alpha.mp4 /output/20250907_173011_Alpha.json /output/20250907_173011_Bravo.mp4 /output/20250907_173011_Bravo.json /output

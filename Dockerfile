@@ -37,7 +37,7 @@ RUN npm install
 RUN npm i rcon-client
 RUN echo "41" && npm install github:georgysavva/mineflayer
 RUN echo "47" && npm install github:georgysavva/mineflayer-pathfinder
-RUN echo "36" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "37" && npm install github:georgysavva/prismarine-viewer-colalab
 
 # Copy the bot script
 COPY . ./
