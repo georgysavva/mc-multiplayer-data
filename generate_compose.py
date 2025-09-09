@@ -14,12 +14,14 @@ import yaml
 
 def generate_compose_config(
     instance_id,
-    base_port=25565,
-    base_rcon_port=25675,
-    receiver_port=8090,
-    coord_port=8100,
-    data_dir_base="./data",
-    output_dir="./output",
+    base_port,
+    base_rcon_port,
+    receiver_port,
+    coord_port,
+    data_dir_base,
+    output_dir,
+    num_episodes,
+    episode_start_id,
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -28,20 +30,21 @@ def generate_compose_config(
     rcon_port = base_rcon_port + instance_id
 
     # Directories - each instance gets its own data subdirectory
-    data_dir = f"{data_dir_base}{instance_id}"
+    data_dir = f"{data_dir_base}/{instance_id}"
 
     config = {
+        "networks": {f"mc_network_{instance_id}": {"driver": "bridge"}},
         "services": {
-            f"mc_{instance_id}": {
+            f"mc_instance_{instance_id}": {
                 "image": "itzg/minecraft-server",
                 "tty": True,
                 "network_mode": "host",
-                "ports": [f"{mc_port}:25565", f"{rcon_port}:25575"],
                 "environment": {
                     "EULA": "TRUE",
                     "VERSION": "1.21",
                     "MODE": "creative",
-                    "OPS": "Alpha\nBravo",
+                    "RCON_PORT": rcon_port,
+                    "SERVER_PORT": mc_port,
                     "ONLINE_MODE": False,
                     "ENFORCE_SECURE_PROFILE": False,
                     "RCON_PASSWORD": "change-me",
@@ -50,83 +53,88 @@ def generate_compose_config(
                 },
                 "volumes": [f"{data_dir}:/data"],
             },
-            f"senders1_{instance_id}": {
-                "build": ".",
-                "depends_on": [f"mc_{instance_id}", f"receiver1_{instance_id}"],
+            f"sender_alpha_instance_{instance_id}": {
+                "image": "mc-multiplayer:latest",
+                "depends_on": [
+                    f"mc_instance_{instance_id}",
+                    f"receiver_alpha_instance_{instance_id}",
+                ],
                 "volumes": [f"{output_dir}:/output"],
                 "environment": {
                     "BOT_NAME": "Alpha",
                     "OTHER_BOT_NAME": "Bravo",
-                    "RECEIVER_HOST": f"receiver1_{instance_id}",
+                    "RECEIVER_HOST": f"receiver_alpha_instance_{instance_id}",
                     "RECEIVER_PORT": receiver_port,
                     "COORD_PORT": coord_port,
-                    "OTHER_COORD_HOST": f"senders2_{instance_id}",
+                    "OTHER_COORD_HOST": f"sender_bravo_instance_{instance_id}",
                     "OTHER_COORD_PORT": coord_port,
                     "BOT_RNG_SEED": str(12345 + instance_id),
-                    "EPISODES_NUM": 5,
+                    "EPISODES_NUM": num_episodes,
+                    "EPISODE_START_ID": episode_start_id,
                     "MC_HOST": "host.docker.internal",
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
+                "networks": [f"mc_network_{instance_id}"],
                 "command": "./entrypoint_senders.sh",
             },
-            f"senders2_{instance_id}": {
-                "build": ".",
+            f"sender_bravo_instance_{instance_id}": {
+                "image": "mc-multiplayer:latest",
                 "depends_on": [
-                    f"mc_{instance_id}",
-                    f"receiver2_{instance_id}",
-                    f"senders1_{instance_id}",
+                    f"mc_instance_{instance_id}",
+                    f"receiver_bravo_instance_{instance_id}",
+                    f"sender_alpha_instance_{instance_id}",
                 ],
                 "volumes": [f"{output_dir}:/output"],
                 "environment": {
                     "BOT_NAME": "Bravo",
                     "OTHER_BOT_NAME": "Alpha",
-                    "RECEIVER_HOST": f"receiver2_{instance_id}",
+                    "RECEIVER_HOST": f"receiver_bravo_instance_{instance_id}",
                     "RECEIVER_PORT": receiver_port,
                     "COORD_PORT": coord_port,
-                    "OTHER_COORD_HOST": f"senders1_{instance_id}",
+                    "OTHER_COORD_HOST": f"sender_alpha_instance_{instance_id}",
                     "OTHER_COORD_PORT": coord_port,
                     "BOT_RNG_SEED": str(12345 + instance_id),
-                    "EPISODES_NUM": 5,
+                    "EPISODES_NUM": num_episodes,
+                    "EPISODE_START_ID": episode_start_id,
                     "MC_HOST": "host.docker.internal",
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
+                "networks": [f"mc_network_{instance_id}"],
                 "command": "./entrypoint_senders.sh",
             },
-            f"receiver1_{instance_id}": {
-                "build": ".",
+            f"receiver_alpha_instance_{instance_id}": {
+                "image": "mc-multiplayer:latest",
                 "environment": {
                     "PORT": receiver_port,
                     "NAME": "Alpha",
                     "INSTANCE_ID": instance_id,
+                    "EPISODE_START_ID": episode_start_id,
                 },
                 "tty": True,
                 "volumes": [f"{output_dir}:/output"],
+                "networks": [f"mc_network_{instance_id}"],
                 "command": "./entrypoint_receiver.sh",
             },
-            f"receiver2_{instance_id}": {
-                "build": ".",
+            f"receiver_bravo_instance_{instance_id}": {
+                "image": "mc-multiplayer:latest",
                 "environment": {
                     "PORT": receiver_port,
                     "NAME": "Bravo",
                     "INSTANCE_ID": instance_id,
+                    "EPISODE_START_ID": episode_start_id,
                 },
                 "tty": True,
                 "volumes": [f"{output_dir}:/output"],
+                "networks": [f"mc_network_{instance_id}"],
                 "command": "./entrypoint_receiver.sh",
             },
-            f"script_{instance_id}": {
-                "build": ".",
-                "tty": True,
-                "volumes": [f"{output_dir}:/output"],
-                "command": "python align_videos.py /output/20250907_173011_Alpha.mp4 /output/20250907_173011_Alpha.json /output/20250907_173011_Bravo.mp4 /output/20250907_173011_Bravo.json /output",
-            },
-        }
+        },
     }
 
     return config
@@ -156,8 +164,8 @@ def main():
     parser.add_argument(
         "--base-rcon-port",
         type=int,
-        default=25575,
-        help="Base RCON port (default: 25575)",
+        default=25675,
+        help="Base RCON port (default: 25675)",
     )
     parser.add_argument(
         "--receiver-port",
@@ -181,6 +189,18 @@ def main():
         default="./output",
         help="Shared output directory for all instances (default: ./output)",
     )
+    parser.add_argument(
+        "--num_episodes",
+        type=int,
+        default=5,
+        help="Number of episodes to run (default: 5)",
+    )
+    parser.add_argument(
+        "--episode_start_id",
+        type=int,
+        default=0,
+        help="Starting episode ID (default: 0)",
+    )
 
     args = parser.parse_args()
 
@@ -199,6 +219,8 @@ def main():
             args.coord_port,
             args.data_dir,
             args.output_dir,
+            args.num_episodes,
+            args.episode_start_id,
         )
 
         # Write compose file
@@ -229,7 +251,7 @@ def main():
             f.write(content)
 
         # Create necessary directories
-        os.makedirs(f"{args.data_dir}{i}", exist_ok=True)
+        os.makedirs(f"{args.data_dir}/{i}", exist_ok=True)
 
         print(f"Generated: {compose_file}")
 

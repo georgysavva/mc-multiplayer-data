@@ -36,6 +36,7 @@ exec node senders.js \
   --other_coord_port "${OTHER_COORD_PORT:-8094}" \
   --bot_rng_seed "${BOT_RNG_SEED:-}" \
   --episodes_num "${EPISODES_NUM:-1}" \
+  --start_episode_id "${EPISODE_START_ID:-0}" \
   --host "${MC_HOST:-127.0.0.1}" \
   --port "${MC_PORT:-25565}" \
   --rcon_host "${RCON_HOST:-127.0.0.1}" \

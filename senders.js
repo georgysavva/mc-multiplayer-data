@@ -57,6 +57,7 @@ const args = minimist(process.argv.slice(2), {
     iterations_num_per_episode: 3,
     bot_rng_seed: "12345",
     episodes_num: 1,
+    start_episode_id: 0,
   },
 });
 
@@ -603,13 +604,13 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
     );
 
     // Run multiple episodes
-    for (let episodeNum = 1; episodeNum <= args.episodes_num; episodeNum++) {
+    for (
+      let episodeNum = args.start_episode_id;
+      episodeNum < args.start_episode_id + args.episodes_num;
+      episodeNum++
+    ) {
       await runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum);
       console.log(`[${bot.username}] Episode ${episodeNum} completed`);
-
-      if (episodeNum < args.episodes_num) {
-        console.log(`[${bot.username}] Preparing for next episode...`);
-      }
     }
 
     console.log(
@@ -939,12 +940,15 @@ function makeBot({ username, host, port }) {
   return bot;
 }
 
-function main() {
+async function main() {
   console.log("DEBUG environment variable:", process.env.DEBUG);
   console.log(`Starting bot: ${args.bot_name}`);
   console.log(
     `Coordinator: ${args.bot_name}, Ports: ${args.coord_port}/${args.other_coord_port}`
   );
+
+  console.log(`[${args.bot_name}] Waiting 20 seconds before creating bot...`);
+  await sleep(20000);
 
   const bot = makeBot({
     username: args.bot_name,
@@ -966,4 +970,4 @@ function main() {
 }
 
 // Run the main function
-main();
+main().catch(console.error);
