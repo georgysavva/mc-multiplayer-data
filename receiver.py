@@ -143,6 +143,12 @@ argparser.add_argument(
 )
 argparser.add_argument("--port", type=int, default=8089, help="Port number")
 argparser.add_argument("--output_path", type=str, required=True, help="output path")
+argparser.add_argument(
+    "--instance_id",
+    type=int,
+    required=True,
+    help="Instance ID for distinguishing parallel runs",
+)
 
 args = argparser.parse_args()
 PORT = args.port
@@ -166,7 +172,9 @@ while True:
 
     # 创建帧处理队列
     frame_queue = Queue()
-    output_path = f"{args.output_path}/{id:06d}_{args.name}"
+    output_path = (
+        f"{args.output_path}/{id:06d}_{args.name}_instance_{args.instance_id:03d}"
+    )
 
     # 启动后台处理进程
     processor = Thread(target=process_frame_worker, args=(frame_queue, output_path))
