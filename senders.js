@@ -709,12 +709,12 @@ function getOnTeleportPhaseFn(
     }
     await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
     console.log(`[${bot.username}] starting episode recording`);
-    bot.emit("startepisode", episodeNum === 1 ? 50 : 0);
-    await sleep(episodeNum === 1 ? 6000 : 1000);
+    bot.emit("startepisode", episodeNum === 0 ? 50 : 0);
+    await sleep(episodeNum === 0 ? 6000 : 1000);
 
     const iterationID = 0;
     coordinator.onceEvent(
-      "walkAndLookPhase",
+      `walkAndLookPhase_${iterationID}`,
       getOnWalkAndLookPhaseFn(
         bot,
         sharedBotRng,
