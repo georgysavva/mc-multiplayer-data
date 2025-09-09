@@ -300,16 +300,16 @@ class BotCoordinator extends EventEmitter {
     });
   }
 
-  sendToOtherBot(eventName, eventParams, location, iterationID) {
+  sendToOtherBot(eventName, eventParams, location) {
     if (this.clientConnection) {
       const message = JSON.stringify({ eventName, eventParams });
       console.log(
-        `[sendToOtherBot] [iter ${iterationID}] ${location}: Sending ${eventName} via client connection`
+        `[sendToOtherBot] ${location}: Sending ${eventName} via client connection`
       );
       this.clientConnection.write(message + "\n");
     } else {
       console.log(
-        `[sendToOtherBot] [iter ${iterationID}] ${location}: No client connection available for ${eventName}`
+        `[sendToOtherBot] ${location}: No client connection available for ${eventName}`
       );
     }
   }
@@ -554,14 +554,12 @@ async function runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum) {
       )}, ${z.toFixed(2)})`
     );
 
-    const iterationID = 0;
     coordinator.onceEvent(
       "teleportPhase",
       getOnTeleportPhaseFn(
         bot,
         sharedBotRng,
         coordinator,
-        iterationID,
         args.other_bot_name,
         episodeNum
       )
@@ -569,8 +567,7 @@ async function runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum) {
     coordinator.sendToOtherBot(
       "teleportPhase",
       bot.entity.position.clone(),
-      "spawnPhase end",
-      iterationID
+      "spawnPhase end"
     );
   });
 }
@@ -623,7 +620,6 @@ function getOnTeleportPhaseFn(
   bot,
   sharedBotRng,
   coordinator,
-  iterationID,
   otherBotName,
   episodeNum
 ) {
@@ -631,8 +627,7 @@ function getOnTeleportPhaseFn(
     coordinator.sendToOtherBot(
       "teleportPhase",
       bot.entity.position,
-      "teleportPhase beginning",
-      iterationID
+      "teleportPhase beginning"
     );
 
     // Generate desired distance between bots using sharedBotRng
@@ -646,9 +641,7 @@ function getOnTeleportPhaseFn(
     const currentDistance = currentPos.distanceTo(otherPos);
 
     console.log(
-      `[iter ${iterationID}] [${
-        bot.username
-      }] current distance: ${currentDistance.toFixed(
+      `[${bot.username}] current distance: ${currentDistance.toFixed(
         2
       )}, desired: ${desiredDistance.toFixed(2)}`
     );
@@ -658,7 +651,7 @@ function getOnTeleportPhaseFn(
     // Handle case where both bots are at the same coordinate
     if (currentDistance < 0.01) {
       console.log(
-        `[iter ${iterationID}] [${bot.username}] bots at same position, using random angle`
+        `[${bot.username}] bots at same position, using random angle`
       );
 
       // Pick a random angle from RNG
@@ -696,9 +689,9 @@ function getOnTeleportPhaseFn(
     const newY = landPosition ? landPosition.y + 1 : currentPos.y;
 
     console.log(
-      `[iter ${iterationID}] [${bot.username}] teleporting to (${newX.toFixed(
+      `[${bot.username}] teleporting to (${newX.toFixed(2)}, ${newY.toFixed(
         2
-      )}, ${newY.toFixed(2)}, ${newZ.toFixed(2)})`
+      )}, ${newZ.toFixed(2)})`
     );
 
     // Teleport using rcon
@@ -710,20 +703,16 @@ function getOnTeleportPhaseFn(
         Math.floor(newZ)
       );
       await sleep(1000);
-      console.log(`[iter ${iterationID}] [${bot.username}] teleport completed`);
+      console.log(`[${bot.username}] teleport completed`);
     } catch (error) {
-      console.error(
-        `[iter ${iterationID}] [${bot.username}] teleport failed:`,
-        error
-      );
+      console.error(`[${bot.username}] teleport failed:`, error);
     }
     await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
-    console.log(
-      `[iter ${iterationID}] [${bot.username}] starting episode recording`
-    );
+    console.log(`[${bot.username}] starting episode recording`);
     bot.emit("startepisode", episodeNum === 1 ? 50 : 0);
     await sleep(episodeNum === 1 ? 6000 : 1000);
 
+    const iterationID = 0;
     coordinator.onceEvent(
       "walkAndLookPhase",
       getOnWalkAndLookPhaseFn(
@@ -736,10 +725,9 @@ function getOnTeleportPhaseFn(
       )
     );
     coordinator.sendToOtherBot(
-      "walkAndLookPhase",
+      `walkAndLookPhase_${iterationID}`,
       bot.entity.position.clone(),
-      "teleportPhase end",
-      iterationID
+      "teleportPhase end"
     );
   };
 }
@@ -753,10 +741,9 @@ function getOnWalkAndLookPhaseFn(
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
-      "walkAndLookPhase",
+      `walkAndLookPhase_${iterationID}`,
       bot.entity.position.clone(),
-      "walkAndLookPhase beginning",
-      iterationID
+      `walkAndLookPhase_${iterationID} beginning`
     );
     const actionCount =
       MIN_RUN_ACTIONS +
@@ -812,69 +799,51 @@ function getOnWalkAndLookPhaseFn(
     if (iterationID == args.iterations_num_per_episode - 1) {
       coordinator.onceEvent(
         "stopPhase",
-        getOnStopPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name
-        )
+        getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
       );
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
-        "walkAndLookPhase end",
-        iterationID
+        `walkAndLookPhase_${iterationID} end`
       );
       return;
     }
+    const nextIterationID = iterationID + 1;
     coordinator.onceEvent(
-      "walkAndLookPhase",
+      `walkAndLookPhase_${nextIterationID}`,
       getOnWalkAndLookPhaseFn(
         bot,
         sharedBotRng,
         coordinator,
-        iterationID + 1,
+        nextIterationID,
         args.other_bot_name,
         episodeNum
       )
     );
     coordinator.sendToOtherBot(
-      "walkAndLookPhase",
+      `walkAndLookPhase_${nextIterationID}`,
       bot.entity.position.clone(),
-      "walkAndLookPhase end",
-      iterationID
+      `walkAndLookPhase_${iterationID} end`
     );
   };
 }
 
-function getOnStopPhaseFn(
-  bot,
-  sharedBotRng,
-  coordinator,
-  iterationID,
-  otherBotName
-) {
+function getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
-      "stopPhase beginning",
-      iterationID
+      "stopPhase beginning"
     );
-    console.log(`[iter ${iterationID}] [${bot.username}] stops recording`);
+    console.log(`[${bot.username}] stops recording`);
     bot.emit("endepisode");
 
     // Wait for the connection to actually close
-    console.log(
-      `[iter ${iterationID}] [${bot.username}] waiting for episode to end...`
-    );
+    console.log(`[${bot.username}] waiting for episode to end...`);
     await new Promise((resolve) => {
       bot.once("episodeended", resolve);
     });
-    console.log(
-      `[iter ${iterationID}] [${bot.username}] episode ended, connection closed`
-    );
+    console.log(`[${bot.username}] episode ended, connection closed`);
 
     coordinator.onceEvent(
       "stoppedPhase",
@@ -882,7 +851,6 @@ function getOnStopPhaseFn(
         bot,
         sharedBotRng,
         coordinator,
-        iterationID,
         otherBotName,
         bot._currentEpisodeResolve
       )
@@ -890,8 +858,7 @@ function getOnStopPhaseFn(
     coordinator.sendToOtherBot(
       "stoppedPhase",
       bot.entity.position.clone(),
-      "StopPhase end",
-      iterationID
+      "StopPhase end"
     );
   };
 }
@@ -900,7 +867,6 @@ function getOnStoppedPhaseFn(
   bot,
   sharedBotRng,
   coordinator,
-  iterationID,
   otherBotName,
   episodeResolve
 ) {
@@ -908,8 +874,7 @@ function getOnStoppedPhaseFn(
     coordinator.sendToOtherBot(
       "stoppedPhase",
       bot.entity.position.clone(),
-      "stoppedPhase beginning",
-      iterationID
+      "stoppedPhase beginning"
     );
 
     await sleep(3000);
