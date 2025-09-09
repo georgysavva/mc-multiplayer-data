@@ -947,8 +947,8 @@ async function main() {
     `Coordinator: ${args.bot_name}, Ports: ${args.coord_port}/${args.other_coord_port}`
   );
 
-  console.log(`[${args.bot_name}] Waiting 20 seconds before creating bot...`);
-  await sleep(20000);
+  console.log(`[${args.bot_name}] Waiting 60 seconds before creating bot...`);
+  await sleep(60000);
 
   const bot = makeBot({
     username: args.bot_name,
