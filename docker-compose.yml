@@ -28,24 +28,31 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data34:/data
+      - ./data40:/data
   senders1:
     build: .
     depends_on:
       - mc
       - receiver1
-    network_mode: host
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./output4:/output
     environment:
       BOT_NAME: Alpha
       OTHER_BOT_NAME: Bravo
-      RECEIVER_PORT: 8091
-      COORD_PORT: 8093
-      OTHER_COORD_PORT: 8094
+      RECEIVER_HOST: receiver1
+      RECEIVER_PORT: 8090
+      COORD_PORT: 8100
+      OTHER_COORD_HOST: senders2
+      OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
       EPISODES_NUM: 5
+      MC_HOST: host.docker.internal
+      MC_PORT: 25565
+      RCON_HOST: host.docker.internal
+      RCON_PORT: 25575
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
   senders2:
     build: .
@@ -53,25 +60,32 @@ services:
       - mc
       - receiver2
       - senders1
-    network_mode: host
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./output4:/output
     environment:
       BOT_NAME: Bravo
       OTHER_BOT_NAME: Alpha
-      RECEIVER_PORT: 8092
-      COORD_PORT: 8094
-      OTHER_COORD_PORT: 8093
+      RECEIVER_HOST: receiver2
+      RECEIVER_PORT: 8090
+      COORD_PORT: 8100
+      OTHER_COORD_HOST: senders1
+      OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
       EPISODES_NUM: 5
+      MC_HOST: host.docker.internal
+      MC_PORT: 25565
+      RCON_HOST: host.docker.internal
+      RCON_PORT: 25575
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
   receiver1:
     build: .
     environment:
-      PORT: 8091
+      PORT: 8090
       NAME: Alpha
-    network_mode: host
+      INSTANCE_ID: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -80,9 +94,9 @@ services:
   receiver2:
     build: .
     environment:
-      PORT: 8092
+      PORT: 8090
       NAME: Bravo
-    network_mode: host
+      INSTANCE_ID: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -91,7 +105,6 @@ services:
 
   script:
     build: .
-    network_mode: host
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path

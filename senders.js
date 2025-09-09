@@ -32,8 +32,8 @@ const Vec3 = require("vec3").Vec3;
 
 async function rconTp(name, x, y, z) {
   const rcon = await Rcon.connect({
-    host: "127.0.0.1",
-    port: 25575,
+    host: args.rcon_host,
+    port: args.rcon_port,
     password: "change-me",
   });
   const res = await rcon.send(`tp ${name} ${x} ${y} ${z}`);
@@ -45,10 +45,14 @@ const args = minimist(process.argv.slice(2), {
   default: {
     host: "127.0.0.1",
     port: 25565,
+    rcon_host: "127.0.0.1",
+    rcon_port: 25575,
+    receiver_host: "127.0.0.1",
     receiver_port: 8091,
     bot_name: "Alpha",
     other_bot_name: "Bravo",
     coord_port: 8093,
+    other_coord_host: "127.0.0.1",
     other_coord_port: 8094,
     iterations_num_per_episode: 3,
     bot_rng_seed: "12345",
@@ -179,10 +183,11 @@ const rand = (min, max) => Math.random() * (max - min) + min;
 const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 class BotCoordinator extends EventEmitter {
-  constructor(botName, coordPort, otherCoordPort) {
+  constructor(botName, coordPort, otherCoordHost, otherCoordPort) {
     super();
     this.botName = botName;
     this.coordPort = coordPort;
+    this.otherCoordHost = otherCoordHost;
     this.otherCoordPort = otherCoordPort;
     this.clientConnection = null;
     this.server = null;
@@ -266,10 +271,10 @@ class BotCoordinator extends EventEmitter {
     return new Promise((resolve) => {
       const attemptConnection = () => {
         this.clientConnection = net.createConnection(
-          { port: this.otherCoordPort },
+          { host: this.otherCoordHost, port: this.otherCoordPort },
           () => {
             console.log(
-              `[${this.botName} Client] Connected to other bot's server on port ${this.otherCoordPort}`
+              `[${this.botName} Client] Connected to other bot's server at ${this.otherCoordHost}:${this.otherCoordPort}`
             );
             resolve(true);
           }
@@ -585,7 +590,7 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
 
     // Initialize viewer once for the entire program
     mineflayerViewerhl(bot, {
-      output: `${host}:${receiverPort}`,
+      output: `${args.receiver_host}:${receiverPort}`,
       width: 640,
       height: 360,
     });
@@ -951,6 +956,7 @@ function main() {
   const coordinator = new BotCoordinator(
     args.bot_name,
     args.coord_port,
+    args.other_coord_host,
     args.other_coord_port
   );
   bot.once(

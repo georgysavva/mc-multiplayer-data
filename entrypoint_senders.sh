@@ -29,9 +29,15 @@ echo "[entrypoint] Bot config: ${BOT_NAME:-Alpha} <-> ${OTHER_BOT_NAME:-Bravo}, 
 exec node senders.js \
   --bot_name "${BOT_NAME:-Alpha}" \
   --other_bot_name "${OTHER_BOT_NAME:-Bravo}" \
+  --receiver_host "${RECEIVER_HOST:-127.0.0.1}" \
   --receiver_port "${RECEIVER_PORT:-8091}" \
   --coord_port "${COORD_PORT:-8093}" \
+  --other_coord_host "${OTHER_COORD_HOST:-127.0.0.1}" \
   --other_coord_port "${OTHER_COORD_PORT:-8094}" \
   --bot_rng_seed "${BOT_RNG_SEED:-}" \
-  --episodes_num "${EPISODES_NUM:-1}" 
+  --episodes_num "${EPISODES_NUM:-1}" \
+  --host "${MC_HOST:-127.0.0.1}" \
+  --port "${MC_PORT:-25565}" \
+  --rcon_host "${RCON_HOST:-127.0.0.1}" \
+  --rcon_port "${RCON_PORT:-25575}" 
 
