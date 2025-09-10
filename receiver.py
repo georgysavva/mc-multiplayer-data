@@ -213,6 +213,14 @@ while True:
             print("pos data: ", pos_data.decode("utf-8"))
             pos = json.loads(pos_data.decode("utf-8"))
             pos["frame_count"] = img_count
+            # pos = {
+            #     "x": 0,
+            #     "y": 0,
+            #     "z": 0,
+            #     "yaw": 0,
+            #     "pitch": 0,
+            #     "frame_count": img_count,
+            # }
             length = recvint(conn)
             if length == 0:
                 print("ERROR! recv 0 image length")

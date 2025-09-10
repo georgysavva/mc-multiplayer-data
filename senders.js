@@ -40,6 +40,69 @@ async function rconTp(name, x, y, z) {
   await rcon.end();
   return res;
 }
+async function rconEquipDyedHelmet(name, decColor) {
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: "change-me",
+  });
+  console.log(`Equipping dyed helmet to ${name} with color ${decColor}`);
+  const res = await rcon.send(
+    `item replace entity ${name} armor.head with minecraft:leather_helmet[dyed_color=${decColor}] 1`
+  );
+  console.log(`Result: ${res}`);
+  await rcon.end();
+}
+
+async function rconEquipBannerOffhand(
+  name,
+  colorName /* e.g. red, blue, lime */
+) {
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: "change-me",
+  });
+  console.log(`Equipping banner to ${name} with color ${colorName}`);
+  const res = await rcon.send(
+    `item replace entity ${name} weapon.offhand with minecraft:${colorName}_banner 1`
+  );
+  console.log(`Result: ${res}`);
+
+  await rcon.end();
+}
+
+async function rconGiveColoredChestplate(name, color) {
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: "change-me",
+  });
+  console.log(`Giving colored chestplate to ${name} with color ${color}`);
+  const res = await rcon.send(
+    `item replace entity ${name} armor.chest with minecraft:leather_chestplate[dyed_color=${color}] 1`
+  );
+  console.log(`Result: ${res}`);
+  await rcon.end();
+  return res;
+}
+
+// Color name to RGB color code mapping
+const COLOR_MAP = {
+  red: 16711680, // 0xFF0000
+  blue: 255, // 0x0000FF
+  green: 65280, // 0x00FF00
+  yellow: 16776960, // 0xFFFF00
+  purple: 16711935, // 0xFF00FF
+  cyan: 65535, // 0x00FFFF
+  orange: 16753920, // 0xFFA500
+  pink: 16761035, // 0xFFC0CB
+  lime: 8388352, // 0x7FFF00
+  black: 0, // 0x000000
+  white: 16777215, // 0xFFFFFF
+  gray: 8421504, // 0x808080
+  brown: 9127187, // 0x8B4513
+};
 
 const args = minimist(process.argv.slice(2), {
   default: {
@@ -58,8 +121,14 @@ const args = minimist(process.argv.slice(2), {
     bot_rng_seed: "12345",
     episodes_num: 1,
     start_episode_id: 0,
+    color: "red", // default color name
+    bootstrap_wait_time: 0,
   },
 });
+
+// Convert color name to color code
+const chestplate_color = COLOR_MAP[args.color.toLowerCase()] || COLOR_MAP.red;
+console.log(`Using color: ${args.color} (code: ${chestplate_color})`);
 
 function land_pos(bot, x, z) {
   const pos = new Vec3(x, 64, z);
@@ -182,6 +251,12 @@ async function move(bot, range) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const rand = (min, max) => Math.random() * (max - min) + min;
 const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+// equip the first chestplate in inventory
+async function equipFirst(bot, itemName, dest) {
+  const item = bot.inventory.items().find((i) => i.name === itemName);
+  if (item) await bot.equip(item, dest); // dest: 'torso','head','legs','feet','hand'
+}
 
 class BotCoordinator extends EventEmitter {
   constructor(botName, coordPort, otherCoordHost, otherCoordPort) {
@@ -571,7 +646,20 @@ async function runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum) {
     );
   });
 }
-
+function printInventory(bot) {
+  const items = bot.inventory.items();
+  if (items.length === 0) return console.log("Inventory: (empty)");
+  console.log("Inventory:");
+  for (const it of items) {
+    console.log(`- ${it.count} × ${it.displayName}`); // it.name, it.type, it.stackSize also available
+  }
+  console.log(
+    "Held item:",
+    bot.heldItem
+      ? `${bot.heldItem.count} × ${bot.heldItem.displayName}`
+      : "(none)"
+  );
+}
 function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
   return async () => {
     // const mcData = mcDataLoader(bot.version);
@@ -591,6 +679,7 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
       output: `${args.receiver_host}:${receiverPort}`,
       width: 640,
       height: 360,
+      frames: 400,
     });
 
     const { x, y, z } = bot.entity.position;
@@ -599,6 +688,24 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
         2
       )}, ${z.toFixed(2)})`
     );
+
+    // Give colored chestplate and equip it
+    try {
+      console.log(
+        `[${bot.username}] giving colored chestplate (color: ${chestplate_color})`
+      );
+      await rconGiveColoredChestplate(bot.username, chestplate_color);
+      await sleep(1000); // Wait for item to appear in inventory
+      await rconEquipDyedHelmet(bot.username, chestplate_color);
+      await sleep(1000); // Wait for item to appear in inventory
+      await rconEquipBannerOffhand(bot.username, chestplate_color);
+      await sleep(1000); // Wait for item to appear in inventory
+    } catch (error) {
+      console.error(
+        `[${bot.username}] failed to give/equip chestplate:`,
+        error
+      );
+    }
 
     // Run multiple episodes
     for (
@@ -912,8 +1019,10 @@ async function main() {
     `Coordinator: ${args.bot_name}, Ports: ${args.coord_port}/${args.other_coord_port}`
   );
 
-  console.log(`[${args.bot_name}] Waiting 60 seconds before creating bot...`);
-  await sleep(60000);
+  console.log(
+    `[${args.bot_name}] Waiting ${args.bootstrap_wait_time} seconds before creating bot...`
+  );
+  await sleep(args.bootstrap_wait_time * 1000);
 
   const bot = makeBot({
     username: args.bot_name,

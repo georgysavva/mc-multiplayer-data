@@ -7,12 +7,10 @@ services:
       EULA: "TRUE"
       VERSION: 1.21
       MODE: creative
-      OPS: |
-        Alpha
-        Bravo
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
       RCON_PASSWORD: change-me
+      BROADCAST_RCON_TO_OPS: true
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
       LEVEL_TYPE: minecraft:flat
@@ -28,7 +26,7 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data40:/data
+      - ./data47:/data
   sender_alpha:
     build: .
     depends_on:
@@ -36,7 +34,7 @@ services:
       - receiver_alpha
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output4:/output
+      - ./output5:/output
     environment:
       BOT_NAME: Alpha
       OTHER_BOT_NAME: Bravo
@@ -46,11 +44,13 @@ services:
       OTHER_COORD_HOST: sender_bravo
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
-      EPISODES_NUM: 5
+      EPISODES_NUM: 2
       MC_HOST: host.docker.internal
       MC_PORT: 25565
       RCON_HOST: host.docker.internal
       RCON_PORT: 25575
+      COLOR: red
+      BOOTSTRAP_WAIT_TIME: 0
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -62,7 +62,7 @@ services:
       - sender_alpha
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output4:/output
+      - ./output5:/output
     environment:
       BOT_NAME: Bravo
       OTHER_BOT_NAME: Alpha
@@ -72,11 +72,13 @@ services:
       OTHER_COORD_HOST: sender_alpha
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
-      EPISODES_NUM: 5
+      EPISODES_NUM: 2
       MC_HOST: host.docker.internal
       MC_PORT: 25565
       RCON_HOST: host.docker.internal
       RCON_PORT: 25575
+      COLOR: blue
+      BOOTSTRAP_WAIT_TIME: 0
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -86,10 +88,11 @@ services:
       PORT: 8090
       NAME: Alpha
       INSTANCE_ID: 0
+      EPISODE_START_ID: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output4:/output
+      - ./output5:/output
     command: ./entrypoint_receiver.sh
   receiver_bravo:
     build: .
@@ -97,10 +100,11 @@ services:
       PORT: 8090
       NAME: Bravo
       INSTANCE_ID: 0
+      EPISODE_START_ID: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output4:/output
+      - ./output5:/output
     command: ./entrypoint_receiver.sh
 
   script:
@@ -109,4 +113,4 @@ services:
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - /data/oasis/mc_multiplayer_simple/train:/output
-    command: python align_videos.py 
+    command: python align_videos.py

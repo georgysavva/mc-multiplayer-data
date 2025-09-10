@@ -75,6 +75,7 @@ def generate_compose_config(
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
+                    "CHESTPLATE_COLOR": 16711680,  # Red color for Alpha
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -103,6 +104,7 @@ def generate_compose_config(
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
+                    "CHESTPLATE_COLOR": 255,  # Blue color for Bravo
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
