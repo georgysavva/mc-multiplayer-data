@@ -12,7 +12,7 @@ services:
       ENFORCE_SECURE_PROFILE: false
       RCON_PASSWORD: change-me
       BROADCAST_RCON_TO_OPS: true
-      MODRINTH_PROJECTS: skinsrestorer
+      MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
       LEVEL_TYPE: minecraft:flat
@@ -28,7 +28,7 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data48:/data
+      - ./data51:/data
   sender_alpha:
     build: .
     depends_on:
@@ -46,7 +46,7 @@ services:
       OTHER_COORD_HOST: sender_bravo
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
-      EPISODES_NUM: 2
+      EPISODES_NUM: 1
       MC_HOST: host.docker.internal
       MC_PORT: 25565
       RCON_HOST: host.docker.internal
@@ -74,7 +74,7 @@ services:
       OTHER_COORD_HOST: sender_alpha
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
-      EPISODES_NUM: 2
+      EPISODES_NUM: 1
       MC_HOST: host.docker.internal
       MC_PORT: 25565
       RCON_HOST: host.docker.internal

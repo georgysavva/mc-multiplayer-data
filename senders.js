@@ -1,6 +1,7 @@
 const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const seedrandom = require("seedrandom");
 const { Rcon } = require("rcon-client");
+const crypto = require("crypto");
 
 // Constants
 const MIN_WALK_DISTANCE = 3;
@@ -87,6 +88,57 @@ async function rconGiveColoredChestplate(name, color) {
   return res;
 }
 
+async function rconSkinSet(playerName, skinName) {
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: "change-me",
+  });
+  console.log(`Setting skin for ${playerName} to ${skinName}`);
+  const res = await rcon.send(`skin set Angry bear ${playerName}`);
+  console.log(`Skin set response: ${res}`);
+  const res2 = await rcon.send(`sr applyskin ${playerName}`);
+  console.log(`Skin apply response: ${res2}`);
+  await rcon.end();
+  return res;
+}
+
+async function rconSetSkinsRestorerPermission(botName) {
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: "change-me",
+  });
+  console.log(`Setting SkinsRestorer permissions for ${botName}`);
+  const permissions = [
+    "skinsrestorer.command",
+    "skinsrestorer.command.set",
+    "skinsrestorer.command.set.other",
+    "skinsrestorer.player",
+    "skinsrestorer.admin",
+    "skinsrestorer.admincommand.createcustom",
+    "skinsrestorer.admincommand.applyskin",
+    "skinsrestorer.admincommand.applyskinall",
+    "skinsrestorer.ownskin",
+  ];
+
+  for (const permission of permissions) {
+    const res = await rcon.send(
+      `lp user ${botName} permission set ${permission} true`
+    );
+    console.log(`Permission set response for ${permission}: ${res}`);
+  }
+  await rcon.end();
+}
+
+async function botSkinSet(bot, skinName) {
+  bot.chat(`/skin set ${skinName} ${bot.username}`);
+  await sleep(1000);
+  bot.chat(`/sr applyskin ${bot.username}`);
+  await sleep(1000);
+  return true;
+}
+
 // Color name to RGB color code mapping
 const COLOR_MAP = {
   red: 16711680, // 0xFF0000
@@ -102,6 +154,12 @@ const COLOR_MAP = {
   white: 16777215, // 0xFFFFFF
   gray: 8421504, // 0x808080
   brown: 9127187, // 0x8B4513
+};
+
+// Color to skin name mapping
+const COLOR_TO_SKIN_MAP = {
+  red: "capybara",
+  blue: "capybara",
 };
 
 const args = minimist(process.argv.slice(2), {
@@ -128,7 +186,9 @@ const args = minimist(process.argv.slice(2), {
 
 // Convert color name to color code
 const chestplate_color = COLOR_MAP[args.color.toLowerCase()] || COLOR_MAP.red;
+const skin_name = COLOR_TO_SKIN_MAP[args.color.toLowerCase()];
 console.log(`Using color: ${args.color} (code: ${chestplate_color})`);
+console.log(`Skin name for color ${args.color}: ${skin_name}`);
 
 function land_pos(bot, x, z) {
   const pos = new Vec3(x, 64, z);
@@ -660,6 +720,47 @@ function printInventory(bot) {
       : "(none)"
   );
 }
+// Offline-mode UUID = MD5 of "OfflinePlayer:" + name, with RFC4122 v3/variant bits set
+function offlineUuidFromName(name) {
+  const input = Buffer.from("OfflinePlayer:" + name, "utf8");
+  const md5 = crypto.createHash("md5").update(input).digest();
+
+  // set version (3) and variant (RFC 4122)
+  md5[6] = (md5[6] & 0x0f) | 0x30; // version 3
+  md5[8] = (md5[8] & 0x3f) | 0x80; // variant RFC 4122
+
+  // format as UUID string
+  const hex = md5.toString("hex");
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join("-");
+}
+
+function isSlimFromUuid(uuidStr) {
+  // mimic Java UUID.hashCode() parity used by DefaultPlayerSkin.getSkinType
+  const b = Buffer.from(uuidStr.replace(/-/g, ""), "hex");
+  const to64 = (buf, start) => {
+    let v = 0n;
+    for (let i = 0; i < 8; i++) v = (v << 8n) | BigInt(buf[start + i]);
+    return v;
+  };
+  const most = to64(b, 0);
+  const least = to64(b, 8);
+  const hilo = most ^ least;
+  const hi32 = Number((hilo >> 32n) & 0xffffffffn) | 0;
+  const lo32 = Number(hilo & 0xffffffffn) | 0;
+  const hashCode = (hi32 ^ lo32) | 0;
+  return (hashCode & 1) !== 0; // true => "slim (Alex)", false => "classic (Steve)"
+}
+
+function modelForName(name) {
+  const uuid = offlineUuidFromName(name);
+  return { name, uuid, model: isSlimFromUuid(uuid) ? "slim" : "classic" };
+}
 function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
   return async () => {
     // const mcData = mcDataLoader(bot.version);
@@ -673,7 +774,6 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
     console.log(
       "All coordinator connections ready, proceeding with bot spawn..."
     );
-
     // Initialize viewer once for the entire program
     mineflayerViewerhl(bot, {
       output: `${args.receiver_host}:${receiverPort}`,
@@ -682,6 +782,9 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
       frames: 400,
     });
 
+    // await rconSetSkinsRestorerPermission(bot.username);
+    // await sleep(1000);
+
     const { x, y, z } = bot.entity.position;
     console.log(
       `[${bot.username}] spawned at (${x.toFixed(2)}, ${y.toFixed(
@@ -689,23 +792,46 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
       )}, ${z.toFixed(2)})`
     );
 
+    // Set skin based on color
+    // if (skin_name) {
+    //   try {
+    //     console.log(
+    //       `[${bot.username}] setting skin to ${skin_name} for color ${args.color}`
+    //     );
+    //     // await rconSkinSet(bot.username, skin_name);
+    //     // await botSkinSet(bot, skin_name);
+    //     // await sleep(1000); // Wait for skin to be applied
+    //     // console.log(bot.entity);
+    //     // console.log(bot.settings);
+    //     // bot.settings.skinParts.showJacket = false;
+    //     // await sleep(1000);
+    //     console.log(bot.settings);
+    //   } catch (error) {
+    //     console.error(`[${bot.username}] failed to set skin:`, error);
+    //   }
+    // } else {
+    //   console.log(
+    //     `[${bot.username}] no skin mapping found for color: ${args.color}`
+    //   );
+    // }
+
     // Give colored chestplate and equip it
-    try {
-      console.log(
-        `[${bot.username}] giving colored chestplate (color: ${chestplate_color})`
-      );
-      await rconGiveColoredChestplate(bot.username, chestplate_color);
-      await sleep(1000); // Wait for item to appear in inventory
-      await rconEquipDyedHelmet(bot.username, chestplate_color);
-      await sleep(1000); // Wait for item to appear in inventory
-      await rconEquipBannerOffhand(bot.username, chestplate_color);
-      await sleep(1000); // Wait for item to appear in inventory
-    } catch (error) {
-      console.error(
-        `[${bot.username}] failed to give/equip chestplate:`,
-        error
-      );
-    }
+    // try {
+    //   console.log(
+    //     `[${bot.username}] giving colored chestplate (color: ${chestplate_color})`
+    //   );
+    //   await rconGiveColoredChestplate(bot.username, chestplate_color);
+    //   await sleep(1000); // Wait for item to appear in inventory
+    //   await rconEquipDyedHelmet(bot.username, chestplate_color);
+    //   await sleep(1000); // Wait for item to appear in inventory
+    //   await rconEquipBannerOffhand(bot.username, chestplate_color);
+    //   await sleep(1000); // Wait for item to appear in inventory
+    // } catch (error) {
+    //   console.error(
+    //     `[${bot.username}] failed to give/equip chestplate:`,
+    //     error
+    //   );
+    // }
 
     // Run multiple episodes
     for (
@@ -1041,6 +1167,11 @@ async function main() {
     "spawn",
     getOnSpawnFn(bot, args.host, args.receiver_port, sharedBotRng, coordinator)
   );
+  bot._client.on("packet", (data, meta) => {
+    if (meta.name === "system_chat" && data?.content) {
+      console.log("SYSTEM:", JSON.stringify(data.content));
+    }
+  });
 }
 
 // Run the main function
