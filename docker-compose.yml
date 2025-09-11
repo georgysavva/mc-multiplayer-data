@@ -6,11 +6,13 @@ services:
     environment:
       EULA: "TRUE"
       VERSION: 1.21
+      TYPE: PAPER
       MODE: creative
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
       RCON_PASSWORD: change-me
       BROADCAST_RCON_TO_OPS: true
+      MODRINTH_PROJECTS: skinsrestorer
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
       LEVEL_TYPE: minecraft:flat
@@ -26,7 +28,7 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data47:/data
+      - ./data48:/data
   sender_alpha:
     build: .
     depends_on:
