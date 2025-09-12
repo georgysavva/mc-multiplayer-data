@@ -774,16 +774,6 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
     console.log(
       "All coordinator connections ready, proceeding with bot spawn..."
     );
-    // Initialize viewer once for the entire program
-    mineflayerViewerhl(bot, {
-      output: `${args.receiver_host}:${receiverPort}`,
-      width: 640,
-      height: 360,
-      frames: 400,
-    });
-
-    // await rconSetSkinsRestorerPermission(bot.username);
-    // await sleep(1000);
 
     const { x, y, z } = bot.entity.position;
     console.log(
@@ -792,28 +782,13 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
       )}, ${z.toFixed(2)})`
     );
 
-    // Set skin based on color
-    // if (skin_name) {
-    //   try {
-    //     console.log(
-    //       `[${bot.username}] setting skin to ${skin_name} for color ${args.color}`
-    //     );
-    //     // await rconSkinSet(bot.username, skin_name);
-    //     // await botSkinSet(bot, skin_name);
-    //     // await sleep(1000); // Wait for skin to be applied
-    //     // console.log(bot.entity);
-    //     // console.log(bot.settings);
-    //     // bot.settings.skinParts.showJacket = false;
-    //     // await sleep(1000);
-    //     console.log(bot.settings);
-    //   } catch (error) {
-    //     console.error(`[${bot.username}] failed to set skin:`, error);
-    //   }
-    // } else {
-    //   console.log(
-    //     `[${bot.username}] no skin mapping found for color: ${args.color}`
-    //   );
-    // }
+    // Initialize viewer once for the entire program
+    mineflayerViewerhl(bot, {
+      output: `${args.receiver_host}:${receiverPort}`,
+      width: 640,
+      height: 360,
+      frames: 400,
+    });
 
     // Give colored chestplate and equip it
     // try {
