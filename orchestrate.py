@@ -28,7 +28,16 @@ class InstanceManager:
         print(f"Starting instance: {instance_name}")
 
         try:
-            cmd = ["docker", "compose", "-f", str(compose_file), "up", "-d"]
+            cmd = [
+                "docker",
+                "compose",
+                "-p",
+                instance_name,
+                "-f",
+                str(compose_file),
+                "up",
+                "-d",
+            ]
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=self.compose_dir.parent
             )
@@ -50,7 +59,16 @@ class InstanceManager:
         print(f"Stopping instance: {instance_name}")
 
         try:
-            cmd = ["docker", "compose", "-f", str(compose_file), "down", "-v"]
+            cmd = [
+                "docker",
+                "compose",
+                "-p",
+                instance_name,
+                "-f",
+                str(compose_file),
+                "down",
+                "-v",
+            ]
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=self.compose_dir.parent
             )
@@ -131,7 +149,16 @@ class InstanceManager:
         for compose_file in compose_files:
             instance_name = compose_file.stem
             try:
-                cmd = ["docker", "compose", "-f", str(compose_file), "ps", "-q"]
+                cmd = [
+                    "docker",
+                    "compose",
+                    "-p",
+                    instance_name,
+                    "-f",
+                    str(compose_file),
+                    "ps",
+                    "-q",
+                ]
                 result = subprocess.run(
                     cmd, capture_output=True, text=True, cwd=self.compose_dir.parent
                 )
@@ -139,21 +166,24 @@ class InstanceManager:
                 if result.stdout.strip():
                     # Check if containers are actually running
                     container_ids = result.stdout.strip().split("\n")
+                    container_ids = [
+                        cid for cid in container_ids if cid.strip()
+                    ]  # Filter empty strings
+
                     running_containers = 0
                     for container_id in container_ids:
-                        if container_id:
-                            inspect_cmd = [
-                                "docker",
-                                "inspect",
-                                "--format",
-                                "{{.State.Status}}",
-                                container_id,
-                            ]
-                            inspect_result = subprocess.run(
-                                inspect_cmd, capture_output=True, text=True
-                            )
-                            if inspect_result.stdout.strip() == "running":
-                                running_containers += 1
+                        inspect_cmd = [
+                            "docker",
+                            "inspect",
+                            "--format",
+                            "{{.State.Status}}",
+                            container_id,
+                        ]
+                        inspect_result = subprocess.run(
+                            inspect_cmd, capture_output=True, text=True
+                        )
+                        if inspect_result.stdout.strip() == "running":
+                            running_containers += 1
 
                     if running_containers > 0:
                         print(
@@ -184,7 +214,15 @@ class InstanceManager:
         if len(compose_files) == 1:
             # Show logs for single instance
             compose_file = compose_files[0]
-            cmd = ["docker", "compose", "-f", str(compose_file), "logs"]
+            cmd = [
+                "docker",
+                "compose",
+                "-p",
+                compose_file.stem,
+                "-f",
+                str(compose_file),
+                "logs",
+            ]
             if follow:
                 cmd.append("-f")
             subprocess.run(cmd, cwd=self.compose_dir.parent)
@@ -198,6 +236,8 @@ class InstanceManager:
                 cmd = [
                     "docker",
                     "compose",
+                    "-p",
+                    compose_file.stem,
                     "-f",
                     str(compose_file),
                     "logs",

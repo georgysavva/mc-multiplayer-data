@@ -37,6 +37,7 @@ def generate_compose_config(
     output_dir,
     num_episodes,
     episode_start_id,
+    bootstrap_wait_time,
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -57,6 +58,7 @@ def generate_compose_config(
                 "environment": {
                     "EULA": "TRUE",
                     "VERSION": "1.21",
+                    "TYPE": "PAPER",
                     "MODE": "creative",
                     "RCON_PORT": rcon_port,
                     "SERVER_PORT": mc_port,
@@ -90,7 +92,7 @@ def generate_compose_config(
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
-                    "CHESTPLATE_COLOR": 16711680,  # Red color for Alpha
+                    "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -119,7 +121,7 @@ def generate_compose_config(
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
-                    "CHESTPLATE_COLOR": 255,  # Blue color for Bravo
+                    "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -219,6 +221,12 @@ def main():
         default=0,
         help="Starting episode ID (default: 0)",
     )
+    parser.add_argument(
+        "--bootstrap_wait_time",
+        type=int,
+        default=60,
+        help="Bootstrap wait time (default: 60)",
+    )
 
     args = parser.parse_args()
 
@@ -239,6 +247,7 @@ def main():
             args.output_dir,
             args.num_episodes,
             args.episode_start_id,
+            args.bootstrap_wait_time,
         )
 
         # Write compose file

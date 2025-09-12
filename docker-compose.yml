@@ -6,7 +6,7 @@ services:
     environment:
       EULA: "TRUE"
       VERSION: 1.21
-      # TYPE: PAPER
+      TYPE: PAPER
       MODE: creative
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
@@ -114,5 +114,5 @@ services:
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - /data/oasis/mc_multiplayer_simple/train:/output
+      - ./output7:/output
     command: python align_videos.py
