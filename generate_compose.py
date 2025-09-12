@@ -5,11 +5,26 @@ Each instance will have its own ports and output directories to avoid conflicts.
 """
 
 import argparse
+import json
 import os
 import re
 from pathlib import Path
 
 import yaml
+
+
+def generate_terrain_settings(biome, surface_block):
+    """Generate terrain settings JSON for flat world generation."""
+    terrain_settings = {
+        "layers": [
+            {"block": "minecraft:bedrock", "height": 1},
+            {"block": "minecraft:stone", "height": 124},
+            {"block": "minecraft:dirt", "height": 2},
+            {"block": f"minecraft:{surface_block}", "height": 1},
+        ],
+        "biome": f"minecraft:{biome}",
+    }
+    return terrain_settings
 
 
 def generate_compose_config(
@@ -49,7 +64,7 @@ def generate_compose_config(
                     "ENFORCE_SECURE_PROFILE": False,
                     "RCON_PASSWORD": "change-me",
                     "LEVEL_TYPE": "minecraft:flat",
-                    "GENERATOR_SETTINGS": """{\n  "layers": [\n    { "block": "minecraft:bedrock", "height": 1 },\n    { "block": "minecraft:stone",   "height": 124 },\n    { "block": "minecraft:dirt",    "height": 2 },\n    { "block": "minecraft:grass_block", "height": 1 }\n  ],\n  "biome": "minecraft:plains"\n}""",
+                    "GENERATOR_SETTINGS": "TERRAIN_SETTINGS_PLACEHOLDER",
                 },
                 "volumes": [f"{data_dir}:/data"],
             },
@@ -144,7 +159,8 @@ def generate_compose_config(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate Docker Compose files for parallel Minecraft data collection"
+        description="Generate Docker Compose files for parallel Minecraft data "
+        "collection"
     )
     parser.add_argument(
         "--instances",
@@ -230,24 +246,45 @@ def main():
         with open(compose_file, "w") as f:
             yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
-        # Post-process the file to fix GENERATOR_SETTINGS format
+        # Generate terrain settings for this instance
+        terrain_options = [
+            ("plains", "grass_block"),
+            ("windswept_hills", "grass_block"),
+            ("snowy_plains", "snow"),
+            ("desert", "sand"),
+            ("desert", "red_sand"),
+        ]
+        selected_terrain = terrain_options[i % len(terrain_options)]
+        biome, surface_block = selected_terrain
+        terrain_settings = generate_terrain_settings(biome, surface_block)
+
+        # Format terrain settings as compact JSON multiline string
+        layers_json = []
+        for layer in terrain_settings["layers"]:
+            layer_str = (
+                f'{{ "block": "{layer["block"]}", "height": {layer["height"]} }}'
+            )
+            layers_json.append(layer_str)
+
+        layers_str = ",\n    ".join(layers_json)
+        biome = terrain_settings["biome"]
+        terrain_json = (
+            f'{{\n  "layers": [\n    {layers_str}\n  ],\n  "biome": "{biome}"\n}}'
+        )
+        newline = "\n"
+        terrain_multiline = (
+            f">-\n        {terrain_json.replace(newline, newline + '        ')}"
+        )
+
+        # Replace placeholder with actual terrain settings
         with open(compose_file, "r") as f:
             content = f.read()
 
-        # Fix the GENERATOR_SETTINGS to use >- format instead of quoted JSON string
-        # This handles the multiline quoted string that PyYAML generates
-        generator_pattern = r'GENERATOR_SETTINGS: ".*?"(?=\s*\n\s*volumes:)'
-        replacement = """GENERATOR_SETTINGS: >-
-        {
-          "layers": [
-            { "block": "minecraft:bedrock", "height": 1 },
-            { "block": "minecraft:stone",   "height": 124 },
-            { "block": "minecraft:dirt",    "height": 2 },
-            { "block": "minecraft:grass_block", "height": 1 }
-          ],
-          "biome": "minecraft:plains"
-        }"""
-        content = re.sub(generator_pattern, replacement, content, flags=re.DOTALL)
+        content = re.sub(
+            r"GENERATOR_SETTINGS: TERRAIN_SETTINGS_PLACEHOLDER",
+            f"GENERATOR_SETTINGS: {terrain_multiline}",
+            content,
+        )
 
         with open(compose_file, "w") as f:
             f.write(content)
