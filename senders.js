@@ -8,7 +8,7 @@ const MIN_WALK_DISTANCE = 3;
 const MAX_WALK_DISTANCE = 4;
 const MIN_BOTS_DISTANCE = 9;
 const MAX_BOTS_DISTANCE = 10;
-const CAMERA_SPEED_DEGREES_PER_SEC = 15;
+const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const JUMP_PROBABILITY = 0.25;
 const MIN_JUMP_DURATION_SEC = 1;
 const MAX_JUMP_DURATION_SEC = 3;
@@ -181,6 +181,9 @@ const args = minimist(process.argv.slice(2), {
     start_episode_id: 0,
     color: "red", // default color name
     bootstrap_wait_time: 0,
+    teleport_center_x: 0,
+    teleport_center_z: 0,
+    teleport_radius: 500,
   },
 });
 
@@ -706,61 +709,6 @@ async function runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum) {
     );
   });
 }
-function printInventory(bot) {
-  const items = bot.inventory.items();
-  if (items.length === 0) return console.log("Inventory: (empty)");
-  console.log("Inventory:");
-  for (const it of items) {
-    console.log(`- ${it.count} × ${it.displayName}`); // it.name, it.type, it.stackSize also available
-  }
-  console.log(
-    "Held item:",
-    bot.heldItem
-      ? `${bot.heldItem.count} × ${bot.heldItem.displayName}`
-      : "(none)"
-  );
-}
-// Offline-mode UUID = MD5 of "OfflinePlayer:" + name, with RFC4122 v3/variant bits set
-function offlineUuidFromName(name) {
-  const input = Buffer.from("OfflinePlayer:" + name, "utf8");
-  const md5 = crypto.createHash("md5").update(input).digest();
-
-  // set version (3) and variant (RFC 4122)
-  md5[6] = (md5[6] & 0x0f) | 0x30; // version 3
-  md5[8] = (md5[8] & 0x3f) | 0x80; // variant RFC 4122
-
-  // format as UUID string
-  const hex = md5.toString("hex");
-  return [
-    hex.slice(0, 8),
-    hex.slice(8, 12),
-    hex.slice(12, 16),
-    hex.slice(16, 20),
-    hex.slice(20),
-  ].join("-");
-}
-
-function isSlimFromUuid(uuidStr) {
-  // mimic Java UUID.hashCode() parity used by DefaultPlayerSkin.getSkinType
-  const b = Buffer.from(uuidStr.replace(/-/g, ""), "hex");
-  const to64 = (buf, start) => {
-    let v = 0n;
-    for (let i = 0; i < 8; i++) v = (v << 8n) | BigInt(buf[start + i]);
-    return v;
-  };
-  const most = to64(b, 0);
-  const least = to64(b, 8);
-  const hilo = most ^ least;
-  const hi32 = Number((hilo >> 32n) & 0xffffffffn) | 0;
-  const lo32 = Number(hilo & 0xffffffffn) | 0;
-  const hashCode = (hi32 ^ lo32) | 0;
-  return (hashCode & 1) !== 0; // true => "slim (Alex)", false => "classic (Steve)"
-}
-
-function modelForName(name) {
-  const uuid = offlineUuidFromName(name);
-  return { name, uuid, model: isSlimFromUuid(uuid) ? "slim" : "classic" };
-}
 function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
   return async () => {
     // const mcData = mcDataLoader(bot.version);
@@ -834,7 +782,7 @@ function getOnTeleportPhaseFn(
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       "teleportPhase",
-      bot.entity.position,
+      bot.entity.position.clone(),
       "teleportPhase beginning"
     );
 
@@ -843,63 +791,80 @@ function getOnTeleportPhaseFn(
       MIN_BOTS_DISTANCE +
       sharedBotRng() * (MAX_BOTS_DISTANCE - MIN_BOTS_DISTANCE);
 
-    // Calculate current positions and distance
-    const currentPos = bot.entity.position.clone();
-    const otherPos = otherBotPosition;
-    const currentDistance = currentPos.distanceTo(otherPos);
+    // Pick a random point in the world within the specified radius from center
+    const randomAngle = sharedBotRng() * 2 * Math.PI;
+    const randomDistance = sharedBotRng() * args.teleport_radius;
+
+    const randomPointX =
+      args.teleport_center_x + randomDistance * Math.cos(randomAngle);
+    const randomPointZ =
+      args.teleport_center_z + randomDistance * Math.sin(randomAngle);
 
     console.log(
-      `[${bot.username}] current distance: ${currentDistance.toFixed(
+      `[${bot.username}] picked random point at (${randomPointX.toFixed(
         2
-      )}, desired: ${desiredDistance.toFixed(2)}`
+      )}, ${randomPointZ.toFixed(
+        2
+      )}) with desired bot distance: ${desiredDistance.toFixed(2)}`
     );
+
+    // Generate a random angle to position bots on opposite sides of the random point
+    const botAngle = sharedBotRng() * 2 * Math.PI;
+
+    // Calculate distance from random point to each bot (half the desired distance between bots)
+    const halfDistance = desiredDistance / 2;
 
     let newX, newZ;
 
-    // Handle case where both bots are at the same coordinate
-    if (currentDistance < 0.01) {
-      console.log(
-        `[${bot.username}] bots at same position, using random angle`
-      );
-
-      // Pick a random angle from RNG
-      const angle = sharedBotRng() * 2 * Math.PI;
-
-      // Move half the desired distance in the chosen direction
-      const moveDistance = desiredDistance / 2;
-
-      // Bot A moves in initial direction, Bot B moves in opposite direction
-      if (bot.username < otherBotName) {
-        newX = currentPos.x + moveDistance * Math.cos(angle);
-        newZ = currentPos.z + moveDistance * Math.sin(angle);
-      } else {
-        newX = currentPos.x - moveDistance * Math.cos(angle);
-        newZ = currentPos.z - moveDistance * Math.sin(angle);
-      }
+    // Position bots on opposite sides of the random point
+    if (bot.username < otherBotName) {
+      // Bot A goes in one direction
+      newX = randomPointX + halfDistance * Math.cos(botAngle);
+      newZ = randomPointZ + halfDistance * Math.sin(botAngle);
     } else {
-      // Normal case: move along the line connecting the two bots
-      const movementDistance = (desiredDistance - currentDistance) / 2;
-
-      // Calculate unit vector from this bot to the other bot
-      const dx = otherPos.x - currentPos.x;
-      const dz = otherPos.z - currentPos.z;
-      const lineDistance = Math.sqrt(dx * dx + dz * dz);
-      const unitX = dx / lineDistance;
-      const unitZ = dz / lineDistance;
-
-      // Calculate new position (move away from other bot if expanding, toward if contracting)
-      newX = currentPos.x - movementDistance * unitX;
-      newZ = currentPos.z - movementDistance * unitZ;
+      // Bot B goes in opposite direction
+      newX = randomPointX - halfDistance * Math.cos(botAngle);
+      newZ = randomPointZ - halfDistance * Math.sin(botAngle);
     }
 
     // Use land_pos to determine proper Y coordinate
     const landPosition = land_pos(bot, newX, newZ);
+    const currentPos = bot.entity.position.clone();
     const newY = landPosition ? landPosition.y + 1 : currentPos.y;
+
+    // Compute the other bot's new position (opposite side of the random point)
+    let otherBotNewX, otherBotNewZ;
+    if (bot.username < otherBotName) {
+      // This bot goes in one direction, other bot goes in opposite direction
+      otherBotNewX = randomPointX - halfDistance * Math.cos(botAngle);
+      otherBotNewZ = randomPointZ - halfDistance * Math.sin(botAngle);
+    } else {
+      // This bot goes in opposite direction, other bot goes in initial direction
+      otherBotNewX = randomPointX + halfDistance * Math.cos(botAngle);
+      otherBotNewZ = randomPointZ + halfDistance * Math.sin(botAngle);
+    }
+
+    // Estimate other bot's Y coordinate
+    const otherBotLandPosition = land_pos(bot, otherBotNewX, otherBotNewZ);
+    const otherBotNewY = otherBotLandPosition
+      ? otherBotLandPosition.y + 1
+      : otherBotPosition.y;
+
+    const computedOtherBotPosition = new Vec3(
+      otherBotNewX,
+      otherBotNewY,
+      otherBotNewZ
+    );
 
     console.log(
       `[${bot.username}] teleporting to (${newX.toFixed(2)}, ${newY.toFixed(
         2
       )}, ${newZ.toFixed(2)})`
+    );
+    console.log(
+      `[${bot.username}] other bot will be at (${otherBotNewX.toFixed(
+        2
+      )}, ${otherBotNewY.toFixed(2)}, ${otherBotNewZ.toFixed(2)})`
     );
 
     // Teleport using rcon
@@ -915,7 +880,12 @@ function getOnTeleportPhaseFn(
     } catch (error) {
       console.error(`[${bot.username}] teleport failed:`, error);
     }
-    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+    await lookAtSmooth(
+      bot,
+      computedOtherBotPosition,
+      CAMERA_SPEED_DEGREES_PER_SEC
+    );
+    await sleep(1000);
     console.log(`[${bot.username}] starting episode recording`);
     bot.emit("startepisode", episodeNum === 0 ? 50 : 0);
     await sleep(episodeNum === 0 ? 6000 : 1000);

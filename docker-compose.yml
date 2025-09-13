@@ -28,7 +28,7 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data51:/data
+      - ./data52:/data
   sender_alpha:
     build: .
     depends_on:
@@ -114,5 +114,5 @@ services:
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output7:/output
+      - ./output5:/output
     command: python align_videos.py
