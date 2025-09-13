@@ -41,126 +41,6 @@ async function rconTp(name, x, y, z) {
   await rcon.end();
   return res;
 }
-async function rconEquipDyedHelmet(name, decColor) {
-  const rcon = await Rcon.connect({
-    host: args.rcon_host,
-    port: args.rcon_port,
-    password: "change-me",
-  });
-  console.log(`Equipping dyed helmet to ${name} with color ${decColor}`);
-  const res = await rcon.send(
-    `item replace entity ${name} armor.head with minecraft:leather_helmet[dyed_color=${decColor}] 1`
-  );
-  console.log(`Result: ${res}`);
-  await rcon.end();
-}
-
-async function rconEquipBannerOffhand(
-  name,
-  colorName /* e.g. red, blue, lime */
-) {
-  const rcon = await Rcon.connect({
-    host: args.rcon_host,
-    port: args.rcon_port,
-    password: "change-me",
-  });
-  console.log(`Equipping banner to ${name} with color ${colorName}`);
-  const res = await rcon.send(
-    `item replace entity ${name} weapon.offhand with minecraft:${colorName}_banner 1`
-  );
-  console.log(`Result: ${res}`);
-
-  await rcon.end();
-}
-
-async function rconGiveColoredChestplate(name, color) {
-  const rcon = await Rcon.connect({
-    host: args.rcon_host,
-    port: args.rcon_port,
-    password: "change-me",
-  });
-  console.log(`Giving colored chestplate to ${name} with color ${color}`);
-  const res = await rcon.send(
-    `item replace entity ${name} armor.chest with minecraft:leather_chestplate[dyed_color=${color}] 1`
-  );
-  console.log(`Result: ${res}`);
-  await rcon.end();
-  return res;
-}
-
-async function rconSkinSet(playerName, skinName) {
-  const rcon = await Rcon.connect({
-    host: args.rcon_host,
-    port: args.rcon_port,
-    password: "change-me",
-  });
-  console.log(`Setting skin for ${playerName} to ${skinName}`);
-  const res = await rcon.send(`skin set Angry bear ${playerName}`);
-  console.log(`Skin set response: ${res}`);
-  const res2 = await rcon.send(`sr applyskin ${playerName}`);
-  console.log(`Skin apply response: ${res2}`);
-  await rcon.end();
-  return res;
-}
-
-async function rconSetSkinsRestorerPermission(botName) {
-  const rcon = await Rcon.connect({
-    host: args.rcon_host,
-    port: args.rcon_port,
-    password: "change-me",
-  });
-  console.log(`Setting SkinsRestorer permissions for ${botName}`);
-  const permissions = [
-    "skinsrestorer.command",
-    "skinsrestorer.command.set",
-    "skinsrestorer.command.set.other",
-    "skinsrestorer.player",
-    "skinsrestorer.admin",
-    "skinsrestorer.admincommand.createcustom",
-    "skinsrestorer.admincommand.applyskin",
-    "skinsrestorer.admincommand.applyskinall",
-    "skinsrestorer.ownskin",
-  ];
-
-  for (const permission of permissions) {
-    const res = await rcon.send(
-      `lp user ${botName} permission set ${permission} true`
-    );
-    console.log(`Permission set response for ${permission}: ${res}`);
-  }
-  await rcon.end();
-}
-
-async function botSkinSet(bot, skinName) {
-  bot.chat(`/skin set ${skinName} ${bot.username}`);
-  await sleep(1000);
-  bot.chat(`/sr applyskin ${bot.username}`);
-  await sleep(1000);
-  return true;
-}
-
-// Color name to RGB color code mapping
-const COLOR_MAP = {
-  red: 16711680, // 0xFF0000
-  blue: 255, // 0x0000FF
-  green: 65280, // 0x00FF00
-  yellow: 16776960, // 0xFFFF00
-  purple: 16711935, // 0xFF00FF
-  cyan: 65535, // 0x00FFFF
-  orange: 16753920, // 0xFFA500
-  pink: 16761035, // 0xFFC0CB
-  lime: 8388352, // 0x7FFF00
-  black: 0, // 0x000000
-  white: 16777215, // 0xFFFFFF
-  gray: 8421504, // 0x808080
-  brown: 9127187, // 0x8B4513
-};
-
-// Color to skin name mapping
-const COLOR_TO_SKIN_MAP = {
-  red: "capybara",
-  blue: "capybara",
-};
 
 const args = minimist(process.argv.slice(2), {
   default: {
@@ -184,14 +64,9 @@ const args = minimist(process.argv.slice(2), {
     teleport_center_x: 0,
     teleport_center_z: 0,
     teleport_radius: 500,
+    walk_timeout: 5, // walk timeout in seconds
   },
 });
-
-// Convert color name to color code
-const chestplate_color = COLOR_MAP[args.color.toLowerCase()] || COLOR_MAP.red;
-const skin_name = COLOR_TO_SKIN_MAP[args.color.toLowerCase()];
-console.log(`Using color: ${args.color} (code: ${chestplate_color})`);
-console.log(`Skin name for color ${args.color}: ${skin_name}`);
 
 function land_pos(bot, x, z) {
   const pos = new Vec3(x, 64, z);
@@ -289,28 +164,6 @@ function random_pos(bot, range) {
 /*
   move to a random position in a range*range cube around the bot
 */
-async function move(bot, range) {
-  const pos = random_pos(bot, range);
-  console.log(`${bot.username} moving to`, pos);
-  console.log(
-    `[${bot.username}] distance`,
-    bot.entity.position.distanceTo(pos)
-  );
-  const defaultMove = new Movements(bot);
-  defaultMove.allowSprinting = false;
-  bot.pathfinder.setMovements(defaultMove);
-  bot.pathfinder.setGoal(new GoalBlock(pos.x, pos.y, pos.z), false);
-
-  return new Promise((resolve) => {
-    const onGoalReached = () => {
-      bot.pathfinder.stop();
-      bot.clearControlStates();
-      bot.removeListener("goal_reached", onGoalReached);
-      resolve();
-    };
-    bot.on("goal_reached", onGoalReached);
-  });
-}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const rand = (min, max) => Math.random() * (max - min) + min;
 const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -474,6 +327,7 @@ function stopAll(bot) {
 async function walk(bot, distance) {
   const startPos = bot.entity.position.clone();
   const dir = choice(["forward", "back", "left", "right"]);
+  const walkTimeoutMs = args.walk_timeout * 1000; // Convert to milliseconds
 
   // Define the reverse direction
   const reverseDir = {
@@ -488,15 +342,25 @@ async function walk(bot, distance) {
       bot.username
     }] Walking ${dir} for ${distance} blocks from position (${startPos.x.toFixed(
       2
-    )}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)})`
+    )}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}) with ${
+      args.walk_timeout
+    }s timeout`
   );
 
   // Walk in the chosen direction until we reach the target distance
   bot.setControlState(dir, true);
 
   let actualDistance = 0;
+  const forwardStartTime = Date.now();
   try {
     while (bot.entity.position.distanceTo(startPos) < distance) {
+      // Check for timeout
+      if (Date.now() - forwardStartTime > walkTimeoutMs) {
+        console.log(
+          `[${bot.username}] Walk timeout (${args.walk_timeout}s) reached while walking ${dir}`
+        );
+        break;
+      }
       await sleep(50); // Check position every 50ms
     }
     actualDistance = bot.entity.position.distanceTo(startPos);
@@ -534,9 +398,17 @@ async function walk(bot, distance) {
 
   bot.setControlState(reverseDir[dir], true);
 
+  const returnStartTime = Date.now();
   try {
     // Walk back until we're close to the starting position
     while (bot.entity.position.distanceTo(startPos) > 1.0) {
+      // Check for timeout
+      if (Date.now() - returnStartTime > walkTimeoutMs) {
+        console.log(
+          `[${bot.username}] Walk timeout (${args.walk_timeout}s) reached while returning via ${reverseDir[dir]}`
+        );
+        break;
+      }
       await sleep(50); // Check position every 50ms
     }
   } finally {
