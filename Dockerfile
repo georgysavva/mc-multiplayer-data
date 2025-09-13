@@ -34,10 +34,15 @@ RUN python -m pip install --upgrade pip setuptools wheel && \
     python -m pip install --no-cache-dir -r requirements.txt
 COPY package.json ./
 RUN npm install 
-RUN echo "35" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN npm i rcon-client
 RUN echo "41" && npm install github:georgysavva/mineflayer
 RUN echo "47" && npm install github:georgysavva/mineflayer-pathfinder
-
+RUN echo "38" && npm install github:georgysavva/prismarine-viewer-colalab
+# RUN echo "37" && npm install github:georgysavva/prismarine-viewer
+RUN set -eux; \
+  PKG_DIR="node_modules/prismarine-viewer-colalab"; \
+  mkdir -p "$PKG_DIR/public/textures/1.16.4/entity"; \
+  cp -r "$PKG_DIR/assets/skins" "$PKG_DIR/public/textures/1.16.4/entity/"
 # Copy the bot script
 COPY . ./
 # Use a deterministic display

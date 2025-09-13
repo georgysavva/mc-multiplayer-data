@@ -1,13 +1,21 @@
 const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const seedrandom = require("seedrandom");
+const { Rcon } = require("rcon-client");
+const crypto = require("crypto");
 
 // Constants
-const MIN_WALK_DURATION_SEC = 7;
-const MAX_WALK_DURATION_SEC = 13;
-const MIN_ALIGN_RADIUS = 4;
-const MAX_ALIGN_RADIUS = 8;
-const MIN_RESET_DISTANCE = 5;
-const MAX_RESET_DISTANCE = 10;
+const MIN_WALK_DISTANCE = 3;
+const MAX_WALK_DISTANCE = 4;
+const MIN_BOTS_DISTANCE = 9;
+const MAX_BOTS_DISTANCE = 10;
+const CAMERA_SPEED_DEGREES_PER_SEC = 30;
+const JUMP_PROBABILITY = 0.25;
+const MIN_JUMP_DURATION_SEC = 1;
+const MAX_JUMP_DURATION_SEC = 3;
+const MIN_RUN_ACTIONS = 3;
+const MAX_RUN_ACTIONS = 5;
+const MIN_SLEEP_BETWEEN_ACTIONS_SEC = 1.5;
+const MAX_SLEEP_BETWEEN_ACTIONS_SEC = 3;
 
 // two-bots-run-together.js
 const minimist = require("minimist");
@@ -17,21 +25,173 @@ const {
   Movements,
   goals: { GoalNear, GoalNearXZ, GoalBlock, GoalFollow },
 } = require("mineflayer-pathfinder");
+const net = require("net");
+const EventEmitter = require("events");
 
 const mcDataLoader = require("minecraft-data");
 const Vec3 = require("vec3").Vec3;
+
+async function rconTp(name, x, y, z) {
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: "change-me",
+  });
+  const res = await rcon.send(`tp ${name} ${x} ${y} ${z}`);
+  await rcon.end();
+  return res;
+}
+async function rconEquipDyedHelmet(name, decColor) {
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: "change-me",
+  });
+  console.log(`Equipping dyed helmet to ${name} with color ${decColor}`);
+  const res = await rcon.send(
+    `item replace entity ${name} armor.head with minecraft:leather_helmet[dyed_color=${decColor}] 1`
+  );
+  console.log(`Result: ${res}`);
+  await rcon.end();
+}
+
+async function rconEquipBannerOffhand(
+  name,
+  colorName /* e.g. red, blue, lime */
+) {
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: "change-me",
+  });
+  console.log(`Equipping banner to ${name} with color ${colorName}`);
+  const res = await rcon.send(
+    `item replace entity ${name} weapon.offhand with minecraft:${colorName}_banner 1`
+  );
+  console.log(`Result: ${res}`);
+
+  await rcon.end();
+}
+
+async function rconGiveColoredChestplate(name, color) {
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: "change-me",
+  });
+  console.log(`Giving colored chestplate to ${name} with color ${color}`);
+  const res = await rcon.send(
+    `item replace entity ${name} armor.chest with minecraft:leather_chestplate[dyed_color=${color}] 1`
+  );
+  console.log(`Result: ${res}`);
+  await rcon.end();
+  return res;
+}
+
+async function rconSkinSet(playerName, skinName) {
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: "change-me",
+  });
+  console.log(`Setting skin for ${playerName} to ${skinName}`);
+  const res = await rcon.send(`skin set Angry bear ${playerName}`);
+  console.log(`Skin set response: ${res}`);
+  const res2 = await rcon.send(`sr applyskin ${playerName}`);
+  console.log(`Skin apply response: ${res2}`);
+  await rcon.end();
+  return res;
+}
+
+async function rconSetSkinsRestorerPermission(botName) {
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: "change-me",
+  });
+  console.log(`Setting SkinsRestorer permissions for ${botName}`);
+  const permissions = [
+    "skinsrestorer.command",
+    "skinsrestorer.command.set",
+    "skinsrestorer.command.set.other",
+    "skinsrestorer.player",
+    "skinsrestorer.admin",
+    "skinsrestorer.admincommand.createcustom",
+    "skinsrestorer.admincommand.applyskin",
+    "skinsrestorer.admincommand.applyskinall",
+    "skinsrestorer.ownskin",
+  ];
+
+  for (const permission of permissions) {
+    const res = await rcon.send(
+      `lp user ${botName} permission set ${permission} true`
+    );
+    console.log(`Permission set response for ${permission}: ${res}`);
+  }
+  await rcon.end();
+}
+
+async function botSkinSet(bot, skinName) {
+  bot.chat(`/skin set ${skinName} ${bot.username}`);
+  await sleep(1000);
+  bot.chat(`/sr applyskin ${bot.username}`);
+  await sleep(1000);
+  return true;
+}
+
+// Color name to RGB color code mapping
+const COLOR_MAP = {
+  red: 16711680, // 0xFF0000
+  blue: 255, // 0x0000FF
+  green: 65280, // 0x00FF00
+  yellow: 16776960, // 0xFFFF00
+  purple: 16711935, // 0xFF00FF
+  cyan: 65535, // 0x00FFFF
+  orange: 16753920, // 0xFFA500
+  pink: 16761035, // 0xFFC0CB
+  lime: 8388352, // 0x7FFF00
+  black: 0, // 0x000000
+  white: 16777215, // 0xFFFFFF
+  gray: 8421504, // 0x808080
+  brown: 9127187, // 0x8B4513
+};
+
+// Color to skin name mapping
+const COLOR_TO_SKIN_MAP = {
+  red: "capybara",
+  blue: "capybara",
+};
 
 const args = minimist(process.argv.slice(2), {
   default: {
     host: "127.0.0.1",
     port: 25565,
-    a_port: 8091,
-    b_port: 8092,
-    a: "Alpha",
-    b: "Bravo",
+    rcon_host: "127.0.0.1",
+    rcon_port: 25575,
+    receiver_host: "127.0.0.1",
+    receiver_port: 8091,
+    bot_name: "Alpha",
+    other_bot_name: "Bravo",
+    coord_port: 8093,
+    other_coord_host: "127.0.0.1",
+    other_coord_port: 8094,
     iterations_num_per_episode: 3,
+    bot_rng_seed: "12345",
+    episodes_num: 1,
+    start_episode_id: 0,
+    color: "red", // default color name
+    bootstrap_wait_time: 0,
+    teleport_center_x: 0,
+    teleport_center_z: 0,
+    teleport_radius: 500,
   },
 });
+
+// Convert color name to color code
+const chestplate_color = COLOR_MAP[args.color.toLowerCase()] || COLOR_MAP.red;
+const skin_name = COLOR_TO_SKIN_MAP[args.color.toLowerCase()];
+console.log(`Using color: ${args.color} (code: ${chestplate_color})`);
+console.log(`Skin name for color ${args.color}: ${skin_name}`);
 
 function land_pos(bot, x, z) {
   const pos = new Vec3(x, 64, z);
@@ -155,17 +315,145 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const rand = (min, max) => Math.random() * (max - min) + min;
 const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-function emitWithLog(bot, eventName, eventParams, location, iterationID) {
-  const listenerCount = bot.listenerCount(eventName);
-  if (listenerCount > 0) {
+// equip the first chestplate in inventory
+async function equipFirst(bot, itemName, dest) {
+  const item = bot.inventory.items().find((i) => i.name === itemName);
+  if (item) await bot.equip(item, dest); // dest: 'torso','head','legs','feet','hand'
+}
+
+class BotCoordinator extends EventEmitter {
+  constructor(botName, coordPort, otherCoordHost, otherCoordPort) {
+    super();
+    this.botName = botName;
+    this.coordPort = coordPort;
+    this.otherCoordHost = otherCoordHost;
+    this.otherCoordPort = otherCoordPort;
+    this.clientConnection = null;
+    this.server = null;
+  }
+
+  async setupConnections() {
+    console.log(`[${this.botName}] Setting up connections...`);
+
+    // Set up server and client connections in parallel and wait for both to be ready
+    const [serverReady, clientReady] = await Promise.all([
+      this.setupServer(),
+      this.setupClient(),
+    ]);
+
     console.log(
-      `[emitWithLog] [iter ${iterationID}] ${location}: Emitting ${eventName} to ${bot.username} (${listenerCount} listeners)`
+      `[${this.botName}] All connections established - server ready: ${serverReady}, client ready: ${clientReady}`
     );
-    bot.emit(eventName, eventParams);
-  } else {
-    console.log(
-      `[emitWithLog] [iter ${iterationID}] ${location}: No listeners for ${eventName} on ${bot.username}`
-    );
+    return { serverReady, clientReady };
+  }
+
+  setupServer() {
+    return new Promise((resolve) => {
+      this.server = net.createServer((socket) => {
+        console.log(`[${this.botName} Server] Other bot connected`);
+        let buffer = "";
+
+        socket.on("data", (data) => {
+          buffer += data.toString();
+          let lines = buffer.split("\n");
+
+          // Keep the last incomplete line in the buffer
+          buffer = lines.pop();
+
+          // Process each complete line
+          lines.forEach((line) => {
+            if (line.trim()) {
+              try {
+                const message = JSON.parse(line);
+                const listenerCount = this.listenerCount(message.eventName);
+                if (listenerCount > 0) {
+                  console.log(
+                    `[${this.botName} Server] Received: ${message.eventName} (${listenerCount} listeners) - emitting`
+                  );
+                  this.emit(message.eventName, message.eventParams);
+                } else {
+                  console.log(
+                    `[${this.botName} Server] Received: ${message.eventName} (no listeners)`
+                  );
+                }
+              } catch (err) {
+                console.error(
+                  `[${
+                    this.botName
+                  } Server] Parse error: ${err}, message: ${data.toString()}`
+                );
+                console.error(
+                  `[${this.botName} Server] Problematic line:`,
+                  line
+                );
+              }
+            }
+          });
+        });
+        socket.on("close", () => {
+          console.log(`[${this.botName} Server] Other bot disconnected`);
+        });
+
+        // Resolve when the other bot connects to our server
+        resolve(true);
+      });
+
+      this.server.listen(this.coordPort, () => {
+        console.log(
+          `[${this.botName} Server] Listening on port ${this.coordPort}, waiting for other bot to connect...`
+        );
+      });
+    });
+  }
+
+  setupClient() {
+    return new Promise((resolve) => {
+      const attemptConnection = () => {
+        this.clientConnection = net.createConnection(
+          { host: this.otherCoordHost, port: this.otherCoordPort },
+          () => {
+            console.log(
+              `[${this.botName} Client] Connected to other bot's server at ${this.otherCoordHost}:${this.otherCoordPort}`
+            );
+            resolve(true);
+          }
+        );
+
+        this.clientConnection.on("error", (err) => {
+          console.log(
+            `[${this.botName} Client] Connection failed, retrying in 2s:`,
+            err.message
+          );
+          setTimeout(attemptConnection, 2000);
+        });
+
+        this.clientConnection.on("close", () => {
+          console.log(`[${this.botName} Client] Disconnected from other bot`);
+          this.clientConnection = null;
+          setTimeout(attemptConnection, 2000); // Auto-reconnect
+        });
+      };
+
+      attemptConnection();
+    });
+  }
+
+  sendToOtherBot(eventName, eventParams, location) {
+    if (this.clientConnection) {
+      const message = JSON.stringify({ eventName, eventParams });
+      console.log(
+        `[sendToOtherBot] ${location}: Sending ${eventName} via client connection`
+      );
+      this.clientConnection.write(message + "\n");
+    } else {
+      console.log(
+        `[sendToOtherBot] ${location}: No client connection available for ${eventName}`
+      );
+    }
+  }
+
+  onceEvent(eventName, handler) {
+    this.once(eventName, handler);
   }
 }
 
@@ -183,16 +471,97 @@ function stopAll(bot) {
   }
 }
 
-async function walk(bot, durationMs) {
+async function walk(bot, distance) {
+  const startPos = bot.entity.position.clone();
   const dir = choice(["forward", "back", "left", "right"]);
+
+  // Define the reverse direction
+  const reverseDir = {
+    forward: "back",
+    back: "forward",
+    left: "right",
+    right: "left",
+  };
+
   console.log(
-    `[${bot.username}] Walking ${dir} for ${(durationMs / 1000).toFixed(1)}s`
+    `[${
+      bot.username
+    }] Walking ${dir} for ${distance} blocks from position (${startPos.x.toFixed(
+      2
+    )}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)})`
   );
+
+  // Walk in the chosen direction until we reach the target distance
   bot.setControlState(dir, true);
+
+  let actualDistance = 0;
   try {
-    await sleep(durationMs);
+    while (bot.entity.position.distanceTo(startPos) < distance) {
+      await sleep(50); // Check position every 50ms
+    }
+    actualDistance = bot.entity.position.distanceTo(startPos);
   } finally {
     bot.setControlState(dir, false);
+  }
+
+  const reachedPos = bot.entity.position.clone();
+  console.log(
+    `[${bot.username}] Reached distance ${actualDistance.toFixed(
+      2
+    )} blocks at position (${reachedPos.x.toFixed(2)}, ${reachedPos.y.toFixed(
+      2
+    )}, ${reachedPos.z.toFixed(2)})`
+  );
+
+  // Randomly jump before returning based on jump probability
+  if (Math.random() < JUMP_PROBABILITY) {
+    const jumpDurationSec =
+      MIN_JUMP_DURATION_SEC +
+      Math.random() * (MAX_JUMP_DURATION_SEC - MIN_JUMP_DURATION_SEC);
+    const jumpDurationMs = Math.floor(jumpDurationSec * 1000);
+    console.log(
+      `[${bot.username}] Jumping for ${jumpDurationSec.toFixed(
+        1
+      )}s before returning`
+    );
+    await jump(bot, jumpDurationMs);
+  }
+
+  // Now return to the starting position by walking in the reverse direction
+  console.log(
+    `[${bot.username}] Returning to starting position by walking ${reverseDir[dir]}`
+  );
+
+  bot.setControlState(reverseDir[dir], true);
+
+  try {
+    // Walk back until we're close to the starting position
+    while (bot.entity.position.distanceTo(startPos) > 1.0) {
+      await sleep(50); // Check position every 50ms
+    }
+  } finally {
+    bot.setControlState(reverseDir[dir], false);
+  }
+
+  const finalDistance = bot.entity.position.distanceTo(startPos);
+  console.log(
+    `[${bot.username}] Returned to within ${finalDistance.toFixed(
+      2
+    )} blocks of starting position`
+  );
+
+  // Randomly jump after returning to start position
+  if (Math.random() < JUMP_PROBABILITY) {
+    const jumpDurationSec =
+      MIN_JUMP_DURATION_SEC +
+      Math.random() * (MAX_JUMP_DURATION_SEC - MIN_JUMP_DURATION_SEC);
+    const jumpDurationMs = Math.floor(jumpDurationSec * 1000);
+    console.log(
+      `[${bot.username}] Jumping for ${jumpDurationSec.toFixed(
+        1
+      )}s after returning to start`
+    );
+    await jump(bot, jumpDurationMs);
   }
 }
 
@@ -209,271 +578,488 @@ async function jump(bot, durationMs) {
   }
 }
 
-async function lookAround(bot, durationMs) {
-  console.log(
-    `[${bot.username}] Looking around for ${(durationMs / 1000).toFixed(1)}s`
-  );
-  const yaw = rand(-Math.PI, Math.PI);
-  await lookSideways(bot, yaw, durationMs);
-}
+async function lookAtSmooth(bot, targetPosition, degreesPerSecond) {
+  const botPosition = bot.entity.position;
 
-async function lookSideways(bot, targetYaw, durationMs) {
-  console.log(
-    `[${bot.username}] Looking sideways to yaw ${targetYaw.toFixed(2)} over ${(
-      durationMs / 1000
-    ).toFixed(1)}s`
-  );
+  // Calculate the vector from bot to target
+  const dx = targetPosition.x - botPosition.x;
+  const dy = targetPosition.y - botPosition.y;
+  const dz = targetPosition.z - botPosition.z;
 
-  const startPitch = bot.entity.pitch;
+  // Calculate target yaw (horizontal rotation)
+  const targetYaw = Math.atan2(-dx, -dz); // Minecraft coordinate system
+
+  // Calculate target pitch (vertical rotation)
+  const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+  const targetPitch = -Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
+
   const startYaw = bot.entity.yaw;
+  const startPitch = bot.entity.pitch;
+
+  // Calculate angle differences, handling wrapping for yaw
+  let yawDiff = targetYaw - startYaw;
+  // Normalize yaw difference to [-π, π] for shortest rotation
+  while (yawDiff > Math.PI) yawDiff -= 2 * Math.PI;
+  while (yawDiff < -Math.PI) yawDiff += 2 * Math.PI;
+
+  const pitchDiff = targetPitch - startPitch;
+
+  // Calculate total angular distance in radians
+  const totalAngleDistance = Math.sqrt(
+    yawDiff * yawDiff + pitchDiff * pitchDiff
+  );
+
+  // Convert speed from degrees per second to radians per second
+  const radiansPerSecond = (degreesPerSecond * Math.PI) / 180;
+
+  // Calculate total time needed
+  const totalTimeMs = (totalAngleDistance / radiansPerSecond) * 1000;
+
+  console.log(
+    `[${bot.username}] Looking at (${targetPosition.x.toFixed(
+      2
+    )}, ${targetPosition.y.toFixed(2)}, ${targetPosition.z.toFixed(
+      2
+    )}) at ${degreesPerSecond}°/s over ${(totalTimeMs / 1000).toFixed(2)}s`
+  );
+
   const startTime = Date.now();
-  const endTime = startTime + durationMs;
+  const endTime = startTime + totalTimeMs;
+  const updateInterval = 50; // 50ms intervals
 
   while (Date.now() < endTime) {
     const elapsed = Date.now() - startTime;
-    const progress = elapsed / durationMs;
+    const progress = Math.min(elapsed / totalTimeMs, 1.0);
 
-    // Linear interpolation between start and target yaw
-    const currentYaw = startYaw + (targetYaw - startYaw) * progress;
+    // Smooth interpolation using easing function (ease-out)
+    const easedProgress = 1 - Math.pow(1 - progress, 2);
 
-    bot.look(currentYaw, startPitch, true);
-    await sleep(50); // Small delay for smooth movement
+    // Calculate current angles
+    const currentYaw = startYaw + yawDiff * easedProgress;
+    const currentPitch = startPitch + pitchDiff * easedProgress;
+
+    bot.look(currentYaw, currentPitch, true);
+
+    if (progress >= 1.0) break;
+    await sleep(updateInterval);
   }
 
-  // Ensure we end exactly at the target yaw
-  bot.look(targetYaw, startPitch, true);
+  // Ensure we end exactly at the target angles
+  bot.look(targetYaw, targetPitch, true);
 }
 
-async function run(bot, durationMs) {
-  const minMs = 2000;
-  const maxMs = 5000;
-  const actions = [
-    () => walk(bot, rand(minMs, maxMs)),
-    () => jump(bot, rand(minMs * 0.6, maxMs * 0.8)),
-    () => lookAround(bot, rand(minMs, maxMs)),
-  ];
+async function run(bot, actionCount) {
+  const actions = [() => walk(bot, rand(MIN_WALK_DISTANCE, MAX_WALK_DISTANCE))];
 
-  const endTime = Date.now() + durationMs;
+  console.log(`[${bot.username}] Running ${actionCount} actions`);
 
-  while (Date.now() < endTime) {
+  for (let i = 0; i < actionCount; i++) {
+    // Sleep before each action, including the first one
+    const sleepTimeSec =
+      MIN_SLEEP_BETWEEN_ACTIONS_SEC +
+      Math.random() *
+        (MAX_SLEEP_BETWEEN_ACTIONS_SEC - MIN_SLEEP_BETWEEN_ACTIONS_SEC);
+    const sleepTimeMs = Math.floor(sleepTimeSec * 1000);
+    console.log(
+      `[${bot.username}] Sleeping for ${sleepTimeSec.toFixed(
+        2
+      )}s before action ${i + 1}`
+    );
+    await sleep(sleepTimeMs);
+
     const action = choice(actions);
     try {
+      console.log(`[${bot.username}] Executing action ${i + 1}/${actionCount}`);
       await action();
     } catch (err) {
       console.error(`[${bot.username}] Action error:`, err);
     } finally {
       stopAll(bot);
     }
-
-    // Only sleep if we have time remaining
-    if (Date.now() + 300 < endTime) {
-      await sleep(300); // small pause between actions
-    }
   }
 }
 
-function getOnSpawnFn(bot, host, receiverPort, botRng, otherBot) {
+async function runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum) {
+  console.log(`[${bot.username}] Starting episode ${episodeNum}`);
+
+  return new Promise((resolve) => {
+    bot._currentEpisodeResolve = resolve;
+
+    const { x, y, z } = bot.entity.position;
+    console.log(
+      `[${bot.username}] episode ${episodeNum} at (${x.toFixed(2)}, ${y.toFixed(
+        2
+      )}, ${z.toFixed(2)})`
+    );
+
+    coordinator.onceEvent(
+      "teleportPhase",
+      getOnTeleportPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum
+      )
+    );
+    coordinator.sendToOtherBot(
+      "teleportPhase",
+      bot.entity.position.clone(),
+      "spawnPhase end"
+    );
+  });
+}
+function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
   return async () => {
-    await sleep(10000);
-    const mcData = mcDataLoader(bot.version);
-    const moves = new Movements(bot, mcData);
-    moves.allowSprinting = true; // makes them run
-    moves.canDig = false; // keep it simple; no digging
-    bot.pathfinder.setMovements(moves);
+    // const mcData = mcDataLoader(bot.version);
+    // const moves = new Movements(bot, mcData);
+    // moves.allowSprinting = true; // makes them run
+    // moves.canDig = false; // keep it simple; no digging
+    // bot.pathfinder.setMovements(moves);
+    // Wait for both connections to be established
+    console.log("Setting up coordinator connections...");
+    await coordinator.setupConnections();
+    console.log(
+      "All coordinator connections ready, proceeding with bot spawn..."
+    );
+
     const { x, y, z } = bot.entity.position;
     console.log(
       `[${bot.username}] spawned at (${x.toFixed(2)}, ${y.toFixed(
         2
       )}, ${z.toFixed(2)})`
     );
+
+    // Initialize viewer once for the entire program
     mineflayerViewerhl(bot, {
-      output: `${host}:${receiverPort}`,
+      output: `${args.receiver_host}:${receiverPort}`,
       width: 640,
       height: 360,
+      frames: 400,
     });
-    const iterationID = 0;
-    bot.once(
-      "alignPositionsPhase",
-      getOnAlignPositionsPhaseFn(bot, botRng, otherBot, iterationID)
-    );
-    emitWithLog(
-      otherBot,
-      "alignPositionsPhase",
-      bot.entity.position,
-      "spawn phase end",
-      iterationID
-    );
-  };
-}
-function getOnAlignPositionsPhaseFn(bot, botRng, otherBot, iterationID) {
-  return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
-      "alignPositionsPhase",
-      bot.entity.position,
-      "alignPositionsPhase beginning",
-      iterationID
-    );
-    console.log(
-      `[iter ${iterationID}] [${bot.username}] aligns itself with ${otherBot.username} at ${otherBotPosition} (going to midpoint)`
-    );
 
-    const botPosition = bot.entity.position.clone();
+    // Give colored chestplate and equip it
+    // try {
+    //   console.log(
+    //     `[${bot.username}] giving colored chestplate (color: ${chestplate_color})`
+    //   );
+    //   await rconGiveColoredChestplate(bot.username, chestplate_color);
+    //   await sleep(1000); // Wait for item to appear in inventory
+    //   await rconEquipDyedHelmet(bot.username, chestplate_color);
+    //   await sleep(1000); // Wait for item to appear in inventory
+    //   await rconEquipBannerOffhand(bot.username, chestplate_color);
+    //   await sleep(1000); // Wait for item to appear in inventory
+    // } catch (error) {
+    //   console.error(
+    //     `[${bot.username}] failed to give/equip chestplate:`,
+    //     error
+    //   );
+    // }
 
-    // Calculate midpoint between the two bots
-    const midpoint = new Vec3(
-      (botPosition.x + otherBotPosition.x) / 2,
-      (botPosition.y + otherBotPosition.y) / 2,
-      (botPosition.z + otherBotPosition.z) / 2
-    );
-
-    // Use land_pos to get proper ground level for the midpoint
-    const landPosition = land_pos(bot, midpoint.x, midpoint.z);
-    if (landPosition) {
-      midpoint.y = landPosition.y + 1;
+    // Run multiple episodes
+    for (
+      let episodeNum = args.start_episode_id;
+      episodeNum < args.start_episode_id + args.episodes_num;
+      episodeNum++
+    ) {
+      await runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum);
+      console.log(`[${bot.username}] Episode ${episodeNum} completed`);
     }
 
     console.log(
-      `[iter ${iterationID}] [${bot.username}] moving to midpoint: ${midpoint}`
+      `[${bot.username}] All ${args.episodes_num} episodes completed`
     );
-
-    // Move to the midpoint
-    const defaultMove = new Movements(bot);
-    defaultMove.allowSprinting = false;
-    bot.pathfinder.setMovements(defaultMove);
-    bot.pathfinder.setGoal(
-      new GoalBlock(midpoint.x, midpoint.y, midpoint.z),
-      false
-    );
-
-    // Wait for movement to complete using Promise
-    await new Promise((resolve) => {
-      const onGoalReached = () => {
-        bot.pathfinder.stop();
-        bot.clearControlStates();
-        bot.removeListener("goal_reached", onGoalReached);
-        resolve();
-      };
-      bot.on("goal_reached", onGoalReached);
-    });
-
-    console.log(`[iter ${iterationID}] [${bot.username}] reached midpoint`);
-    bot.once(
-      "resetPositionsPhase",
-
-      getOnResetPositionsPhaseFn(bot, botRng, otherBot, iterationID)
-    );
-    emitWithLog(
-      otherBot,
-      "resetPositionsPhase",
-      bot.entity.position.clone(),
-      "alignPositionsPhase end",
-      iterationID
-    );
+    process.exit(0);
   };
 }
-function getOnResetPositionsPhaseFn(bot, botRng, otherBot, iterationID) {
+function getOnTeleportPhaseFn(
+  bot,
+  sharedBotRng,
+  coordinator,
+  otherBotName,
+  episodeNum
+) {
   return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
-      "resetPositionsPhase",
+    coordinator.sendToOtherBot(
+      "teleportPhase",
       bot.entity.position.clone(),
-      "resetPositionsPhase beginning",
-      iterationID
+      "teleportPhase beginning"
     );
-    const distance =
-      MIN_RESET_DISTANCE + botRng() * (MAX_RESET_DISTANCE - MIN_RESET_DISTANCE);
+
+    // Generate desired distance between bots using sharedBotRng
+    const desiredDistance =
+      MIN_BOTS_DISTANCE +
+      sharedBotRng() * (MAX_BOTS_DISTANCE - MIN_BOTS_DISTANCE);
+
+    // Pick a random point in the world within the specified radius from center
+    const randomAngle = sharedBotRng() * 2 * Math.PI;
+    const randomDistance = sharedBotRng() * args.teleport_radius;
+
+    const randomPointX =
+      args.teleport_center_x + randomDistance * Math.cos(randomAngle);
+    const randomPointZ =
+      args.teleport_center_z + randomDistance * Math.sin(randomAngle);
+
     console.log(
-      `[iter ${iterationID}] [${
-        bot.username
-      }] resetting position with distance ${distance.toFixed(2)}`
+      `[${bot.username}] picked random point at (${randomPointX.toFixed(
+        2
+      )}, ${randomPointZ.toFixed(
+        2
+      )}) with desired bot distance: ${desiredDistance.toFixed(2)}`
     );
-    await move(bot, distance);
-    bot.once(
-      "walkAndLookPhase",
-      getOnWalkAndLookPhaseFn(bot, botRng, otherBot, iterationID)
+
+    // Generate a random angle to position bots on opposite sides of the random point
+    const botAngle = sharedBotRng() * 2 * Math.PI;
+
+    // Calculate distance from random point to each bot (half the desired distance between bots)
+    const halfDistance = desiredDistance / 2;
+
+    let newX, newZ;
+
+    // Position bots on opposite sides of the random point
+    if (bot.username < otherBotName) {
+      // Bot A goes in one direction
+      newX = randomPointX + halfDistance * Math.cos(botAngle);
+      newZ = randomPointZ + halfDistance * Math.sin(botAngle);
+    } else {
+      // Bot B goes in opposite direction
+      newX = randomPointX - halfDistance * Math.cos(botAngle);
+      newZ = randomPointZ - halfDistance * Math.sin(botAngle);
+    }
+
+    // Use land_pos to determine proper Y coordinate
+    const landPosition = land_pos(bot, newX, newZ);
+    const currentPos = bot.entity.position.clone();
+    const newY = landPosition ? landPosition.y + 1 : currentPos.y;
+
+    // Compute the other bot's new position (opposite side of the random point)
+    let otherBotNewX, otherBotNewZ;
+    if (bot.username < otherBotName) {
+      // This bot goes in one direction, other bot goes in opposite direction
+      otherBotNewX = randomPointX - halfDistance * Math.cos(botAngle);
+      otherBotNewZ = randomPointZ - halfDistance * Math.sin(botAngle);
+    } else {
+      // This bot goes in opposite direction, other bot goes in initial direction
+      otherBotNewX = randomPointX + halfDistance * Math.cos(botAngle);
+      otherBotNewZ = randomPointZ + halfDistance * Math.sin(botAngle);
+    }
+
+    // Estimate other bot's Y coordinate
+    const otherBotLandPosition = land_pos(bot, otherBotNewX, otherBotNewZ);
+    const otherBotNewY = otherBotLandPosition
+      ? otherBotLandPosition.y + 1
+      : otherBotPosition.y;
+
+    const computedOtherBotPosition = new Vec3(
+      otherBotNewX,
+      otherBotNewY,
+      otherBotNewZ
     );
-    emitWithLog(
-      otherBot,
-      "walkAndLookPhase",
-      bot.entity.position.clone(),
-      "resetPositionsPhase end",
-      iterationID
-    );
-  };
-}
-function getOnWalkAndLookPhaseFn(bot, botRng, otherBot, iterationID) {
-  return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
-      "walkAndLookPhase",
-      bot.entity.position.clone(),
-      "walkAndLookPhase beginning",
-      iterationID
-    );
-    const durationSec =
-      MIN_WALK_DURATION_SEC +
-      botRng() * (MAX_WALK_DURATION_SEC - MIN_WALK_DURATION_SEC);
-    const durationMs = Math.floor(durationSec * 1000);
+
     console.log(
-      `[iter ${iterationID}] [${
-        bot.username
-      }] starting walk and look phase for ${durationSec.toFixed(2)}s`
+      `[${bot.username}] teleporting to (${newX.toFixed(2)}, ${newY.toFixed(
+        2
+      )}, ${newZ.toFixed(2)})`
     );
-    await run(bot, durationMs);
-    if (iterationID == args.iterations_num_per_episode - 1) {
-      bot.once(
-        "stopPhase",
-        getOnStopPhaseFn(bot, botRng, otherBot, iterationID)
+    console.log(
+      `[${bot.username}] other bot will be at (${otherBotNewX.toFixed(
+        2
+      )}, ${otherBotNewY.toFixed(2)}, ${otherBotNewZ.toFixed(2)})`
+    );
+
+    // Teleport using rcon
+    try {
+      await rconTp(
+        bot.username,
+        Math.floor(newX),
+        Math.floor(newY),
+        Math.floor(newZ)
       );
-      emitWithLog(
-        otherBot,
+      await sleep(1000);
+      console.log(`[${bot.username}] teleport completed`);
+    } catch (error) {
+      console.error(`[${bot.username}] teleport failed:`, error);
+    }
+    await lookAtSmooth(
+      bot,
+      computedOtherBotPosition,
+      CAMERA_SPEED_DEGREES_PER_SEC
+    );
+    await sleep(1000);
+    console.log(`[${bot.username}] starting episode recording`);
+    bot.emit("startepisode", episodeNum === 0 ? 50 : 0);
+    await sleep(episodeNum === 0 ? 6000 : 1000);
+
+    const iterationID = 0;
+    coordinator.onceEvent(
+      `walkAndLookPhase_${iterationID}`,
+      getOnWalkAndLookPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name,
+        episodeNum
+      )
+    );
+    coordinator.sendToOtherBot(
+      `walkAndLookPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      "teleportPhase end"
+    );
+  };
+}
+function getOnWalkAndLookPhaseFn(
+  bot,
+  sharedBotRng,
+  coordinator,
+  iterationID,
+  otherBotName,
+  episodeNum
+) {
+  return async (otherBotPosition) => {
+    coordinator.sendToOtherBot(
+      `walkAndLookPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      `walkAndLookPhase_${iterationID} beginning`
+    );
+    const actionCount =
+      MIN_RUN_ACTIONS +
+      Math.floor(sharedBotRng() * (MAX_RUN_ACTIONS - MIN_RUN_ACTIONS + 1));
+
+    // Define three walking phase modes and randomly pick one using sharedBotRng
+    const walkingModes = [
+      "both_bots_walk",
+      "lower_name_walks",
+      "bigger_name_walks",
+    ];
+    const selectedMode =
+      walkingModes[Math.floor(sharedBotRng() * walkingModes.length)];
+
+    console.log(
+      `[iter ${iterationID}] [${bot.username}] starting walk phase with ${actionCount} actions - mode: ${selectedMode}`
+    );
+
+    // Determine if this bot should walk based on the selected mode
+    let shouldThisBotWalk = false;
+
+    switch (selectedMode) {
+      case "both_bots_walk":
+        shouldThisBotWalk = true;
+        break;
+      case "lower_name_walks":
+        shouldThisBotWalk = bot.username < otherBotName;
+        break;
+      case "bigger_name_walks":
+        shouldThisBotWalk = bot.username > otherBotName;
+        break;
+    }
+
+    console.log(
+      `[iter ${iterationID}] [${bot.username}] will ${
+        shouldThisBotWalk ? "walk" : "sleep"
+      } during this phase`
+    );
+
+    // Look at the other bot smoothly at the start of the phase
+    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+
+    // Either run() or sleep() based on the mode
+    if (shouldThisBotWalk) {
+      await run(bot, actionCount);
+    } else {
+      // Bot doesn't run, so no sleep is needed
+      console.log(
+        `[iter ${iterationID}] [${bot.username}] not walking this phase`
+      );
+    }
+
+    if (iterationID == args.iterations_num_per_episode - 1) {
+      coordinator.onceEvent(
+        "stopPhase",
+        getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+      );
+      coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
-        "walkAndLookPhase end",
-        iterationID
+        `walkAndLookPhase_${iterationID} end`
       );
       return;
     }
-    bot.once(
-      "alignPositionsPhase",
-      getOnAlignPositionsPhaseFn(bot, botRng, otherBot, iterationID + 1)
+    const nextIterationID = iterationID + 1;
+    coordinator.onceEvent(
+      `walkAndLookPhase_${nextIterationID}`,
+      getOnWalkAndLookPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        nextIterationID,
+        args.other_bot_name,
+        episodeNum
+      )
     );
-    emitWithLog(
-      otherBot,
-      "alignPositionsPhase",
+    coordinator.sendToOtherBot(
+      `walkAndLookPhase_${nextIterationID}`,
       bot.entity.position.clone(),
-      "walkAndLookPhase end",
-      iterationID
+      `walkAndLookPhase_${iterationID} end`
     );
   };
 }
 
-let endedBots = 0;
-const totalBots = 2;
-
-function getOnStopPhaseFn(bot, botRng, otherBot, iterationID) {
+function getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName) {
   return async (otherBotPosition) => {
-    emitWithLog(
-      otherBot,
+    coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
-      "stopPhase beginning",
-      iterationID
+      "stopPhase beginning"
     );
-    console.log(`[iter ${iterationID}] [${bot.username}] stops recording`);
-    bot.emit("endtask");
-    await sleep(5000);
+    console.log(`[${bot.username}] stops recording`);
+    bot.emit("endepisode");
 
-    // Track completed bots and exit when both are done
-    if (!endedBots) endedBots = 0;
-    endedBots++;
-    console.log(`[${bot.username}] task completed (${endedBots}/${totalBots})`);
+    // Wait for the connection to actually close
+    console.log(`[${bot.username}] waiting for episode to end...`);
+    await new Promise((resolve) => {
+      bot.once("episodeended", resolve);
+    });
+    console.log(`[${bot.username}] episode ended, connection closed`);
 
-    if (endedBots >= totalBots) {
-      console.log("Both bots finished their tasks. Exiting program...");
-      process.exit(0);
-    }
+    coordinator.onceEvent(
+      "stoppedPhase",
+      getOnStoppedPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        otherBotName,
+        bot._currentEpisodeResolve
+      )
+    );
+    coordinator.sendToOtherBot(
+      "stoppedPhase",
+      bot.entity.position.clone(),
+      "StopPhase end"
+    );
+  };
+}
+
+function getOnStoppedPhaseFn(
+  bot,
+  sharedBotRng,
+  coordinator,
+  otherBotName,
+  episodeResolve
+) {
+  return async (otherBotPosition) => {
+    coordinator.sendToOtherBot(
+      "stoppedPhase",
+      bot.entity.position.clone(),
+      "stoppedPhase beginning"
+    );
+
+    await sleep(3000);
+
+    console.log(`[${bot.username}] stopped`);
+    // Resolve the episode promise instead of exiting
+    episodeResolve();
   };
 }
 
@@ -497,22 +1083,41 @@ function makeBot({ username, host, port }) {
   return bot;
 }
 
-console.log("DEBUG environment variable:", process.env.DEBUG);
+async function main() {
+  console.log("DEBUG environment variable:", process.env.DEBUG);
+  console.log(`Starting bot: ${args.bot_name}`);
+  console.log(
+    `Coordinator: ${args.bot_name}, Ports: ${args.coord_port}/${args.other_coord_port}`
+  );
 
+  console.log(
+    `[${args.bot_name}] Waiting ${args.bootstrap_wait_time} seconds before creating bot...`
+  );
+  await sleep(args.bootstrap_wait_time * 1000);
 
-const botA = makeBot({
-  username: args.a,
-  host: args.host,
-  port: args.port,
-});
+  const bot = makeBot({
+    username: args.bot_name,
+    host: args.host,
+    port: args.port,
+  });
+  const botsRngSeed = args.bot_rng_seed;
+  const sharedBotRng = seedrandom(botsRngSeed);
+  const coordinator = new BotCoordinator(
+    args.bot_name,
+    args.coord_port,
+    args.other_coord_host,
+    args.other_coord_port
+  );
+  bot.once(
+    "spawn",
+    getOnSpawnFn(bot, args.host, args.receiver_port, sharedBotRng, coordinator)
+  );
+  bot._client.on("packet", (data, meta) => {
+    if (meta.name === "system_chat" && data?.content) {
+      console.log("SYSTEM:", JSON.stringify(data.content));
+    }
+  });
+}
 
-const botB = makeBot({
-  username: args.b,
-  host: args.host,
-  port: args.port,
-});
-const botsRngSeed = Date.now().toString();
-const botARng = seedrandom(botsRngSeed);
-const botBRng = seedrandom(botsRngSeed);
-botA.once("spawn", getOnSpawnFn(botA, args.host, args.a_port, botARng, botB));
-botB.once("spawn", getOnSpawnFn(botB, args.host, args.b_port, botBRng, botA));
+// Run the main function
+main().catch(console.error);

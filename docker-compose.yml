@@ -6,51 +6,113 @@ services:
     environment:
       EULA: "TRUE"
       VERSION: 1.21
+      TYPE: PAPER
       MODE: creative
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
+      RCON_PASSWORD: change-me
+      BROADCAST_RCON_TO_OPS: true
+      # MODRINTH_PROJECTS: skinsrestorer,luckperms
+      # LEVEL_TYPE: "minecraft:single_biome_surface"
+      # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
+      LEVEL_TYPE: minecraft:flat
+      GENERATOR_SETTINGS: >-
+        {
+          "layers": [
+            { "block": "minecraft:bedrock", "height": 1 },
+            { "block": "minecraft:stone",   "height": 124 },
+            { "block": "minecraft:dirt",    "height": 2 },
+            { "block": "minecraft:grass_block", "height": 1 }
+          ],
+          "biome": "minecraft:plains"
+        }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data22:/data
-  senders:
+      - ./data52:/data
+  sender_alpha:
     build: .
     depends_on:
       - mc
-      - receiver1
-      - receiver2
-    network_mode: host
+      - receiver_alpha
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output2:/output
+      - ./output5:/output
+    environment:
+      BOT_NAME: Alpha
+      OTHER_BOT_NAME: Bravo
+      RECEIVER_HOST: receiver_alpha
+      RECEIVER_PORT: 8090
+      COORD_PORT: 8100
+      OTHER_COORD_HOST: sender_bravo
+      OTHER_COORD_PORT: 8100
+      BOT_RNG_SEED: "12345"
+      EPISODES_NUM: 1
+      MC_HOST: host.docker.internal
+      MC_PORT: 25565
+      RCON_HOST: host.docker.internal
+      RCON_PORT: 25575
+      COLOR: red
+      BOOTSTRAP_WAIT_TIME: 0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
-  receiver1:
+  sender_bravo:
+    build: .
+    depends_on:
+      - mc
+      - receiver_bravo
+      - sender_alpha
+    volumes:
+      # attach the relative directory 'data' to the container's /data path
+      - ./output5:/output
+    environment:
+      BOT_NAME: Bravo
+      OTHER_BOT_NAME: Alpha
+      RECEIVER_HOST: receiver_bravo
+      RECEIVER_PORT: 8090
+      COORD_PORT: 8100
+      OTHER_COORD_HOST: sender_alpha
+      OTHER_COORD_PORT: 8100
+      BOT_RNG_SEED: "12345"
+      EPISODES_NUM: 1
+      MC_HOST: host.docker.internal
+      MC_PORT: 25565
+      RCON_HOST: host.docker.internal
+      RCON_PORT: 25575
+      COLOR: blue
+      BOOTSTRAP_WAIT_TIME: 0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ./entrypoint_senders.sh
+  receiver_alpha:
     build: .
     environment:
-      PORT: 8091
+      PORT: 8090
       NAME: Alpha
-    network_mode: host
+      INSTANCE_ID: 0
+      EPISODE_START_ID: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output2:/output
+      - ./output5:/output
     command: ./entrypoint_receiver.sh
-  receiver2:
+  receiver_bravo:
     build: .
     environment:
-      PORT: 8092
+      PORT: 8090
       NAME: Bravo
-    network_mode: host
+      INSTANCE_ID: 0
+      EPISODE_START_ID: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output2:/output
+      - ./output5:/output
     command: ./entrypoint_receiver.sh
 
   script:
     build: .
-    network_mode: host
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output2:/output
-    command: python align_videos.py --dir /output --name1 Alpha_2 --name2 Bravo_2
+      - ./output5:/output
+    command: python align_videos.py

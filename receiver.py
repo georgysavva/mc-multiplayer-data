@@ -6,7 +6,6 @@ import os
 import socket
 import time
 import traceback
-from datetime import datetime
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread
@@ -56,7 +55,7 @@ def process_frame_worker(frame_queue, output_path):
                 continue
 
             frames.append(img)
-            
+
         except Empty:
             # print("Frame queue timeout (no new frames in 5 seconds)")
             continue
@@ -77,15 +76,17 @@ def process_frame_worker(frame_queue, output_path):
     # Calculate real FPS and cap at 20
     print("Total frames processed:", len(action_data))
     if len(action_data) > 1:
-        real_fps = len(action_data) / ((action_data[-1]['renderTime'] - action_data[0]['renderTime']) / 1000)
+        real_fps = len(action_data) / (
+            (action_data[-1]["renderTime"] - action_data[0]["renderTime"]) / 1000
+        )
         video_fps = min(real_fps, 20)
     else:
         real_fps = 0
         video_fps = 20
-    
+
     print("Real FPS:", real_fps)
     print("Video FPS (capped at 20):", video_fps)
-    
+
     # Now create video writer with calculated FPS and write all frames
     out = cv2.VideoWriter(
         f"{output_path}.mp4",
@@ -93,10 +94,10 @@ def process_frame_worker(frame_queue, output_path):
         video_fps,
         (640, 360),
     )
-    
+
     for frame in frames:
         out.write(frame)
-    
+
     # 清理工作
     out.release()
     with open(output_path + ".json", "w") as f:
@@ -134,9 +135,20 @@ def get_recv_buffer_used(sock):
 # 解析命令行参数
 argparser = argparse.ArgumentParser(description="Receiver script")
 argparser.add_argument("--name", type=str, required=True, help="minecraft bot name")
-argparser.add_argument("--start_id", type=int, default=0, help="minecraft bot name")
+argparser.add_argument(
+    "--start_id",
+    type=int,
+    default=0,
+    help="Starting number for incremental file naming",
+)
 argparser.add_argument("--port", type=int, default=8089, help="Port number")
 argparser.add_argument("--output_path", type=str, required=True, help="output path")
+argparser.add_argument(
+    "--instance_id",
+    type=int,
+    required=True,
+    help="Instance ID for distinguishing parallel runs",
+)
 
 args = argparser.parse_args()
 PORT = args.port
@@ -160,8 +172,9 @@ while True:
 
     # 创建帧处理队列
     frame_queue = Queue()
-    now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = f"{args.output_path}/{now_str}_{args.name}"
+    output_path = (
+        f"{args.output_path}/{id:06d}_{args.name}_instance_{args.instance_id:03d}"
+    )
 
     # 启动后台处理进程
     processor = Thread(target=process_frame_worker, args=(frame_queue, output_path))
@@ -200,6 +213,14 @@ while True:
             print("pos data: ", pos_data.decode("utf-8"))
             pos = json.loads(pos_data.decode("utf-8"))
             pos["frame_count"] = img_count
+            # pos = {
+            #     "x": 0,
+            #     "y": 0,
+            #     "z": 0,
+            #     "yaw": 0,
+            #     "pitch": 0,
+            #     "frame_count": img_count,
+            # }
             length = recvint(conn)
             if length == 0:
                 print("ERROR! recv 0 image length")
