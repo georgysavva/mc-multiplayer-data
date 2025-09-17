@@ -2,7 +2,7 @@ services:
   mc:
     image: itzg/minecraft-server
     tty: true
-    network_mode: host
+    network_mode: host # this is needed because otherwise it cannot download the server zip file on certain machines
     environment:
       EULA: "TRUE"
       VERSION: 1.21
@@ -106,7 +106,7 @@ services:
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output5:/output
+      - ./output:/output
     command: ./entrypoint_receiver.sh
 
   script:

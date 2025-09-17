@@ -1,6 +1,6 @@
 import argparse
 import array
-import fcntl  # 用于获取socket缓冲区信息
+import fcntl
 import json
 import os
 import socket
@@ -25,13 +25,12 @@ def process_frame_worker(frame_queue, output_path):
     while True:
         try:
             data = frame_queue.get(timeout=5)
-            if data is None:  # 结束信号
+            if data is None:
                 break
 
             img, pos = data
             img_count = pos.get("frame_count", 0)
 
-            # x,y,z,yaw,pitch 保留三位小数
             pos["x"] = round(pos["x"], 3)
             pos["y"] = round(pos["y"], 3)
             pos["z"] = round(pos["z"], 3)
@@ -98,7 +97,7 @@ def process_frame_worker(frame_queue, output_path):
     for frame in frames:
         out.write(frame)
 
-    # 清理工作
+    # clean up
     out.release()
     with open(output_path + ".json", "w") as f:
         json.dump(action_data, f)
@@ -132,7 +131,6 @@ def get_recv_buffer_used(sock):
     return buf[0]
 
 
-# 解析命令行参数
 argparser = argparse.ArgumentParser(description="Receiver script")
 argparser.add_argument("--name", type=str, required=True, help="minecraft bot name")
 argparser.add_argument(
@@ -153,9 +151,6 @@ argparser.add_argument(
 args = argparser.parse_args()
 PORT = args.port
 
-# 创建输出目录
-
-# 设置socket
 
 if not os.path.exists(args.output_path):
     os.makedirs(args.output_path)
@@ -170,13 +165,11 @@ print("Socket now listening")
 id = args.start_id
 while True:
 
-    # 创建帧处理队列
     frame_queue = Queue()
     output_path = (
         f"{args.output_path}/{id:06d}_{args.name}_instance_{args.instance_id:03d}"
     )
 
-    # 启动后台处理进程
     processor = Thread(target=process_frame_worker, args=(frame_queue, output_path))
     processor.daemon = True
     processor.start()

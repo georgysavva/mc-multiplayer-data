@@ -1,7 +1,6 @@
 const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const seedrandom = require("seedrandom");
 const { Rcon } = require("rcon-client");
-const crypto = require("crypto");
 
 // Constants
 const MIN_WALK_DISTANCE = 3;
@@ -92,11 +91,6 @@ function land_pos(bot, x, z) {
     }
   }
 }
-/*
-  [-range,range] 区域内的一个(x,z)，该位置的xz坐标上最高的非空气方块
-  *要求并且必须是泥土或者石头（放置goal在屋顶上的奇怪情况）
-  *要求距离tp点不超过80格, 并且距离起始点至少20格
-*/
 
 function random_pos(bot, range) {
   const start_pos = bot.entity.position.clone();
@@ -108,19 +102,6 @@ function random_pos(bot, range) {
       // ensure the distance is not to short
       continue;
     }
-    // ensure the distance is not to far away from village center
-    // dx = start_pos.x + x - tp_target.x;
-    // dz = start_pos.z + z - tp_target.z;
-    // if (dx * dx + dz * dz > 80 * 80) {
-    //   continue;
-    // }
-    // if (
-    //   args.location === "stronghold" ||
-    //   args.location === "nether_bastion" ||
-    //   args.location === "nether_fortress"
-    // ) {
-    //   return new Vec3(start_pos.x + x, start_pos.y, start_pos.z + z);
-    // }
     const pos = land_pos(bot, start_pos.x + x, start_pos.z + z);
     if (pos == null || Math.abs(pos.y - start_pos.y) > 10) {
       console.log(`[${bot.username}] rej null or y diff`);
@@ -609,24 +590,6 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
       height: 360,
       frames: 400,
     });
-
-    // Give colored chestplate and equip it
-    // try {
-    //   console.log(
-    //     `[${bot.username}] giving colored chestplate (color: ${chestplate_color})`
-    //   );
-    //   await rconGiveColoredChestplate(bot.username, chestplate_color);
-    //   await sleep(1000); // Wait for item to appear in inventory
-    //   await rconEquipDyedHelmet(bot.username, chestplate_color);
-    //   await sleep(1000); // Wait for item to appear in inventory
-    //   await rconEquipBannerOffhand(bot.username, chestplate_color);
-    //   await sleep(1000); // Wait for item to appear in inventory
-    // } catch (error) {
-    //   console.error(
-    //     `[${bot.username}] failed to give/equip chestplate:`,
-    //     error
-    //   );
-    // }
 
     // Run multiple episodes
     for (
