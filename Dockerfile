@@ -37,7 +37,7 @@ RUN npm install
 RUN npm i rcon-client
 RUN echo "41" && npm install github:georgysavva/mineflayer
 RUN echo "47" && npm install github:georgysavva/mineflayer-pathfinder
-RUN echo "38" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "39" && npm install github:georgysavva/prismarine-viewer-colalab
 RUN set -eux; \
   PKG_DIR="node_modules/prismarine-viewer-colalab"; \
   mkdir -p "$PKG_DIR/public/textures/1.16.4/entity"; \
