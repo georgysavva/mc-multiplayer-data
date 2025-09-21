@@ -27,10 +27,6 @@ We patch the mineflayer code library to expose additional information about curr
 - Synchronize action data with visual observations
 - Capture precise movement and interaction data
 
-### Mineflayer Pathfinder
-
-Although we maintain a fork of the mineflayer pathfinder library, we haven't made any modifications to it.
-
 ## Installation
 
 1. Clone this repository:
