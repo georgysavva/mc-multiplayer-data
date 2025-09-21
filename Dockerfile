@@ -35,8 +35,9 @@ RUN python -m pip install --upgrade pip setuptools wheel && \
 COPY package.json ./
 RUN npm install 
 RUN npm i rcon-client
+# These echo numbers are needed to trigger a rebuild of this image in the case a downstream dependency has changed.
 RUN echo "41" && npm install github:georgysavva/mineflayer
-RUN echo "47" && npm install github:georgysavva/mineflayer-pathfinder
+RUN echo "47" && npm install github:PrismarineJS/mineflayer-pathfinder
 RUN echo "39" && npm install github:georgysavva/prismarine-viewer-colalab
 RUN set -eux; \
   PKG_DIR="node_modules/prismarine-viewer-colalab"; \
