@@ -30,7 +30,7 @@ services:
       # attach the relative directory 'data' to the container's /data path
       - ./data:/data
   sender_alpha:
-    build: .
+    image: mc-multiplayer:latest
     depends_on:
       - mc
       - receiver_alpha
@@ -57,7 +57,7 @@ services:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
   sender_bravo:
-    build: .
+    image: mc-multiplayer:latest
     depends_on:
       - mc
       - receiver_bravo
@@ -85,7 +85,7 @@ services:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
   receiver_alpha:
-    build: .
+    image: mc-multiplayer:latest
     environment:
       PORT: 8090
       NAME: Alpha
@@ -97,7 +97,7 @@ services:
       - ./output:/output
     command: ./entrypoint_receiver.sh
   receiver_bravo:
-    build: .
+    image: mc-multiplayer:latest
     environment:
       PORT: 8090
       NAME: Bravo
@@ -110,7 +110,7 @@ services:
     command: ./entrypoint_receiver.sh
 
   script:
-    build: .
+    image: mc-multiplayer:latest
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
