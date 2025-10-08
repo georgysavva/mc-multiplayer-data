@@ -683,7 +683,7 @@ function getOnSpawnFn(bot, sharedBotRng, coordinator) {
 
     // Initialize viewer once for the entire program
     mineflayerViewerhl(bot, {
-      output: `${args.receiver_host}:${args.receiverPort}`,
+      output: `${args.receiver_host}:${args.receiver_port}`,
       width: 640,
       height: 360,
       frames: 400,
