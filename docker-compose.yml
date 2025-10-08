@@ -55,7 +55,7 @@ services:
       COLOR: red
       BOOTSTRAP_WAIT_TIME: 0
       MIN_RUN_ACTIONS: 1
-      MAX_RUN_ACTIONS: 2
+      MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -87,7 +87,7 @@ services:
       COLOR: blue
       BOOTSTRAP_WAIT_TIME: 0
       MIN_RUN_ACTIONS: 1
-      MAX_RUN_ACTIONS: 2
+      MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
     extra_hosts:
       - "host.docker.internal:host-gateway"

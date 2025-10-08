@@ -4,7 +4,7 @@ const { Rcon } = require("rcon-client");
 
 // Constants
 const MIN_WALK_DISTANCE = 3;
-const MAX_WALK_DISTANCE = 4;
+const MAX_WALK_DISTANCE = 6;
 const MIN_BOTS_DISTANCE = 9;
 const MAX_BOTS_DISTANCE = 10;
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
