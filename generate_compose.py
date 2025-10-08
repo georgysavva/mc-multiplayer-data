@@ -41,6 +41,7 @@ def generate_compose_config(
     min_run_actions,
     max_run_actions,
     episode_category,
+    iterations_num_per_episode,
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -99,6 +100,7 @@ def generate_compose_config(
                     "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
                     "MIN_RUN_ACTIONS": min_run_actions,
                     "MAX_RUN_ACTIONS": max_run_actions,
+                    "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -131,6 +133,7 @@ def generate_compose_config(
                     "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
                     "MIN_RUN_ACTIONS": min_run_actions,
                     "MAX_RUN_ACTIONS": max_run_actions,
+                    "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -253,6 +256,12 @@ def main():
         default="look",
         help="Episode category (default: look)",
     )
+    parser.add_argument(
+        "--iterations_num_per_episode",
+        type=int,
+        default=3,
+        help="Number of iterations per episode (default: 3)",
+    )
 
     args = parser.parse_args()
 
@@ -277,6 +286,7 @@ def main():
             args.min_run_actions,
             args.max_run_actions,
             args.episode_category,
+            args.iterations_num_per_episode,
         )
 
         # Write compose file

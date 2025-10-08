@@ -54,8 +54,9 @@ services:
       RCON_PORT: 25575
       COLOR: red
       BOOTSTRAP_WAIT_TIME: 0
-      MIN_RUN_ACTIONS: 3
-      MAX_RUN_ACTIONS: 5
+      MIN_RUN_ACTIONS: 1
+      MAX_RUN_ACTIONS: 2
+      ITERATIONS_NUM_PER_EPISODE: 5
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -85,8 +86,9 @@ services:
       RCON_PORT: 25575
       COLOR: blue
       BOOTSTRAP_WAIT_TIME: 0
-      MIN_RUN_ACTIONS: 3
-      MAX_RUN_ACTIONS: 5
+      MIN_RUN_ACTIONS: 1
+      MAX_RUN_ACTIONS: 2
+      ITERATIONS_NUM_PER_EPISODE: 5
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh

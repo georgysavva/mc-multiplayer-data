@@ -45,5 +45,6 @@ exec node senders.js \
   --color "${COLOR:-red}" \
   --bootstrap_wait_time "${BOOTSTRAP_WAIT_TIME:-0}" \
   --min_run_actions "${MIN_RUN_ACTIONS:-3}" \
-  --max_run_actions "${MAX_RUN_ACTIONS:-5}"
+  --max_run_actions "${MAX_RUN_ACTIONS:-5}" \
+  --iterations_num_per_episode "${ITERATIONS_NUM_PER_EPISODE:-3}"
 
