@@ -11,8 +11,6 @@ const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const JUMP_PROBABILITY = 0.25;
 const MIN_JUMP_DURATION_SEC = 1;
 const MAX_JUMP_DURATION_SEC = 3;
-const MIN_RUN_ACTIONS = 3;
-const MAX_RUN_ACTIONS = 5;
 const MIN_SLEEP_BETWEEN_ACTIONS_SEC = 1.5;
 const MAX_SLEEP_BETWEEN_ACTIONS_SEC = 3;
 
@@ -65,6 +63,8 @@ const args = minimist(process.argv.slice(2), {
     teleport_center_z: 0,
     teleport_radius: 500,
     walk_timeout: 5, // walk timeout in seconds
+    min_run_actions: 3,
+    max_run_actions: 5,
   },
 });
 
@@ -649,7 +649,8 @@ async function runSingleEpisode(
         sharedBotRng,
         coordinator,
         args.other_bot_name,
-        episodeNum
+        episodeNum,
+        episodeCategory
       )
     );
     coordinator.sendToOtherBot(
@@ -659,14 +660,7 @@ async function runSingleEpisode(
     );
   });
 }
-function getOnSpawnFn(
-  bot,
-  host,
-  receiverPort,
-  sharedBotRng,
-  coordinator,
-  episodeCategory
-) {
+function getOnSpawnFn(bot, sharedBotRng, coordinator) {
   return async () => {
     // const mcData = mcDataLoader(bot.version);
     // const moves = new Movements(bot, mcData);
@@ -689,7 +683,7 @@ function getOnSpawnFn(
 
     // Initialize viewer once for the entire program
     mineflayerViewerhl(bot, {
-      output: `${args.receiver_host}:${receiverPort}`,
+      output: `${args.receiver_host}:${args.receiverPort}`,
       width: 640,
       height: 360,
       frames: 400,
@@ -706,7 +700,7 @@ function getOnSpawnFn(
         sharedBotRng,
         coordinator,
         episodeNum,
-        episodeCategory
+        args.episode_category
       );
       console.log(`[${bot.username}] Episode ${episodeNum} completed`);
     }
@@ -894,8 +888,10 @@ function getOnWalkLookPhaseFn(
       `walkLookPhase_${iterationID} beginning`
     );
     const actionCount =
-      MIN_RUN_ACTIONS +
-      Math.floor(sharedBotRng() * (MAX_RUN_ACTIONS - MIN_RUN_ACTIONS + 1));
+      args.min_run_actions +
+      Math.floor(
+        sharedBotRng() * (args.max_run_actions - args.min_run_actions + 1)
+      );
 
     // Define three walking phase modes and randomly pick one using sharedBotRng
     const walkingModes = [
@@ -990,8 +986,10 @@ function getOnWalkLookAwayPhaseFn(
       `walkLookAwayPhase_${iterationID} beginning`
     );
     const actionCount =
-      MIN_RUN_ACTIONS +
-      Math.floor(sharedBotRng() * (MAX_RUN_ACTIONS - MIN_RUN_ACTIONS + 1));
+      args.min_run_actions +
+      Math.floor(
+        sharedBotRng() * (args.max_run_actions - args.min_run_actions + 1)
+      );
 
     // Define three walking phase modes and randomly pick one using sharedBotRng
     const walkingModes = ["lower_name_walks", "bigger_name_walks"];
@@ -1167,10 +1165,7 @@ async function main() {
     args.other_coord_host,
     args.other_coord_port
   );
-  bot.once(
-    "spawn",
-    getOnSpawnFn(bot, args.host, args.receiver_port, sharedBotRng, coordinator)
-  );
+  bot.once("spawn", getOnSpawnFn(bot, sharedBotRng, coordinator));
   bot._client.on("packet", (data, meta) => {
     if (meta.name === "system_chat" && data?.content) {
       console.log("SYSTEM:", JSON.stringify(data.content));

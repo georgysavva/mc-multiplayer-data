@@ -38,6 +38,9 @@ def generate_compose_config(
     num_episodes,
     episode_start_id,
     bootstrap_wait_time,
+    min_run_actions,
+    max_run_actions,
+    episode_category,
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -88,11 +91,14 @@ def generate_compose_config(
                     "BOT_RNG_SEED": str(12345 + instance_id),
                     "EPISODES_NUM": num_episodes,
                     "EPISODE_START_ID": episode_start_id,
+                    "EPISODE_CATEGORY": episode_category,
                     "MC_HOST": "host.docker.internal",
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
                     "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
+                    "MIN_RUN_ACTIONS": min_run_actions,
+                    "MAX_RUN_ACTIONS": max_run_actions,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -117,11 +123,14 @@ def generate_compose_config(
                     "BOT_RNG_SEED": str(12345 + instance_id),
                     "EPISODES_NUM": num_episodes,
                     "EPISODE_START_ID": episode_start_id,
+                    "EPISODE_CATEGORY": episode_category,
                     "MC_HOST": "host.docker.internal",
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
                     "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
+                    "MIN_RUN_ACTIONS": min_run_actions,
+                    "MAX_RUN_ACTIONS": max_run_actions,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -227,6 +236,23 @@ def main():
         default=60,
         help="Bootstrap wait time (default: 60)",
     )
+    parser.add_argument(
+        "--min_run_actions",
+        type=int,
+        default=3,
+        help="Minimum number of run actions (default: 3)",
+    )
+    parser.add_argument(
+        "--max_run_actions",
+        type=int,
+        default=5,
+        help="Maximum number of run actions (default: 5)",
+    )
+    parser.add_argument(
+        "--episode_category",
+        default="look",
+        help="Episode category (default: look)",
+    )
 
     args = parser.parse_args()
 
@@ -248,6 +274,9 @@ def main():
             args.num_episodes,
             args.episode_start_id,
             args.bootstrap_wait_time,
+            args.min_run_actions,
+            args.max_run_actions,
+            args.episode_category,
         )
 
         # Write compose file

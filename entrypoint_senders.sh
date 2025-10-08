@@ -37,10 +37,13 @@ exec node senders.js \
   --bot_rng_seed "${BOT_RNG_SEED:-}" \
   --episodes_num "${EPISODES_NUM:-1}" \
   --start_episode_id "${EPISODE_START_ID:-0}" \
+  --episode_category "${EPISODE_CATEGORY:-look}" \
   --host "${MC_HOST:-127.0.0.1}" \
   --port "${MC_PORT:-25565}" \
   --rcon_host "${RCON_HOST:-127.0.0.1}" \
   --rcon_port "${RCON_PORT:-25575}" \
   --color "${COLOR:-red}" \
-  --bootstrap_wait_time "${BOOTSTRAP_WAIT_TIME:-0}"
+  --bootstrap_wait_time "${BOOTSTRAP_WAIT_TIME:-0}" \
+  --min_run_actions "${MIN_RUN_ACTIONS:-3}" \
+  --max_run_actions "${MAX_RUN_ACTIONS:-5}"
 
