@@ -179,46 +179,47 @@ def main():
     parser.add_argument(
         "--instances",
         type=int,
-        default=32,
+        default=15,
         help="Number of instances to generate (default: 32)",
     )
     parser.add_argument(
-        "--compose-dir",
+        "--compose_dir",
         default="compose_configs",
         help="Directory to store generated compose files",
     )
     parser.add_argument(
-        "--base-port",
+        "--base_port",
         type=int,
         default=25565,
         help="Base Minecraft server port (default: 25565)",
     )
     parser.add_argument(
-        "--base-rcon-port",
+        "--base_rcon_port",
         type=int,
         default=25675,
         help="Base RCON port (default: 25675)",
     )
     parser.add_argument(
-        "--receiver-port",
+        "--receiver_port",
         type=int,
         default=8090,
         help="Receiver port for bridge network services (default: 8090)",
     )
     parser.add_argument(
-        "--coord-port",
+        "--coord_port",
         type=int,
         default=8100,
         help="Coordination port for bridge network services (default: 8100)",
     )
     parser.add_argument(
-        "--data-dir",
-        default="./data",
+        "--data_dir",
+        required=True,
         help="Base directory for instance data directories (default: ./data)",
     )
     parser.add_argument(
-        "--output-dir",
+        "--output_dir",
         default="./output",
+        required=True,
         help="Shared output directory for all instances (default: ./output)",
     )
     parser.add_argument(
@@ -264,6 +265,13 @@ def main():
     )
 
     args = parser.parse_args()
+    # Ensure output-dir and data-dir are absolute paths
+    assert os.path.isabs(
+        args.output_dir
+    ), f"--output-dir must be an absolute path, got: {args.output_dir}"
+    assert os.path.isabs(
+        args.data_dir
+    ), f"--data-dir must be an absolute path, got: {args.data_dir}"
 
     # Create compose directory
     compose_dir = Path(args.compose_dir)
