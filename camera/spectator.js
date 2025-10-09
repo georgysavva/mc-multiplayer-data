@@ -26,7 +26,8 @@ async function waitForPlayers() {
     try {
       const rcon = await connect();
       const list = await rcon.send('list');
-      await rcon.end();
+          await rcon.send(f"execute as {CAMERA_NAME} run spectate accept {BOT_NAME}")
+    await rcon.end();
       const players = extractPlayers(list);
       if (players.has(BOT_NAME) && players.has(CAMERA_NAME)) {
         console.log('[spectator] Both players present');
@@ -73,6 +74,7 @@ async function applySpectator() {
       const tp = await rcon.send(`tp ${CAMERA_NAME} ${BOT_NAME}`);
       console.log('[spectator] fallback teleport response:', tp?.trim());
     }
+        await rcon.send(f"execute as {CAMERA_NAME} run spectate accept {BOT_NAME}")
     await rcon.end();
     console.log('[spectator] spectator commands issued');
   } catch (err) {
