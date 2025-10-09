@@ -1,0 +1,83 @@
+#!/bin/sh
+set -eu
+
+WIDTH=${WIDTH:-1280}
+HEIGHT=${HEIGHT:-720}
+FPS=${FPS:-20}
+DISPLAY=${DISPLAY:-:99}
+VNC_PASSWORD=${VNC_PASSWORD:-research}
+ENABLE_RECORDING=${ENABLE_RECORDING:-1}
+RECORDING_PATH=${RECORDING_PATH:-/output/camera_alpha.mp4}
+JAVA_BIN=${JAVA_BIN:-/usr/lib/jvm/java-17-openjdk-amd64/bin/java}
+
+if [ ! -x "$JAVA_BIN" ]; then
+  echo "[client] java runtime not found at $JAVA_BIN" >&2
+  exit 1
+fi
+
+export JAVA_BIN
+
+mkdir -p "$(dirname "$RECORDING_PATH")"
+rm -f "/tmp/.X${DISPLAY#*:}-lock" 2>/dev/null || true
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/tmp}
+
+echo "[client] DISPLAY=$DISPLAY resolution=${WIDTH}x${HEIGHT}"
+echo "[client] noVNC: http://localhost:6901 (password $VNC_PASSWORD)"
+
+for dep in Xvfb fluxbox x11vnc websockify ffmpeg; do
+  if ! command -v "$dep" >/dev/null 2>&1; then
+    echo "[client] missing required binary: $dep" >&2
+    exit 1
+  fi
+done
+
+cleanup() {
+  for pid in $PIDS; do
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+    fi
+  done
+}
+trap cleanup INT TERM EXIT
+
+PIDS=""
+
+Xvfb "$DISPLAY" -screen 0 "${WIDTH}x${HEIGHT}x24" +extension RANDR +extension GLX -ac &
+PIDS="$PIDS $!"
+sleep 2
+
+export DISPLAY
+fluxbox &
+PIDS="$PIDS $!"
+
+x11vnc -display "$DISPLAY" -forever -noshm -shared -rfbport 5901 -passwd "$VNC_PASSWORD" -o /tmp/x11vnc.log &
+PIDS="$PIDS $!"
+
+websockify --web=/usr/share/novnc/ 6901 localhost:5901 &
+PIDS="$PIDS $!"
+
+python3 /app/launch_minecraft.py &
+GAME_PID=$!
+PIDS="$PIDS $GAME_PID"
+
+if [ "$ENABLE_RECORDING" = "1" ]; then
+  ffmpeg -hide_banner -loglevel info -y \
+    -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" \
+    -f x11grab -i "${DISPLAY}.0" \
+    -codec:v libx264 -preset veryfast -pix_fmt yuv420p "$RECORDING_PATH" &
+  FFMPEG_PID=$!
+  PIDS="$PIDS $FFMPEG_PID"
+else
+  FFMPEG_PID=""
+fi
+
+wait "$GAME_PID"
+
+if [ -n "$FFMPEG_PID" ]; then
+  kill "$FFMPEG_PID" 2>/dev/null || true
+  wait "$FFMPEG_PID" 2>/dev/null || true
+fi
+
+cleanup
+trap - INT TERM EXIT
