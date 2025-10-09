@@ -6,6 +6,8 @@ HEIGHT=${HEIGHT:-720}
 FPS=${FPS:-20}
 DISPLAY=${DISPLAY:-:99}
 VNC_PASSWORD=${VNC_PASSWORD:-research}
+VNC_PORT=${VNC_PORT:-5901}
+NOVNC_PORT=${NOVNC_PORT:-6901}
 ENABLE_RECORDING=${ENABLE_RECORDING:-1}
 RECORDING_PATH=${RECORDING_PATH:-/output/camera_alpha.mp4}
 JAVA_BIN=${JAVA_BIN:-/usr/lib/jvm/java-17-openjdk-amd64/bin/java}
@@ -22,7 +24,7 @@ rm -f "/tmp/.X${DISPLAY#*:}-lock" 2>/dev/null || true
 export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/tmp}
 
 echo "[client] DISPLAY=$DISPLAY resolution=${WIDTH}x${HEIGHT}"
-echo "[client] noVNC: http://localhost:6901 (password $VNC_PASSWORD)"
+echo "[client] noVNC: http://localhost:${NOVNC_PORT} (password $VNC_PASSWORD)"
 
 for dep in Xvfb fluxbox x11vnc websockify ffmpeg; do
   if ! command -v "$dep" >/dev/null 2>&1; then
@@ -51,10 +53,10 @@ export DISPLAY
 fluxbox &
 PIDS="$PIDS $!"
 
-x11vnc -display "$DISPLAY" -forever -noshm -shared -rfbport 5901 -passwd "$VNC_PASSWORD" -o /tmp/x11vnc.log &
+x11vnc -display "$DISPLAY" -forever -noshm -shared -rfbport "$VNC_PORT" -passwd "$VNC_PASSWORD" -o /tmp/x11vnc.log &
 PIDS="$PIDS $!"
 
-websockify --web=/usr/share/novnc/ 6901 localhost:5901 &
+websockify --web=/usr/share/novnc/ "$NOVNC_PORT" localhost:"$VNC_PORT" &
 PIDS="$PIDS $!"
 
 python3 /app/launch_minecraft.py &

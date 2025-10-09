@@ -57,8 +57,8 @@ This will start:
 - A Minecraft server on port 25565 (RCON on 25575)
 - Two bot agents (Alpha and Bravo) that interact in the game
 - Two data receivers that capture video and gameplay data
-- A real Minecraft camera client that records Alpha's perspective (`camera/output_alpha/camera_alpha.mp4`)
-- A second camera client that records Bravo's perspective (`camera/output_bravo/camera_bravo.mp4`)
+- A real Minecraft camera client that records Alpha's perspective (`camera/output_alpha/camera_alpha.mp4`, live at `http://localhost:6901`)
+- A second camera client that records Bravo's perspective (`camera/output_bravo/camera_bravo.mp4`, live at `http://localhost:6902`)
 - All services coordinated through Docker networking
 
 ### 2. Monitor Progress
