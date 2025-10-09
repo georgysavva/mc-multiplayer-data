@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+DISPLAY=${DISPLAY:-:99}
+export DISPLAY
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/tmp}
+
+rm -f "/tmp/.X${DISPLAY##*:}-lock" 2>/dev/null || true
+
 echo "[entrypoint] Starting Xvfb on ${DISPLAY} ..."
 Xvfb "${DISPLAY}" -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
 XVFB_PID=$!
@@ -47,4 +53,3 @@ exec node senders.js \
   --min_run_actions "${MIN_RUN_ACTIONS:-3}" \
   --max_run_actions "${MAX_RUN_ACTIONS:-5}" \
   --iterations_num_per_episode "${ITERATIONS_NUM_PER_EPISODE:-3}"
-

@@ -65,6 +65,7 @@ const args = minimist(process.argv.slice(2), {
     walk_timeout: 5, // walk timeout in seconds
     min_run_actions: 3,
     max_run_actions: 5,
+    mc_version: process.env.MC_VERSION || "1.20.4",
   },
 });
 
@@ -1125,7 +1126,7 @@ function makeBot({ username, host, port }) {
     host,
     port,
     username,
-    version: "1.21.1",
+    version: args.mc_version,
     checkTimeoutInterval: 10 * 60 * 1000,
   });
 
