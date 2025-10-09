@@ -4,15 +4,13 @@ const { Rcon } = require("rcon-client");
 
 // Constants
 const MIN_WALK_DISTANCE = 3;
-const MAX_WALK_DISTANCE = 4;
+const MAX_WALK_DISTANCE = 6;
 const MIN_BOTS_DISTANCE = 9;
 const MAX_BOTS_DISTANCE = 10;
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const JUMP_PROBABILITY = 0.25;
 const MIN_JUMP_DURATION_SEC = 1;
 const MAX_JUMP_DURATION_SEC = 3;
-const MIN_RUN_ACTIONS = 3;
-const MAX_RUN_ACTIONS = 5;
 const MIN_SLEEP_BETWEEN_ACTIONS_SEC = 1.5;
 const MAX_SLEEP_BETWEEN_ACTIONS_SEC = 3;
 
@@ -55,6 +53,7 @@ const args = minimist(process.argv.slice(2), {
     other_coord_host: "127.0.0.1",
     other_coord_port: 8094,
     iterations_num_per_episode: 3,
+    episode_category: "look",
     bot_rng_seed: "12345",
     episodes_num: 1,
     start_episode_id: 0,
@@ -64,6 +63,8 @@ const args = minimist(process.argv.slice(2), {
     teleport_center_z: 0,
     teleport_radius: 500,
     walk_timeout: 5, // walk timeout in seconds
+    min_run_actions: 3,
+    max_run_actions: 5,
   },
 });
 
@@ -305,19 +306,13 @@ function stopAll(bot) {
   }
 }
 
-async function walk(bot, distance) {
+async function walk(bot, distance, lookAway, flipCameraInReturn) {
   const startPos = bot.entity.position.clone();
   const dir = choice(["forward", "back", "left", "right"]);
   const walkTimeoutMs = args.walk_timeout * 1000; // Convert to milliseconds
-
-  // Define the reverse direction
-  const reverseDir = {
-    forward: "back",
-    back: "forward",
-    left: "right",
-    right: "left",
-  };
-
+  // Save bot's original pitch and yaw
+  const originalYaw = bot.entity.yaw;
+  const originalPitch = bot.entity.pitch;
   console.log(
     `[${
       bot.username
@@ -325,8 +320,17 @@ async function walk(bot, distance) {
       2
     )}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}) with ${
       args.walk_timeout
-    }s timeout`
+    }s timeout lookAway: ${lookAway} flipCameraInReturn: ${flipCameraInReturn}`
   );
+  if (lookAway) {
+    // Pick a random angle between -90 and +90 degrees behind the bot's current yaw
+    // "Behind" means add 180 degrees (π radians), then offset by [-90, +90] degrees
+    const behindOffsetDeg = Math.random() * 180 - 90; // [-90, +90]
+    const behindOffsetRad = (behindOffsetDeg * Math.PI) / 180;
+    const newYaw = originalYaw + Math.PI + behindOffsetRad;
+    // Keep pitch the same
+    await lookSmooth(bot, newYaw, originalPitch, CAMERA_SPEED_DEGREES_PER_SEC);
+  }
 
   // Walk in the chosen direction until we reach the target distance
   bot.setControlState(dir, true);
@@ -371,13 +375,32 @@ async function walk(bot, distance) {
     );
     await jump(bot, jumpDurationMs);
   }
-
+  let returnDir;
+  if (flipCameraInReturn) {
+    await lookSmooth(
+      bot,
+      bot.entity.yaw + Math.PI,
+      bot.entity.pitch,
+      CAMERA_SPEED_DEGREES_PER_SEC
+    );
+    console.log(`[${bot.username}] Flipped camera in return`);
+    returnDir = dir;
+  } else {
+    // Define the reverse direction
+    const reverseDir = {
+      forward: "back",
+      back: "forward",
+      left: "right",
+      right: "left",
+    };
+    returnDir = reverseDir[dir];
+  }
   // Now return to the starting position by walking in the reverse direction
   console.log(
-    `[${bot.username}] Returning to starting position by walking ${reverseDir[dir]}`
+    `[${bot.username}] Returning to starting position by walking ${returnDir}`
   );
 
-  bot.setControlState(reverseDir[dir], true);
+  bot.setControlState(returnDir, true);
 
   const returnStartTime = Date.now();
   try {
@@ -386,14 +409,14 @@ async function walk(bot, distance) {
       // Check for timeout
       if (Date.now() - returnStartTime > walkTimeoutMs) {
         console.log(
-          `[${bot.username}] Walk timeout (${args.walk_timeout}s) reached while returning via ${reverseDir[dir]}`
+          `[${bot.username}] Walk timeout (${args.walk_timeout}s) reached while returning via ${returnDir}`
         );
         break;
       }
       await sleep(50); // Check position every 50ms
     }
   } finally {
-    bot.setControlState(reverseDir[dir], false);
+    bot.setControlState(returnDir, false);
   }
 
   const finalDistance = bot.entity.position.distanceTo(startPos);
@@ -415,6 +438,14 @@ async function walk(bot, distance) {
       )}s after returning to start`
     );
     await jump(bot, jumpDurationMs);
+  }
+  if (lookAway) {
+    await lookSmooth(
+      bot,
+      originalYaw,
+      originalPitch,
+      CAMERA_SPEED_DEGREES_PER_SEC
+    );
   }
 }
 
@@ -446,6 +477,29 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond) {
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
   const targetPitch = -Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
 
+  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, {
+    logTarget: `[${bot.username}] Looking at (${targetPosition.x.toFixed(
+      2
+    )}, ${targetPosition.y.toFixed(2)}, ${targetPosition.z.toFixed(2)})`,
+  });
+}
+
+/**
+ * Smoothly rotates the bot to the given yaw and pitch, at the given speed.
+ * Usage: await lookSmooth(bot, yaw, pitch, degreesPerSecond)
+ * @param {Bot} bot
+ * @param {number} targetYaw
+ * @param {number} targetPitch
+ * @param {number} degreesPerSecond
+ * @param {object} [opts] - Optional: {logTarget: string}
+ */
+async function lookSmooth(
+  bot,
+  targetYaw,
+  targetPitch,
+  degreesPerSecond,
+  opts = {}
+) {
   const startYaw = bot.entity.yaw;
   const startPitch = bot.entity.pitch;
 
@@ -468,13 +522,21 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond) {
   // Calculate total time needed
   const totalTimeMs = (totalAngleDistance / radiansPerSecond) * 1000;
 
-  console.log(
-    `[${bot.username}] Looking at (${targetPosition.x.toFixed(
-      2
-    )}, ${targetPosition.y.toFixed(2)}, ${targetPosition.z.toFixed(
-      2
-    )}) at ${degreesPerSecond}°/s over ${(totalTimeMs / 1000).toFixed(2)}s`
-  );
+  if (opts.logTarget) {
+    console.log(
+      `${opts.logTarget} at ${degreesPerSecond}°/s over ${(
+        totalTimeMs / 1000
+      ).toFixed(2)}s`
+    );
+  } else {
+    console.log(
+      `[${bot.username}] Looking at yaw=${targetYaw.toFixed(
+        2
+      )}, pitch=${targetPitch.toFixed(2)} at ${degreesPerSecond}°/s over ${(
+        totalTimeMs / 1000
+      ).toFixed(2)}s`
+    );
+  }
 
   const startTime = Date.now();
   const endTime = startTime + totalTimeMs;
@@ -501,8 +563,35 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond) {
   bot.look(targetYaw, targetPitch, true);
 }
 
-async function run(bot, actionCount) {
-  const actions = [() => walk(bot, rand(MIN_WALK_DISTANCE, MAX_WALK_DISTANCE))];
+async function run(bot, actionCount, lookAway) {
+  const actions = [];
+  if (lookAway) {
+    actions.push(() =>
+      walk(
+        bot,
+        rand(MIN_WALK_DISTANCE, MAX_WALK_DISTANCE),
+        lookAway,
+        /*flipCameraInReturn*/ true
+      )
+    );
+    actions.push(() =>
+      walk(
+        bot,
+        rand(MIN_WALK_DISTANCE, MAX_WALK_DISTANCE),
+        lookAway,
+        /*flipCameraInReturn*/ false
+      )
+    );
+  } else {
+    actions.push(() =>
+      walk(
+        bot,
+        rand(MIN_WALK_DISTANCE, MAX_WALK_DISTANCE),
+        lookAway,
+        /*flipCameraInReturn*/ false
+      )
+    );
+  }
 
   console.log(`[${bot.username}] Running ${actionCount} actions`);
 
@@ -532,8 +621,16 @@ async function run(bot, actionCount) {
   }
 }
 
-async function runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum) {
-  console.log(`[${bot.username}] Starting episode ${episodeNum}`);
+async function runSingleEpisode(
+  bot,
+  sharedBotRng,
+  coordinator,
+  episodeNum,
+  episodeCategory
+) {
+  console.log(
+    `[${bot.username}] Starting episode ${episodeNum} in category ${episodeCategory}`
+  );
 
   return new Promise((resolve) => {
     bot._currentEpisodeResolve = resolve;
@@ -552,7 +649,8 @@ async function runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum) {
         sharedBotRng,
         coordinator,
         args.other_bot_name,
-        episodeNum
+        episodeNum,
+        episodeCategory
       )
     );
     coordinator.sendToOtherBot(
@@ -562,7 +660,7 @@ async function runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum) {
     );
   });
 }
-function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
+function getOnSpawnFn(bot, sharedBotRng, coordinator) {
   return async () => {
     // const mcData = mcDataLoader(bot.version);
     // const moves = new Movements(bot, mcData);
@@ -585,7 +683,7 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
 
     // Initialize viewer once for the entire program
     mineflayerViewerhl(bot, {
-      output: `${args.receiver_host}:${receiverPort}`,
+      output: `${args.receiver_host}:${args.receiver_port}`,
       width: 640,
       height: 360,
       frames: 400,
@@ -597,7 +695,13 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator) {
       episodeNum < args.start_episode_id + args.episodes_num;
       episodeNum++
     ) {
-      await runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum);
+      await runSingleEpisode(
+        bot,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        args.episode_category
+      );
       console.log(`[${bot.username}] Episode ${episodeNum} completed`);
     }
 
@@ -612,7 +716,8 @@ function getOnTeleportPhaseFn(
   sharedBotRng,
   coordinator,
   otherBotName,
-  episodeNum
+  episodeNum,
+  episodeCategory
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
@@ -726,25 +831,49 @@ function getOnTeleportPhaseFn(
     await sleep(episodeNum === 0 ? 6000 : 1000);
 
     const iterationID = 0;
-    coordinator.onceEvent(
-      `walkAndLookPhase_${iterationID}`,
-      getOnWalkAndLookPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name,
-        episodeNum
-      )
-    );
-    coordinator.sendToOtherBot(
-      `walkAndLookPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
+    if (episodeCategory === "look") {
+      coordinator.onceEvent(
+        `walkLookPhase_${iterationID}`,
+        getOnWalkLookPhaseFn(
+          bot,
+          sharedBotRng,
+          coordinator,
+          iterationID,
+          args.other_bot_name,
+          episodeNum
+        )
+      );
+      coordinator.sendToOtherBot(
+        `walkLookPhase_${iterationID}`,
+        bot.entity.position.clone(),
+        "teleportPhase end"
+      );
+    } else if (episodeCategory === "look_away") {
+      coordinator.onceEvent(
+        `walkLookAwayPhase_${iterationID}`,
+        getOnWalkLookAwayPhaseFn(
+          bot,
+          sharedBotRng,
+          coordinator,
+          iterationID,
+          args.other_bot_name,
+          episodeNum
+        )
+      );
+      coordinator.sendToOtherBot(
+        `walkLookAwayPhase_${iterationID}`,
+        bot.entity.position.clone(),
+        "teleportPhase end"
+      );
+    } else {
+      console.error(
+        `[${bot.username}] Invalid episode category: ${episodeCategory}`
+      );
+      process.exit(1);
+    }
   };
 }
-function getOnWalkAndLookPhaseFn(
+function getOnWalkLookPhaseFn(
   bot,
   sharedBotRng,
   coordinator,
@@ -754,13 +883,15 @@ function getOnWalkAndLookPhaseFn(
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
-      `walkAndLookPhase_${iterationID}`,
+      `walkLookPhase_${iterationID}`,
       bot.entity.position.clone(),
-      `walkAndLookPhase_${iterationID} beginning`
+      `walkLookPhase_${iterationID} beginning`
     );
     const actionCount =
-      MIN_RUN_ACTIONS +
-      Math.floor(sharedBotRng() * (MAX_RUN_ACTIONS - MIN_RUN_ACTIONS + 1));
+      args.min_run_actions +
+      Math.floor(
+        sharedBotRng() * (args.max_run_actions - args.min_run_actions + 1)
+      );
 
     // Define three walking phase modes and randomly pick one using sharedBotRng
     const walkingModes = [
@@ -801,7 +932,7 @@ function getOnWalkAndLookPhaseFn(
 
     // Either run() or sleep() based on the mode
     if (shouldThisBotWalk) {
-      await run(bot, actionCount);
+      await run(bot, actionCount, /*lookAway*/ false);
     } else {
       // Bot doesn't run, so no sleep is needed
       console.log(
@@ -817,14 +948,14 @@ function getOnWalkAndLookPhaseFn(
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
-        `walkAndLookPhase_${iterationID} end`
+        `walkLookPhase_${iterationID} end`
       );
       return;
     }
     const nextIterationID = iterationID + 1;
     coordinator.onceEvent(
-      `walkAndLookPhase_${nextIterationID}`,
-      getOnWalkAndLookPhaseFn(
+      `walkLookPhase_${nextIterationID}`,
+      getOnWalkLookPhaseFn(
         bot,
         sharedBotRng,
         coordinator,
@@ -834,9 +965,100 @@ function getOnWalkAndLookPhaseFn(
       )
     );
     coordinator.sendToOtherBot(
-      `walkAndLookPhase_${nextIterationID}`,
+      `walkLookPhase_${nextIterationID}`,
       bot.entity.position.clone(),
-      `walkAndLookPhase_${iterationID} end`
+      `walkLookPhase_${iterationID} end`
+    );
+  };
+}
+function getOnWalkLookAwayPhaseFn(
+  bot,
+  sharedBotRng,
+  coordinator,
+  iterationID,
+  otherBotName,
+  episodeNum
+) {
+  return async (otherBotPosition) => {
+    coordinator.sendToOtherBot(
+      `walkLookAwayPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      `walkLookAwayPhase_${iterationID} beginning`
+    );
+    const actionCount =
+      args.min_run_actions +
+      Math.floor(
+        sharedBotRng() * (args.max_run_actions - args.min_run_actions + 1)
+      );
+
+    // Define three walking phase modes and randomly pick one using sharedBotRng
+    const walkingModes = ["lower_name_walks", "bigger_name_walks"];
+    const selectedMode =
+      walkingModes[Math.floor(sharedBotRng() * walkingModes.length)];
+
+    console.log(
+      `[iter ${iterationID}] [${bot.username}] starting walk phase with ${actionCount} actions - mode: ${selectedMode}`
+    );
+
+    // Determine if this bot should walk based on the selected mode
+    let shouldThisBotWalk = false;
+
+    switch (selectedMode) {
+      case "lower_name_walks":
+        shouldThisBotWalk = bot.username < otherBotName;
+        break;
+      case "bigger_name_walks":
+        shouldThisBotWalk = bot.username > otherBotName;
+        break;
+    }
+
+    console.log(
+      `[iter ${iterationID}] [${bot.username}] will ${
+        shouldThisBotWalk ? "walk" : "sleep"
+      } during this phase`
+    );
+
+    // Look at the other bot smoothly at the start of the phase
+    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+
+    // Either run() or sleep() based on the mode
+    if (shouldThisBotWalk) {
+      await run(bot, actionCount, /*lookAway*/ true);
+    } else {
+      // Bot doesn't run, so no sleep is needed
+      console.log(
+        `[iter ${iterationID}] [${bot.username}] not walking this phase`
+      );
+    }
+
+    if (iterationID == args.iterations_num_per_episode - 1) {
+      coordinator.onceEvent(
+        "stopPhase",
+        getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+      );
+      coordinator.sendToOtherBot(
+        "stopPhase",
+        bot.entity.position.clone(),
+        `walkLookAwayPhase_${iterationID} end`
+      );
+      return;
+    }
+    const nextIterationID = iterationID + 1;
+    coordinator.onceEvent(
+      `walkLookAwayPhase_${nextIterationID}`,
+      getOnWalkLookAwayPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        nextIterationID,
+        args.other_bot_name,
+        episodeNum
+      )
+    );
+    coordinator.sendToOtherBot(
+      `walkLookAwayPhase_${nextIterationID}`,
+      bot.entity.position.clone(),
+      `walkLookAwayPhase_${iterationID} end`
     );
   };
 }
@@ -943,10 +1165,7 @@ async function main() {
     args.other_coord_host,
     args.other_coord_port
   );
-  bot.once(
-    "spawn",
-    getOnSpawnFn(bot, args.host, args.receiver_port, sharedBotRng, coordinator)
-  );
+  bot.once("spawn", getOnSpawnFn(bot, sharedBotRng, coordinator));
   bot._client.on("packet", (data, meta) => {
     if (meta.name === "system_chat" && data?.content) {
       console.log("SYSTEM:", JSON.stringify(data.content));

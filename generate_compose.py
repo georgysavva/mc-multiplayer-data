@@ -38,6 +38,10 @@ def generate_compose_config(
     num_episodes,
     episode_start_id,
     bootstrap_wait_time,
+    min_run_actions,
+    max_run_actions,
+    episode_category,
+    iterations_num_per_episode,
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -88,11 +92,15 @@ def generate_compose_config(
                     "BOT_RNG_SEED": str(12345 + instance_id),
                     "EPISODES_NUM": num_episodes,
                     "EPISODE_START_ID": episode_start_id,
+                    "EPISODE_CATEGORY": episode_category,
                     "MC_HOST": "host.docker.internal",
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
                     "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
+                    "MIN_RUN_ACTIONS": min_run_actions,
+                    "MAX_RUN_ACTIONS": max_run_actions,
+                    "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -117,11 +125,15 @@ def generate_compose_config(
                     "BOT_RNG_SEED": str(12345 + instance_id),
                     "EPISODES_NUM": num_episodes,
                     "EPISODE_START_ID": episode_start_id,
+                    "EPISODE_CATEGORY": episode_category,
                     "MC_HOST": "host.docker.internal",
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
                     "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
+                    "MIN_RUN_ACTIONS": min_run_actions,
+                    "MAX_RUN_ACTIONS": max_run_actions,
+                    "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -167,46 +179,47 @@ def main():
     parser.add_argument(
         "--instances",
         type=int,
-        default=32,
+        default=15,
         help="Number of instances to generate (default: 32)",
     )
     parser.add_argument(
-        "--compose-dir",
+        "--compose_dir",
         default="compose_configs",
         help="Directory to store generated compose files",
     )
     parser.add_argument(
-        "--base-port",
+        "--base_port",
         type=int,
         default=25565,
         help="Base Minecraft server port (default: 25565)",
     )
     parser.add_argument(
-        "--base-rcon-port",
+        "--base_rcon_port",
         type=int,
         default=25675,
         help="Base RCON port (default: 25675)",
     )
     parser.add_argument(
-        "--receiver-port",
+        "--receiver_port",
         type=int,
         default=8090,
         help="Receiver port for bridge network services (default: 8090)",
     )
     parser.add_argument(
-        "--coord-port",
+        "--coord_port",
         type=int,
         default=8100,
         help="Coordination port for bridge network services (default: 8100)",
     )
     parser.add_argument(
-        "--data-dir",
-        default="./data",
+        "--data_dir",
+        required=True,
         help="Base directory for instance data directories (default: ./data)",
     )
     parser.add_argument(
-        "--output-dir",
+        "--output_dir",
         default="./output",
+        required=True,
         help="Shared output directory for all instances (default: ./output)",
     )
     parser.add_argument(
@@ -227,8 +240,38 @@ def main():
         default=60,
         help="Bootstrap wait time (default: 60)",
     )
+    parser.add_argument(
+        "--min_run_actions",
+        type=int,
+        default=3,
+        help="Minimum number of run actions (default: 3)",
+    )
+    parser.add_argument(
+        "--max_run_actions",
+        type=int,
+        default=5,
+        help="Maximum number of run actions (default: 5)",
+    )
+    parser.add_argument(
+        "--episode_category",
+        default="look",
+        help="Episode category (default: look)",
+    )
+    parser.add_argument(
+        "--iterations_num_per_episode",
+        type=int,
+        default=3,
+        help="Number of iterations per episode (default: 3)",
+    )
 
     args = parser.parse_args()
+    # Ensure output-dir and data-dir are absolute paths
+    assert os.path.isabs(
+        args.output_dir
+    ), f"--output-dir must be an absolute path, got: {args.output_dir}"
+    assert os.path.isabs(
+        args.data_dir
+    ), f"--data-dir must be an absolute path, got: {args.data_dir}"
 
     # Create compose directory
     compose_dir = Path(args.compose_dir)
@@ -248,6 +291,10 @@ def main():
             args.num_episodes,
             args.episode_start_id,
             args.bootstrap_wait_time,
+            args.min_run_actions,
+            args.max_run_actions,
+            args.episode_category,
+            args.iterations_num_per_episode,
         )
 
         # Write compose file
