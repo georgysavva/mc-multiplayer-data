@@ -57,6 +57,8 @@ This will start:
 - A Minecraft server on port 25565 (RCON on 25575)
 - Two bot agents (Alpha and Bravo) that interact in the game
 - Two data receivers that capture video and gameplay data
+- A real Minecraft camera client that records Alpha's perspective (`camera/output_alpha/camera_alpha.mp4`)
+- A second camera client that records Bravo's perspective (`camera/output_bravo/camera_bravo.mp4`)
 - All services coordinated through Docker networking
 
 ### 2. Monitor Progress
@@ -90,6 +92,10 @@ Data will be saved to:
 
 - `./output/` - Alpha bot data (videos, JSON metadata)
 - `./output/` - Bravo bot data (videos, JSON metadata)
+- `./camera/output_alpha/camera_alpha.mp4` - Camera recording of Alpha
+- `./camera/output_bravo/camera_bravo.mp4` - Camera recording of Bravo
+
+To change the world seed or generator settings, edit `server.env` and restart the stack. The default configuration spawns a flat world for deterministic bot interaction.
 
 ## Parallel Data Collection
 

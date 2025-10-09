@@ -1,0 +1,9 @@
+{
+  "name": "camera-controller-bravo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "rcon-client": "^4.0.6"
+  }
+}
