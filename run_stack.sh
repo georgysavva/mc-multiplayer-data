@@ -80,6 +80,13 @@ start_log_capture() {
 
 cmd_up() {
   ensure_directories
+  local running_ids
+  running_ids=$(compose_cmd ps -q 2>/dev/null || true)
+  if [[ -n "${running_ids}" ]]; then
+    echo "[run] existing stack detected; stopping it before restart"
+    stop_log_capture
+    compose_cmd down
+  fi
   echo "[run] pulling images and starting stack"
   compose_cmd pull
   compose_cmd up -d
