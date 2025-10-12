@@ -4,14 +4,14 @@ const {
   RCON_HOST = '127.0.0.1',
   RCON_PORT = '25575',
   RCON_PASSWORD = 'research',
-  BOT_NAME = 'Alpha',
-  CAMERA_NAME = 'CameraAlpha',
+  BOT_NAME = 'Bravo',
+  CAMERA_NAME = 'CameraBravo',
   SPECTATE_COMMAND = 'spectate',
   RETRIES = '15',
 } = process.env;
 
 const maxAttempts = Number(RETRIES);
-const retryDelay = 2000;
+const retryDelayMs = 2000;
 
 async function connect() {
   return Rcon.connect({
@@ -21,13 +21,23 @@ async function connect() {
   });
 }
 
+async function useRcon(task) {
+  const rcon = await connect();
+  try {
+    return await task(rcon);
+  } finally {
+    try {
+      await rcon.end();
+    } catch (err) {
+      console.warn('[spectator] failed to close RCON connection:', err?.message || err);
+    }
+  }
+}
+
 async function waitForPlayers() {
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      const rcon = await connect();
-      const list = await rcon.send('list');
-          await rcon.send(f"execute as {CAMERA_NAME} run spectate accept {BOT_NAME}")
-    await rcon.end();
+      const list = await useRcon((rcon) => rcon.send('list'));
       const players = extractPlayers(list);
       if (players.has(BOT_NAME) && players.has(CAMERA_NAME)) {
         console.log('[spectator] Both players present');
@@ -39,7 +49,7 @@ async function waitForPlayers() {
     } catch (err) {
       console.warn('[spectator] Failed to query player list:', err?.message || err);
     }
-    await sleep(retryDelay);
+    await sleep(retryDelayMs);
   }
   console.error('[spectator] Players never appeared; giving up');
   return false;
@@ -65,17 +75,22 @@ function extractPlayers(listResponse) {
 
 async function applySpectator() {
   try {
-    const rcon = await connect();
-    const gm = await rcon.send(`gamemode spectator ${CAMERA_NAME}`);
-    console.log('[spectator] gamemode response:', gm?.trim());
-    const spectate = await rcon.send(`${SPECTATE_COMMAND} ${BOT_NAME} ${CAMERA_NAME}`);
-    console.log('[spectator] spectate response:', spectate?.trim());
-    if (!spectate?.trim()) {
-      const tp = await rcon.send(`tp ${CAMERA_NAME} ${BOT_NAME}`);
-      console.log('[spectator] fallback teleport response:', tp?.trim());
-    }
-        await rcon.send(f"execute as {CAMERA_NAME} run spectate accept {BOT_NAME}")
-    await rcon.end();
+    await useRcon(async (rcon) => {
+      const gm = await rcon.send(`gamemode spectator ${CAMERA_NAME}`);
+      console.log('[spectator] gamemode response:', gm?.trim());
+
+      const spectateCommand = `${SPECTATE_COMMAND} ${BOT_NAME} ${CAMERA_NAME}`;
+      const spectate = await rcon.send(spectateCommand);
+      console.log('[spectator] spectate response:', spectate?.trim());
+
+      const acceptCommand = `execute as ${CAMERA_NAME} run spectate accept ${BOT_NAME}`;
+      try {
+        const accept = await rcon.send(acceptCommand);
+        console.log('[spectator] accept response:', accept?.trim());
+      } catch (err) {
+        console.warn('[spectator] accept command failed:', err?.message || err);
+      }
+    });
     console.log('[spectator] spectator commands issued');
   } catch (err) {
     console.error('[spectator] Failed to issue spectator commands:', err?.message || err);
