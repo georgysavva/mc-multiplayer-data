@@ -84,6 +84,7 @@ def build_launch_command(version: str, minecraft_dir: Path) -> list[str]:
     quickplay_path.write_text(json.dumps(quickplay_entry, separators=(",", ":")))
     ensure_option(minecraft_dir, "skipQuickPlayFirstLaunchPrompt", "true")
     ensure_option(minecraft_dir, "accessibilityOnboarded", "true")
+    ensure_option(minecraft_dir, "tutorialStep", "none")
 
     options = {
         "username": login["name"],
