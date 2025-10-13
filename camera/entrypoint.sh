@@ -50,8 +50,37 @@ PIDS="$PIDS $!"
 sleep 2
 
 export DISPLAY
+FLUXBOX_DIR="${HOME:-/root}/.fluxbox"
+INIT_FILE="${FLUXBOX_DIR}/init"
+mkdir -p "$FLUXBOX_DIR"
+if [ -f "$INIT_FILE" ]; then
+  if grep -q '^session.screen0.toolbar.visible:' "$INIT_FILE"; then
+    sed -i 's/^session\.screen0\.toolbar\.visible:.*/session.screen0.toolbar.visible:        false/' "$INIT_FILE"
+  else
+    printf '\nsession.screen0.toolbar.visible:        false\n' >>"$INIT_FILE"
+  fi
+else
+  cat >"$INIT_FILE" <<'EOF'
+session.screen0.toolbar.visible:        false
+EOF
+fi
+
 fluxbox &
 PIDS="$PIDS $!"
+
+toolbar_hidden=0
+for i in $(seq 1 20); do
+  if fluxbox-remote "settoolbar hidden" >/dev/null 2>&1; then
+    echo "[client] fluxbox toolbar hidden"
+    toolbar_hidden=1
+    break
+  fi
+  sleep 0.5
+done
+
+if [ "$toolbar_hidden" -eq 0 ]; then
+  echo "[client] warning: unable to hide fluxbox toolbar" >&2
+fi
 
 x11vnc -display "$DISPLAY" -forever -noshm -shared -rfbport "$VNC_PORT" -passwd "$VNC_PASSWORD" -o /tmp/x11vnc.log &
 PIDS="$PIDS $!"
