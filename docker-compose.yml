@@ -62,7 +62,7 @@ services:
       RCON_PORT: 25575
       RCON_PASSWORD: research
       COLOR: red
-      BOOTSTRAP_WAIT_TIME: 0
+      BOOTSTRAP_WAIT_TIME: 10
       MIN_RUN_ACTIONS: 1
       MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
@@ -100,7 +100,7 @@ services:
       RCON_PORT: 25575
       RCON_PASSWORD: research
       COLOR: blue
-      BOOTSTRAP_WAIT_TIME: 0
+      BOOTSTRAP_WAIT_TIME: 10
       MIN_RUN_ACTIONS: 1
       MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
@@ -216,7 +216,7 @@ services:
       - ./camera/data_bravo:/root
       - ./camera/output_bravo:/output
       - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
-      - ./camera/launch_minecraft_bravo.py:/app/launch_minecraft.py:ro
+      - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
 
   camera_bravo_follow:
     image: node:20
