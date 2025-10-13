@@ -94,6 +94,14 @@ cmd_up() {
   echo "[run] stack started; log files under ${LOG_DIR}"
   echo "[run] VNC/noVNC alpha: http://localhost:6901 (pwd: ${VNC_PASSWORD:-research})"
   echo "[run] VNC/noVNC bravo: http://localhost:6902 (pwd: ${VNC_PASSWORD:-research})"
+  echo "[run] waiting for sender services to finish"
+  if "${COMPOSE_BIN[@]}" -f "${COMPOSE_FILE}" wait sender_alpha sender_bravo; then
+    echo "[run] senders completed; shutting down stack"
+  else
+    echo "[run] sender wait failed; shutting down stack" >&2
+  fi
+  stop_log_capture
+  compose_cmd down
 }
 
 cmd_down() {
