@@ -41,6 +41,68 @@ cd mc-multiplayer-data
 ```bash
 docker build -t mc-multiplayer:latest .
 ```
+```bash
+ docker build -t mc-multiplayer:latest .
+```
+
+<!-- ---------- WINDOWS SETUP SECTION ---------- -->
+## Windows Setup (Docker Desktop)
+
+> **If you are using Docker Desktop on Windows, follow _this_ section instead of the generic Linux/Mac commands.**  
+> The files `Dockerfile.windows` and `docker-compose-windows-fixed.yml` were created specifically to work around Windows-only issues (line endings + lack of `network_mode: host`).
+
+### Prerequisites
+1. **Docker Desktop for Windows** (running in Linux-containers mode)
+2. **Git for Windows** (to clone the repo)
+3. **PowerShell** (recommended shell for the commands below)
+
+### One-Time Setup
+```powershell
+# Clone & enter the repo
+git clone <repository-url>
+cd mc-multiplayer-data
+
+# Create bind-mount folders (ignored if they already exist)
+mkdir data   -ErrorAction SilentlyContinue
+mkdir output -ErrorAction SilentlyContinue
+```
+
+### Build & Run (single command)
+```powershell
+# Build images with the Windows-compatible Dockerfile and launch all services
+docker compose -f docker-compose-windows-fixed.yml up -d --build
+```
+The command above will:
+* Build the image using **`Dockerfile.windows`** (handles CRLF → LF conversion with `dos2unix`).
+* Start the Paper Minecraft server on ports **25565** (game) & **25575** (RCON).
+* Launch both bots (`sender_alpha`, `sender_bravo`) and the two receivers.
+
+### Monitoring & Logs
+```powershell
+# List containers
+docker compose -f docker-compose-windows-fixed.yml ps
+
+# Follow logs from every service
+docker compose -f docker-compose-windows-fixed.yml logs -f
+
+# Follow only a specific service
+docker compose -f docker-compose-windows-fixed.yml logs -f sender_alpha
+```
+
+### Stopping & Cleanup
+```powershell
+# Gracefully stop and remove containers + anonymous volumes
+docker compose -f docker-compose-windows-fixed.yml down -v
+```
+
+### Troubleshooting
+* **`/usr/bin/env: 'bash\r': No such file or directory`** – Ensure you are running the Windows compose file; it automatically fixes CRLF with `dos2unix`.
+* **Containers cannot talk to each other** – Verify Docker Desktop is in *Linux containers* mode and that Windows Firewall allows ports **25565/25575**.
+* **Build keeps using cache after edits** – Force a clean rebuild:  
+  `docker compose -f docker-compose-windows-fixed.yml build --no-cache`
+
+---
+<!-- ---------- END WINDOWS SETUP SECTION ---------- -->
 
 ## Quick Start - Single Instance Data Collection
 
