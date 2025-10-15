@@ -102,6 +102,15 @@ cmd_up() {
   fi
   stop_log_capture
   compose_cmd down
+  echo "[run] aligning camera recordings"
+  python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
+    --bot Alpha \
+    --actions-dir "${PROJECT_DIR}/output" \
+    --camera-prefix "${PROJECT_DIR}/camera"
+  python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
+    --bot Bravo \
+    --actions-dir "${PROJECT_DIR}/output" \
+    --camera-prefix "${PROJECT_DIR}/camera"
 }
 
 cmd_down() {

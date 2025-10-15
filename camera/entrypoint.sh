@@ -93,6 +93,23 @@ GAME_PID=$!
 PIDS="$PIDS $GAME_PID"
 
 if [ "$ENABLE_RECORDING" = "1" ]; then
+  RECORDING_META_PATH=${RECORDING_META_PATH:-${RECORDING_PATH%.*}_meta.json}
+  RECORDING_START_TS=$(date +%s.%N)
+  RECORDING_START_ISO=$(date -u +"%Y-%m-%dT%H:%M:%S.%NZ")
+  cat >"${RECORDING_META_PATH}" <<EOF
+{
+  "recording_path": "${RECORDING_PATH}",
+  "start_epoch_seconds": ${RECORDING_START_TS},
+  "start_time_utc": "${RECORDING_START_ISO}",
+  "fps": ${FPS},
+  "width": ${WIDTH},
+  "height": ${HEIGHT},
+  "display": "${DISPLAY}",
+  "camera_name": "${CAMERA_NAME:-}",
+  "note": "Frame index ~= round((wall_time_seconds - start_epoch_seconds) * fps)"
+}
+EOF
+  echo "[client] recording metadata saved to ${RECORDING_META_PATH}"
   ffmpeg -hide_banner -loglevel info -y \
     -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" \
     -f x11grab -i "${DISPLAY}.0" \

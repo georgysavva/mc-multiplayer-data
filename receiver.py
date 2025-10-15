@@ -21,6 +21,9 @@ def process_frame_worker(frame_queue, output_path):
     action_data = []
     frames = []
     out = None
+    first_render_time = None
+    episode_start_epoch = None
+    render_time_is_epoch = False
 
     while True:
         try:
@@ -30,6 +33,26 @@ def process_frame_worker(frame_queue, output_path):
 
             img, pos = data
             img_count = pos.get("frame_count", 0)
+
+            now_epoch = time.time()
+            render_time = float(pos.get("renderTime", 0.0))
+            if first_render_time is None:
+                first_render_time = render_time
+                if render_time >= 1e12:  # treat as epoch milliseconds
+                    render_time_is_epoch = True
+                    episode_start_epoch = render_time / 1000.0
+                else:
+                    episode_start_epoch = now_epoch - (render_time / 1000.0)
+
+            if render_time_is_epoch:
+                epoch_time = render_time / 1000.0
+                relative_ms = render_time - first_render_time
+            else:
+                relative_ms = render_time - first_render_time
+                epoch_time = episode_start_epoch + (relative_ms / 1000.0)
+
+            pos["relativeTimeMs"] = relative_ms
+            pos["epochTime"] = epoch_time
 
             pos["x"] = round(pos["x"], 3)
             pos["y"] = round(pos["y"], 3)
@@ -102,6 +125,21 @@ def process_frame_worker(frame_queue, output_path):
     with open(output_path + ".json", "w") as f:
         json.dump(action_data, f)
     print("saved to ", f"{output_path}.mp4")
+
+    if episode_start_epoch is None:
+        episode_start_epoch = time.time()
+        first_render_time = 0.0
+        render_time_is_epoch = False
+
+    metadata = {
+        "episode_start_epoch": episode_start_epoch,
+        "first_render_time_ms": first_render_time,
+        "render_time_is_epoch": render_time_is_epoch,
+        "frames": len(action_data),
+        "video_fps": video_fps,
+    }
+    with open(output_path + "_meta.json", "w") as meta_f:
+        json.dump(metadata, meta_f)
 
 
 def recvall(sock, count):

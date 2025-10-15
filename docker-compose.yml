@@ -36,7 +36,9 @@ services:
       retries: 12
 
   sender_alpha:
-    image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: .
+    image: mc-multiplayer-base:dev
     depends_on:
       mc:
         condition: service_healthy
@@ -72,7 +74,9 @@ services:
     command: ./entrypoint_senders.sh
 
   sender_bravo:
-    image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: .
+    image: mc-multiplayer-base:dev
     depends_on:
       mc:
         condition: service_healthy
@@ -82,7 +86,7 @@ services:
         condition: service_started
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output8:/output
+      - ./output:/output
     environment:
       BOT_NAME: Bravo
       OTHER_BOT_NAME: Alpha
@@ -110,7 +114,9 @@ services:
     command: ./entrypoint_senders.sh
 
   receiver_alpha:
-    image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: .
+    image: mc-multiplayer-base:dev
     environment:
       PORT: 8090
       NAME: Alpha
@@ -119,11 +125,13 @@ services:
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output8:/output
+      - ./output:/output
     command: ./entrypoint_receiver.sh
 
   receiver_bravo:
-    image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: .
+    image: mc-multiplayer-base:dev
     environment:
       PORT: 8090
       NAME: Bravo
@@ -132,14 +140,18 @@ services:
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./output8:/output
+      - ./output:/output
     command: ./entrypoint_receiver.sh
 
   script:
-    image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: .
+    image: mc-multiplayer-base:dev
     tty: true
     entrypoint: ["sleep", "infinity"]
     restart: "no"
+    volumes:
+      - .:/usr/src/app
 
   camera_alpha:
     image: ojmichel/mineflayer-spectator-client:latest
