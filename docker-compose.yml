@@ -36,9 +36,7 @@ services:
       retries: 12
 
   sender_alpha:
-    build:
-      context: .
-    image: mc-multiplayer-base:dev
+    image: ojmichel/mc-multiplayer-base:latest
     depends_on:
       mc:
         condition: service_healthy
@@ -74,9 +72,7 @@ services:
     command: ./entrypoint_senders.sh
 
   sender_bravo:
-    build:
-      context: .
-    image: mc-multiplayer-base:dev
+    image: ojmichel/mc-multiplayer-base:latest
     depends_on:
       mc:
         condition: service_healthy
@@ -114,9 +110,7 @@ services:
     command: ./entrypoint_senders.sh
 
   receiver_alpha:
-    build:
-      context: .
-    image: mc-multiplayer-base:dev
+    image: ojmichel/mc-multiplayer-base:latest
     environment:
       PORT: 8090
       NAME: Alpha
@@ -129,9 +123,7 @@ services:
     command: ./entrypoint_receiver.sh
 
   receiver_bravo:
-    build:
-      context: .
-    image: mc-multiplayer-base:dev
+    image: ojmichel/mc-multiplayer-base:latest
     environment:
       PORT: 8090
       NAME: Bravo
@@ -144,9 +136,7 @@ services:
     command: ./entrypoint_receiver.sh
 
   script:
-    build:
-      context: .
-    image: mc-multiplayer-base:dev
+    image: ojmichel/mc-multiplayer-base:latest
     tty: true
     entrypoint: ["sleep", "infinity"]
     restart: "no"
@@ -247,6 +237,6 @@ services:
       BOT_NAME: "Bravo"
       CAMERA_NAME: "CameraBravo"
     volumes:
-      - ./camera/spectator_bravo.js:/app/spectator.js:ro
-      - ./camera/package_bravo.json:/app/package.json:ro
+      - ./camera/spectator.js:/app/spectator.js:ro
+      - ./camera/package.json:/app/package.json:ro
     command: ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
