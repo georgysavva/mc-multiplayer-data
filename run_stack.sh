@@ -79,6 +79,7 @@ start_log_capture() {
 }
 
 cmd_up() {
+  local generate_comparison=${1:-}
   ensure_directories
   local running_ids
   running_ids=$(compose_cmd ps -q 2>/dev/null || true)
@@ -103,14 +104,23 @@ cmd_up() {
   stop_log_capture
   compose_cmd down
   echo "[run] aligning camera recordings"
+  
+  local comparison_flag=""
+  if [[ "${generate_comparison}" == "true" ]]; then
+    comparison_flag="--comparison-video"
+    echo "[run] comparison videos will be generated (slower)"
+  fi
+  
   python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
     --bot Alpha \
     --actions-dir "${PROJECT_DIR}/output" \
-    --camera-prefix "${PROJECT_DIR}/camera"
+    --camera-prefix "${PROJECT_DIR}/camera" \
+    ${comparison_flag}
   python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
     --bot Bravo \
     --actions-dir "${PROJECT_DIR}/output" \
-    --camera-prefix "${PROJECT_DIR}/camera"
+    --camera-prefix "${PROJECT_DIR}/camera" \
+    ${comparison_flag}
 }
 
 cmd_down() {
@@ -147,10 +157,11 @@ cmd_recordings() {
 
 usage() {
   cat <<USAGE
-Usage: ${0##*/} <command>
+Usage: ${0##*/} <command> [options]
 
 Commands:
-  up                Start the docker stack and begin capturing logs
+  up [--compare]    Start the docker stack and begin capturing logs
+                    --compare: Generate side-by-side comparison videos (slower)
   down              Stop log capture and docker stack
   status            Show container status from docker compose
   logs [service]    Tail saved logs for a service (default: list available logs)
@@ -166,7 +177,12 @@ main() {
 
   case "${cmd}" in
     up)
-      cmd_up "$@"
+      local generate_comparison="false"
+      if [[ "${1:-}" == "--compare" ]]; then
+        generate_comparison="true"
+        shift
+      fi
+      cmd_up "${generate_comparison}" "$@"
       ;;
     down)
       cmd_down "$@"
