@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail  # Removed -e so script doesn't exit on first error
 
 PROJECT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
@@ -111,16 +111,27 @@ cmd_up() {
     echo "[run] comparison videos will be generated (slower)"
   fi
   
-  python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
+  if python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
     --bot Alpha \
     --actions-dir "${PROJECT_DIR}/output" \
     --camera-prefix "${PROJECT_DIR}/camera" \
-    ${comparison_flag}
-  python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
+    ${comparison_flag}; then
+    echo "[run] Alpha processing completed successfully"
+  else
+    echo "[run] WARNING: Alpha processing failed (exit code $?)" >&2
+  fi
+  
+  if python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
     --bot Bravo \
     --actions-dir "${PROJECT_DIR}/output" \
     --camera-prefix "${PROJECT_DIR}/camera" \
-    ${comparison_flag}
+    ${comparison_flag}; then
+    echo "[run] Bravo processing completed successfully"
+  else
+    echo "[run] WARNING: Bravo processing failed (exit code $?)" >&2
+  fi
+  
+  echo "[run] post-processing complete (check output above for any warnings)"
 }
 
 cmd_down() {
