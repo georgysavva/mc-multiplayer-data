@@ -53,12 +53,25 @@ def format_action_text(frame_data):
     action = frame_data.get("action", {})
     text_lines = []
 
-    # Movement actions
-    movement_actions = ["forward", "back", "left", "right", "jump", "sprint", "sneak"]
+    # All actions
+    all_actions = [
+        "forward",
+        "back",
+        "left",
+        "right",
+        "jump",
+        "sprint",
+        "sneak",
+        "attack",
+        "use",
+        "mount",
+        "dismount",
+        "place_block",
+        "place_entity",
+        "mine",
+    ]
     active_actions = [
-        action_name
-        for action_name in movement_actions
-        if action.get(action_name, False)
+        action_name for action_name in all_actions if action.get(action_name, False)
     ]
 
     if active_actions:
