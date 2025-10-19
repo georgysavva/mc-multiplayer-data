@@ -37,6 +37,7 @@ async function main() {
     username: args.bot_name,
     host: args.host,
     port: args.port,
+    version: args.mc_version,
   });
 
   // Initialize shared RNG and coordinator
@@ -57,7 +58,7 @@ async function main() {
 
   // Handle system chat packets
   bot._client.on("packet", (data, meta) => {
-    if (meta.name === "system_chat" && data?.content) {
+    if (meta.name === "system_chat" && data && data.content) {
       console.log("SYSTEM:", JSON.stringify(data.content));
     }
   });

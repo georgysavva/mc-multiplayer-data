@@ -1,9 +1,7 @@
 node_modules
-npm-cache
-.dockerignore
-Dockerfile
-.git
-.gitignore
-**/*.log
-data
-output
+camera/data_alpha
+camera/data_bravo
+camera/output_alpha
+camera/output_bravo
+output/
+data/

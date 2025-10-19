@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+DISPLAY=${DISPLAY:-:99}
+export DISPLAY
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/tmp}
+
+rm -f "/tmp/.X${DISPLAY##*:}-lock" 2>/dev/null || true
+
 echo "[entrypoint] Starting Xvfb on ${DISPLAY} ..."
 Xvfb "${DISPLAY}" -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
 XVFB_PID=$!
@@ -42,9 +48,12 @@ exec node senders.js \
   --port "${MC_PORT:-25565}" \
   --rcon_host "${RCON_HOST:-127.0.0.1}" \
   --rcon_port "${RCON_PORT:-25575}" \
+  --rcon_password "${RCON_PASSWORD:-research}" \
   --color "${COLOR:-red}" \
   --bootstrap_wait_time "${BOOTSTRAP_WAIT_TIME:-0}" \
+  --camera_ready_retries "${CAMERA_READY_RETRIES:-30}" \
+  --camera_ready_check_interval "${CAMERA_READY_CHECK_INTERVAL:-2000}" \
   --min_run_actions "${MIN_RUN_ACTIONS:-3}" \
   --max_run_actions "${MAX_RUN_ACTIONS:-5}" \
-  --iterations_num_per_episode "${ITERATIONS_NUM_PER_EPISODE:-3}"
-
+  --iterations_num_per_episode "${ITERATIONS_NUM_PER_EPISODE:-3}" \
+  --mc_version "${MC_VERSION:-1.20.4}"

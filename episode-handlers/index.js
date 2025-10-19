@@ -3,6 +3,7 @@ const Vec3 = require("vec3").Vec3;
 const { sleep } = require('../utils/helpers');
 const { land_pos, lookAtSmooth } = require('../utils/movement');
 const { rconTp } = require('../utils/coordination');
+const { waitForCameras } = require('../utils/camera-ready');
 const {
   MIN_BOTS_DISTANCE,
   MAX_BOTS_DISTANCE,
@@ -86,6 +87,24 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator, args) 
         2
       )}, ${z.toFixed(2)})`
     );
+
+    // Wait for both cameras to join before starting recording
+    console.log(`[${bot.username}] Waiting for cameras to join server...`);
+    const camerasReady = await waitForCameras(
+      args.rcon_host,
+      args.rcon_port,
+      args.rcon_password,
+      args.camera_ready_retries,
+      args.camera_ready_check_interval
+    );
+
+    if (!camerasReady) {
+      console.error(`[${bot.username}] Cameras failed to join within timeout. Exiting.`);
+      process.exit(1);
+    }
+
+    console.log(`[${bot.username}] Cameras detected, waiting ${args.bootstrap_wait_time}s for popups to clear...`);
+    await sleep(args.bootstrap_wait_time * 1000);
 
     // Initialize viewer once for the entire program
     mineflayerViewerhl(bot, {
@@ -229,7 +248,7 @@ function getOnTeleportPhaseFn(
         Math.floor(newZ),
         args
       );
-      await sleep(1000);
+      // await sleep(1000);
       console.log(`[${bot.username}] teleport completed`);
     } catch (error) {
       console.error(`[${bot.username}] teleport failed:`, error);
@@ -242,7 +261,7 @@ function getOnTeleportPhaseFn(
     await sleep(1000);
     console.log(`[${bot.username}] starting episode recording`);
     bot.emit("startepisode", episodeNum === 0 ? 50 : 0);
-    await sleep(episodeNum === 0 ? 6000 : 1000);
+    // await sleep(episodeNum === 0 ? 6000 : 1000);
 
     // Add episode type selection - Enable multiple types for diverse data collection
     const episodeTypes = [

@@ -29,6 +29,10 @@ function parseArgs() {
       teleport_center_z: 0,
       teleport_radius: 500,
       walk_timeout: 5, // walk timeout in seconds
+      mc_version: process.env.MC_VERSION || "1.20.4",
+      camera_ready_retries: 30,
+      camera_ready_check_interval: 2000, // milliseconds
+      rcon_password: "research",
     },
   });
 }

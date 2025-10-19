@@ -7,14 +7,15 @@ const { pathfinder, Movements, goals: { GoalNear, GoalNearXZ, GoalBlock, GoalFol
  * @param {string} config.username - Bot username
  * @param {string} config.host - Server host
  * @param {number} config.port - Server port
+ * @param {string} config.version - Minecraft version (defaults to 1.20.4)
  * @returns {Bot} Mineflayer bot instance
  */
-function makeBot({ username, host, port }) {
+function makeBot({ username, host, port, version = "1.20.4" }) {
   const bot = mineflayer.createBot({
     host,
     port,
     username,
-    version: "1.21.1",
+    version,
     checkTimeoutInterval: 10 * 60 * 1000,
   });
 
