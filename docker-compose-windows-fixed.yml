@@ -64,8 +64,11 @@ services:
       MC_PORT: 25565
       RCON_HOST: mc
       RCON_PORT: 25575
+      RCON_PASSWORD: research
       COLOR: red
       BOOTSTRAP_WAIT_TIME: 30
+      CAMERA_READY_RETRIES: 30
+      CAMERA_READY_CHECK_INTERVAL: 2000
     command: ./entrypoint_senders.sh
 
   sender_bravo:
@@ -92,8 +95,11 @@ services:
       MC_PORT: 25565
       RCON_HOST: mc
       RCON_PORT: 25575
+      RCON_PASSWORD: research
       COLOR: blue
       BOOTSTRAP_WAIT_TIME: 30
+      CAMERA_READY_RETRIES: 30
+      CAMERA_READY_CHECK_INTERVAL: 2000
     command: ./entrypoint_senders.sh
 
   receiver_alpha:

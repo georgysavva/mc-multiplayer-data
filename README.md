@@ -276,7 +276,9 @@ Key environment variables that can be customized:
 - `OTHER_BOT_NAME`: Name of the other bot
 - `BOT_RNG_SEED`: Random seed for reproducible behavior. This should be the same for two bots for them to agree on certain actions that require randomness.
 - `EPISODES_NUM`: Number of episodes to run
-- `BOOTSTRAP_WAIT_TIME`: Seconds to wait before starting bots. This is needed to ensure the server is running before they try to connect.
+- `CAMERA_READY_RETRIES`: Number of attempts to check for camera clients before timing out (default: 30)
+- `CAMERA_READY_CHECK_INTERVAL`: Milliseconds between camera ready checks (default: 2000)
+- `BOOTSTRAP_WAIT_TIME`: Seconds to wait after cameras join for UI popups to clear before starting recording (default: 10)
 
 **Network Configuration:**
 
