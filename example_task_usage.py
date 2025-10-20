@@ -55,14 +55,16 @@ def main():
     print(f"  Duration: {result['duration_seconds']:.1f}s")
     
     if result['success']:
-        print(f"\n  Configuration:")
-        print(f"    Bot RNG Seed: {result['config']['bot_rng_seed']}")
-        print(f"    Iterations: {result['config']['iterations_per_episode']}")
-        print(f"    Min Actions: {result['config']['min_run_actions']}")
-        print(f"    Max Actions: {result['config']['max_run_actions']}")
-        print(f"    Bootstrap Wait: {result['config']['bootstrap_wait_time']}s")
-        print(f"    MC Port: {result['config']['mc_port']}")
-        print(f"    RCON Port: {result['config']['rcon_port']}")
+        print(f"\n  Task Environment Variables:")
+        task_vars = chase_gen.get_task_env_vars()
+        for key, value in task_vars.items():
+            print(f"    {key}: {value}")
+        
+        print(f"\n  Global Environment Variables:")
+        global_vars = chase_gen.get_global_env_vars()
+        for key, value in list(global_vars.items())[:5]:  # Show first 5
+            print(f"    {key}: {value}")
+        print(f"    ... and {len(global_vars) - 5} more")
     else:
         print(f"  Error: {result['error']}")
     

@@ -6,19 +6,18 @@ const {
   horizontalDistanceTo
 } = require('../utils/movement');
 const { tickMVC, createMVC, DEFAULT_MVC_CONFIG } = require('../utils/mvc');
+const { getMVCTestConfig } = require('../config/mvc-test-config');
 
-// Constants for MVC test episode
-const MVC_TEST_DURATION_MS = 10000; // 10 seconds of MVC testing
-const MVC_TEST_UPDATE_INTERVAL_MS = 200; // Update every 200ms
-const RANDOM_MOVEMENT_INTERVAL_MS = 2000; // Change movement every 2 seconds
+// Get MVC test-specific configuration
+const mvcTestConfig = getMVCTestConfig();
 
 // MVC Configuration for testing - more aggressive than default
 const MVC_TEST_CONFIG = {
-  fov_max_deg: 70,           // Stricter FOV constraint for testing
-  d_min: 2.5,                // Minimum distance buffer
-  d_max: 6.0,                // Maximum distance buffer
+  fov_max_deg: mvcTestConfig.fov_max,           // Stricter FOV constraint for testing
+  d_min: mvcTestConfig.d_min,                // Minimum distance buffer
+  d_max: mvcTestConfig.d_max,                // Maximum distance buffer
   enable_los_check: false,   // Phase I - flat terrain
-  correction_strength: 0.8,  // Strong corrections for testing
+  correction_strength: mvcTestConfig.correction_strength,  // Strong corrections for testing
   debug_logging: true        // Verbose logging for testing
 };
 
@@ -60,14 +59,14 @@ async function testMVCBehavior(bot, coordinator, otherBotName, durationMs) {
       const otherBot = bot.players[otherBotName];
       if (!otherBot || !otherBot.entity) {
         console.log(`[${bot.username}] Cannot see ${otherBotName} for MVC testing`);
-        await sleep(MVC_TEST_UPDATE_INTERVAL_MS);
+        await sleep(mvcTestConfig.update_interval);
         continue;
       }
       
       const otherBotPos = otherBot.entity.position;
       
       // Change movement direction periodically to test MVC corrections
-      if (now - lastMovementChange > RANDOM_MOVEMENT_INTERVAL_MS) {
+      if (now - lastMovementChange > mvcTestConfig.random_movement_interval) {
         stopAll(bot);
         
         // Pick random movement or stop
@@ -84,7 +83,7 @@ async function testMVCBehavior(bot, coordinator, otherBotName, durationMs) {
       }
       
       // Run MVC tick
-      if (now - lastMVCUpdate > MVC_TEST_UPDATE_INTERVAL_MS) {
+      if (now - lastMVCUpdate > mvcTestConfig.update_interval) {
         try {
           const mvcResult = await mvc.tick(bot, otherBotPos);
           
@@ -188,7 +187,7 @@ function getOnMVCTestPhaseFn(
     console.log(`[${bot.username}] Starting MVC test phase ${iterationID}`);
     
     // Execute MVC behavior testing
-    await testMVCBehavior(bot, coordinator, otherBotName, MVC_TEST_DURATION_MS);
+    await testMVCBehavior(bot, coordinator, otherBotName, mvcTestConfig.duration_ms);
     
     // Transition to stop phase
     coordinator.onceEvent(

@@ -1,4 +1,4 @@
-const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
+const mineflayerViewer = require("prismarine-viewer-colalab").headless;
 const Vec3 = require("vec3").Vec3;
 const { sleep } = require('../utils/helpers');
 const { land_pos, lookAtSmooth } = require('../utils/movement');
@@ -7,17 +7,16 @@ const { waitForCameras } = require('../utils/camera-ready');
 const {
   MIN_BOTS_DISTANCE,
   MAX_BOTS_DISTANCE,
-  CAMERA_SPEED_DEGREES_PER_SEC,
-  MIN_RUN_ACTIONS,
-  MAX_RUN_ACTIONS
+  CAMERA_SPEED_DEGREES_PER_SEC
 } = require('../utils/constants');
 
 // Import task-specific handlers
-const { walkStraightWhileLooking, getOnStraightLineWalkPhaseFn } = require('./straight-line-task');
-const { chaseRunner, runFromChaser, getOnChasePhaseFn } = require('./chase-task');
-const { orbitAroundFixedPoint, getOnOrbitPhaseFn } = require('./orbit-task');
-const { testMVCBehavior, getOnMVCTestPhaseFn } = require('./mvc-test-task');
-const { buildCooperativeBridge, getOnBridgeBuilderPhaseFn } = require('./bridge-builder-task');
+const { getOnStraightLineWalkPhaseFn } = require('./straight-line-task');
+const { getOnChasePhaseFn } = require('./chase-task');
+const { getOnOrbitPhaseFn } = require('./orbit-task');
+const { getOnMVCTestPhaseFn } = require('./mvc-test-task');
+const { getOnBridgeBuilderPhaseFn } = require('./bridge-builder-task');
+const { getOnGenericWalkPhaseFn } = require('./generic-walk-task');
 
 /**
  * Run a single episode
@@ -107,7 +106,7 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator, args) 
     await sleep(args.bootstrap_wait_time * 1000);
 
     // Initialize viewer once for the entire program
-    mineflayerViewerhl(bot, {
+    mineflayerViewer(bot, {
       output: `${host}:${receiverPort}`,
       width: 640,
       height: 360,
@@ -265,6 +264,18 @@ function getOnTeleportPhaseFn(
 
     // Task type is now controlled by the Python orchestrator via EPISODE_CATEGORY env var
     const selectedTaskType = args.episode_category;
+    
+    // Validate that a task type is specified
+    if (!selectedTaskType) {
+      throw new Error('EPISODE_CATEGORY environment variable is required but not set');
+    }
+    
+    // Validate that the task type is known
+    const validTaskTypes = ['straightLineWalk', 'chase', 'orbit', 'mvcTest', 'bridgeBuilder', 'genericWalk'];
+    if (!validTaskTypes.includes(selectedTaskType)) {
+      throw new Error(`Unknown task type: ${selectedTaskType}. Valid types are: ${validTaskTypes.join(', ')}`);
+    }
+    
     console.log(`[${bot.username}] Running task type: ${selectedTaskType}`);
 
     const iterationID = 0;
@@ -364,22 +375,22 @@ function getOnTeleportPhaseFn(
         bot.entity.position.clone(),
         "teleportPhase end"
       );
-    } else {
-      // Original walkAndLook episode
+    } else if (selectedTaskType === "genericWalk") {
       coordinator.onceEvent(
-        `walkAndLookPhase_${iterationID}`,
-        getOnWalkAndLookPhaseFn(
+        `genericWalkPhase_${iterationID}`,
+        getOnGenericWalkPhaseFn(
           bot,
           sharedBotRng,
           coordinator,
           iterationID,
           args.other_bot_name,
           episodeNum,
+          getOnStopPhaseFn,
           args
         )
       );
       coordinator.sendToOtherBot(
-        `walkAndLookPhase_${iterationID}`,
+        `genericWalkPhase_${iterationID}`,
         bot.entity.position.clone(),
         "teleportPhase end"
       );
@@ -387,114 +398,6 @@ function getOnTeleportPhaseFn(
   };
 }
 
-/**
- * Get walk and look phase handler function
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
- * @param {number} iterationID - Iteration ID
- * @param {string} otherBotName - Other bot name
- * @param {number} episodeNum - Episode number
- * @param {Object} args - Configuration arguments
- * @returns {Function} Walk and look phase handler
- */
-function getOnWalkAndLookPhaseFn(
-  bot,
-  sharedBotRng,
-  coordinator,
-  iterationID,
-  otherBotName,
-  episodeNum,
-  args
-) {
-  return async (otherBotPosition) => {
-    coordinator.sendToOtherBot(
-      `walkAndLookPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      `walkAndLookPhase_${iterationID} beginning`
-    );
-    const actionCount =
-      MIN_RUN_ACTIONS +
-      Math.floor(sharedBotRng() * (MAX_RUN_ACTIONS - MIN_RUN_ACTIONS + 1));
-
-    // Define three walking phase modes and randomly pick one using sharedBotRng
-    const walkingModes = [
-      "lower_name_walks_straight", 
-      "bigger_name_walks_straight"
-    ];
-    const selectedMode =
-      walkingModes[Math.floor(sharedBotRng() * walkingModes.length)];
-
-    console.log(
-      `[iter ${iterationID}] [${bot.username}] starting walk phase with ${actionCount} actions - mode: ${selectedMode}`
-    );
-
-    // Determine if this bot should walk based on the selected mode
-    let shouldThisBotWalk = false;
-
-    switch (selectedMode) {
-      case "both_bots_walk":
-        shouldThisBotWalk = true;
-        break;
-      case "lower_name_walks":
-        shouldThisBotWalk = bot.username < otherBotName;
-        break;
-      case "bigger_name_walks":
-        shouldThisBotWalk = bot.username > otherBotName;
-        break;
-    }
-
-    console.log(
-      `[iter ${iterationID}] [${bot.username}] will ${
-        shouldThisBotWalk ? "walk" : "sleep"
-      } during this phase`
-    );
-
-    // Look at the other bot smoothly at the start of the phase
-    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
-
-    // Either run() or sleep() based on the mode
-    if (shouldThisBotWalk) {
-      await run(bot, actionCount, args);
-    } else {
-      // Bot doesn't run, so no sleep is needed
-      console.log(
-        `[iter ${iterationID}] [${bot.username}] not walking this phase`
-      );
-    }
-
-    if (iterationID == args.iterations_num_per_episode - 1) {
-      coordinator.onceEvent(
-        "stopPhase",
-        getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
-      );
-      coordinator.sendToOtherBot(
-        "stopPhase",
-        bot.entity.position.clone(),
-        `walkAndLookPhase_${iterationID} end`
-      );
-      return;
-    }
-    const nextIterationID = iterationID + 1;
-    coordinator.onceEvent(
-      `walkAndLookPhase_${nextIterationID}`,
-      getOnWalkAndLookPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        nextIterationID,
-        args.other_bot_name,
-        episodeNum,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `walkAndLookPhase_${nextIterationID}`,
-      bot.entity.position.clone(),
-      `walkAndLookPhase_${iterationID} end`
-    );
-  };
-}
 
 /**
  * Get stop phase handler function
@@ -574,7 +477,6 @@ module.exports = {
   runSingleEpisode,
   getOnSpawnFn,
   getOnTeleportPhaseFn,
-  getOnWalkAndLookPhaseFn,
   getOnStopPhaseFn,
   getOnStoppedPhaseFn
 };

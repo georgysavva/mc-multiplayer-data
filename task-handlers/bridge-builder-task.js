@@ -9,21 +9,18 @@ const {
   isNearPosition
 } = require('../utils/movement');
 const { tickMVC, createMVC } = require('../utils/mvc');
+const { getBridgeBuilderConfig } = require('../config/bridge-builder-config');
 
-// Constants for bridge building episode
-const BRIDGE_BUILD_DURATION_MS = 20000; // 20 seconds of building
-const BRIDGE_LENGTH = 8; // 8 blocks long bridge
-const BLOCK_PLACE_INTERVAL_MS = 2000; // Place block every 2 seconds
-const EYE_CONTACT_DURATION_MS = 1000; // Look at partner for 1 second
-const COORDINATION_CHECK_INTERVAL_MS = 500; // Check coordination every 500ms
+// Get bridge builder-specific configuration
+const bridgeBuilderConfig = getBridgeBuilderConfig();
 
 // MVC Configuration for bridge building - relaxed during placement
 const BRIDGE_MVC_CONFIG = {
-  fov_max_deg: 120,          // Relaxed FOV for block placement
-  d_min: 2.0,                // Minimum distance buffer
-  d_max: 10.0,               // Larger max distance for building
+  fov_max_deg: bridgeBuilderConfig.fov_max,          // Relaxed FOV for block placement
+  d_min: bridgeBuilderConfig.d_min,                // Minimum distance buffer
+  d_max: bridgeBuilderConfig.d_max,               // Larger max distance for building
   enable_los_check: false,   // Phase I - flat terrain
-  correction_strength: 0.3,  // Gentle corrections during building
+  correction_strength: bridgeBuilderConfig.correction_strength,  // Gentle corrections during building
   debug_logging: true
 };
 
@@ -87,7 +84,7 @@ async function buildCooperativeBridge(bot, coordinator, otherBotName, durationMs
         const otherBotPos = otherBot.entity.position;
         
         // Run MVC tick periodically
-        if (now - lastMVCUpdate > COORDINATION_CHECK_INTERVAL_MS) {
+        if (now - lastMVCUpdate > bridgeBuilderConfig.coordination_check_interval) {
           try {
             const mvcResult = await mvc.tick(bot, otherBotPos);
             if (mvcResult.appliedCorrections.lookedAt || mvcResult.appliedCorrections.movedRight) {
@@ -104,9 +101,9 @@ async function buildCooperativeBridge(bot, coordinator, otherBotName, durationMs
           console.log(`[${bot.username}] Step 1: Looking at ${otherBotName} before placing block`);
           try {
             await lookAtBot(bot, otherBotName, 180);
-            buildStats.eye_contact_duration += 1000;
+            buildStats.eye_contact_duration += bridgeBuilderConfig.eye_contact_duration;
             buildStats.coordination_checks++;
-            await sleep(1000);
+            await sleep(bridgeBuilderConfig.eye_contact_duration);
           } catch (error) {
             console.log(`[${bot.username}] Look at partner failed:`, error.message);
           }
@@ -221,7 +218,7 @@ async function buildCooperativeBridge(bot, coordinator, otherBotName, durationMs
       }
       
       // Wait a bit before next attempt
-      await sleep(2000);
+      await sleep(bridgeBuilderConfig.block_place_interval);
     }
   } finally {
     stopAll(bot);
@@ -274,7 +271,7 @@ function getOnBridgeBuilderPhaseFn(
     console.log(`[${bot.username}] Starting cooperative bridge builder phase ${iterationID}`);
     
     // Execute cooperative bridge building
-    await buildCooperativeBridge(bot, coordinator, otherBotName, BRIDGE_BUILD_DURATION_MS);
+    await buildCooperativeBridge(bot, coordinator, otherBotName, bridgeBuilderConfig.build_duration_ms);
     
     // Transition to stop phase
     coordinator.onceEvent(

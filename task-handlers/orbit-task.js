@@ -10,22 +10,18 @@ const {
   stopPathfinder
 } = require('../utils/movement');
 const { tickMVC, createMVC } = require('../utils/mvc');
+const { getOrbitConfig } = require('../config/orbit-config');
 
-// Constants for orbit behavior
-const ORBIT_DURATION_MS = 15000; // 15 seconds of orbiting
-const ORBIT_UPDATE_INTERVAL_MS = 200; // Update positions every 200ms
-const ORBIT_RADIUS = 5.0; // Fixed radius around midpoint
-const ORBIT_SPEED = 0.10; // Angular speed for circular movement (radians per update)
-const CAMERA_SPEED_DEGREES_PER_SEC = 90; // Camera movement speed
-const EYE_CONTACT_UPDATE_INTERVAL_MS = 500; // Update eye contact every 1 second
+// Get orbit-specific configuration
+const orbitConfig = getOrbitConfig();
 
 // MVC Configuration for orbit episode
 const ORBIT_MVC_CONFIG = {
-  fov_max_deg: 90,           // Slightly larger FOV for orbit movement
-  d_min: 3.0,                // Minimum distance (closer than orbit radius)
-  d_max: 8.0,                // Maximum distance (further than orbit radius)
+  fov_max_deg: orbitConfig.fov_max,           // Slightly larger FOV for orbit movement
+  d_min: orbitConfig.d_min,                // Minimum distance (closer than orbit radius)
+  d_max: orbitConfig.d_max,                // Maximum distance (further than orbit radius)
   enable_los_check: false,   // Phase I - flat terrain
-  correction_strength: 0.3,  // Gentle corrections during orbit
+  correction_strength: orbitConfig.correction_strength,  // Gentle corrections during orbit
   debug_logging: true
 };
 
@@ -78,8 +74,8 @@ async function orbitAroundSharedMidpoint(bot, coordinator, otherBotName, sharedM
       const now = Date.now();
       
       // Calculate target position on the circle around shared midpoint
-      const targetX = sharedMidpoint.x + ORBIT_RADIUS * Math.cos(angle);
-      const targetZ = sharedMidpoint.z + ORBIT_RADIUS * Math.sin(angle);
+      const targetX = sharedMidpoint.x + orbitConfig.radius * Math.cos(angle);
+      const targetZ = sharedMidpoint.z + orbitConfig.radius * Math.sin(angle);
       const targetPos = new Vec3(targetX, sharedMidpoint.y, targetZ);
       
       // Use pathfinder to move to orbit position
@@ -93,7 +89,7 @@ async function orbitAroundSharedMidpoint(bot, coordinator, otherBotName, sharedM
         const otherBotPos = otherBot.entity.position;
         
         // Run MVC tick every update interval
-        if (now - lastMVCUpdate > ORBIT_UPDATE_INTERVAL_MS) {
+        if (now - lastMVCUpdate > orbitConfig.update_interval) {
           try {
             const mvcResult = await mvc.tick(bot, otherBotPos);
             
@@ -116,10 +112,10 @@ async function orbitAroundSharedMidpoint(bot, coordinator, otherBotName, sharedM
         }
         
         // Maintain eye contact with other bot (less frequent than MVC to avoid conflicts)
-        if (now - lastEyeContactUpdate > EYE_CONTACT_UPDATE_INTERVAL_MS) {
+        if (now - lastEyeContactUpdate > orbitConfig.eye_contact_interval) {
           // Only do manual eye contact if MVC didn't just correct it
           if (now - lastMVCUpdate > 100) {
-            await lookAtBot(bot, otherBotName, CAMERA_SPEED_DEGREES_PER_SEC);
+            await lookAtBot(bot, otherBotName, orbitConfig.camera_speed);
             console.log(`[${bot.username}] Manual eye contact with ${otherBotName} while orbiting`);
           }
           lastEyeContactUpdate = now;
@@ -129,12 +125,12 @@ async function orbitAroundSharedMidpoint(bot, coordinator, otherBotName, sharedM
       }
       
       // Advance angle for next orbit position
-      angle += ORBIT_SPEED;
+      angle += orbitConfig.speed;
       if (angle > 2 * Math.PI) {
         angle -= 2 * Math.PI; // Keep angle in [0, 2π] range
       }
       
-      await sleep(ORBIT_UPDATE_INTERVAL_MS);
+      await sleep(orbitConfig.update_interval);
     }
   } finally {
     // Clean up pathfinder
@@ -196,7 +192,7 @@ function getOnOrbitPhaseFn(
     console.log(`[${bot.username}] ${otherBotName} position: (${otherPosition.x.toFixed(1)}, ${otherPosition.y.toFixed(1)}, ${otherPosition.z.toFixed(1)})`);
     
     // Execute the orbit behavior using pathfinder around shared midpoint
-    await orbitAroundSharedMidpoint(bot, coordinator, otherBotName, sharedMidpoint, ORBIT_DURATION_MS);
+    await orbitAroundSharedMidpoint(bot, coordinator, otherBotName, sharedMidpoint, orbitConfig.duration_ms);
     
     // Transition to stop phase
     coordinator.onceEvent(

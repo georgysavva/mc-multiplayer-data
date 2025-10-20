@@ -10,11 +10,10 @@ const {
   horizontalDistanceTo,
   getDirectionTo 
 } = require('../utils/movement');
+const { getStraightLineConfig } = require('../config/straight-line-config');
 
-// Constants for the new episode
-const STRAIGHT_WALK_DISTANCE = 8; // Distance to walk in straight line
-const LOOK_UPDATE_INTERVAL = 50; // How often to update look direction (ms)
-const CAMERA_SPEED_DEGREES_PER_SEC = 180; // Same as main file
+// Get straight line-specific configuration
+const straightLineConfig = getStraightLineConfig();
 
 /**
  * Walk straight while looking at other bot with offset to avoid collision
@@ -58,8 +57,8 @@ async function walkStraightWhileLooking(bot, otherBotPosition, walkDistance, wal
       
       // Update look direction periodically
       const now = Date.now();
-      if (now - lastLookUpdate > LOOK_UPDATE_INTERVAL) {
-        await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+      if (now - lastLookUpdate > straightLineConfig.look_update_interval) {
+        await lookAtSmooth(bot, otherBotPosition, straightLineConfig.camera_speed);
         lastLookUpdate = now;
       }
       
@@ -136,14 +135,14 @@ function getOnStraightLineWalkPhaseFn(
 
     if (shouldThisBotWalk) {
       // Execute straight line walking using building blocks
-      await walkStraightWhileLooking(bot, otherBotPosition, STRAIGHT_WALK_DISTANCE, args.walk_timeout);
+      await walkStraightWhileLooking(bot, otherBotPosition, straightLineConfig.walk_distance, args.walk_timeout);
     } else {
       // Bot doesn't walk, just looks at the other bot
       console.log(`[${bot.username}] Staying in place and looking at other bot`);
-      await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+      await lookAtSmooth(bot, otherBotPosition, straightLineConfig.camera_speed);
       
       // Wait for the walking bot to complete (approximate time)
-      const estimatedWalkTime = (STRAIGHT_WALK_DISTANCE / 4.3) * 1000; // Rough estimate based on sprint speed
+      const estimatedWalkTime = (straightLineConfig.walk_distance / 4.3) * 1000; // Rough estimate based on sprint speed
       await sleep(estimatedWalkTime);
     }
 

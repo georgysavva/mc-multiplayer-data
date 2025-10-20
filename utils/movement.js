@@ -424,6 +424,160 @@ function isNearBot(bot, targetBotName, threshold = 1.0) {
 }
 
 // ============================================================================
+// WALKING AND RUNNING FUNCTIONS
+// ============================================================================
+
+/**
+ * Jump for a specified duration
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} durationMs - Duration to jump in milliseconds
+ */
+async function jump(bot, durationMs) {
+  console.log(
+    `[${bot.username}] Jumping for ${(durationMs / 1000).toFixed(1)}s`
+  );
+  const end = Date.now() + durationMs;
+  while (Date.now() < end) {
+    bot.setControlState("jump", true);
+    await sleep(250);
+    bot.setControlState("jump", false);
+    await sleep(250);
+  }
+}
+
+/**
+ * Walk in a random direction for a specified distance and return
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} distance - Distance to walk
+ * @param {Object} args - Configuration arguments
+ */
+async function walk(bot, distance, args) {
+  const startPos = bot.entity.position.clone();
+  const directions = ["forward", "back", "left", "right"];
+  const dir = directions[Math.floor(Math.random() * directions.length)];
+  const walkTimeoutMs = args.walk_timeout * 1000; // Convert to milliseconds
+
+  // Define the reverse direction
+  const reverseDir = {
+    forward: "back",
+    back: "forward",
+    left: "right",
+    right: "left",
+  };
+
+  console.log(
+    `[${bot.username}] Walking ${dir} for ${distance} blocks from position (${startPos.x.toFixed(2)}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}) with ${args.walk_timeout}s timeout`
+  );
+
+  // Walk in the chosen direction until we reach the target distance
+  bot.setControlState(dir, true);
+
+  let actualDistance = 0;
+  const forwardStartTime = Date.now();
+  try {
+    while (bot.entity.position.distanceTo(startPos) < distance) {
+      // Check for timeout
+      if (Date.now() - forwardStartTime > walkTimeoutMs) {
+        console.log(
+          `[${bot.username}] Walk timeout (${args.walk_timeout}s) reached while walking ${dir}`
+        );
+        break;
+      }
+      await sleep(50); // Check position every 50ms
+    }
+    actualDistance = bot.entity.position.distanceTo(startPos);
+  } finally {
+    bot.setControlState(dir, false);
+  }
+
+  const reachedPos = bot.entity.position.clone();
+  console.log(
+    `[${bot.username}] Reached distance ${actualDistance.toFixed(2)} blocks at position (${reachedPos.x.toFixed(2)}, ${reachedPos.y.toFixed(2)}, ${reachedPos.z.toFixed(2)})`
+  );
+
+  // Randomly jump before returning based on jump probability
+  if (Math.random() < 0.25) { // JUMP_PROBABILITY from constants
+    const jumpDurationSec = 1 + Math.random() * 2; // MIN_JUMP_DURATION_SEC + random * (MAX_JUMP_DURATION_SEC - MIN_JUMP_DURATION_SEC)
+    const jumpDurationMs = Math.floor(jumpDurationSec * 1000);
+    console.log(
+      `[${bot.username}] Jumping for ${jumpDurationSec.toFixed(1)}s before returning`
+    );
+    await jump(bot, jumpDurationMs);
+  }
+
+  // Now return to the starting position by walking in the reverse direction
+  console.log(
+    `[${bot.username}] Returning to starting position by walking ${reverseDir[dir]}`
+  );
+
+  bot.setControlState(reverseDir[dir], true);
+
+  const returnStartTime = Date.now();
+  try {
+    // Walk back until we're close to the starting position
+    while (bot.entity.position.distanceTo(startPos) > 1.0) {
+      // Check for timeout
+      if (Date.now() - returnStartTime > walkTimeoutMs) {
+        console.log(
+          `[${bot.username}] Walk timeout (${args.walk_timeout}s) reached while returning via ${reverseDir[dir]}`
+        );
+        break;
+      }
+      await sleep(50); // Check position every 50ms
+    }
+  } finally {
+    bot.setControlState(reverseDir[dir], false);
+  }
+
+  const finalDistance = bot.entity.position.distanceTo(startPos);
+  console.log(
+    `[${bot.username}] Returned to within ${finalDistance.toFixed(2)} blocks of starting position`
+  );
+
+  // Randomly jump after returning to start position
+  if (Math.random() < 0.25) { // JUMP_PROBABILITY from constants
+    const jumpDurationSec = 1 + Math.random() * 2; // MIN_JUMP_DURATION_SEC + random * (MAX_JUMP_DURATION_SEC - MIN_JUMP_DURATION_SEC)
+    const jumpDurationMs = Math.floor(jumpDurationSec * 1000);
+    console.log(
+      `[${bot.username}] Jumping for ${jumpDurationSec.toFixed(1)}s after returning to start`
+    );
+    await jump(bot, jumpDurationMs);
+  }
+}
+
+/**
+ * Execute multiple walk actions with random sleep intervals
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} actionCount - Number of actions to perform
+ * @param {Object} args - Configuration arguments
+ */
+async function run(bot, actionCount, args) {
+  const actions = [() => walk(bot, 3 + Math.random() * 1, args)]; // MIN_WALK_DISTANCE + random * (MAX_WALK_DISTANCE - MIN_WALK_DISTANCE)
+
+  console.log(`[${bot.username}] Running ${actionCount} actions`);
+
+  for (let i = 0; i < actionCount; i++) {
+    // Sleep before each action, including the first one
+    const sleepTimeSec = 0.2 + Math.random() * 0.3; // MIN_SLEEP_BETWEEN_ACTIONS_SEC + random * (MAX_SLEEP_BETWEEN_ACTIONS_SEC - MIN_SLEEP_BETWEEN_ACTIONS_SEC)
+    const sleepTimeMs = Math.floor(sleepTimeSec * 1000);
+    console.log(
+      `[${bot.username}] Sleeping for ${sleepTimeSec.toFixed(2)}s before action ${i + 1}`
+    );
+    await sleep(sleepTimeMs);
+
+    const action = actions[Math.floor(Math.random() * actions.length)]; // choice(actions)
+    try {
+      console.log(`[${bot.username}] Executing action ${i + 1}/${actionCount}`);
+      await action();
+    } catch (err) {
+      console.error(`[${bot.username}] Action error:`, err);
+    } finally {
+      stopAll(bot);
+    }
+  }
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -447,6 +601,11 @@ module.exports = {
   lookAtSmooth,
   lookAtBot,
   lookDirection,
+  
+  // Walking and running
+  jump,
+  walk,
+  run,
   
   // Utilities
   sleep,

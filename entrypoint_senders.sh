@@ -30,30 +30,4 @@ echo "[entrypoint] GLX sanity check:"
 glxinfo -B || true  # don't hard-fail; just print if available
 
 echo "[entrypoint] Launching app..."
-echo "[entrypoint] Bot config: ${BOT_NAME:-Alpha} <-> ${OTHER_BOT_NAME:-Bravo}, Ports: ${COORD_PORT:-8093}/${OTHER_COORD_PORT:-8094}"
-# exec node senders_simple.js 
-exec node senders.js \
-  --bot_name "${BOT_NAME:-Alpha}" \
-  --other_bot_name "${OTHER_BOT_NAME:-Bravo}" \
-  --receiver_host "${RECEIVER_HOST:-127.0.0.1}" \
-  --receiver_port "${RECEIVER_PORT:-8091}" \
-  --coord_port "${COORD_PORT:-8093}" \
-  --other_coord_host "${OTHER_COORD_HOST:-127.0.0.1}" \
-  --other_coord_port "${OTHER_COORD_PORT:-8094}" \
-  --bot_rng_seed "${BOT_RNG_SEED:-}" \
-  --episodes_num "${EPISODES_NUM:-1}" \
-  --start_episode_id "${EPISODE_START_ID:-0}" \
-  --episode_category "${EPISODE_CATEGORY:-look}" \
-  --host "${MC_HOST:-127.0.0.1}" \
-  --port "${MC_PORT:-25565}" \
-  --rcon_host "${RCON_HOST:-127.0.0.1}" \
-  --rcon_port "${RCON_PORT:-25575}" \
-  --rcon_password "${RCON_PASSWORD:-research}" \
-  --color "${COLOR:-red}" \
-  --bootstrap_wait_time "${BOOTSTRAP_WAIT_TIME:-0}" \
-  --camera_ready_retries "${CAMERA_READY_RETRIES:-30}" \
-  --camera_ready_check_interval "${CAMERA_READY_CHECK_INTERVAL:-2000}" \
-  --min_run_actions "${MIN_RUN_ACTIONS:-3}" \
-  --max_run_actions "${MAX_RUN_ACTIONS:-5}" \
-  --iterations_num_per_episode "${ITERATIONS_NUM_PER_EPISODE:-3}" \
-  --mc_version "${MC_VERSION:-1.20.4}"
+exec node senders.js

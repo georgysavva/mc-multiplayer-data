@@ -10,14 +10,10 @@ const {
   initializePathfinder,
   stopPathfinder
 } = require('../utils/movement');
+const { getChaseConfig } = require('../config/chase-config');
 
-// Constants for chase behavior
-const CHASE_DURATION_MS = 10000; // 10 seconds of chase
-const POSITION_UPDATE_INTERVAL_MS = 500; // Update positions every 500ms
-const MIN_CHASE_DISTANCE = 3.0; // Minimum distance to maintain chase
-const ESCAPE_DISTANCE = 8.0; // Distance at which runner changes direction
-const DIRECTION_CHANGE_INTERVAL = 4000; // Change direction every 4 seconds
-const CAMERA_SPEED = 90; // Camera movement speed (degrees per second)
+// Get chase-specific configuration
+const chaseConfig = getChaseConfig();
 
 /**
  * Chaser behavior - uses pure pathfinder for intelligent AI movement
@@ -63,18 +59,18 @@ async function chaseRunner(bot, coordinator, otherBotName, chaseDurationMs) {
         // Update camera to look at runner periodically
         const now = Date.now();
         if (now - lastCameraUpdate > 2000) { // Update camera every 2 seconds
-          await lookAtBot(bot, otherBotName, CAMERA_SPEED);
+          await lookAtBot(bot, otherBotName, chaseConfig.camera_speed);
           lastCameraUpdate = now;
         }
         
         // Update pathfinder goal periodically like the GPS example
         if (now - lastGoalUpdate > 1000) { // Update goal every second
-          if (distance > MIN_CHASE_DISTANCE) {
+          if (distance > chaseConfig.min_distance) {
             console.log(`[${bot.username}] 🤖 Setting pure pathfinder goal for intelligent chase`);
             
             // Use GoalNear like the GPS example - this is the correct way
             const { x: playerX, y: playerY, z: playerZ } = targetPos;
-            bot.pathfinder.setGoal(new GoalNear(playerX, playerY, playerZ, MIN_CHASE_DISTANCE));
+            bot.pathfinder.setGoal(new GoalNear(playerX, playerY, playerZ, chaseConfig.min_distance));
             console.log(`[${bot.username}] ✅ Pure pathfinder GoalNear set to (${playerX.toFixed(1)}, ${playerY.toFixed(1)}, ${playerZ.toFixed(1)})`);
             
           } else {
@@ -90,7 +86,7 @@ async function chaseRunner(bot, coordinator, otherBotName, chaseDurationMs) {
         stopAll(bot);
       }
       
-      await sleep(POSITION_UPDATE_INTERVAL_MS);
+      await sleep(chaseConfig.position_update_interval);
     }
   } finally {
     coordinator.removeListener('requestPosition', positionRequestHandler);
@@ -180,7 +176,7 @@ async function runFromChaser(bot, coordinator, otherBotName, chaseDurationMs) {
       // }
       
       // Just sleep and let pathfinder do its work
-      await sleep(POSITION_UPDATE_INTERVAL_MS);
+      await sleep(chaseConfig.position_update_interval);
     }
   } finally {
     // Clean up pathfinder
@@ -227,9 +223,9 @@ function getOnChasePhaseFn(
     
     // Execute appropriate behavior using pathfinder-enhanced functions
     if (isChaser) {
-      await chaseRunner(bot, coordinator, otherBotName, CHASE_DURATION_MS);
+      await chaseRunner(bot, coordinator, otherBotName, chaseConfig.duration_ms);
     } else {
-      await runFromChaser(bot, coordinator, otherBotName, CHASE_DURATION_MS);
+      await runFromChaser(bot, coordinator, otherBotName, chaseConfig.duration_ms);
     }
     
     // Transition to stop phase

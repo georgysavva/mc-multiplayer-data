@@ -22,45 +22,6 @@ import tempfile
 from .base_compose_template import get_base_compose_template
 
 
-class TaskConfig:
-    """Configuration for a single task episode"""
-    
-    def __init__(self):
-        # Bot behavior (randomized per episode)
-        self.bot_rng_seed: Optional[int] = None
-        self.iterations_per_episode: Optional[int] = None
-        self.min_run_actions: Optional[int] = None
-        self.max_run_actions: Optional[int] = None
-        self.bootstrap_wait_time: Optional[int] = None
-        
-        # Infrastructure (unique per worker/episode)
-        self.mc_port: Optional[int] = None
-        self.rcon_port: Optional[int] = None
-        self.vnc_display_alpha: Optional[int] = None
-        self.vnc_display_bravo: Optional[int] = None
-        self.vnc_port_alpha: Optional[int] = None
-        self.vnc_port_bravo: Optional[int] = None
-        self.novnc_port_alpha: Optional[int] = None
-        self.novnc_port_bravo: Optional[int] = None
-        self.instance_id: Optional[int] = None
-        
-        # Paths
-        self.data_dir: Optional[str] = None
-        self.output_dir: Optional[str] = None
-        self.camera_data_dir_alpha: Optional[str] = None
-        self.camera_data_dir_bravo: Optional[str] = None
-        self.camera_output_dir_alpha: Optional[str] = None
-        self.camera_output_dir_bravo: Optional[str] = None
-        
-        # World configuration (placeholder for future randomization)
-        self.world_seed: Optional[int] = None
-        self.world_config: Optional[Dict[str, Any]] = None
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for serialization"""
-        return {k: v for k, v in self.__dict__.items() if v is not None}
-
-
 class BaseTaskGenerator(ABC):
     """
     Base class for task generators.
@@ -120,14 +81,48 @@ class BaseTaskGenerator(ABC):
         self.data_root.mkdir(parents=True, exist_ok=True)
         self.camera_root.mkdir(parents=True, exist_ok=True)
     
+
+    def get_global_env_vars(self) -> Dict[str, str]:
+        """Return global environment variables as a dictionary"""
+        return {
+            "MC_HOST": "127.0.0.1",
+            "RCON_HOST": "127.0.0.1", 
+            "RCON_PASSWORD": "research",
+            "RECEIVER_HOST": "127.0.0.1",
+            "RECEIVER_PORT": "8091",
+            "BOT_NAME": "Alpha",
+            "OTHER_BOT_NAME": "Bravo",
+            "COLOR": "red",
+            "COORD_PORT": "8093",
+            "OTHER_COORD_HOST": "127.0.0.1",
+            "OTHER_COORD_PORT": "8094",
+            "EPISODES_NUM": "1",
+            "EPISODE_START_ID": "0",
+            "ITERATIONS_NUM_PER_EPISODE": "5",
+            "BOOTSTRAP_WAIT_TIME": "20",
+            "CAMERA_READY_RETRIES": "30",
+            "CAMERA_READY_CHECK_INTERVAL": "2000",
+            "TELEPORT_CENTER_X": "0",
+            "TELEPORT_CENTER_Z": "0",
+            "TELEPORT_RADIUS": "500",
+            "WALK_TIMEOUT": "5",
+            "MC_VERSION": "1.20.4"
+        }
+    
     @abstractmethod
-    def sample_task_config(self) -> TaskConfig:
+    def get_task_env_vars(self) -> Dict[str, str]:
         """
-        Sample randomized parameters for this specific task.
+        Return task-specific environment variables as a dictionary.
         Each task type implements its own randomization strategy.
         
         Returns:
-            TaskConfig with randomized bot behavior parameters
+            Dictionary of environment variable name -> value (as string)
+            
+        Example:
+            return {
+                "CHASE_DURATION_MS": "10000",
+                "CHASE_MIN_DISTANCE": "3.0"
+            }
         """
         pass
     
@@ -142,62 +137,66 @@ class BaseTaskGenerator(ABC):
         Returns:
             Dictionary with episode metadata and results
         """
-        # 1. Sample configuration
-        config = self.sample_task_config()
-        
-        # 2. Setup unique infrastructure settings based on worker_id
+        # 1. Setup unique infrastructure settings based on worker_id
         port_offset = self.worker_id * 100
-        config.mc_port = self.base_port + port_offset
-        config.rcon_port = self.base_rcon_port + port_offset
-        config.vnc_display_alpha = self.base_vnc_display + (self.worker_id * 2)
-        config.vnc_display_bravo = self.base_vnc_display + (self.worker_id * 2) + 1
-        config.vnc_port_alpha = self.base_vnc_port + (self.worker_id * 2)
-        config.vnc_port_bravo = self.base_vnc_port + (self.worker_id * 2) + 1
-        config.novnc_port_alpha = self.base_novnc_port + (self.worker_id * 2)
-        config.novnc_port_bravo = self.base_novnc_port + (self.worker_id * 2) + 1
-        config.instance_id = self.worker_id * 10000 + self.episode_counter
+        mc_port = self.base_port + port_offset
+        rcon_port = self.base_rcon_port + port_offset
+        vnc_display_alpha = self.base_vnc_display + (self.worker_id * 2)
+        vnc_display_bravo = self.base_vnc_display + (self.worker_id * 2) + 1
+        vnc_port_alpha = self.base_vnc_port + (self.worker_id * 2)
+        vnc_port_bravo = self.base_vnc_port + (self.worker_id * 2) + 1
+        novnc_port_alpha = self.base_novnc_port + (self.worker_id * 2)
+        novnc_port_bravo = self.base_novnc_port + (self.worker_id * 2) + 1
+        instance_id = self.worker_id * 10000 + self.episode_counter
         
-        # 3. Setup worker-specific directories
+        # 2. Setup worker-specific directories
         episode_id = f"worker{self.worker_id:03d}_ep{self.episode_counter:06d}"
         
         worker_data_dir = self.data_root / f"worker_{self.worker_id}"
         episode_data_dir = worker_data_dir / f"episode_{self.episode_counter}"
-        config.data_dir = str(episode_data_dir)
-        config.output_dir = str(self.output_root)
+        data_dir = str(episode_data_dir)
+        output_dir = str(self.output_root)
         
         worker_camera_dir = self.camera_root / f"worker_{self.worker_id}" / f"ep_{self.episode_counter}"
-        config.camera_data_dir_alpha = str(worker_camera_dir / "data_alpha")
-        config.camera_data_dir_bravo = str(worker_camera_dir / "data_bravo")
-        config.camera_output_dir_alpha = str(worker_camera_dir / "output_alpha")
-        config.camera_output_dir_bravo = str(worker_camera_dir / "output_bravo")
+        camera_data_dir_alpha = str(worker_camera_dir / "data_alpha")
+        camera_data_dir_bravo = str(worker_camera_dir / "data_bravo")
+        camera_output_dir_alpha = str(worker_camera_dir / "output_alpha")
+        camera_output_dir_bravo = str(worker_camera_dir / "output_bravo")
         
         # Create all directories
-        for dir_path in [
-            config.data_dir,
-            config.camera_data_dir_alpha,
-            config.camera_data_dir_bravo,
-            config.camera_output_dir_alpha,
-            config.camera_output_dir_bravo
-        ]:
+        for dir_path in [data_dir, camera_data_dir_alpha, camera_data_dir_bravo, 
+                         camera_output_dir_alpha, camera_output_dir_bravo]:
             Path(dir_path).mkdir(parents=True, exist_ok=True)
         
-        # 4. Generate docker-compose file
-        compose_file = self._generate_compose_file(config, episode_id)
+        # 3. Generate docker-compose file
+        compose_file = self._generate_compose_file(episode_id, mc_port, rcon_port, 
+                                                 vnc_display_alpha, vnc_display_bravo,
+                                                 vnc_port_alpha, vnc_port_bravo,
+                                                 novnc_port_alpha, novnc_port_bravo,
+                                                 instance_id, data_dir, output_dir,
+                                                 camera_data_dir_alpha, camera_data_dir_bravo,
+                                                 camera_output_dir_alpha, camera_output_dir_bravo)
         
-        # 5. Save config for reproducibility
+        # 4. Save config for reproducibility (if needed)
         if save_config:
+            config_data = {
+                "bot_rng_seed": self.rng.randint(0, 2**31 - 1),
+                "world_seed": self.rng.randint(0, 2**31 - 1),
+                "task_env_vars": self.get_task_env_vars(),
+                "global_env_vars": self.get_global_env_vars()
+            }
             config_file = self.output_root / f"{episode_id}_{self.task_name}_config.json"
             with open(config_file, 'w') as f:
-                json.dump(config.to_dict(), f, indent=2)
+                json.dump(config_data, f, indent=2)
         
-        # 6. Run the stack (similar to run_stack.sh)
+        # 5. Run the stack (similar to run_stack.sh)
         print(f"[Worker {self.worker_id}] Task: {self.task_name}, Episode: {self.episode_counter}")
-        print(f"  MC Port: {config.mc_port}, RCON Port: {config.rcon_port}")
-        print(f"  VNC Displays: :{config.vnc_display_alpha}, :{config.vnc_display_bravo}")
+        print(f"  MC Port: {mc_port}, RCON Port: {rcon_port}")
+        print(f"  VNC Displays: :{vnc_display_alpha}, :{vnc_display_bravo}")
         
         start_time = datetime.now()
         try:
-            self._run_docker_stack(compose_file, episode_id, config)
+            self._run_docker_stack(compose_file, episode_id)
             success = True
             error = None
         except Exception as e:
@@ -208,13 +207,12 @@ class BaseTaskGenerator(ABC):
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
         
-        # 7. Collect output information
+        # 6. Collect output information
         result = {
             "worker_id": self.worker_id,
             "task_name": self.task_name,
             "episode_number": self.episode_counter,
             "episode_id": episode_id,
-            "config": config.to_dict(),
             "success": success,
             "error": error,
             "duration_seconds": duration,
@@ -225,13 +223,26 @@ class BaseTaskGenerator(ABC):
         self.episode_counter += 1
         return result
     
-    def _generate_compose_file(self, config: TaskConfig, episode_id: str) -> Path:
+    def _generate_compose_file(self, episode_id: str, mc_port: int, rcon_port: int,
+                             vnc_display_alpha: int, vnc_display_bravo: int,
+                             vnc_port_alpha: int, vnc_port_bravo: int,
+                             novnc_port_alpha: int, novnc_port_bravo: int,
+                             instance_id: int, data_dir: str, output_dir: str,
+                             camera_data_dir_alpha: str, camera_data_dir_bravo: str,
+                             camera_output_dir_alpha: str, camera_output_dir_bravo: str) -> Path:
         """
         Generate docker-compose file by overriding base template.
         
         Args:
-            config: TaskConfig with all settings
             episode_id: Unique episode identifier
+            mc_port, rcon_port: Server ports
+            vnc_display_alpha, vnc_display_bravo: VNC display numbers
+            vnc_port_alpha, vnc_port_bravo: VNC ports
+            novnc_port_alpha, novnc_port_bravo: noVNC ports
+            instance_id: Unique instance ID
+            data_dir, output_dir: Directory paths
+            camera_data_dir_alpha, camera_data_dir_bravo: Camera data directories
+            camera_output_dir_alpha, camera_output_dir_bravo: Camera output directories
             
         Returns:
             Path to generated docker-compose file
@@ -249,36 +260,54 @@ class BaseTaskGenerator(ABC):
             "biome": "minecraft:plains"
         })
         
+        # Get environment variable dictionaries
+        global_env_vars = self.get_global_env_vars()
+        task_env_vars = self.get_task_env_vars()
+        
         # Override MC server settings
         mc_service = compose["services"]["mc"]
-        mc_service["environment"]["SERVER_PORT"] = config.mc_port
-        mc_service["environment"]["RCON_PORT"] = config.rcon_port
-        mc_service["environment"]["SEED"] = str(config.world_seed) if config.world_seed else ""
+        mc_service["environment"]["SERVER_PORT"] = mc_port
+        mc_service["environment"]["RCON_PORT"] = rcon_port
+        mc_service["environment"]["SEED"] = str(self.rng.randint(0, 2**31 - 1))
         mc_service["environment"]["GENERATOR_SETTINGS"] = terrain_json
-        mc_service["volumes"] = [f"{config.data_dir}:/data"]
+        mc_service["volumes"] = [f"{data_dir}:/data"]
         mc_service["healthcheck"]["test"] = [
             "CMD-SHELL",
-            f"mc-monitor status --host localhost --port {config.mc_port}"
+            f"mc-monitor status --host localhost --port {mc_port}"
         ]
         
         # Override sender settings (CRITICAL: Set EPISODE_CATEGORY)
         for bot_name in ["sender_alpha", "sender_bravo"]:
             bot_service = compose["services"][bot_name]
-            bot_service["environment"]["EPISODE_CATEGORY"] = self.task_name
-            bot_service["environment"]["BOT_RNG_SEED"] = str(config.bot_rng_seed)
-            bot_service["environment"]["MC_PORT"] = config.mc_port
-            bot_service["environment"]["RCON_PORT"] = config.rcon_port
-            bot_service["environment"]["BOOTSTRAP_WAIT_TIME"] = config.bootstrap_wait_time
-            bot_service["environment"]["MIN_RUN_ACTIONS"] = config.min_run_actions
-            bot_service["environment"]["MAX_RUN_ACTIONS"] = config.max_run_actions
-            bot_service["environment"]["ITERATIONS_NUM_PER_EPISODE"] = config.iterations_per_episode
-            bot_service["volumes"] = [f"{config.output_dir}:/output"]
+            
+            # Set global environment variables
+            bot_service["environment"].update(global_env_vars)
+            
+            # Set task-specific environment variables (same for both bots)
+            bot_service["environment"].update(task_env_vars)
+            
+            # Set bot-specific variables
+            if bot_name == "sender_alpha":
+                bot_service["environment"]["BOT_NAME"] = "Alpha"
+                bot_service["environment"]["OTHER_BOT_NAME"] = "Bravo"
+                bot_service["environment"]["COLOR"] = "red"
+            else:  # sender_bravo
+                bot_service["environment"]["BOT_NAME"] = "Bravo"
+                bot_service["environment"]["OTHER_BOT_NAME"] = "Alpha"
+                bot_service["environment"]["COLOR"] = "blue"
+            
+            # Set infrastructure variables
+            bot_service["environment"]["MC_PORT"] = str(mc_port)
+            bot_service["environment"]["RCON_PORT"] = str(rcon_port)
+            bot_service["environment"]["BOT_RNG_SEED"] = str(self.rng.randint(0, 2**31 - 1))
+            
+            bot_service["volumes"] = [f"{output_dir}:/output"]
         
         # Override receiver settings
         for bot_name in ["receiver_alpha", "receiver_bravo"]:
             receiver_service = compose["services"][bot_name]
-            receiver_service["environment"]["INSTANCE_ID"] = config.instance_id
-            receiver_service["volumes"] = [f"{config.output_dir}:/output"]
+            receiver_service["environment"]["INSTANCE_ID"] = instance_id
+            receiver_service["volumes"] = [f"{output_dir}:/output"]
         
         # Get absolute paths for camera scripts
         camera_scripts_dir = Path("/home/oscar/mc-multiplayer-data/camera").absolute()
@@ -286,13 +315,13 @@ class BaseTaskGenerator(ABC):
         # Override camera_alpha settings
         camera_alpha = compose["services"]["camera_alpha"]
         camera_alpha["container_name"] = f"mc_camera_alpha_{episode_id}"
-        camera_alpha["environment"]["MC_PORT"] = str(config.mc_port)
-        camera_alpha["environment"]["DISPLAY"] = f":{config.vnc_display_alpha}"
-        camera_alpha["environment"]["VNC_PORT"] = str(config.vnc_port_alpha)
-        camera_alpha["environment"]["NOVNC_PORT"] = str(config.novnc_port_alpha)
+        camera_alpha["environment"]["MC_PORT"] = str(mc_port)
+        camera_alpha["environment"]["DISPLAY"] = f":{vnc_display_alpha}"
+        camera_alpha["environment"]["VNC_PORT"] = str(vnc_port_alpha)
+        camera_alpha["environment"]["NOVNC_PORT"] = str(novnc_port_alpha)
         camera_alpha["volumes"] = [
-            f"{config.camera_data_dir_alpha}:/root",
-            f"{config.camera_output_dir_alpha}:/output",
+            f"{camera_data_dir_alpha}:/root",
+            f"{camera_output_dir_alpha}:/output",
             f"{camera_scripts_dir}/entrypoint.sh:/app/entrypoint.sh:ro",
             f"{camera_scripts_dir}/launch_minecraft.py:/app/launch_minecraft.py:ro"
         ]
@@ -300,13 +329,13 @@ class BaseTaskGenerator(ABC):
         # Override camera_bravo settings
         camera_bravo = compose["services"]["camera_bravo"]
         camera_bravo["container_name"] = f"mc_camera_bravo_{episode_id}"
-        camera_bravo["environment"]["MC_PORT"] = str(config.mc_port)
-        camera_bravo["environment"]["DISPLAY"] = f":{config.vnc_display_bravo}"
-        camera_bravo["environment"]["VNC_PORT"] = str(config.vnc_port_bravo)
-        camera_bravo["environment"]["NOVNC_PORT"] = str(config.novnc_port_bravo)
+        camera_bravo["environment"]["MC_PORT"] = str(mc_port)
+        camera_bravo["environment"]["DISPLAY"] = f":{vnc_display_bravo}"
+        camera_bravo["environment"]["VNC_PORT"] = str(vnc_port_bravo)
+        camera_bravo["environment"]["NOVNC_PORT"] = str(novnc_port_bravo)
         camera_bravo["volumes"] = [
-            f"{config.camera_data_dir_bravo}:/root",
-            f"{config.camera_output_dir_bravo}:/output",
+            f"{camera_data_dir_bravo}:/root",
+            f"{camera_output_dir_bravo}:/output",
             f"{camera_scripts_dir}/entrypoint.sh:/app/entrypoint.sh:ro",
             f"{camera_scripts_dir}/launch_minecraft.py:/app/launch_minecraft.py:ro"
         ]
@@ -314,7 +343,7 @@ class BaseTaskGenerator(ABC):
         # Override camera follow helpers
         camera_alpha_follow = compose["services"]["camera_alpha_follow"]
         camera_alpha_follow["container_name"] = f"mc_camera_alpha_follow_{episode_id}"
-        camera_alpha_follow["environment"]["RCON_PORT"] = str(config.rcon_port)
+        camera_alpha_follow["environment"]["RCON_PORT"] = str(rcon_port)
         camera_alpha_follow["volumes"] = [
             f"{camera_scripts_dir}/spectator.js:/app/spectator.js:ro",
             f"{camera_scripts_dir}/package.json:/app/package.json:ro"
@@ -322,7 +351,7 @@ class BaseTaskGenerator(ABC):
         
         camera_bravo_follow = compose["services"]["camera_bravo_follow"]
         camera_bravo_follow["container_name"] = f"mc_camera_bravo_follow_{episode_id}"
-        camera_bravo_follow["environment"]["RCON_PORT"] = str(config.rcon_port)
+        camera_bravo_follow["environment"]["RCON_PORT"] = str(rcon_port)
         camera_bravo_follow["volumes"] = [
             f"{camera_scripts_dir}/spectator.js:/app/spectator.js:ro",
             f"{camera_scripts_dir}/package.json:/app/package.json:ro"
@@ -338,7 +367,7 @@ class BaseTaskGenerator(ABC):
         
         return compose_file
     
-    def _run_docker_stack(self, compose_file: Path, episode_id: str, config: TaskConfig):
+    def _run_docker_stack(self, compose_file: Path, episode_id: str):
         """
         Run docker compose stack (mimics run_stack.sh).
         

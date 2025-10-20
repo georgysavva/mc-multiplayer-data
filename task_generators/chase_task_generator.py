@@ -4,7 +4,8 @@ Chase task generator.
 Generates chase task episodes with randomized bot behavior parameters.
 """
 
-from .base_task_generator import BaseTaskGenerator, TaskConfig
+from typing import Dict
+from .base_task_generator import BaseTaskGenerator
 
 
 class ChaseTaskGenerator(BaseTaskGenerator):
@@ -19,27 +20,14 @@ class ChaseTaskGenerator(BaseTaskGenerator):
         """Initialize chase task generator with task_name="chase" """
         super().__init__(task_name="chase", *args, **kwargs)
     
-    def sample_task_config(self) -> TaskConfig:
-        """
-        Sample randomized parameters for a chase task episode.
-        
-        Returns:
-            TaskConfig with randomized bot behavior parameters
-        """
-        config = TaskConfig()
-        
-        # Randomize bot behavior
-        config.bot_rng_seed = self.rng.randint(0, 2**31 - 1)
-        config.iterations_per_episode = self.rng.randint(3, 6)
-        config.min_run_actions = self.rng.randint(2, 4)
-        config.max_run_actions = self.rng.randint(config.min_run_actions, 6)
-        config.bootstrap_wait_time = self.rng.randint(55, 65)
-        
-        # World seed (for future world randomization)
-        config.world_seed = self.rng.randint(0, 2**31 - 1)
-        
-        # World config placeholder (for future world type randomization)
-        config.world_config = None
-        
-        return config
+    def get_task_env_vars(self) -> Dict[str, str]:
+        """Return chase-specific environment variables as a dictionary"""
+        return {
+            "CHASE_DURATION_MS": "10000",
+            "CHASE_POSITION_UPDATE_INTERVAL": "500",
+            "CHASE_MIN_DISTANCE": "3.0",
+            "CHASE_ESCAPE_DISTANCE": "8.0",
+            "CHASE_DIRECTION_CHANGE_INTERVAL": "4000",
+            "CHASE_CAMERA_SPEED": "90"
+        }
 
