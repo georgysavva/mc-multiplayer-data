@@ -237,7 +237,7 @@ function getOnTeleportPhaseFn(
     }
 
     // Use land_pos to determine proper Y coordinate
-    const landPosition = land_pos(bot, newX, newZ);
+    const landPosition = await land_pos(bot, newX, newZ);
     const currentPos = bot.entity.position.clone();
     const newY = landPosition ? landPosition.y + 1 : currentPos.y;
 
@@ -254,7 +254,11 @@ function getOnTeleportPhaseFn(
     }
 
     // Estimate other bot's Y coordinate
-    const otherBotLandPosition = land_pos(bot, otherBotNewX, otherBotNewZ);
+    const otherBotLandPosition = await land_pos(
+      bot,
+      otherBotNewX,
+      otherBotNewZ
+    );
     const otherBotNewY = otherBotLandPosition
       ? otherBotLandPosition.y + 1
       : otherBotPosition.y;
@@ -286,7 +290,13 @@ function getOnTeleportPhaseFn(
         args
       );
       // await sleep(1000);
-      console.log(`[${bot.username}] teleport completed`);
+      console.log(
+        `[${
+          bot.username
+        }] teleport completed. New local position: (${newX.toFixed(
+          2
+        )}, ${newY.toFixed(2)}, ${newZ.toFixed(2)})`
+      );
     } catch (error) {
       console.error(`[${bot.username}] teleport failed:`, error);
     }
