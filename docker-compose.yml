@@ -28,7 +28,7 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data53:/data
+      - ./data54:/data
     healthcheck:
       test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
       interval: 10s
@@ -62,7 +62,8 @@ services:
       RCON_PORT: 25575
       RCON_PASSWORD: research
       COLOR: red
-      BOOTSTRAP_WAIT_TIME: 20
+      BOOTSTRAP_WAIT_TIME: 0
+      ENABLE_CAMERA_WAIT: 0
       MIN_RUN_ACTIONS: 1
       MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
@@ -102,7 +103,8 @@ services:
       RCON_PORT: 25575
       RCON_PASSWORD: research
       COLOR: blue
-      BOOTSTRAP_WAIT_TIME: 20
+      BOOTSTRAP_WAIT_TIME: 0
+      ENABLE_CAMERA_WAIT: 0
       MIN_RUN_ACTIONS: 1
       MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
@@ -146,6 +148,7 @@ services:
     restart: "no"
     volumes:
       - .:/usr/src/app
+      - ./output:/output
 
   camera_alpha:
     image: ojmichel/mineflayer-spectator-client:latest

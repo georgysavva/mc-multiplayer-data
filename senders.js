@@ -1,26 +1,27 @@
 /**
  * Modularized Minecraft Bot Coordination System
- * 
+ *
  * This is the new modular version of senders.js with improved code organization.
  * All utility functions have been extracted into separate modules for better maintainability.
  */
 
 const seedrandom = require("seedrandom");
-const { sleep } = require('./utils/helpers');
-const { BotCoordinator } = require('./utils/coordination');
-const { makeBot } = require('./utils/bot-factory');
-const { getOnSpawnFn } = require('./episode-handlers');
-const { parseArgs } = require('./config/args');
+const { sleep } = require("./utils/helpers");
+const { BotCoordinator } = require("./utils/coordination");
+const { makeBot } = require("./utils/bot-factory");
+const { getOnSpawnFn } = require("./episode-handlers");
+const { parseArgs } = require("./config/args");
 
 /**
  * Main function to initialize and run the bot
  */
 async function main() {
   console.log("DEBUG environment variable:", process.env.DEBUG);
-  
+
   // Parse command line arguments
   const args = parseArgs();
-  
+  console.log(`camera wait ${args.enable_camera_wait}`);
+
   console.log(`Starting bot: ${args.bot_name}`);
   console.log(
     `Coordinator: ${args.bot_name}, Ports: ${args.coord_port}/${args.other_coord_port}`
@@ -28,7 +29,7 @@ async function main() {
   console.log(
     `[${args.bot_name}] Waiting ${args.bootstrap_wait_time} seconds before creating bot...`
   );
-  
+
   // Wait for bootstrap time
   await sleep(args.bootstrap_wait_time * 1000);
 
@@ -53,7 +54,14 @@ async function main() {
   // Set up spawn event handler
   bot.once(
     "spawn",
-    getOnSpawnFn(bot, args.receiver_host, args.receiver_port, sharedBotRng, coordinator, args)
+    getOnSpawnFn(
+      bot,
+      args.receiver_host,
+      args.receiver_port,
+      sharedBotRng,
+      coordinator,
+      args
+    )
   );
 
   // Handle system chat packets
