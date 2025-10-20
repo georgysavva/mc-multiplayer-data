@@ -312,9 +312,8 @@ function getOnTeleportPhaseFn(
 
     // Add episode type selection - Enable multiple types for diverse data collection
     const episodeTypes = [
-      // "chase",
-      // "orbit",
-      "testMouseAct",
+      "chase",
+      "orbit",
       // "mvcTest"  // Add MVC test episode for validation
       // "bridgeBuilder"  // Add cooperative bridge building episode
     ];
@@ -399,25 +398,6 @@ function getOnTeleportPhaseFn(
       );
       coordinator.sendToOtherBot(
         `mvcTestPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "testMouseAct") {
-      coordinator.onceEvent(
-        `testMouseActPhase_${iterationID}`,
-        getOnTestMouseActPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `testMouseActPhase_${iterationID}`,
         bot.entity.position.clone(),
         "teleportPhase end"
       );

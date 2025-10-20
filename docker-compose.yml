@@ -28,7 +28,7 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data54:/data
+      - ./data53:/data
     healthcheck:
       test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
       interval: 10s
@@ -62,7 +62,7 @@ services:
       RCON_PORT: 25575
       RCON_PASSWORD: research
       COLOR: red
-      BOOTSTRAP_WAIT_TIME: 0
+      BOOTSTRAP_WAIT_TIME: 20
       ENABLE_CAMERA_WAIT: 0
       MIN_RUN_ACTIONS: 1
       MAX_RUN_ACTIONS: 1
@@ -103,7 +103,7 @@ services:
       RCON_PORT: 25575
       RCON_PASSWORD: research
       COLOR: blue
-      BOOTSTRAP_WAIT_TIME: 0
+      BOOTSTRAP_WAIT_TIME: 20
       ENABLE_CAMERA_WAIT: 0
       MIN_RUN_ACTIONS: 1
       MAX_RUN_ACTIONS: 1

@@ -20,7 +20,6 @@ async function main() {
 
   // Parse command line arguments
   const args = parseArgs();
-  console.log(`camera wait ${args.enable_camera_wait}`);
 
   console.log(`Starting bot: ${args.bot_name}`);
   console.log(
