@@ -33,6 +33,7 @@ function parseArgs() {
       camera_ready_retries: 30,
       camera_ready_check_interval: 2000, // milliseconds
       rcon_password: "research",
+      episode_category: "chase", // Default task type
     },
   });
 }

@@ -12,12 +12,12 @@ const {
   MAX_RUN_ACTIONS
 } = require('../utils/constants');
 
-// Import episode-specific handlers
-const { walkStraightWhileLooking, getOnStraightLineWalkPhaseFn } = require('./straight-line-episode');
-const { chaseRunner, runFromChaser, getOnChasePhaseFn } = require('./chase-episode');
-const { orbitAroundFixedPoint, getOnOrbitPhaseFn } = require('./orbit-episode');
-const { testMVCBehavior, getOnMVCTestPhaseFn } = require('./mvc-test-episode');
-const { buildCooperativeBridge, getOnBridgeBuilderPhaseFn } = require('./bridge-builder-episode');
+// Import task-specific handlers
+const { walkStraightWhileLooking, getOnStraightLineWalkPhaseFn } = require('./straight-line-task');
+const { chaseRunner, runFromChaser, getOnChasePhaseFn } = require('./chase-task');
+const { orbitAroundFixedPoint, getOnOrbitPhaseFn } = require('./orbit-task');
+const { testMVCBehavior, getOnMVCTestPhaseFn } = require('./mvc-test-task');
+const { buildCooperativeBridge, getOnBridgeBuilderPhaseFn } = require('./bridge-builder-task');
 
 /**
  * Run a single episode
@@ -263,19 +263,12 @@ function getOnTeleportPhaseFn(
     bot.emit("startepisode", episodeNum === 0 ? 50 : 0);
     // await sleep(episodeNum === 0 ? 6000 : 1000);
 
-    // Add episode type selection - Enable multiple types for diverse data collection
-    const episodeTypes = [
-      "chase",
-      "orbit",
-      // "mvcTest"  // Add MVC test episode for validation
-      // "bridgeBuilder"  // Add cooperative bridge building episode
-    ];
-    const selectedEpisodeType = episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
-
-    console.log(`[${bot.username}] Selected episode type: ${selectedEpisodeType}`);
+    // Task type is now controlled by the Python orchestrator via EPISODE_CATEGORY env var
+    const selectedTaskType = args.episode_category;
+    console.log(`[${bot.username}] Running task type: ${selectedTaskType}`);
 
     const iterationID = 0;
-    if (selectedEpisodeType === "straightLineWalk") {
+    if (selectedTaskType === "straightLineWalk") {
       coordinator.onceEvent(
         `straightLineWalkPhase_${iterationID}`,
         getOnStraightLineWalkPhaseFn(
@@ -294,7 +287,7 @@ function getOnTeleportPhaseFn(
         bot.entity.position.clone(),
         "teleportPhase end"
       );
-    } else if (selectedEpisodeType === "chase") {
+    } else if (selectedTaskType === "chase") {
       coordinator.onceEvent(
         `chasePhase_${iterationID}`,
         getOnChasePhaseFn(
@@ -314,7 +307,7 @@ function getOnTeleportPhaseFn(
         "teleportPhase end"
       );
     } 
-    else if (selectedEpisodeType === "orbit") {
+    else if (selectedTaskType === "orbit") {
       coordinator.onceEvent(
         `orbitPhase_${iterationID}`,
         getOnOrbitPhaseFn(
@@ -333,7 +326,7 @@ function getOnTeleportPhaseFn(
         bot.entity.position.clone(),
         "teleportPhase end"
       );
-    } else if (selectedEpisodeType === "mvcTest") {
+    } else if (selectedTaskType === "mvcTest") {
       coordinator.onceEvent(
         `mvcTestPhase_${iterationID}`,
         getOnMVCTestPhaseFn(
@@ -352,7 +345,7 @@ function getOnTeleportPhaseFn(
         bot.entity.position.clone(),
         "teleportPhase end"
       );
-    } else if (selectedEpisodeType === "bridgeBuilder") {
+    } else if (selectedTaskType === "bridgeBuilder") {
       coordinator.onceEvent(
         `bridgeBuilderPhase_${iterationID}`,
         getOnBridgeBuilderPhaseFn(

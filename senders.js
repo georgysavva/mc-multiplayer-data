@@ -9,7 +9,7 @@ const seedrandom = require("seedrandom");
 const { sleep } = require('./utils/helpers');
 const { BotCoordinator } = require('./utils/coordination');
 const { makeBot } = require('./utils/bot-factory');
-const { getOnSpawnFn } = require('./episode-handlers');
+const { getOnSpawnFn } = require('./task-handlers');
 const { parseArgs } = require('./config/args');
 
 /**
