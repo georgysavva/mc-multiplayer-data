@@ -239,4 +239,3 @@ def get_base_compose_template():
             }
         }
     }
-

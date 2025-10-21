@@ -204,9 +204,7 @@ id = args.start_id
 while True:
 
     frame_queue = Queue()
-    output_path = (
-        f"{args.output_path}/{id:06d}_{args.name}_instance_{args.instance_id:03d}"
-    )
+    output_path = f"{args.output_path}/{id:06d}_{args.name}_instance_{args.instance_id:03d}"
 
     processor = Thread(target=process_frame_worker, args=(frame_queue, output_path))
     processor.daemon = True

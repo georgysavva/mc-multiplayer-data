@@ -5,7 +5,7 @@ Collect synchronized vision and action data from multiple Minecraft agents so we
 
 ## Architecture Overview
 - **Minecraft server (`mc`)** – Paper 1.20.4 server running in offline mode, exposes gameplay and RCON ports via host networking. World data lives under `data53/`.
-- **Mineflayer senders (`sender_alpha`, `sender_bravo`)** – Node.js bots that coordinate scripted episodes, stream actions to receivers, and exit when episodes finish. Each mounts `/output` (Alpha → `output/`, Bravo → `output8/`) and now records absolute action timestamps plus per-episode metadata for alignment.
+- **Mineflayer senders (`sender_alpha`, `sender_bravo`)** – Node.js bots that coordinate scripted episodes, stream actions to receivers, and exit when episodes finish. Both mount `/output` and record absolute action timestamps plus per-episode metadata for alignment.
 - **Receivers (`receiver_alpha`, `receiver_bravo`)** – Capture and serialize observations/actions emitted by the corresponding sender, writing alongside the sender output volume.
 - **Camera clients (`camera_alpha`, `camera_bravo`)** – Headless Linux desktops launching real Minecraft clients under Xvfb. They connect to the server, record video via FFmpeg, and expose VNC/noVNC for inspection. Recordings land in `camera/output_alpha/` and `camera/output_bravo/`.
 - **Spectator helpers (`camera_*_follow`)** – Short-lived Node scripts that wait for bots/cameras to join, issue `/gamemode spectator` and `/spectate` via RCON, then exit.

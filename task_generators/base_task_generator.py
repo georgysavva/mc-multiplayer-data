@@ -19,6 +19,8 @@ import copy
 from datetime import datetime
 import tempfile
 
+from postprocess.process_recordings import process_bot_recording
+
 from .base_compose_template import get_base_compose_template
 
 
@@ -40,7 +42,8 @@ class BaseTaskGenerator(ABC):
         base_vnc_port: int = 5901,
         base_novnc_port: int = 6901,
         worker_id: int = 0,
-        seed: Optional[int] = None
+        seed: Optional[int] = None,
+        generate_comparison: bool = False
     ):
         """
         Initialize task generator.
@@ -69,6 +72,7 @@ class BaseTaskGenerator(ABC):
         self.base_vnc_port = base_vnc_port
         self.base_novnc_port = base_novnc_port
         self.worker_id = worker_id
+        self.generate_comparison = generate_comparison
         
         # Create worker-specific RNG for reproducibility
         self.rng = random.Random(seed if seed is not None else random.randint(0, 2**32-1))
@@ -81,21 +85,29 @@ class BaseTaskGenerator(ABC):
         self.data_root.mkdir(parents=True, exist_ok=True)
         self.camera_root.mkdir(parents=True, exist_ok=True)
     
+    def get_unique_id(self) -> str:
+        """Generate unique episode ID from task metadata.
+        
+        Format: {timestamp}_{task}_{worker}_{episode}_{machine}
+        Example: 20250121_143052_chase_w000_ep000_hostname_abc123
+        """
+        import socket
+        import hashlib
+        from datetime import datetime
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        hostname = socket.gethostname()
+        machine_hash = hashlib.md5(hostname.encode()).hexdigest()[:6]
+        
+        return f"{timestamp}_{self.task_name}_w{self.worker_id:03d}_ep{self.episode_counter:06d}_{hostname}_{machine_hash}"
+    
 
     def get_global_env_vars(self) -> Dict[str, str]:
-        """Return global environment variables as a dictionary"""
+        """Return task-agnostic environment values shared by both bots."""
         return {
-            "MC_HOST": "127.0.0.1",
-            "RCON_HOST": "127.0.0.1", 
+            "MC_HOST": "host.docker.internal",
+            "RCON_HOST": "host.docker.internal",
             "RCON_PASSWORD": "research",
-            "RECEIVER_HOST": "127.0.0.1",
-            "RECEIVER_PORT": "8091",
-            "BOT_NAME": "Alpha",
-            "OTHER_BOT_NAME": "Bravo",
-            "COLOR": "red",
-            "COORD_PORT": "8093",
-            "OTHER_COORD_HOST": "127.0.0.1",
-            "OTHER_COORD_PORT": "8094",
             "EPISODES_NUM": "1",
             "EPISODE_START_ID": "0",
             "ITERATIONS_NUM_PER_EPISODE": "5",
@@ -137,7 +149,10 @@ class BaseTaskGenerator(ABC):
         Returns:
             Dictionary with episode metadata and results
         """
-        # 1. Setup unique infrastructure settings based on worker_id
+        # 1. Generate unique episode ID
+        unique_id = self.get_unique_id()
+        
+        # 2. Setup unique infrastructure settings based on worker_id
         port_offset = self.worker_id * 100
         mc_port = self.base_port + port_offset
         rcon_port = self.base_rcon_port + port_offset
@@ -147,47 +162,59 @@ class BaseTaskGenerator(ABC):
         vnc_port_bravo = self.base_vnc_port + (self.worker_id * 2) + 1
         novnc_port_alpha = self.base_novnc_port + (self.worker_id * 2)
         novnc_port_bravo = self.base_novnc_port + (self.worker_id * 2) + 1
+        receiver_port = 8090
+        coord_port_alpha = 8093 + port_offset
+        coord_port_bravo = 8094 + port_offset
         instance_id = self.worker_id * 10000 + self.episode_counter
         
-        # 2. Setup worker-specific directories
-        episode_id = f"worker{self.worker_id:03d}_ep{self.episode_counter:06d}"
+        # 3. Create episode-specific output directory
+        episode_output_dir = self.output_root / unique_id
+        episode_output_dir.mkdir(parents=True, exist_ok=True)
         
+        # 4. Setup worker-specific temp directories for MC server data
         worker_data_dir = self.data_root / f"worker_{self.worker_id}"
         episode_data_dir = worker_data_dir / f"episode_{self.episode_counter}"
         data_dir = str(episode_data_dir)
-        output_dir = str(self.output_root)
         
-        worker_camera_dir = self.camera_root / f"worker_{self.worker_id}" / f"ep_{self.episode_counter}"
-        camera_data_dir_alpha = str(worker_camera_dir / "data_alpha")
-        camera_data_dir_bravo = str(worker_camera_dir / "data_bravo")
-        camera_output_dir_alpha = str(worker_camera_dir / "output_alpha")
-        camera_output_dir_bravo = str(worker_camera_dir / "output_bravo")
-        
+        # 5. Camera recordings live under an episode-specific camera prefix
+        camera_prefix_dir = episode_output_dir / "camera"
+        camera_output_dir_alpha = str(camera_prefix_dir / "output_alpha")
+        camera_output_dir_bravo = str(camera_prefix_dir / "output_bravo")
+        camera_data_dir_alpha = str(worker_data_dir / "camera_data_alpha")
+        camera_data_dir_bravo = str(worker_data_dir / "camera_data_bravo")
+
+        output_dir = str(episode_output_dir)
+
         # Create all directories
-        for dir_path in [data_dir, camera_data_dir_alpha, camera_data_dir_bravo, 
+        for dir_path in [data_dir, camera_prefix_dir, camera_data_dir_alpha, camera_data_dir_bravo, 
                          camera_output_dir_alpha, camera_output_dir_bravo]:
             Path(dir_path).mkdir(parents=True, exist_ok=True)
         
-        # 3. Generate docker-compose file
-        compose_file = self._generate_compose_file(episode_id, mc_port, rcon_port, 
+        # 6. Generate docker-compose file
+        compose_file = self._generate_compose_file(unique_id, mc_port, rcon_port, 
                                                  vnc_display_alpha, vnc_display_bravo,
                                                  vnc_port_alpha, vnc_port_bravo,
                                                  novnc_port_alpha, novnc_port_bravo,
+                                                 receiver_port, coord_port_alpha, coord_port_bravo,
                                                  instance_id, data_dir, output_dir,
                                                  camera_data_dir_alpha, camera_data_dir_bravo,
                                                  camera_output_dir_alpha, camera_output_dir_bravo)
         
-        # 4. Save config for reproducibility (if needed)
-        if save_config:
-            config_data = {
-                "bot_rng_seed": self.rng.randint(0, 2**31 - 1),
-                "world_seed": self.rng.randint(0, 2**31 - 1),
-                "task_env_vars": self.get_task_env_vars(),
-                "global_env_vars": self.get_global_env_vars()
-            }
-            config_file = self.output_root / f"{episode_id}_{self.task_name}_config.json"
-            with open(config_file, 'w') as f:
-                json.dump(config_data, f, indent=2)
+        # 7. Save episode configuration
+        config_data = {
+            "unique_id": unique_id,
+            "worker_id": self.worker_id,
+            "episode_number": self.episode_counter,
+            "task_name": self.task_name,
+            "timestamp": datetime.now().isoformat(),
+            "bot_rng_seed": self.rng.randint(0, 2**31 - 1),
+            "world_seed": self.rng.randint(0, 2**31 - 1),
+            "task_env_vars": self.get_task_env_vars(),
+            "global_env_vars": self.get_global_env_vars()
+        }
+        config_file = episode_output_dir / "episode_config.json"
+        with open(config_file, 'w') as f:
+            json.dump(config_data, f, indent=2)
         
         # 5. Run the stack (similar to run_stack.sh)
         print(f"[Worker {self.worker_id}] Task: {self.task_name}, Episode: {self.episode_counter}")
@@ -196,23 +223,24 @@ class BaseTaskGenerator(ABC):
         
         start_time = datetime.now()
         try:
-            self._run_docker_stack(compose_file, episode_id)
+            self._cleanup_stale_camera_containers()
+            self._run_docker_stack(compose_file, unique_id, episode_output_dir)
             success = True
             error = None
         except Exception as e:
             success = False
             error = str(e)
             print(f"[Worker {self.worker_id}] Episode {self.episode_counter} failed: {e}")
-        
+
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
         
-        # 6. Collect output information
+        # 8. Collect output information
         result = {
             "worker_id": self.worker_id,
             "task_name": self.task_name,
             "episode_number": self.episode_counter,
-            "episode_id": episode_id,
+            "episode_id": unique_id,
             "success": success,
             "error": error,
             "duration_seconds": duration,
@@ -227,6 +255,7 @@ class BaseTaskGenerator(ABC):
                              vnc_display_alpha: int, vnc_display_bravo: int,
                              vnc_port_alpha: int, vnc_port_bravo: int,
                              novnc_port_alpha: int, novnc_port_bravo: int,
+                             receiver_port: int, coord_port_alpha: int, coord_port_bravo: int,
                              instance_id: int, data_dir: str, output_dir: str,
                              camera_data_dir_alpha: str, camera_data_dir_bravo: str,
                              camera_output_dir_alpha: str, camera_output_dir_bravo: str) -> Path:
@@ -279,33 +308,45 @@ class BaseTaskGenerator(ABC):
         # Override sender settings (CRITICAL: Set EPISODE_CATEGORY)
         for bot_name in ["sender_alpha", "sender_bravo"]:
             bot_service = compose["services"][bot_name]
-            
+
             # Set global environment variables
             bot_service["environment"].update(global_env_vars)
-            
+
             # Set task-specific environment variables (same for both bots)
             bot_service["environment"].update(task_env_vars)
-            
+
             # Set bot-specific variables
             if bot_name == "sender_alpha":
                 bot_service["environment"]["BOT_NAME"] = "Alpha"
                 bot_service["environment"]["OTHER_BOT_NAME"] = "Bravo"
                 bot_service["environment"]["COLOR"] = "red"
+                bot_service["environment"]["RECEIVER_HOST"] = "receiver_alpha"
+                bot_service["environment"]["RECEIVER_PORT"] = str(receiver_port)
+                bot_service["environment"]["COORD_PORT"] = str(coord_port_alpha)
+                bot_service["environment"]["OTHER_COORD_HOST"] = "sender_bravo"
+                bot_service["environment"]["OTHER_COORD_PORT"] = str(coord_port_bravo)
             else:  # sender_bravo
                 bot_service["environment"]["BOT_NAME"] = "Bravo"
                 bot_service["environment"]["OTHER_BOT_NAME"] = "Alpha"
                 bot_service["environment"]["COLOR"] = "blue"
-            
+                bot_service["environment"]["RECEIVER_HOST"] = "receiver_bravo"
+                bot_service["environment"]["RECEIVER_PORT"] = str(receiver_port)
+                bot_service["environment"]["COORD_PORT"] = str(coord_port_bravo)
+                bot_service["environment"]["OTHER_COORD_HOST"] = "sender_alpha"
+                bot_service["environment"]["OTHER_COORD_PORT"] = str(coord_port_alpha)
+
             # Set infrastructure variables
             bot_service["environment"]["MC_PORT"] = str(mc_port)
             bot_service["environment"]["RCON_PORT"] = str(rcon_port)
             bot_service["environment"]["BOT_RNG_SEED"] = str(self.rng.randint(0, 2**31 - 1))
-            
+            bot_service["environment"]["EPISODE_CATEGORY"] = self.task_name
+
             bot_service["volumes"] = [f"{output_dir}:/output"]
-        
+
         # Override receiver settings
         for bot_name in ["receiver_alpha", "receiver_bravo"]:
             receiver_service = compose["services"][bot_name]
+            receiver_service["environment"]["PORT"] = str(receiver_port)
             receiver_service["environment"]["INSTANCE_ID"] = instance_id
             receiver_service["volumes"] = [f"{output_dir}:/output"]
         
@@ -367,17 +408,17 @@ class BaseTaskGenerator(ABC):
         
         return compose_file
     
-    def _run_docker_stack(self, compose_file: Path, episode_id: str):
+    def _run_docker_stack(self, compose_file: Path, unique_id: str, episode_output_dir: Path):
         """
         Run docker compose stack (mimics run_stack.sh).
         
         Args:
             compose_file: Path to docker-compose file
-            episode_id: Unique episode identifier
-            config: TaskConfig for this episode
+            unique_id: Unique episode identifier
+            episode_output_dir: Episode output directory for logs
         """
-        project_name = f"mc_{episode_id}"
-        log_dir = self.output_root / "logs" / episode_id
+        project_name = f"mc_{unique_id}"
+        log_dir = episode_output_dir / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
         
         try:
@@ -462,10 +503,10 @@ class BaseTaskGenerator(ABC):
             
             # Remove camera containers explicitly (they have fixed names and don't get removed by compose down)
             camera_containers = [
-                f"mc_camera_alpha_{episode_id}",
-                f"mc_camera_bravo_{episode_id}",
-                f"mc_camera_alpha_follow_{episode_id}",
-                f"mc_camera_bravo_follow_{episode_id}"
+                f"mc_camera_alpha_{unique_id}",
+                f"mc_camera_bravo_{unique_id}",
+                f"mc_camera_alpha_follow_{unique_id}",
+                f"mc_camera_bravo_follow_{unique_id}"
             ]
             for container in camera_containers:
                 subprocess.run(
@@ -474,8 +515,108 @@ class BaseTaskGenerator(ABC):
                     text=True
                 )
         
-        # Run post-processing if needed (similar to run_stack.sh lines 106-134)
-        # For now, skip post-processing - can be added later
+        # Run post-processing (align videos + optional comparison)
+        print(f"[Worker {self.worker_id}] Running post-processing alignment...")
+
+        camera_prefix = episode_output_dir / "camera"
+
+        def _run_post_for_bot(
+            bot: str,
+            actions_path: Path,
+            camera_meta_path: Path,
+            mineflayer_video_path: Path,
+            aligned_video_path: Path,
+            aligned_meta_path: Path,
+            comparison_output_path: Path,
+        ) -> None:
+            if not actions_path.exists():
+                print(f"[Worker {self.worker_id}] {bot}: actions missing at {actions_path}, skipping")
+                return
+            if not camera_meta_path.exists():
+                print(f"[Worker {self.worker_id}] {bot}: camera metadata missing at {camera_meta_path}, skipping")
+                return
+            if not mineflayer_video_path.exists():
+                print(f"[Worker {self.worker_id}] {bot}: mineflayer video missing at {mineflayer_video_path}, skipping")
+                return
+
+            try:
+                result = process_bot_recording(
+                    actions_path=actions_path,
+                    camera_meta_path=camera_meta_path,
+                    mineflayer_video_path=mineflayer_video_path,
+                    output_dir=episode_output_dir,
+                    aligned_video_path=aligned_video_path,
+                    aligned_metadata_path=aligned_meta_path,
+                    comparison_output_path=comparison_output_path,
+                    generate_comparison=self.generate_comparison,
+                )
+                print(
+                    f"[Worker {self.worker_id}] {bot}: aligned -> {result['aligned_video_path']}"
+                )
+                if result["comparison_video_path"]:
+                    print(
+                        f"[Worker {self.worker_id}] {bot}: comparison -> {result['comparison_video_path']}"
+                    )
+            except Exception as exc:  # noqa: BLE001 - log and continue
+                print(f"[Worker {self.worker_id}] {bot}: post-processing failed: {exc}")
+
+        _run_post_for_bot(
+            "Alpha",
+            episode_output_dir / "Alpha_mineflayer.json",
+            camera_prefix / "output_alpha" / "camera_alpha_meta.json",
+            episode_output_dir / "Alpha_mineflayer.mp4",
+            episode_output_dir / "camera_alpha_aligned.mp4",
+            episode_output_dir / "camera_alpha_aligned_meta.json",
+            episode_output_dir / "camera_alpha_comparison.mp4",
+        )
+
+        _run_post_for_bot(
+            "Bravo",
+            episode_output_dir / "Bravo_mineflayer.json",
+            camera_prefix / "output_bravo" / "camera_bravo_meta.json",
+            episode_output_dir / "Bravo_mineflayer.mp4",
+            episode_output_dir / "camera_bravo_aligned.mp4",
+            episode_output_dir / "camera_bravo_aligned_meta.json",
+            episode_output_dir / "camera_bravo_comparison.mp4",
+        )
+
         print(f"[Worker {self.worker_id}] Episode complete!")
         print(f"[Worker {self.worker_id}] Logs saved to: {log_dir}")
 
+    def _cleanup_stale_camera_containers(self) -> None:
+        """Remove any lingering camera containers from previous runs."""
+        prefixes = (
+            "mc_camera_alpha_",
+            "mc_camera_bravo_",
+            "mc_camera_alpha_follow_",
+            "mc_camera_bravo_follow_",
+        )
+        containers_to_remove: list[str] = []
+        for prefix in prefixes:
+            result = subprocess.run(
+                [
+                    "docker",
+                    "ps",
+                    "-a",
+                    "--filter",
+                    f"name={prefix}",
+                    "--format",
+                    "{{.ID}}",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                continue
+            ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+            containers_to_remove.extend(ids)
+
+        if not containers_to_remove:
+            return
+
+        for container_id in containers_to_remove:
+            subprocess.run(
+                ["docker", "rm", "-f", container_id],
+                capture_output=True,
+                text=True,
+            )

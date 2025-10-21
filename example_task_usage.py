@@ -1,83 +1,76 @@
 #!/usr/bin/env python3
 """
-Example usage of task generators.
-
-This script demonstrates how to use the ChaseTaskGenerator to generate
-single episodes with randomized configurations.
+Example usage of task generators - runs all 6 tasks with comparison videos.
 """
 
 from pathlib import Path
-from task_generators import ChaseTaskGenerator
-
+from task_generators import (
+    ChaseTaskGenerator,
+    OrbitTaskGenerator,
+    StraightLineTaskGenerator,
+    MVCTestTaskGenerator,
+    BridgeBuilderTaskGenerator,
+    GenericWalkTaskGenerator
+)
 
 def main():
-    """Run example task generation"""
+    """Run all task types with 3 episodes each"""
     
-    # Setup paths (adjust these to your actual data directories)
-    output_dir = Path("/home/oscar/mc-multiplayer-data/output").absolute()
+    base_output = Path("/home/oscar/mc-multiplayer-data/output").absolute()
     data_dir = Path("/home/oscar/mc-multiplayer-data/data_tasks").absolute()
     camera_dir = Path("/home/oscar/mc-multiplayer-data/camera_tasks").absolute()
     
-    print("=" * 60)
-    print("Chase Task Generator Example")
-    print("=" * 60)
+    # All 6 task generators
+    task_generators = [
+        ("chase", ChaseTaskGenerator),
+        ("orbit", OrbitTaskGenerator),
+        ("straightLineWalk", StraightLineTaskGenerator),
+        ("mvcTest", MVCTestTaskGenerator),
+        ("bridgeBuilder", BridgeBuilderTaskGenerator),
+        ("genericWalk", GenericWalkTaskGenerator),
+    ]
     
-    # Create a chase task generator for worker 0
-    chase_gen = ChaseTaskGenerator(
-        output_root=output_dir,
-        data_root=data_dir,
-        camera_root=camera_dir,
-        base_port=25565,
-        base_rcon_port=25575,
-        base_vnc_display=99,
-        base_vnc_port=5901,
-        base_novnc_port=6901,
-        worker_id=0,
-        seed=42  # For reproducibility
-    )
-    
-    print(f"\nCreated ChaseTaskGenerator:")
-    print(f"  Worker ID: {chase_gen.worker_id}")
-    print(f"  Task Name: {chase_gen.task_name}")
-    print(f"  Output Dir: {chase_gen.output_root}")
-    print(f"  Data Dir: {chase_gen.data_root}")
-    print(f"  Camera Dir: {chase_gen.camera_root}")
-    
-    # Generate a single episode
-    print(f"\n{'='*60}")
-    print("Generating Episode 1")
-    print(f"{'='*60}")
-    result = chase_gen.run_task_episode()
-    
-    print(f"\nEpisode Result:")
-    print(f"  Success: {result['success']}")
-    print(f"  Episode ID: {result['episode_id']}")
-    print(f"  Duration: {result['duration_seconds']:.1f}s")
-    
-    if result['success']:
-        print(f"\n  Task Environment Variables:")
-        task_vars = chase_gen.get_task_env_vars()
-        for key, value in task_vars.items():
-            print(f"    {key}: {value}")
+    for task_name, GeneratorClass in task_generators:
+        print("\n" + "=" * 60)
+        print(f"Task: {task_name.upper()}")
+        print("=" * 60)
         
-        print(f"\n  Global Environment Variables:")
-        global_vars = chase_gen.get_global_env_vars()
-        for key, value in list(global_vars.items())[:5]:  # Show first 5
-            print(f"    {key}: {value}")
-        print(f"    ... and {len(global_vars) - 5} more")
-    else:
-        print(f"  Error: {result['error']}")
+        # Create task-specific output directory
+        task_output_dir = base_output / task_name
+        task_output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create generator with comparison enabled
+        generator = GeneratorClass(
+            output_root=task_output_dir,
+            data_root=data_dir,
+            camera_root=camera_dir,
+            base_port=25565,
+            base_rcon_port=25575,
+            base_vnc_display=99,
+            base_vnc_port=5901,
+            base_novnc_port=6901,
+            worker_id=0,
+            seed=42,
+            generate_comparison=True  # Enable comparison videos
+        )
+        
+        # Generate 3 episodes for this task
+        for episode_num in range(3):
+            print(f"\n{'-'*60}")
+            print(f"Generating {task_name} Episode {episode_num + 1}/3")
+            print(f"{'-'*60}")
+            
+            result = generator.run_task_episode()
+            
+            if result['success']:
+                print(f"✓ Success: {result['episode_id']}")
+                print(f"  Duration: {result['duration_seconds']:.1f}s")
+            else:
+                print(f"✗ Failed: {result['error']}")
     
-    print(f"\n{'='*60}")
-    print("Example Complete!")
-    print(f"{'='*60}")
-    
-    # To generate multiple episodes, simply call run_task_episode() multiple times:
-    # for i in range(5):
-    #     result = chase_gen.run_task_episode()
-    #     print(f"Episode {i+1}: {result['success']}")
-
+    print("\n" + "=" * 60)
+    print("All tasks complete!")
+    print("=" * 60)
 
 if __name__ == "__main__":
     main()
-
