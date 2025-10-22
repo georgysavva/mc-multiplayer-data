@@ -36,9 +36,10 @@ COPY package.json ./
 RUN npm install 
 RUN npm i rcon-client
 # These echo numbers are needed to trigger a rebuild of this image in the case a downstream dependency has changed.
-RUN echo "41" && npm install github:georgysavva/mineflayer
+RUN echo "42" && npm install github:georgysavva/mineflayer
 RUN echo "47" && npm install github:PrismarineJS/mineflayer-pathfinder
-RUN echo "39" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "41" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "48" && npm install minecraft-data
 RUN set -eux; \
   PKG_DIR="node_modules/prismarine-viewer-colalab"; \
   mkdir -p "$PKG_DIR/public/textures/1.16.4/entity"; \

@@ -15,7 +15,7 @@ async function rconTp(name, x, y, z, args) {
   const rcon = await Rcon.connect({
     host: args.rcon_host,
     port: args.rcon_port,
-    password: "change-me",
+    password: args.rcon_password,
   });
   const res = await rcon.send(`tp ${name} ${x} ${y} ${z}`);
   await rcon.end();
@@ -163,5 +163,5 @@ class BotCoordinator extends EventEmitter {
 
 module.exports = {
   rconTp,
-  BotCoordinator
+  BotCoordinator,
 };

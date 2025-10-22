@@ -63,6 +63,7 @@ services:
       RCON_PASSWORD: research
       COLOR: red
       BOOTSTRAP_WAIT_TIME: 20
+      ENABLE_CAMERA_WAIT: 0
       MIN_RUN_ACTIONS: 1
       MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
@@ -103,6 +104,7 @@ services:
       RCON_PASSWORD: research
       COLOR: blue
       BOOTSTRAP_WAIT_TIME: 20
+      ENABLE_CAMERA_WAIT: 0
       MIN_RUN_ACTIONS: 1
       MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
@@ -146,6 +148,7 @@ services:
     restart: "no"
     volumes:
       - .:/usr/src/app
+      - ./output:/output
 
   camera_alpha:
     image: ojmichel/mineflayer-spectator-client:latest

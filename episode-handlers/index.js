@@ -1,24 +1,33 @@
 const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const Vec3 = require("vec3").Vec3;
-const { sleep } = require('../utils/helpers');
-const { land_pos, lookAtSmooth } = require('../utils/movement');
-const { rconTp } = require('../utils/coordination');
-const { waitForCameras } = require('../utils/camera-ready');
+const { sleep } = require("../utils/helpers");
+const { land_pos, lookAtSmooth } = require("../utils/movement");
+const { rconTp } = require("../utils/coordination");
+const { waitForCameras } = require("../utils/camera-ready");
 const {
   MIN_BOTS_DISTANCE,
   MAX_BOTS_DISTANCE,
   CAMERA_SPEED_DEGREES_PER_SEC,
   MIN_RUN_ACTIONS,
-  MAX_RUN_ACTIONS
-} = require('../utils/constants');
+  MAX_RUN_ACTIONS,
+} = require("../utils/constants");
 
 // Import episode-specific handlers
-const { walkStraightWhileLooking, getOnStraightLineWalkPhaseFn } = require('./straight-line-episode');
-const { chaseRunner, runFromChaser, getOnChasePhaseFn } = require('./chase-episode');
-const { orbitAroundFixedPoint, getOnOrbitPhaseFn } = require('./orbit-episode');
-const { testMVCBehavior, getOnMVCTestPhaseFn } = require('./mvc-test-episode');
-const { buildCooperativeBridge, getOnBridgeBuilderPhaseFn } = require('./bridge-builder-episode');
-
+const {
+  walkStraightWhileLooking,
+  getOnStraightLineWalkPhaseFn,
+} = require("./straight-line-episode");
+const {
+  chaseRunner,
+  runFromChaser,
+  getOnChasePhaseFn,
+} = require("./chase-episode");
+const { orbitAroundFixedPoint, getOnOrbitPhaseFn } = require("./orbit-episode");
+const { testMVCBehavior, getOnMVCTestPhaseFn } = require("./mvc-test-episode");
+const {
+  buildCooperativeBridge,
+  getOnBridgeBuilderPhaseFn,
+} = require("./bridge-builder-episode");
 /**
  * Run a single episode
  * @param {Bot} bot - Mineflayer bot instance
@@ -29,7 +38,14 @@ const { buildCooperativeBridge, getOnBridgeBuilderPhaseFn } = require('./bridge-
  * @param {Object} args - Configuration arguments
  * @returns {Promise} Promise that resolves when episode completes
  */
-async function runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum, run_id, args) {
+async function runSingleEpisode(
+  bot,
+  sharedBotRng,
+  coordinator,
+  episodeNum,
+  run_id,
+  args
+) {
   console.log(`[${bot.username}] Starting episode ${episodeNum}`);
 
   return new Promise((resolve) => {
@@ -72,7 +88,14 @@ async function runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum, run_
  * @param {Object} args - Configuration arguments
  * @returns {Function} Spawn phase handler
  */
-function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator, args) {
+function getOnSpawnFn(
+  bot,
+  host,
+  receiverPort,
+  sharedBotRng,
+  coordinator,
+  args
+) {
   return async () => {
     // Wait for both connections to be established
     console.log("Setting up coordinator connections...");
@@ -89,22 +112,28 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator, args) 
     );
 
     // Wait for both cameras to join before starting recording
-    console.log(`[${bot.username}] Waiting for cameras to join server...`);
-    const camerasReady = await waitForCameras(
-      args.rcon_host,
-      args.rcon_port,
-      args.rcon_password,
-      args.camera_ready_retries,
-      args.camera_ready_check_interval
-    );
+    if (args.enable_camera_wait) {
+      console.log(`[${bot.username}] Waiting for cameras to join server...`);
+      const camerasReady = await waitForCameras(
+        args.rcon_host,
+        args.rcon_port,
+        args.rcon_password,
+        args.camera_ready_retries,
+        args.camera_ready_check_interval
+      );
 
-    if (!camerasReady) {
-      console.error(`[${bot.username}] Cameras failed to join within timeout. Exiting.`);
-      process.exit(1);
+      if (!camerasReady) {
+        console.error(
+          `[${bot.username}] Cameras failed to join within timeout. Exiting.`
+        );
+        process.exit(1);
+      }
+
+      console.log(
+        `[${bot.username}] Cameras detected, waiting ${args.bootstrap_wait_time}s for popups to clear...`
+      );
+      await sleep(args.bootstrap_wait_time * 1000);
     }
-
-    console.log(`[${bot.username}] Cameras detected, waiting ${args.bootstrap_wait_time}s for popups to clear...`);
-    await sleep(args.bootstrap_wait_time * 1000);
 
     // Initialize viewer once for the entire program
     mineflayerViewerhl(bot, {
@@ -120,7 +149,14 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator, args) 
       episodeNum < args.start_episode_id + args.episodes_num;
       episodeNum++
     ) {
-      await runSingleEpisode(bot, sharedBotRng, coordinator, episodeNum, args.run_id, args);
+      await runSingleEpisode(
+        bot,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        args.run_id,
+        args
+      );
       console.log(`[${bot.username}] Episode ${episodeNum} completed`);
     }
 
@@ -200,7 +236,7 @@ function getOnTeleportPhaseFn(
     }
 
     // Use land_pos to determine proper Y coordinate
-    const landPosition = land_pos(bot, newX, newZ);
+    const landPosition = await land_pos(bot, newX, newZ);
     const currentPos = bot.entity.position.clone();
     const newY = landPosition ? landPosition.y + 1 : currentPos.y;
 
@@ -217,7 +253,11 @@ function getOnTeleportPhaseFn(
     }
 
     // Estimate other bot's Y coordinate
-    const otherBotLandPosition = land_pos(bot, otherBotNewX, otherBotNewZ);
+    const otherBotLandPosition = await land_pos(
+      bot,
+      otherBotNewX,
+      otherBotNewZ
+    );
     const otherBotNewY = otherBotLandPosition
       ? otherBotLandPosition.y + 1
       : otherBotPosition.y;
@@ -249,7 +289,13 @@ function getOnTeleportPhaseFn(
         args
       );
       // await sleep(1000);
-      console.log(`[${bot.username}] teleport completed`);
+      console.log(
+        `[${
+          bot.username
+        }] teleport completed. New local position: (${newX.toFixed(
+          2
+        )}, ${newY.toFixed(2)}, ${newZ.toFixed(2)})`
+      );
     } catch (error) {
       console.error(`[${bot.username}] teleport failed:`, error);
     }
@@ -270,9 +316,12 @@ function getOnTeleportPhaseFn(
       // "mvcTest"  // Add MVC test episode for validation
       // "bridgeBuilder"  // Add cooperative bridge building episode
     ];
-    const selectedEpisodeType = episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
+    const selectedEpisodeType =
+      episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
 
-    console.log(`[${bot.username}] Selected episode type: ${selectedEpisodeType}`);
+    console.log(
+      `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
+    );
 
     const iterationID = 0;
     if (selectedEpisodeType === "straightLineWalk") {
@@ -313,8 +362,7 @@ function getOnTeleportPhaseFn(
         bot.entity.position.clone(),
         "teleportPhase end"
       );
-    } 
-    else if (selectedEpisodeType === "orbit") {
+    } else if (selectedEpisodeType === "orbit") {
       coordinator.onceEvent(
         `orbitPhase_${iterationID}`,
         getOnOrbitPhaseFn(
@@ -426,8 +474,8 @@ function getOnWalkAndLookPhaseFn(
 
     // Define three walking phase modes and randomly pick one using sharedBotRng
     const walkingModes = [
-      "lower_name_walks_straight", 
-      "bigger_name_walks_straight"
+      "lower_name_walks_straight",
+      "bigger_name_walks_straight",
     ];
     const selectedMode =
       walkingModes[Math.floor(sharedBotRng() * walkingModes.length)];
@@ -583,5 +631,5 @@ module.exports = {
   getOnTeleportPhaseFn,
   getOnWalkAndLookPhaseFn,
   getOnStopPhaseFn,
-  getOnStoppedPhaseFn
+  getOnStoppedPhaseFn,
 };

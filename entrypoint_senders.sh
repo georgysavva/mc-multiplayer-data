@@ -51,6 +51,7 @@ exec node senders.js \
   --rcon_password "${RCON_PASSWORD:-research}" \
   --color "${COLOR:-red}" \
   --bootstrap_wait_time "${BOOTSTRAP_WAIT_TIME:-0}" \
+  --enable_camera_wait "${ENABLE_CAMERA_WAIT:-1}" \
   --camera_ready_retries "${CAMERA_READY_RETRIES:-30}" \
   --camera_ready_check_interval "${CAMERA_READY_CHECK_INTERVAL:-2000}" \
   --min_run_actions "${MIN_RUN_ACTIONS:-3}" \
