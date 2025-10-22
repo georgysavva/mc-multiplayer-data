@@ -6,7 +6,8 @@ param(
     [string]$Tag = "latest",
     [switch]$Push,
     [switch]$NoCache,
-    [switch]$Help
+    [switch]$Help,
+    [switch]$ResetWorld
 )
 
 if ($Help) {
@@ -19,11 +20,13 @@ if ($Help) {
     Write-Host "  -Tag <tag>           Image tag (default: latest)"
     Write-Host "  -Push                Push to Docker Hub (default: no push)"
     Write-Host "  -NoCache             Build without using Docker cache"
+    Write-Host "  -ResetWorld          Reset the Minecraft world by deleting the local 'data53' directory before deploy"
     Write-Host "  -Help                Show this help message"
     Write-Host ""
     Write-Host "Examples:"
     Write-Host "  .\build_and_deploy_windows.ps1                                    # Build and deploy locally only"
     Write-Host "  .\build_and_deploy_windows.ps1 -NoCache                          # Build without cache, no push"
+    Write-Host "  .\build_and_deploy_windows.ps1 -ResetWorld                       # Reset world (delete .\data53) then build & deploy"
     Write-Host "  .\build_and_deploy_windows.ps1 -Push                             # Build, push to Docker Hub, and deploy"
     Write-Host "  .\build_and_deploy_windows.ps1 -ImageName myname/mc-data -Tag dev -Push # Custom image with push"
     exit 0
@@ -43,6 +46,7 @@ Write-Host "   Dockerfile: $DockerFile"
 Write-Host "   Compose File: $ComposeFile"
 Write-Host "   No Cache: $NoCache"
 Write-Host "   Push: $Push"
+Write-Host "   Reset World: $ResetWorld"
 Write-Host ""
 
 # Check if required files exist
@@ -77,6 +81,18 @@ $directories = @(
 )
 
 foreach ($dir in $directories) {
+    # If requested, remove the existing world directory before recreating
+    if ($ResetWorld -and (Split-Path -Leaf $dir) -eq "data53" -and (Test-Path $dir)) {
+        Write-Host "   [RESET] Deleting existing: $dir" -ForegroundColor Yellow
+        try {
+            Remove-Item -Path $dir -Recurse -Force
+            Write-Host "   [OK] Deleted: $dir" -ForegroundColor Green
+        } catch {
+            Write-Host "[ERROR] Failed to delete '$dir': $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
+        }
+    }
+
     if (-not (Test-Path $dir)) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
         Write-Host "   [OK] Created: $dir" -ForegroundColor Green

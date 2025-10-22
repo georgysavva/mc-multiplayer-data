@@ -69,6 +69,53 @@ def move_raw_files_to_done(episode_files: Dict[str, str], output_dir: str) -> bo
         return False
 
 
+def move_annotated_videos_to_done(episode_files: Dict[str, str], output_dir: str) -> bool:
+    """
+    Move annotated videos from main output directory to done/ subdirectory.
+    This handles cases where annotate_video.py outputs to the wrong location.
+    
+    Args:
+        episode_files: Dictionary containing paths to episode files
+        output_dir: Base output directory
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    done_dir = os.path.join(output_dir, "done")
+    os.makedirs(done_dir, exist_ok=True)
+    
+    # Get expected annotated video filenames
+    alpha_video_path = Path(episode_files['alpha_video'])
+    bravo_video_path = Path(episode_files['bravo_video'])
+    
+    alpha_annotated_name = f"{alpha_video_path.stem}_annotated{alpha_video_path.suffix}"
+    bravo_annotated_name = f"{bravo_video_path.stem}_annotated{bravo_video_path.suffix}"
+    
+    # Check if annotated videos are in main output dir (wrong location)
+    alpha_annotated_wrong = os.path.join(output_dir, alpha_annotated_name)
+    bravo_annotated_wrong = os.path.join(output_dir, bravo_annotated_name)
+    
+    try:
+        # Move Alpha annotated video if it's in the wrong place
+        if os.path.exists(alpha_annotated_wrong):
+            dest_path = os.path.join(done_dir, alpha_annotated_name)
+            if not os.path.exists(dest_path):
+                shutil.move(alpha_annotated_wrong, dest_path)
+                print(f"    Moved annotated: {alpha_annotated_name} -> done/")
+        
+        # Move Bravo annotated video if it's in the wrong place
+        if os.path.exists(bravo_annotated_wrong):
+            dest_path = os.path.join(done_dir, bravo_annotated_name)
+            if not os.path.exists(dest_path):
+                shutil.move(bravo_annotated_wrong, dest_path)
+                print(f"    Moved annotated: {bravo_annotated_name} -> done/")
+        
+        return True
+    except Exception as e:
+        print(f"  ERROR: Failed to move annotated videos: {e}")
+        return False
+
+
 def annotate_video(video_path: str, json_path: str, output_dir: str, script_dir: str) -> bool:
     """
     Annotate a single video using the annotate_video.py script.
@@ -185,9 +232,12 @@ def find_episode_pairs(output_dir: str) -> List[Dict[str, str]]:
             key = f"{bot_name.lower()}_video"
             episodes[episode_id][key] = video_path
     
-    # Parse JSON files
+    # Parse JSON files (excluding meta files)
     for json_path in json_files:
         filename = os.path.basename(json_path)
+        # Skip meta files - they'll be handled separately
+        if filename.endswith('_meta.json'):
+            continue
         # Updated regex to handle timestamp prefix: YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id.json
         match = re.match(r'(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})\.json$', filename)
         if match:
@@ -213,9 +263,9 @@ def find_episode_pairs(output_dir: str) -> List[Dict[str, str]]:
             key = f"{bot_name.lower()}_meta"
             episodes[episode_id][key] = meta_path
     
-    # Filter for complete episodes (must have all 4 files)
+    # Filter for complete episodes (must have all 6 files)
     complete_episodes = []
-    required_keys = ['alpha_video', 'alpha_json', 'bravo_video', 'bravo_json']
+    required_keys = ['alpha_video', 'alpha_json', 'alpha_meta', 'bravo_video', 'bravo_json', 'bravo_meta']
     
     for episode_id, files in episodes.items():
         if all(key in files for key in required_keys):
@@ -353,6 +403,10 @@ Examples:
             
             if alpha_success and bravo_success:
                 print(f"  * Annotation completed for episode {episode_id}")
+                
+                # Move annotated videos to done/ (in case they ended up in wrong location)
+                print(f"  Moving annotated videos to done/...")
+                move_annotated_videos_to_done(episode_files, output_dir)
                 
                 # Move raw files to done/
                 print(f"  Moving raw files to done/...")
