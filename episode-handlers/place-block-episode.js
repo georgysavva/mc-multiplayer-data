@@ -92,16 +92,15 @@ function getOnPlaceBlockPhaseFn(
     console.log(`[${bot.username}] ⏳ Waiting ${recordingDelay}ms for recording to stabilize...`);
     await sleep(recordingDelay);
     
-    // PHASE 1: Look at each other first
-    console.log(`[${bot.username}] 👀 PHASE 1: Looking at other bot for eye contact...`);
+    // STEP 1: Bots spawn (already done by teleport phase)
+    console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
     
     // Get the real-time other bot position using mineflayer API
     let actualOtherBotPosition = null;
-    let otherBotEntity = null;
     
     try {
       // Find the other bot in the world
-      console.log(`[${bot.username}] � Searching for other bot using mineflayer API...`);
+      console.log(`[${bot.username}] 🔍 Searching for other bot using mineflayer API...`);
       console.log(`[${bot.username}] 👥 Available players: ${Object.keys(bot.players).join(', ')}`);
       console.log(`[${bot.username}] 🤖 My username: ${bot.username}`);
       console.log(`[${bot.username}] 🎯 Looking for bot: ${otherBotName}`);
@@ -109,8 +108,7 @@ function getOnPlaceBlockPhaseFn(
       // Find other bot in players list
       const otherPlayer = bot.players[otherBotName];
       if (otherPlayer && otherPlayer.entity) {
-        otherBotEntity = otherPlayer.entity;
-        actualOtherBotPosition = otherBotEntity.position.clone();
+        actualOtherBotPosition = otherPlayer.entity.position.clone();
         console.log(`[${bot.username}] ✅ Found other bot entity at: ${actualOtherBotPosition.x.toFixed(2)}, ${actualOtherBotPosition.y.toFixed(2)}, ${actualOtherBotPosition.z.toFixed(2)}`);
       } else {
         console.log(`[${bot.username}] ❌ Other bot not found in players list, using passed position`);
@@ -122,17 +120,14 @@ function getOnPlaceBlockPhaseFn(
       actualOtherBotPosition = otherBotPosition.clone();
     }
     
+    // STEP 2: Both bots look at each other
+    console.log(`[${bot.username}] 👀 STEP 2: Looking at other bot...`);
     try {
       // Calculate look position - aim for the other bot's head level
       const lookTarget = actualOtherBotPosition.clone();
       lookTarget.y += 1.6; // Bot eye level height
       
       console.log(`[${bot.username}] 🎯 Looking at target: ${lookTarget.x.toFixed(2)}, ${lookTarget.y.toFixed(2)}, ${lookTarget.z.toFixed(2)}`);
-      
-      // Calculate distance to other bot
-      const myPosition = bot.entity.position;
-      const distance = myPosition.distanceTo(actualOtherBotPosition);
-      console.log(`[${bot.username}] 📏 Distance to other bot: ${distance.toFixed(2)} blocks`);
       
       // Look at the other bot
       await bot.lookAt(lookTarget);
@@ -146,30 +141,22 @@ function getOnPlaceBlockPhaseFn(
       console.log(`[${bot.username}] ⚠️ Failed to look at other bot: ${lookError.message}`);
     }
     
-    // PHASE 2: Brief acknowledgment (look down then back up)
-    console.log(`[${bot.username}] 👋 PHASE 2: Brief acknowledgment gesture...`);
+    // STEP 3: Both bots jump once
+    console.log(`[${bot.username}] 🦘 STEP 3: Jumping once...`);
     try {
-      // Look down briefly
-      await bot.look(0, Math.PI / 4); // Look down 45 degrees
-      console.log(`[${bot.username}] 📉 Looking down briefly`);
-      await sleep(500);
-      
-      // Look back at other bot using real position
-      if (actualOtherBotPosition) {
-        const lookTarget2 = actualOtherBotPosition.clone();
-        lookTarget2.y += 1.6;
-        await bot.lookAt(lookTarget2);
-        console.log(`[${bot.username}] 📈 Looking back at other bot`);
-      }
-      await sleep(500);
-      
-    } catch (gestureError) {
-      console.log(`[${bot.username}] ⚠️ Failed acknowledgment gesture: ${gestureError.message}`);
+      bot.setControlState('jump', true);
+      console.log(`[${bot.username}] ⬆️ Jump initiated!`);
+      await sleep(500); // Jump duration
+      bot.setControlState('jump', false);
+      console.log(`[${bot.username}] ⬇️ Jump completed`);
+      await sleep(500); // Wait for landing
+    } catch (jumpError) {
+      console.log(`[${bot.username}] ⚠️ Failed to jump: ${jumpError.message}`);
+      bot.setControlState('jump', false);
     }
     
-    // PHASE 3: Jump and place block underneath
-    console.log(`[${bot.username}] 🚀 PHASE 3: Jump and place block underneath...`);
-    
+    // STEP 4: Both bots equip dirt blocks
+    console.log(`[${bot.username}] 🧱 STEP 4: Equipping dirt blocks...`);
     try {
       // First, ensure bot has blocks in inventory (creative mode setup)
       if (bot.player.gamemode === 1) { // Creative mode
@@ -185,27 +172,56 @@ function getOnPlaceBlockPhaseFn(
       }
       
       // Equip dirt blocks
-      const dirt = bot.inventory.findInventoryItem('dirt');
-      if (dirt) {
-        await bot.equip(dirt, 'hand');
-        console.log(`[${bot.username}] 🧱 Equipped dirt blocks`);
+      const dirtId = bot.registry.itemsByName?.dirt?.id;
+      if (dirtId) {
+        let dirtItem = bot.inventory.items().find(i => i.type === dirtId);
+        if (!dirtItem) {
+          await sleep(200); // allow time for /give or inventory update
+          dirtItem = bot.inventory.items().find(i => i.type === dirtId);
+        }
+        if (dirtItem) {
+          await bot.equip(dirtItem, 'hand');
+          console.log(`[${bot.username}] ✅ Equipped dirt blocks`);
+        } else {
+          console.log(`[${bot.username}] ❌ No dirt blocks available`);
+          return;
+        }
       } else {
-        console.log(`[${bot.username}] ❌ No dirt blocks available`);
+        console.log(`[${bot.username}] ❌ Dirt item ID not found`);
         return;
       }
       
+      await sleep(500); // Brief pause after equipping
+      
+    } catch (equipError) {
+      console.log(`[${bot.username}] ❌ Failed to equip dirt: ${equipError.message}`);
+      return;
+    }
+    
+    // STEP 5: Both bots look down at the ground
+    console.log(`[${bot.username}] 👣 STEP 5: Looking down at the ground...`);
+    try {
+      // Keep current yaw, pitch down (negative pitch looks down)
+      await bot.look(bot.entity.yaw, -1.45, true); // -1.45 radians is almost straight down
+      console.log(`[${bot.username}] ✅ Looking down at ground`);
+      await sleep(1000); // Hold the look down position
+    } catch (lookDownError) {
+      console.log(`[${bot.username}] ⚠️ Failed to look down: ${lookDownError.message}`);
+    }
+    
+    // STEP 6: Both bots jump and place block underneath them
+    console.log(`[${bot.username}] 🚀 STEP 6: Jump and place block underneath...`);
+    
+    try {
       // Get current position for reference
       const startPos = bot.entity.position.clone();
       console.log(`[${bot.username}] 📍 Starting position: ${startPos.x.toFixed(2)}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}`);
       
-      // JUMP AND PLACE SEQUENCE
-      console.log(`[${bot.username}] 🦘 Starting jump sequence...`);
-      
-      // Start jumping
+      // Start jumping (still looking down)
       bot.setControlState('jump', true);
       console.log(`[${bot.username}] ⬆️ Jump initiated!`);
       
-      // Wait a moment to get some air time
+      // Wait a brief moment to be in the air
       await sleep(200);
       
       // While in air, place block underneath
@@ -213,7 +229,7 @@ function getOnPlaceBlockPhaseFn(
         const currentPos = bot.entity.position;
         console.log(`[${bot.username}] 🌟 In air at: ${currentPos.x.toFixed(2)}, ${currentPos.y.toFixed(2)}, ${currentPos.z.toFixed(2)}`);
         
-        // Calculate block position underneath
+        // Calculate block position underneath (the ground block)
         const blockPos = new Vec3(
           Math.floor(currentPos.x),
           Math.floor(currentPos.y) - 1, // One block below current position
@@ -231,7 +247,7 @@ function getOnPlaceBlockPhaseFn(
           console.log(`[${bot.username}] 🎬 Injecting place_block action...`);
           injectPlaceBlockAction(bot);
           
-          // Place block on top of the target
+          // Place block on top of the target (so bot lands on it)
           await bot.placeBlock(targetBlock, new Vec3(0, 1, 0));
           console.log(`[${bot.username}] ✅ Successfully placed block while jumping!`);
           
@@ -259,40 +275,35 @@ function getOnPlaceBlockPhaseFn(
       const endPos = bot.entity.position.clone();
       console.log(`[${bot.username}] 🏁 Landed at: ${endPos.x.toFixed(2)}, ${endPos.y.toFixed(2)}, ${endPos.z.toFixed(2)}`);
       
-      // Optional: Do a second jump for more action
-      console.log(`[${bot.username}] � Second jump for extra action...`);
-      bot.setControlState('jump', true);
-      await sleep(100);
-      
-      // Try to place another block
-      try {
-        const currentPos2 = bot.entity.position;
-        const blockPos2 = new Vec3(
-          Math.floor(currentPos2.x) + 1, // Offset to the side
-          Math.floor(currentPos2.y) - 1,
-          Math.floor(currentPos2.z)
-        );
-        
-        const targetBlock2 = bot.blockAt(blockPos2);
-        if (targetBlock2 && targetBlock2.name !== 'air') {
-          injectPlaceBlockAction(bot);
-          await bot.placeBlock(targetBlock2, new Vec3(0, 1, 0));
-          console.log(`[${bot.username}] ✅ Placed second block!`);
-          injectPlaceBlockAction(bot);
-        }
-      } catch (secondPlaceError) {
-        console.log(`[${bot.username}] ⚠️ Second block placement failed: ${secondPlaceError.message}`);
-      }
-      
-      await sleep(200);
-      bot.setControlState('jump', false);
-      console.log(`[${bot.username}] 🎉 Jump and place sequence completed!`);
-      
     } catch (error) {
       console.log(`[${bot.username}] ❌ Error in jump and place sequence: ${error.message}`);
       // Make sure to stop jumping in case of error
       bot.setControlState('jump', false);
     }
+    
+    // STEP 7: Both bots look at each other again
+    console.log(`[${bot.username}] 👀 STEP 7: Looking at other bot again...`);
+    try {
+      let targetPos = null;
+      const otherPlayer2 = bot.players[otherBotName];
+      if (otherPlayer2 && otherPlayer2.entity) {
+        targetPos = otherPlayer2.entity.position.clone();
+      } else if (actualOtherBotPosition) {
+        targetPos = actualOtherBotPosition.clone();
+      }
+      if (targetPos) {
+        const lookTarget3 = targetPos.clone();
+        lookTarget3.y += 1.6;
+        await bot.lookAt(lookTarget3);
+        console.log(`[${bot.username}] ✅ Looked at other bot again`);
+        await sleep(1500); // Hold eye contact
+      }
+    } catch (finalLookError) {
+      console.log(`[${bot.username}] ⚠️ Failed final look: ${finalLookError.message}`);
+    }
+    
+    // STEP 8: Episode ends
+    console.log(`[${bot.username}] 🎬 STEP 8: Episode ending...`);
     
     // Wait a moment for the action to complete and be recorded
     console.log(`[${bot.username}] ⏳ Waiting ${PLACE_BLOCK_DURATION_MS}ms for action to complete and be recorded...`);
