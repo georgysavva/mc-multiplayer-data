@@ -41,14 +41,14 @@ python batch_process_all.py --output-dir ../output
 
 ```
 output/
-├── 000000_Alpha_instance_000.mp4          # Raw episodes (unchanged)
-├── 000000_Alpha_instance_000.json         # Raw metadata (unchanged)
-├── 000000_Bravo_instance_000.mp4
-├── 000000_Bravo_instance_000.json
+├── Alpha_mineflayer.mp4                   # Raw episodes (unchanged)
+├── Alpha_mineflayer.json                  # Raw metadata (unchanged)
+├── Bravo_mineflayer.mp4
+├── Bravo_mineflayer.json
 ├── ... (more raw episodes)
 └── done/                                   # New: All processed files
-    ├── 000000_Alpha_instance_000_annotated.mp4
-    ├── 000000_Bravo_instance_000_annotated.mp4
+    ├── Alpha_mineflayer_annotated.mp4
+    ├── Bravo_mineflayer_annotated.mp4
     ├── 000000_Alpha_..._aligned.mp4
     └── ... (all processed files organized here)
 ```

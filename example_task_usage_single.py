@@ -9,9 +9,10 @@ from task_generators import ChaseTaskGenerator
 def main():
     """Run a single chase episode to debug video generation"""
     
-    base_output = Path("/home/oscar/mc-multiplayer-data/output").absolute()
-    data_dir = Path("/home/oscar/mc-multiplayer-data/data_tasks").absolute()
-    camera_dir = Path("/home/oscar/mc-multiplayer-data/camera_tasks").absolute()
+    repo_root = Path(__file__).resolve().parent
+    base_output = (repo_root / "output").absolute()
+    data_dir = (repo_root / "data_tasks").absolute()
+    camera_dir = (repo_root / "camera_tasks").absolute()
     
     print("=" * 60)
     print("Single Episode Debug Test")

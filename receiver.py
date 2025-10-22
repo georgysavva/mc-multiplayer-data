@@ -204,7 +204,9 @@ id = args.start_id
 while True:
 
     frame_queue = Queue()
-    output_path = f"{args.output_path}/{id:06d}_{args.name}_instance_{args.instance_id:03d}"
+    # Save recordings using deterministic stems that match post-processing expectations.
+    stem = f"{args.name}_mineflayer"
+    output_path = f"{args.output_path}/{stem}"
 
     processor = Thread(target=process_frame_worker, args=(frame_queue, output_path))
     processor.daemon = True

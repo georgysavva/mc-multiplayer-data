@@ -8,20 +8,25 @@ and is responsible for:
 3. Running episodes and collecting output
 """
 
-from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Dict, Any, Optional
 import random
 import subprocess
-import yaml
 import json
 import copy
 from datetime import datetime
 import tempfile
+import re
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Dict, Any, Optional
+
+import yaml
 
 from postprocess.process_recordings import process_bot_recording
 
 from .base_compose_template import get_base_compose_template
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class BaseTaskGenerator(ABC):
@@ -65,6 +70,7 @@ class BaseTaskGenerator(ABC):
         self.output_root = Path(output_root).absolute()
         self.data_root = Path(data_root).absolute()
         self.camera_root = Path(camera_root).absolute()
+        self.project_root = PROJECT_ROOT
         
         self.base_port = base_port
         self.base_rcon_port = base_rcon_port
@@ -151,6 +157,12 @@ class BaseTaskGenerator(ABC):
         """
         # 1. Generate unique episode ID
         unique_id = self.get_unique_id()
+
+        # Compose project names must be lowercase alphanumeric plus -_
+        project_slug = re.sub(r"[^a-z0-9_-]", "", unique_id.lower())
+        if not project_slug:
+            project_slug = "episode"
+        project_name = f"mc_{project_slug}"
         
         # 2. Setup unique infrastructure settings based on worker_id
         port_offset = self.worker_id * 100
@@ -190,33 +202,72 @@ class BaseTaskGenerator(ABC):
                          camera_output_dir_alpha, camera_output_dir_bravo]:
             Path(dir_path).mkdir(parents=True, exist_ok=True)
         
-        # 6. Generate docker-compose file
-        compose_file = self._generate_compose_file(unique_id, mc_port, rcon_port, 
-                                                 vnc_display_alpha, vnc_display_bravo,
-                                                 vnc_port_alpha, vnc_port_bravo,
-                                                 novnc_port_alpha, novnc_port_bravo,
-                                                 receiver_port, coord_port_alpha, coord_port_bravo,
-                                                 instance_id, data_dir, output_dir,
-                                                 camera_data_dir_alpha, camera_data_dir_bravo,
-                                                 camera_output_dir_alpha, camera_output_dir_bravo)
+        # 6. Sample environment values once so compose + config stay in sync
+        global_env_vars = dict(self.get_global_env_vars())
+        task_env_vars = dict(self.get_task_env_vars())
+        world_seed = self.rng.randint(0, 2**31 - 1)
+        bot_rng_seeds = {
+            "Alpha": self.rng.randint(0, 2**31 - 1),
+            "Bravo": self.rng.randint(0, 2**31 - 1),
+        }
+
+        # 7. Generate docker-compose file
+        compose_file = self._generate_compose_file(
+            episode_id=unique_id,
+            mc_port=mc_port,
+            rcon_port=rcon_port,
+            vnc_display_alpha=vnc_display_alpha,
+            vnc_display_bravo=vnc_display_bravo,
+            vnc_port_alpha=vnc_port_alpha,
+            vnc_port_bravo=vnc_port_bravo,
+            novnc_port_alpha=novnc_port_alpha,
+            novnc_port_bravo=novnc_port_bravo,
+            receiver_port=receiver_port,
+            coord_port_alpha=coord_port_alpha,
+            coord_port_bravo=coord_port_bravo,
+            instance_id=instance_id,
+            data_dir=data_dir,
+            output_dir=output_dir,
+            camera_data_dir_alpha=camera_data_dir_alpha,
+            camera_data_dir_bravo=camera_data_dir_bravo,
+            camera_output_dir_alpha=camera_output_dir_alpha,
+            camera_output_dir_bravo=camera_output_dir_bravo,
+            global_env_vars=global_env_vars,
+            task_env_vars=task_env_vars,
+            world_seed=world_seed,
+            bot_rng_seeds=bot_rng_seeds,
+        )
         
-        # 7. Save episode configuration
+        # 8. Save episode configuration if requested
         config_data = {
             "unique_id": unique_id,
             "worker_id": self.worker_id,
             "episode_number": self.episode_counter,
             "task_name": self.task_name,
             "timestamp": datetime.now().isoformat(),
-            "bot_rng_seed": self.rng.randint(0, 2**31 - 1),
-            "world_seed": self.rng.randint(0, 2**31 - 1),
-            "task_env_vars": self.get_task_env_vars(),
-            "global_env_vars": self.get_global_env_vars()
+            "world_seed": world_seed,
+            "bot_rng_seeds": bot_rng_seeds,
+            "task_env_vars": task_env_vars,
+            "global_env_vars": global_env_vars,
+            "compose_project": project_name,
+            "ports": {
+                "mc_port": mc_port,
+                "rcon_port": rcon_port,
+                "receiver_port": receiver_port,
+                "coord_port_alpha": coord_port_alpha,
+                "coord_port_bravo": coord_port_bravo,
+                "vnc_port_alpha": vnc_port_alpha,
+                "vnc_port_bravo": vnc_port_bravo,
+                "novnc_port_alpha": novnc_port_alpha,
+                "novnc_port_bravo": novnc_port_bravo,
+            },
         }
-        config_file = episode_output_dir / "episode_config.json"
-        with open(config_file, 'w') as f:
-            json.dump(config_data, f, indent=2)
+        if save_config:
+            config_file = episode_output_dir / "episode_config.json"
+            with open(config_file, 'w') as f:
+                json.dump(config_data, f, indent=2)
         
-        # 5. Run the stack (similar to run_stack.sh)
+        # 9. Run the stack (similar to run_stack.sh)
         print(f"[Worker {self.worker_id}] Task: {self.task_name}, Episode: {self.episode_counter}")
         print(f"  MC Port: {mc_port}, RCON Port: {rcon_port}")
         print(f"  VNC Displays: :{vnc_display_alpha}, :{vnc_display_bravo}")
@@ -224,13 +275,15 @@ class BaseTaskGenerator(ABC):
         start_time = datetime.now()
         try:
             self._cleanup_stale_camera_containers()
-            self._run_docker_stack(compose_file, unique_id, episode_output_dir)
+            self._run_docker_stack(compose_file, unique_id, project_name, episode_output_dir)
             success = True
             error = None
         except Exception as e:
             success = False
             error = str(e)
             print(f"[Worker {self.worker_id}] Episode {self.episode_counter} failed: {e}")
+        finally:
+            compose_file.unlink(missing_ok=True)
 
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
@@ -251,14 +304,32 @@ class BaseTaskGenerator(ABC):
         self.episode_counter += 1
         return result
     
-    def _generate_compose_file(self, episode_id: str, mc_port: int, rcon_port: int,
-                             vnc_display_alpha: int, vnc_display_bravo: int,
-                             vnc_port_alpha: int, vnc_port_bravo: int,
-                             novnc_port_alpha: int, novnc_port_bravo: int,
-                             receiver_port: int, coord_port_alpha: int, coord_port_bravo: int,
-                             instance_id: int, data_dir: str, output_dir: str,
-                             camera_data_dir_alpha: str, camera_data_dir_bravo: str,
-                             camera_output_dir_alpha: str, camera_output_dir_bravo: str) -> Path:
+    def _generate_compose_file(
+        self,
+        episode_id: str,
+        mc_port: int,
+        rcon_port: int,
+        vnc_display_alpha: int,
+        vnc_display_bravo: int,
+        vnc_port_alpha: int,
+        vnc_port_bravo: int,
+        novnc_port_alpha: int,
+        novnc_port_bravo: int,
+        receiver_port: int,
+        coord_port_alpha: int,
+        coord_port_bravo: int,
+        instance_id: int,
+        data_dir: str,
+        output_dir: str,
+        camera_data_dir_alpha: str,
+        camera_data_dir_bravo: str,
+        camera_output_dir_alpha: str,
+        camera_output_dir_bravo: str,
+        global_env_vars: Dict[str, str],
+        task_env_vars: Dict[str, str],
+        world_seed: int,
+        bot_rng_seeds: Dict[str, int],
+    ) -> Path:
         """
         Generate docker-compose file by overriding base template.
         
@@ -272,6 +343,10 @@ class BaseTaskGenerator(ABC):
             data_dir, output_dir: Directory paths
             camera_data_dir_alpha, camera_data_dir_bravo: Camera data directories
             camera_output_dir_alpha, camera_output_dir_bravo: Camera output directories
+            global_env_vars: Shared environment values
+            task_env_vars: Task-specific environment overrides
+            world_seed: Minecraft world seed
+            bot_rng_seeds: Per-bot RNG seed mapping
             
         Returns:
             Path to generated docker-compose file
@@ -289,15 +364,11 @@ class BaseTaskGenerator(ABC):
             "biome": "minecraft:plains"
         })
         
-        # Get environment variable dictionaries
-        global_env_vars = self.get_global_env_vars()
-        task_env_vars = self.get_task_env_vars()
-        
         # Override MC server settings
         mc_service = compose["services"]["mc"]
         mc_service["environment"]["SERVER_PORT"] = mc_port
         mc_service["environment"]["RCON_PORT"] = rcon_port
-        mc_service["environment"]["SEED"] = str(self.rng.randint(0, 2**31 - 1))
+        mc_service["environment"]["SEED"] = str(world_seed)
         mc_service["environment"]["GENERATOR_SETTINGS"] = terrain_json
         mc_service["volumes"] = [f"{data_dir}:/data"]
         mc_service["healthcheck"]["test"] = [
@@ -325,6 +396,7 @@ class BaseTaskGenerator(ABC):
                 bot_service["environment"]["COORD_PORT"] = str(coord_port_alpha)
                 bot_service["environment"]["OTHER_COORD_HOST"] = "sender_bravo"
                 bot_service["environment"]["OTHER_COORD_PORT"] = str(coord_port_bravo)
+                bot_seed = bot_rng_seeds["Alpha"]
             else:  # sender_bravo
                 bot_service["environment"]["BOT_NAME"] = "Bravo"
                 bot_service["environment"]["OTHER_BOT_NAME"] = "Alpha"
@@ -334,11 +406,12 @@ class BaseTaskGenerator(ABC):
                 bot_service["environment"]["COORD_PORT"] = str(coord_port_bravo)
                 bot_service["environment"]["OTHER_COORD_HOST"] = "sender_alpha"
                 bot_service["environment"]["OTHER_COORD_PORT"] = str(coord_port_alpha)
+                bot_seed = bot_rng_seeds["Bravo"]
 
             # Set infrastructure variables
             bot_service["environment"]["MC_PORT"] = str(mc_port)
             bot_service["environment"]["RCON_PORT"] = str(rcon_port)
-            bot_service["environment"]["BOT_RNG_SEED"] = str(self.rng.randint(0, 2**31 - 1))
+            bot_service["environment"]["BOT_RNG_SEED"] = str(bot_seed)
             bot_service["environment"]["EPISODE_CATEGORY"] = self.task_name
 
             bot_service["volumes"] = [f"{output_dir}:/output"]
@@ -351,7 +424,7 @@ class BaseTaskGenerator(ABC):
             receiver_service["volumes"] = [f"{output_dir}:/output"]
         
         # Get absolute paths for camera scripts
-        camera_scripts_dir = Path("/home/oscar/mc-multiplayer-data/camera").absolute()
+        camera_scripts_dir = self.project_root / "camera"
         
         # Override camera_alpha settings
         camera_alpha = compose["services"]["camera_alpha"]
@@ -400,7 +473,7 @@ class BaseTaskGenerator(ABC):
         
         # Write to temp file
         temp_dir = Path(tempfile.gettempdir()) / f"mc_worker_{self.worker_id}"
-        temp_dir.mkdir(exist_ok=True)
+        temp_dir.mkdir(parents=True, exist_ok=True)
         compose_file = temp_dir / f"docker-compose-{episode_id}.yml"
         
         with open(compose_file, 'w') as f:
@@ -408,16 +481,22 @@ class BaseTaskGenerator(ABC):
         
         return compose_file
     
-    def _run_docker_stack(self, compose_file: Path, unique_id: str, episode_output_dir: Path):
+    def _run_docker_stack(
+        self,
+        compose_file: Path,
+        unique_id: str,
+        project_name: str,
+        episode_output_dir: Path,
+    ):
         """
         Run docker compose stack (mimics run_stack.sh).
         
         Args:
             compose_file: Path to docker-compose file
             unique_id: Unique episode identifier
+            project_name: Docker Compose project name (sanitized)
             episode_output_dir: Episode output directory for logs
         """
-        project_name = f"mc_{unique_id}"
         log_dir = episode_output_dir / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
         
@@ -428,7 +507,7 @@ class BaseTaskGenerator(ABC):
                 ["docker", "compose", "-p", project_name, "-f", str(compose_file), "pull"],
                 capture_output=True,
                 text=True,
-                cwd="/home/oscar/mc-multiplayer-data"
+                cwd=self.project_root
             )
             if result.returncode != 0:
                 print(f"[Worker {self.worker_id}] Pull failed:")
@@ -441,7 +520,7 @@ class BaseTaskGenerator(ABC):
                 ["docker", "compose", "-p", project_name, "-f", str(compose_file), "up", "-d"],
                 capture_output=True,
                 text=True,
-                cwd="/home/oscar/mc-multiplayer-data"
+                cwd=self.project_root
             )
             if result.returncode != 0:
                 print(f"[Worker {self.worker_id}] Start failed:")
@@ -462,7 +541,7 @@ class BaseTaskGenerator(ABC):
                          "logs", "--no-color", "--timestamps", "--follow", service],
                         stdout=f,
                         stderr=subprocess.STDOUT,
-                        cwd="/home/oscar/mc-multiplayer-data"
+                        cwd=self.project_root
                     )
                     log_processes.append(proc)
             
@@ -475,7 +554,7 @@ class BaseTaskGenerator(ABC):
                 timeout=600,  # 10 minute timeout
                 capture_output=True,
                 text=True,
-                cwd="/home/oscar/mc-multiplayer-data"
+                cwd=self.project_root
             )
             if result.returncode != 0:
                 print(f"[Worker {self.worker_id}] Wait failed:")
@@ -498,7 +577,7 @@ class BaseTaskGenerator(ABC):
                 ["docker", "compose", "-p", project_name, "-f", str(compose_file), "down", "-v"],
                 capture_output=True,
                 text=True,
-                cwd="/home/oscar/mc-multiplayer-data"
+                cwd=self.project_root
             )
             
             # Remove camera containers explicitly (they have fixed names and don't get removed by compose down)
