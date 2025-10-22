@@ -28,7 +28,6 @@ const {
   buildCooperativeBridge,
   getOnBridgeBuilderPhaseFn,
 } = require("./bridge-builder-episode");
-const { getOnTestMouseActPhaseFn } = require("./test-mouse-act");
 /**
  * Run a single episode
  * @param {Bot} bot - Mineflayer bot instance
