@@ -18,8 +18,7 @@ ENV MESA_GL_VERSION_OVERRIDE=3.3
 ENV MESA_GLSL_VERSION_OVERRIDE=330
 # (Optional) library lookup hints
 ENV LIBGL_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
-# Append to LD_LIBRARY_PATH only if already defined
-ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}/usr/lib/aarch64-linux-gnu:/usr/lib/x86_64-linux-gnu
+ENV LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/usr/lib/x86_64-linux-gnu
 ENV PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig"
 
 
