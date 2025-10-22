@@ -146,10 +146,10 @@ function getOnPlaceBlockPhaseFn(
     try {
       bot.setControlState('jump', true);
       console.log(`[${bot.username}] ⬆️ Jump initiated!`);
-      await sleep(500); // Jump duration
+      await sleep(100); // Jump duration
       bot.setControlState('jump', false);
       console.log(`[${bot.username}] ⬇️ Jump completed`);
-      await sleep(500); // Wait for landing
+      await sleep(100); // Wait for landing
     } catch (jumpError) {
       console.log(`[${bot.username}] ⚠️ Failed to jump: ${jumpError.message}`);
       bot.setControlState('jump', false);
@@ -167,7 +167,7 @@ function getOnPlaceBlockPhaseFn(
         } catch (creativeError) {
           console.log(`[${bot.username}] ⚠️ Creative inventory failed, trying /give command`);
           bot.chat(`/give @s minecraft:dirt 64`);
-          await sleep(500);
+          await sleep(100);
         }
       }
       
@@ -191,7 +191,7 @@ function getOnPlaceBlockPhaseFn(
         return;
       }
       
-      await sleep(500); // Brief pause after equipping
+      await sleep(100); // Brief pause after equipping
       
     } catch (equipError) {
       console.log(`[${bot.username}] ❌ Failed to equip dirt: ${equipError.message}`);
@@ -209,76 +209,105 @@ function getOnPlaceBlockPhaseFn(
       console.log(`[${bot.username}] ⚠️ Failed to look down: ${lookDownError.message}`);
     }
     
-    // STEP 6: Both bots jump and place block underneath them
-    console.log(`[${bot.username}] 🚀 STEP 6: Jump and place block underneath...`);
+    // STEP 6: Both bots place block in front, then jump onto it
+    console.log(`[${bot.username}] 🚀 STEP 6: Place block in front and jump onto it...`);
     
     try {
-      // Get current position for reference
+      // Verify dirt is still equipped
+      const heldItem = bot.heldItem;
+      if (!heldItem || heldItem.name !== 'dirt') {
+        console.log(`[${bot.username}] ⚠️ Dirt not in hand! Held item: ${heldItem ? heldItem.name : 'nothing'}`);
+        // Try to re-equip
+        const dirtId = bot.registry.itemsByName?.dirt?.id;
+        if (dirtId) {
+          const dirtItem = bot.inventory.items().find(i => i.type === dirtId);
+          if (dirtItem) {
+            await bot.equip(dirtItem, 'hand');
+            console.log(`[${bot.username}] ✅ Re-equipped dirt blocks`);
+            await sleep(300);
+          } else {
+            console.log(`[${bot.username}] ❌ No dirt in inventory!`);
+            return;
+          }
+        }
+      } else {
+        console.log(`[${bot.username}] ✅ Verified dirt is equipped: ${heldItem.name}`);
+      }
+      
+      // Get current position
       const startPos = bot.entity.position.clone();
       console.log(`[${bot.username}] 📍 Starting position: ${startPos.x.toFixed(2)}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}`);
       
-      // Start jumping (still looking down)
-      bot.setControlState('jump', true);
-      console.log(`[${bot.username}] ⬆️ Jump initiated!`);
+      // Calculate position 1 block in front based on yaw
+      const yaw = bot.entity.yaw;
+      const offsetX = -Math.sin(yaw);
+      const offsetZ = -Math.cos(yaw);
       
-      // Wait a brief moment to be in the air
-      await sleep(200);
+      const targetGroundPos = new Vec3(
+        Math.floor(startPos.x + offsetX),
+        Math.floor(startPos.y) - 1,
+        Math.floor(startPos.z + offsetZ)
+      );
       
-      // While in air, place block underneath
-      try {
-        const currentPos = bot.entity.position;
-        console.log(`[${bot.username}] 🌟 In air at: ${currentPos.x.toFixed(2)}, ${currentPos.y.toFixed(2)}, ${currentPos.z.toFixed(2)}`);
+      console.log(`[${bot.username}] 🎯 Target ground position (1 block ahead): ${targetGroundPos.x}, ${targetGroundPos.y}, ${targetGroundPos.z}`);
+      console.log(`[${bot.username}] 🧭 Bot yaw: ${yaw.toFixed(2)}`);
+      
+      // Get the ground block
+      const groundBlock = bot.blockAt(targetGroundPos);
+      if (groundBlock && groundBlock.name !== 'air') {
+        console.log(`[${bot.username}] 🔍 Found ground block: ${groundBlock.name}`);
         
-        // Calculate block position underneath (the ground block)
-        const blockPos = new Vec3(
-          Math.floor(currentPos.x),
-          Math.floor(currentPos.y) - 1, // One block below current position
-          Math.floor(currentPos.z)
-        );
+        // Check if space above ground is empty (where we'll place the dirt)
+        const blockAbove = bot.blockAt(groundBlock.position.offset(0, 1, 0));
+        console.log(`[${bot.username}] 🔍 Block above ground: ${blockAbove ? blockAbove.name : 'null'}`);
         
-        console.log(`[${bot.username}] 🎯 Attempting to place block at: ${blockPos.x}, ${blockPos.y}, ${blockPos.z}`);
-        
-        // Find block to place against (should be the ground or existing block)
-        const targetBlock = bot.blockAt(blockPos);
-        if (targetBlock && targetBlock.name !== 'air') {
-          console.log(`[${bot.username}] 🔍 Found target block: ${targetBlock.name} at ${targetBlock.position.x}, ${targetBlock.position.y}, ${targetBlock.position.z}`);
-          
+        if (blockAbove && blockAbove.name === 'air') {
           // INJECT ACTION BEFORE PLACEMENT
           console.log(`[${bot.username}] 🎬 Injecting place_block action...`);
           injectPlaceBlockAction(bot);
           
-          // Place block on top of the target (so bot lands on it)
-          await bot.placeBlock(targetBlock, new Vec3(0, 1, 0));
-          console.log(`[${bot.username}] ✅ Successfully placed block while jumping!`);
+          // Place block on top of the ground (1 block in front)
+          console.log(`[${bot.username}] 🔨 Placing dirt block in front...`);
+          await bot.placeBlock(groundBlock, new Vec3(0, 1, 0));
+          console.log(`[${bot.username}] ✅ Successfully placed dirt block!`);
           
           // INJECT ACTION AFTER PLACEMENT
           injectPlaceBlockAction(bot);
           
+          // Wait a moment for the block to appear in the world
+          await sleep(500);
+          
+          // Now the bot should be standing on the newly placed block
+          // Jump to celebrate!
+          console.log(`[${bot.username}] 🦘 Jumping forward onto placed block...`);
+          bot.setControlState('forward', true);
+          bot.setControlState('jump', true);
+          await sleep(400);
+          bot.setControlState('jump', false);
+          await sleep(200);
+          bot.setControlState('forward', false);
+          
+          // Wait for landing
+          await sleep(500);
+          
+          const endPos = bot.entity.position.clone();
+          console.log(`[${bot.username}] 🏁 Final position: ${endPos.x.toFixed(2)}, ${endPos.y.toFixed(2)}, ${endPos.z.toFixed(2)}`);
+          console.log(`[${bot.username}] 📊 Position change: X=${(endPos.x - startPos.x).toFixed(2)}, Y=${(endPos.y - startPos.y).toFixed(2)}, Z=${(endPos.z - startPos.z).toFixed(2)}`);
+          
         } else {
-          console.log(`[${bot.username}] ❌ No suitable target block found for placement`);
+          console.log(`[${bot.username}] ❌ Cannot place block - space is occupied by: ${blockAbove ? blockAbove.name : 'null'}`);
         }
         
-      } catch (placeError) {
-        console.log(`[${bot.username}] ⚠️ Failed to place block while jumping: ${placeError.message}`);
+      } else {
+        console.log(`[${bot.username}] ❌ No ground block found (block is: ${groundBlock ? groundBlock.name : 'null'})`);
       }
       
-      // Continue jumping for a bit more
-      await sleep(300);
-      
-      // Stop jumping
-      bot.setControlState('jump', false);
-      console.log(`[${bot.username}] ⬇️ Jump completed, landing...`);
-      
-      // Wait for landing
-      await sleep(1000);
-      
-      const endPos = bot.entity.position.clone();
-      console.log(`[${bot.username}] 🏁 Landed at: ${endPos.x.toFixed(2)}, ${endPos.y.toFixed(2)}, ${endPos.z.toFixed(2)}`);
-      
     } catch (error) {
-      console.log(`[${bot.username}] ❌ Error in jump and place sequence: ${error.message}`);
-      // Make sure to stop jumping in case of error
+      console.log(`[${bot.username}] ❌ Error in place and jump sequence: ${error.message}`);
+      console.log(`[${bot.username}] 📋 Error stack: ${error.stack}`);
+      // Make sure to stop movement in case of error
       bot.setControlState('jump', false);
+      bot.setControlState('forward', false);
     }
     
     // STEP 7: Both bots look at each other again
