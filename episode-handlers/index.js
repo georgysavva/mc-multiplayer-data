@@ -18,6 +18,7 @@ const { chaseRunner, runFromChaser, getOnChasePhaseFn } = require('./chase-episo
 const { orbitAroundFixedPoint, getOnOrbitPhaseFn } = require('./orbit-episode');
 const { testMVCBehavior, getOnMVCTestPhaseFn } = require('./mvc-test-episode');
 const { buildCooperativeBridge, getOnBridgeBuilderPhaseFn } = require('./bridge-builder-episode');
+const { placeDirtBlock, getOnPlaceBlockPhaseFn } = require('./place-block-episode');
 
 /**
  * Run a single episode
@@ -265,8 +266,9 @@ function getOnTeleportPhaseFn(
 
     // Add episode type selection - Enable multiple types for diverse data collection
     const episodeTypes = [
-      "chase",
-      "orbit",
+      // "chase",
+      // "orbit",
+      "placeBlock",
       // "mvcTest"  // Add MVC test episode for validation
       // "bridgeBuilder"  // Add cooperative bridge building episode
     ];
@@ -313,8 +315,26 @@ function getOnTeleportPhaseFn(
         bot.entity.position.clone(),
         "teleportPhase end"
       );
-    } 
-    else if (selectedEpisodeType === "orbit") {
+    } else if (selectedEpisodeType === "placeBlock") {
+      coordinator.onceEvent(
+        `placeBlockPhase_${iterationID}`,
+        getOnPlaceBlockPhaseFn(
+          bot,
+          sharedBotRng,
+          coordinator,
+          iterationID,
+          args.other_bot_name,
+          episodeNum,
+          getOnStopPhaseFn,
+          args
+        )
+      );
+      coordinator.sendToOtherBot(
+        `placeBlockPhase_${iterationID}`,
+        bot.entity.position.clone(),
+        "teleportPhase end"
+      );
+    } else if (selectedEpisodeType === "orbit") {
       coordinator.onceEvent(
         `orbitPhase_${iterationID}`,
         getOnOrbitPhaseFn(
