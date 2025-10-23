@@ -21,130 +21,88 @@ const INITIAL_EYE_CONTACT_MS = 500;      // Initial look duration
 const RECORDING_DELAY_MS = 500;          // Recording stabilization delay
 
 // Available sword types (will pick randomly)
-const SWORD_TYPES = ['stone_sword']; // Default to stone sword only to avoid timeout issues
+const SWORD_TYPES = [
+  'netherite_sword','diamond_sword','iron_sword',
+  'stone_sword','golden_sword','wooden_sword'
+];
 
 /**
- * Equip a sword using RCON give command
+ * Wait for an item to appear in inventory (event-based)
  * @param {Bot} bot - Mineflayer bot instance
- * @param {string} swordName - Name of sword to equip (default: 'stone_sword')
- * @param {number} hotbarIndex - Hotbar slot index 0-8 (default: 0)
+ * @param {number} id - Item type ID to wait for
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @returns {Promise<void>}
+ */
+function waitForItem(bot, id, timeoutMs = 2000) {
+  return new Promise(resolve => {
+    const done = () => { bot.removeListener('setSlot', onSet); clearTimeout(t); resolve() }
+    const onSet = (_slot, _old, item) => { if (item?.type === id) done() }
+    const t = setTimeout(done, timeoutMs)
+    bot.on('setSlot', onSet)
+  })
+}
+
+/**
+ * Select hotbar slot containing the specified item
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} id - Item type ID to select
+ * @returns {Promise<boolean>} True if item found and selected
+ */
+async function selectHotbarWithItem(bot, id) {
+  // Try to select the hotbar slot containing the item (36..44)
+  for (let i = 0; i < 9; i++) {
+    const slot = 36 + i
+    const s = bot.inventory.slots[slot]
+    if (s?.type === id) { bot.setQuickBarSlot(i); return true }
+  }
+  // Fallback: leave current selection
+  return false
+}
+
+/**
+ * Equip a sword using RCON give command with proper event-based waiting
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {string} swordName - Name of sword to equip
  * @param {Object} args - Configuration arguments with rcon settings
  * @returns {Promise<string>} Name of equipped sword
  */
-async function equipSwordCreative(bot, swordName = 'stone_sword', hotbarIndex = 0, args) {
-  console.log(`[${bot.username}] 🗡️ Equipping ${swordName}...`);
-  
-  // Log current gamemode for debugging
-  console.log(`[${bot.username}] 🎮 Current gameMode: ${bot.game.gameMode}`);
+async function equipSwordViaRcon(bot, swordName, args) {
+  const mcData = require('minecraft-data')(bot.version)
+  const target = mcData.itemsByName[swordName]
+  if (!target) throw new Error(`Unknown sword: ${swordName}`)
+  const id = target.id
 
-  const mcData = require('minecraft-data')(bot.version);
-  const Item = require('prismarine-item')(bot.version);
+  console.log(`[${bot.username}] �️ Equipping ${swordName} via RCON...`)
 
-  // DEBUG: Log what's actually available in mcData
-  console.log(`[${bot.username}] 🔍 DEBUG: Looking for '${swordName}' in mcData.itemsByName`);
-  const allSwordItems = Object.keys(mcData.itemsByName).filter(name => name.includes('sword'));
-  console.log(`[${bot.username}] 🔍 DEBUG: Available sword items in mcData:`, allSwordItems);
-  
-  // Try to find the item with the given name
-  let id = mcData.itemsByName[swordName]?.id;
-  console.log(`[${bot.username}] 🔍 DEBUG: mcData.itemsByName['${swordName}'] = ${id ? `id: ${id}` : 'NOT FOUND'}`);
-  
-  // If not found, try with minecraft: namespace
-  if (!id) {
-    const namespacedName = `minecraft:${swordName}`;
-    id = mcData.itemsByName[namespacedName]?.id;
-    console.log(`[${bot.username}] 🔍 DEBUG: Trying with namespace: mcData.itemsByName['${namespacedName}'] = ${id ? `id: ${id}` : 'NOT FOUND'}`);
-  }
-  
-  if (!id) {
-    throw new Error(`Unknown sword: ${swordName} (tried both '${swordName}' and 'minecraft:${swordName}')`);
-  }
+  // 1) Give via RCON
+  const { Rcon } = require('rcon-client')
+  const r = await Rcon.connect({ 
+    host: args.rcon_host, 
+    port: args.rcon_port, 
+    password: args.rcon_password 
+  })
+  await r.send(`give ${bot.username} ${swordName} 1`)
+  await r.end()
+  console.log(`[${bot.username}] 📡 RCON give command sent`)
 
-  // Use RCON to give the sword (more reliable than creative API)
-  console.log(`[${bot.username}] 📡 Using RCON to give sword...`);
-  const rcon = await Rcon.connect({
-    host: args.rcon_host,
-    port: args.rcon_port,
-    password: args.rcon_password,
-  });
-  
-  // Use Minecraft's official format: give <player> minecraft:item_name
-  const giveCommand = `give ${bot.username} minecraft:${swordName}`;
-  console.log(`[${bot.username}] 📡 Executing: ${giveCommand}`);
-  const rconResponse = await rcon.send(giveCommand);
-  console.log(`[${bot.username}] 📡 RCON response: ${rconResponse}`);
-  await rcon.end();
-  
-  // Wait for the item to appear in inventory
-  console.log(`[${bot.username}] ⏳ Waiting for sword to appear in inventory...`);
-  await sleep(500);
-  
-  // Find the sword in inventory
-  const sword = bot.inventory.items().find(i => i.type === id);
-  if (!sword) {
-    console.log(`[${bot.username}] ⚠️ Sword not found in inventory after RCON give`);
-    throw new Error(`Sword not found in inventory after RCON give`);
-  }
-  
-  console.log(`[${bot.username}] ✅ Found sword in inventory: ${sword.name}`);
-  
-  // Equip the sword to hand
-  await bot.equip(sword, 'hand');
-  console.log(`[${bot.username}] 🎯 Equipped sword to hand`);
-  
-  // Set the quickbar slot to make it active (needed for viewer to show it)
-  bot.setQuickBarSlot(hotbarIndex);
-  console.log(`[${bot.username}] 🎯 Set quickbar slot to ${hotbarIndex}`);
-  
-  // Wait a moment for the item to sync
-  await sleep(300);
-  
-  // Verify the item is actually equipped
-  const heldItem = bot.heldItem;
-  console.log(`[${bot.username}] 🔍 DEBUG: After equip, heldItem =`, heldItem ? `${heldItem.name} (type: ${heldItem.type})` : 'null');
-  
-  if (heldItem && heldItem.type === id) {
-    console.log(`[${bot.username}] ✅ Successfully equipped ${swordName}`);
-    return swordName;
-  } else {
-    console.log(`[${bot.username}] ⚠️ Sword not in hand after equip. Held item: ${heldItem ? heldItem.name : 'nothing'}`);
-    throw new Error(`Failed to equip ${swordName} - verification failed`);
-  }
-}
+  // 2) Wait for arrival (event-based)
+  await waitForItem(bot, id)
+  console.log(`[${bot.username}] ✅ Sword arrived in inventory`)
 
-/**
- * Set player gamemode via RCON
- * @param {string} playerName - Player name
- * @param {string} gamemode - Gamemode (creative, survival, etc.)
- * @param {Object} args - Configuration arguments with rcon settings
- * @returns {Promise<string>} RCON response
- */
-async function rconGamemode(playerName, gamemode, args) {
-  const rcon = await Rcon.connect({
-    host: args.rcon_host,
-    port: args.rcon_port,
-    password: args.rcon_password,
-  });
-  const res = await rcon.send(`gamemode ${gamemode} ${playerName}`);
-  await rcon.end();
-  return res;
-}
+  // 3) Canonical equip (emits held-item packet that viewer listens for)
+  await bot.equip(id, 'hand')
+  console.log(`[${bot.username}] 🎯 Equipped to hand`)
 
-/**
- * Execute a generic RCON command
- * @param {string} command - RCON command to execute
- * @param {Object} args - Configuration arguments with rcon settings
- * @returns {Promise<string>} RCON response
- */
-async function rconCommand(command, args) {
-  const rcon = await Rcon.connect({
-    host: args.rcon_host,
-    port: args.rcon_port,
-    password: args.rcon_password,
-  });
-  const res = await rcon.send(command);
-  await rcon.end();
-  return res;
+  // 4) Ensure selected hotbar slot is the one with the sword (helps viewer)
+  await selectHotbarWithItem(bot, id)
+  console.log(`[${bot.username}] 🎯 Selected hotbar slot`)
+
+  // 5) Verify
+  const held = bot.heldItem
+  if (!held || held.type !== id) throw new Error(`Failed to verify held ${swordName}`)
+  console.log(`[${bot.username}] ✅ Verified: ${swordName} in hand`)
+  
+  return swordName
 }
 
 /**
@@ -154,20 +112,50 @@ async function rconCommand(command, args) {
  * @returns {Promise<string>} Name of equipped sword
  */
 async function equipRandomSword(bot, args) {
-  console.log(`[${bot.username}] 🗡️ Searching for sword in inventory...`);
-  
-  // Pick a random sword type
-  const swordType = SWORD_TYPES[Math.floor(Math.random() * SWORD_TYPES.length)];
-  console.log(`[${bot.username}] 🎲 Selected ${swordType} for combat`);
-  
+  console.log(`[${bot.username}] 🗡️ Searching for sword in inventory...`)
+  const swordType = SWORD_TYPES[Math.floor(Math.random() * SWORD_TYPES.length)]
+  console.log(`[${bot.username}] 🎲 Selected ${swordType} for combat`)
+
   try {
-    // Use RCON to give and equip the sword
-    return await equipSwordCreative(bot, swordType, 0, args);
-  } catch (error) {
-    console.log(`[${bot.username}] ❌ Error equipping sword: ${error.message}`);
-    console.log(`[${bot.username}] ❌ No sword could be equipped`);
-    return null;
+    const name = await equipSwordViaRcon(bot, swordType, args)
+    console.log(`[${bot.username}] ⚔️ Equipped ${name} to hand`)
+    return name
+  } catch (err) {
+    console.log(`[${bot.username}] ❌ Error equipping sword: ${err.message}`)
+    
+    // Fallback: try any sword already present
+    const mcData = require('minecraft-data')(bot.version)
+    for (const n of SWORD_TYPES) {
+      const id = mcData.itemsByName[n]?.id
+      const item = id && bot.inventory.items().find(i => i.type === id)
+      if (item) {
+        await bot.equip(item, 'hand')
+        await selectHotbarWithItem(bot, item.type)
+        console.log(`[${bot.username}] ⚔️ Fallback-equipped ${n} from inventory`)
+        return n
+      }
+    }
+    console.log(`[${bot.username}] ❌ No sword could be equipped`)
+    return null
   }
+}
+
+/**
+ * Execute a generic RCON command
+ * @param {string} command - RCON command to execute
+ * @param {Object} args - Configuration arguments with rcon settings
+ * @returns {Promise<string>} RCON response
+ */
+async function rconCommand(command, args) {
+  const { Rcon } = require('rcon-client')
+  const rcon = await Rcon.connect({
+    host: args.rcon_host,
+    port: args.rcon_port,
+    password: args.rcon_password,
+  });
+  const res = await rcon.send(command);
+  await rcon.end();
+  return res;
 }
 
 /**
@@ -382,8 +370,7 @@ function getOnPvpPhaseFn(
 module.exports = {
   pvpCombatLoop,
   equipRandomSword,
-  equipSwordCreative,
-  rconGamemode,
+  equipSwordViaRcon,
   rconCommand,
   getOnPvpPhaseFn
 };
