@@ -100,7 +100,9 @@ function getOnSpawnFn(bot, host, receiverPort, sharedBotRng, coordinator, args) 
     console.log(
       `[${bot.username}] spawned at (${x.toFixed(2)}, ${y.toFixed(
         2
-      )}, ${z.toFixed(2)})`
+      )}, ${z.toFixed(
+        2
+      )})`
     );
 
     // Wait for both cameras to join before starting recording
@@ -439,8 +441,8 @@ function getOnTeleportPhaseFn(
       );
     } else if (selectedEpisodeType === "buildTower") {
       coordinator.onceEvent(
-        `buildPhase_${iterationID}`,
-        getOnBuildPhaseFn(
+        `buildTowerPhase_${iterationID}`,
+        getOnBuildTowerPhaseFn(
           bot,
           sharedBotRng,
           coordinator,
@@ -448,12 +450,11 @@ function getOnTeleportPhaseFn(
           args.other_bot_name,
           episodeNum,
           getOnStopPhaseFn,
-          args,
-          'tower'  // structure type
+          args
         )
       );
       coordinator.sendToOtherBot(
-        `buildPhase_${iterationID}`,
+        `buildTowerPhase_${iterationID}`,
         bot.entity.position.clone(),
         "teleportPhase end"
       );
