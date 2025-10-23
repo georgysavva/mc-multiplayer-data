@@ -62,17 +62,20 @@ async function buildTowerUnderneath(bot, towerHeight, args) {
     console.log(`[${bot.username}] ═══════════════════════════════════════`);
     console.log(`[${bot.username}] 🧱 Building block ${i + 1}/${towerHeight}`);
     
-    // Find the block we're sneaking on (even if floating off the edge)
-    const sneakingBlockInfo = findSneakingBlock(bot);
+    // Get reference block (the block we're standing on) - simple detection for tower building
+    const currentPos = bot.entity.position.clone();
+    const groundPos = new Vec3(
+      Math.floor(currentPos.x), 
+      Math.floor(currentPos.y) - 1, 
+      Math.floor(currentPos.z)
+    );
+    const groundBlock = bot.blockAt(groundPos);
     
-    if (!sneakingBlockInfo) {
-      console.log(`[${bot.username}] ❌ No ground block found - not sneaking on any block`);
+    if (!groundBlock || groundBlock.name === 'air') {
+      console.log(`[${bot.username}] ❌ No ground block at ${groundPos}`);
       failed++;
       break;
     }
-    
-    const groundBlock = sneakingBlockInfo.block;
-    const groundPos = sneakingBlockInfo.pos;
     
     console.log(`[${bot.username}] 📦 Reference block: ${groundBlock.name} at ${groundPos}`);
     
@@ -124,17 +127,20 @@ async function buildTowerUnderneath(bot, towerHeight, args) {
       console.log(`[${bot.username}] ⚠️ Height mismatch! Expected ${i + 1}, got ${heightGained}`);
       console.log(`[${bot.username}] 🔄 Retrying block ${i + 1}...`);
       
-      // Find the block we're sneaking on (even if floating off the edge)
-      const retrySneakingBlockInfo = findSneakingBlock(bot);
+      // Get reference block (the block we're standing on) - simple detection for tower building
+      const retryCurrentPos = bot.entity.position.clone();
+      const retryGroundPos = new Vec3(
+        Math.floor(retryCurrentPos.x), 
+        Math.floor(retryCurrentPos.y) - 1, 
+        Math.floor(retryCurrentPos.z)
+      );
+      const retryGroundBlock = bot.blockAt(retryGroundPos);
       
-      if (!retrySneakingBlockInfo) {
-        console.log(`[${bot.username}] ❌ No ground block found - not sneaking on any block`);
+      if (!retryGroundBlock || retryGroundBlock.name === 'air') {
+        console.log(`[${bot.username}] ❌ No ground block at ${retryGroundPos}`);
         failed++;
         break;
       }
-      
-      const retryGroundBlock = retrySneakingBlockInfo.block;
-      const retryGroundPos = retrySneakingBlockInfo.pos;
       
       // Look down again
       await bot.look(bot.entity.yaw, -1.45, true);
@@ -418,40 +424,40 @@ function getOnTowerBridgePhaseFn(
       actualOtherBotPosition = otherBotPosition.clone();
     }
     
-    // STEP 3: Move backward to increase distance for longer bridges
-    console.log(`[${bot.username}] 🚶 STEP 3: Moving backward 3 blocks to increase bridge distance...`);
-    const startPos = bot.entity.position.clone();
+    // // STEP 3: Move backward to increase distance for longer bridges
+    console.log(`[${bot.username}] 🚶 STEP 3: Moving backward SKIPPED MANUALLY...`);
+    // const startPos = bot.entity.position.clone();
     
-    // Calculate direction AWAY from other bot
-    const backwardDx = startPos.x - actualOtherBotPosition.x;
-    const backwardDz = startPos.z - actualOtherBotPosition.z;
-    const backwardDistance = Math.sqrt(backwardDx * backwardDx + backwardDz * backwardDz);
+    // // Calculate direction AWAY from other bot
+    // const backwardDx = startPos.x - actualOtherBotPosition.x;
+    // const backwardDz = startPos.z - actualOtherBotPosition.z;
+    // const backwardDistance = Math.sqrt(backwardDx * backwardDx + backwardDz * backwardDz);
     
-    // Normalize direction (away from other bot)
-    const backwardDirX = backwardDx / backwardDistance;
-    const backwardDirZ = backwardDz / backwardDistance;
+    // // Normalize direction (away from other bot)
+    // const backwardDirX = backwardDx / backwardDistance;
+    // const backwardDirZ = backwardDz / backwardDistance;
     
-    // Calculate yaw to face AWAY from other bot
-    const awayYaw = Math.atan2(-backwardDirX, -backwardDirZ);
+    // // Calculate yaw to face AWAY from other bot
+    // const awayYaw = Math.atan2(-backwardDirX, -backwardDirZ);
     
-    console.log(`[${bot.username}] 🧭 Facing away from ${otherBotName} at yaw: ${awayYaw.toFixed(2)} radians`);
-    await bot.look(awayYaw, 0, true);
-    await sleep(200);
+    // console.log(`[${bot.username}] 🧭 Facing away from ${otherBotName} at yaw: ${awayYaw.toFixed(2)} radians`);
+    // await bot.look(awayYaw, 0, true);
+    // await sleep(200);
     
-    // Walk backward 3 blocks
-    const BACKWARD_DISTANCE = 3;
-    const WALK_TIME_PER_BLOCK = 1000; // ~1 second per block at walking speed
+    // // Walk backward 3 blocks
+    // const BACKWARD_DISTANCE = 3;
+    // const WALK_TIME_PER_BLOCK = 1000; // ~1 second per block at walking speed
     
-    console.log(`[${bot.username}] 🚶 Walking backward ${BACKWARD_DISTANCE} blocks...`);
-    bot.setControlState('forward', true);
-    await sleep(BACKWARD_DISTANCE * WALK_TIME_PER_BLOCK);
-    bot.setControlState('forward', false);
+    // console.log(`[${bot.username}] 🚶 Walking backward ${BACKWARD_DISTANCE} blocks...`);
+    // bot.setControlState('forward', true);
+    // await sleep(BACKWARD_DISTANCE * WALK_TIME_PER_BLOCK);
+    // bot.setControlState('forward', false);
     
-    const newPos = bot.entity.position.clone();
-    const distanceMoved = startPos.distanceTo(newPos);
-    console.log(`[${bot.username}] ✅ Moved ${distanceMoved.toFixed(2)} blocks backward`);
+    // const newPos = bot.entity.position.clone();
+    // const distanceMoved = startPos.distanceTo(newPos);
+    // console.log(`[${bot.username}] ✅ Moved ${distanceMoved.toFixed(2)} blocks backward`);
     
-    await sleep(500); // Settle after moving
+    // await sleep(500); // Settle after moving
     
     // STEP 4: Build tower underneath (8 blocks high)
     console.log(`[${bot.username}] 🗼 STEP 4: Building ${TOWER_HEIGHT}-block tower...`);
@@ -509,25 +515,37 @@ function getOnTowerBridgePhaseFn(
     console.log(`[${bot.username}] 📍 Other bot position: ${actualOtherBotPosition.x.toFixed(2)}, ${actualOtherBotPosition.y.toFixed(2)}, ${actualOtherBotPosition.z.toFixed(2)}`);
     console.log(`[${bot.username}] 🎯 Midpoint (original): ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`);
     
-    // Snap midpoint to cardinal direction to avoid diagonal bridging issues
-    const dx = Math.abs(midpoint.x - myPos.x);
-    const dz = Math.abs(midpoint.z - myPos.z);
+    // Snap to shared cardinal line based on which axis has more distance
+    // This ensures BOTH bots target the same point
+    const totalDx = Math.abs(actualOtherBotPosition.x - myPos.x);
+    const totalDz = Math.abs(actualOtherBotPosition.z - myPos.z);
     
-    if (dx > dz) {
-      // Move primarily in X direction, keep Z the same
-      midpoint.z = Math.floor(myPos.z);
-      console.log(`[${bot.username}] 🧭 Snapping to X-axis (East/West) - keeping Z at ${midpoint.z}`);
+    let targetPoint;
+    if (totalDx > totalDz) {
+      // Bots are farther apart in X direction, so build along X-axis
+      // Both bots use the SAME Z coordinate (the midpoint Z)
+      targetPoint = new Vec3(
+        midpoint.x,
+        midpoint.y,
+        Math.floor((myPos.z + actualOtherBotPosition.z) / 2)
+      );
+      console.log(`[${bot.username}] 🧭 Building along X-axis (East/West) - shared Z at ${targetPoint.z}`);
     } else {
-      // Move primarily in Z direction, keep X the same
-      midpoint.x = Math.floor(myPos.x);
-      console.log(`[${bot.username}] 🧭 Snapping to Z-axis (North/South) - keeping X at ${midpoint.x}`);
+      // Bots are farther apart in Z direction, so build along Z-axis
+      // Both bots use the SAME X coordinate (the midpoint X)
+      targetPoint = new Vec3(
+        Math.floor((myPos.x + actualOtherBotPosition.x) / 2),
+        midpoint.y,
+        midpoint.z
+      );
+      console.log(`[${bot.username}] 🧭 Building along Z-axis (North/South) - shared X at ${targetPoint.x}`);
     }
     
-    console.log(`[${bot.username}] 🎯 Midpoint (cardinal): ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`);
+    console.log(`[${bot.username}] 🎯 Target point (shared cardinal): ${targetPoint.x}, ${targetPoint.y}, ${targetPoint.z}`);
 
     // STEP 8: Build bridge towards midpoint
     console.log(`[${bot.username}] 🌉 STEP 8: Building bridge towards midpoint...`);
-    const bridgeResult = await buildBridgeTowards(bot, midpoint, args);
+    const bridgeResult = await buildBridgeTowards(bot, targetPoint, args);
     
     console.log(`[${bot.username}] ✅ Bridge building complete! Placed ${bridgeResult.blocksPlaced} blocks`);
     
