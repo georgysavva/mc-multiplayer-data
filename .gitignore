@@ -3,3 +3,5 @@ output*/
 videos/
 .vscode/
 logs/
+aligned/
+__pycache__/
