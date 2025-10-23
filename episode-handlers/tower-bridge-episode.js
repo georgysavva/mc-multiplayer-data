@@ -62,18 +62,19 @@ async function buildTowerUnderneath(bot, towerHeight, args) {
     console.log(`[${bot.username}] ═══════════════════════════════════════`);
     console.log(`[${bot.username}] 🧱 Building block ${i + 1}/${towerHeight}`);
     
-    // Get reference block (the block we're standing on)
-    const currentPos = bot.entity.position.clone();
-    const groundPos = new Vec3(Math.floor(currentPos.x), Math.floor(currentPos.y) - 1, Math.floor(currentPos.z));
-    const referenceBlock = bot.blockAt(groundPos);
+    // Find the block we're sneaking on (even if floating off the edge)
+    const sneakingBlockInfo = findSneakingBlock(bot);
     
-    if (!referenceBlock || referenceBlock.name === 'air') {
-      console.log(`[${bot.username}] ❌ No ground block at ${groundPos}`);
+    if (!sneakingBlockInfo) {
+      console.log(`[${bot.username}] ❌ No ground block found - not sneaking on any block`);
       failed++;
       break;
     }
     
-    console.log(`[${bot.username}] 📦 Reference block: ${referenceBlock.name} at ${groundPos}`);
+    const groundBlock = sneakingBlockInfo.block;
+    const groundPos = sneakingBlockInfo.pos;
+    
+    console.log(`[${bot.username}] 📦 Reference block: ${groundBlock.name} at ${groundPos}`);
     
     // Target position (where the new block will be)
     const targetPos = groundPos.offset(0, 1, 0);
@@ -84,7 +85,7 @@ async function buildTowerUnderneath(bot, towerHeight, args) {
     
     // Spam place attempts immediately while jumping
     for (let attempt = 1; attempt <= MAX_PLACE_ATTEMPTS; attempt++) {
-      fastPlaceBlock(bot, referenceBlock)
+      fastPlaceBlock(bot, groundBlock)
         .then(() => console.log(`[${bot.username}] 🎯 Place fired on attempt ${attempt}`))
         .catch(() => {});
       
@@ -123,39 +124,40 @@ async function buildTowerUnderneath(bot, towerHeight, args) {
       console.log(`[${bot.username}] ⚠️ Height mismatch! Expected ${i + 1}, got ${heightGained}`);
       console.log(`[${bot.username}] 🔄 Retrying block ${i + 1}...`);
       
-      // Get fresh reference block
-      const retryCurrentPos = bot.entity.position.clone();
-      const retryGroundPos = new Vec3(Math.floor(retryCurrentPos.x), Math.floor(retryCurrentPos.y) - 1, Math.floor(retryCurrentPos.z));
-      const retryRefBlock = bot.blockAt(retryGroundPos);
+      // Find the block we're sneaking on (even if floating off the edge)
+      const retrySneakingBlockInfo = findSneakingBlock(bot);
       
-      if (retryRefBlock && retryRefBlock.name !== 'air') {
-        // Look down again
-        await bot.look(bot.entity.yaw, -1.45, true);
-        await sleep(50);
-        
-        // Try one more time
-        bot.setControlState('jump', true);
-        for (let retry = 1; retry <= MAX_PLACE_ATTEMPTS; retry++) {
-          fastPlaceBlock(bot, retryRefBlock).catch(() => {});
-          await sleep(PLACE_RETRY_DELAY_MS);
-        }
-        await sleep(JUMP_DURATION_MS);
-        bot.setControlState('jump', false);
-        await sleep(SETTLE_DELAY_MS + 100);
-        
-        // Check again
-        const retryPos = bot.entity.position.clone();
-        const retryY = Math.floor(retryPos.y);
-        const retryHeight = retryY - startY;
-        console.log(`[${bot.username}] 📏 After retry - Y: ${retryY}, height: ${retryHeight}`);
-        
-        if (retryHeight < i + 1) {
-          console.log(`[${bot.username}] ❌ Retry failed - aborting tower build`);
-          failed++;
-          break;
-        }
-      } else {
-        console.log(`[${bot.username}] ❌ No valid reference block for retry - aborting`);
+      if (!retrySneakingBlockInfo) {
+        console.log(`[${bot.username}] ❌ No ground block found - not sneaking on any block`);
+        failed++;
+        break;
+      }
+      
+      const retryGroundBlock = retrySneakingBlockInfo.block;
+      const retryGroundPos = retrySneakingBlockInfo.pos;
+      
+      // Look down again
+      await bot.look(bot.entity.yaw, -1.45, true);
+      await sleep(50);
+      
+      // Try one more time
+      bot.setControlState('jump', true);
+      for (let retry = 1; retry <= MAX_PLACE_ATTEMPTS; retry++) {
+        fastPlaceBlock(bot, retryGroundBlock).catch(() => {});
+        await sleep(PLACE_RETRY_DELAY_MS);
+      }
+      await sleep(JUMP_DURATION_MS);
+      bot.setControlState('jump', false);
+      await sleep(SETTLE_DELAY_MS + 100);
+      
+      // Check again
+      const retryPos = bot.entity.position.clone();
+      const retryY = Math.floor(retryPos.y);
+      const retryHeight = retryY - startY;
+      console.log(`[${bot.username}] 📏 After retry - Y: ${retryY}, height: ${retryHeight}`);
+      
+      if (retryHeight < i + 1) {
+        console.log(`[${bot.username}] ❌ Retry failed - aborting tower build`);
         failed++;
         break;
       }
@@ -225,18 +227,16 @@ async function buildBridgeTowards(bot, targetPos, args) {
       break;
     }
     
-    // Get the block we're standing on (reference block)
-    const groundPos = new Vec3(
-      Math.floor(myPos.x), 
-      Math.floor(myPos.y) - 1, 
-      Math.floor(myPos.z)
-    );
-    const groundBlock = bot.blockAt(groundPos);
+    // Find the block we're sneaking on (even if floating off the edge)
+    const sneakingBlockInfo = findSneakingBlock(bot);
     
-    if (!groundBlock || groundBlock.name === 'air') {
-      console.log(`[${bot.username}] ❌ No ground block to place on at ${groundPos}`);
+    if (!sneakingBlockInfo) {
+      console.log(`[${bot.username}] ❌ No ground block found - not sneaking on any block`);
       break;
     }
+    
+    const groundBlock = sneakingBlockInfo.block;
+    const groundPos = sneakingBlockInfo.pos;
     
     console.log(`[${bot.username}] 📦 Standing on: ${groundBlock.name} at ${groundPos}`);
     
@@ -277,7 +277,7 @@ async function buildBridgeTowards(bot, targetPos, args) {
       await bot.look(targetYaw, 0, true);
       
       bot.setControlState('forward', true);
-      await sleep(600); // Reduced to prevent overshooting (sneaking speed ~1.3 blocks/s, so 600ms = ~0.78 blocks)
+      await sleep(1000); // Reduced to prevent overshooting (sneaking speed ~1.3 blocks/s, so 600ms = ~0.78 blocks)
       bot.setControlState('forward', false);
       
       await sleep(300); // Settle on new block
@@ -305,6 +305,59 @@ async function buildBridgeTowards(bot, targetPos, args) {
   console.log(`[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`);
   
   return { blocksPlaced, distanceTraveled };
+}
+
+/**
+ * Find the block the bot is currently sneaking on, even if floating off the edge.
+ * This handles the Minecraft mechanic where sneaking prevents falling.
+ * @param {Bot} bot - The mineflayer bot
+ * @returns {Object|null} Object with {block, pos} or null if no ground found
+ */
+function findSneakingBlock(bot) {
+  const myPos = bot.entity.position.clone();
+  
+  // Check directly below first
+  const directlyBelow = new Vec3(
+    Math.floor(myPos.x),
+    Math.floor(myPos.y) - 1,
+    Math.floor(myPos.z)
+  );
+  
+  let groundBlock = bot.blockAt(directlyBelow);
+  
+  if (groundBlock && groundBlock.name !== 'air') {
+    return { block: groundBlock, pos: directlyBelow };
+  }
+  
+  // If floating, check adjacent blocks (bot is hanging off edge while sneaking)
+  // Check all 4 cardinal directions
+  const checkPositions = [
+    new Vec3(Math.floor(myPos.x) + 1, Math.floor(myPos.y) - 1, Math.floor(myPos.z)),     // East (+X)
+    new Vec3(Math.floor(myPos.x) - 1, Math.floor(myPos.y) - 1, Math.floor(myPos.z)),     // West (-X)
+    new Vec3(Math.floor(myPos.x), Math.floor(myPos.y) - 1, Math.floor(myPos.z) + 1),     // South (+Z)
+    new Vec3(Math.floor(myPos.x), Math.floor(myPos.y) - 1, Math.floor(myPos.z) - 1),     // North (-Z)
+  ];
+  
+  // Find the closest solid block that bot could be sneaking on
+  let closestBlock = null;
+  let closestDistance = Infinity;
+  
+  for (const checkPos of checkPositions) {
+    const block = bot.blockAt(checkPos);
+    if (block && block.name !== 'air') {
+      // Calculate distance from bot to center of this block
+      const blockCenter = checkPos.offset(0.5, 1, 0.5);
+      const distance = myPos.distanceTo(blockCenter);
+      
+      // Bot must be within 1.5 blocks to be sneaking on it
+      if (distance < 1.5 && distance < closestDistance) {
+        closestBlock = { block: block, pos: checkPos };
+        closestDistance = distance;
+      }
+    }
+  }
+  
+  return closestBlock;
 }
 
 /**
@@ -365,8 +418,43 @@ function getOnTowerBridgePhaseFn(
       actualOtherBotPosition = otherBotPosition.clone();
     }
     
-    // STEP 3: Build tower underneath (8 blocks high)
-    console.log(`[${bot.username}] 🗼 STEP 3: Building ${TOWER_HEIGHT}-block tower...`);
+    // STEP 3: Move backward to increase distance for longer bridges
+    console.log(`[${bot.username}] 🚶 STEP 3: Moving backward 3 blocks to increase bridge distance...`);
+    const startPos = bot.entity.position.clone();
+    
+    // Calculate direction AWAY from other bot
+    const backwardDx = startPos.x - actualOtherBotPosition.x;
+    const backwardDz = startPos.z - actualOtherBotPosition.z;
+    const backwardDistance = Math.sqrt(backwardDx * backwardDx + backwardDz * backwardDz);
+    
+    // Normalize direction (away from other bot)
+    const backwardDirX = backwardDx / backwardDistance;
+    const backwardDirZ = backwardDz / backwardDistance;
+    
+    // Calculate yaw to face AWAY from other bot
+    const awayYaw = Math.atan2(-backwardDirX, -backwardDirZ);
+    
+    console.log(`[${bot.username}] 🧭 Facing away from ${otherBotName} at yaw: ${awayYaw.toFixed(2)} radians`);
+    await bot.look(awayYaw, 0, true);
+    await sleep(200);
+    
+    // Walk backward 3 blocks
+    const BACKWARD_DISTANCE = 3;
+    const WALK_TIME_PER_BLOCK = 1000; // ~1 second per block at walking speed
+    
+    console.log(`[${bot.username}] 🚶 Walking backward ${BACKWARD_DISTANCE} blocks...`);
+    bot.setControlState('forward', true);
+    await sleep(BACKWARD_DISTANCE * WALK_TIME_PER_BLOCK);
+    bot.setControlState('forward', false);
+    
+    const newPos = bot.entity.position.clone();
+    const distanceMoved = startPos.distanceTo(newPos);
+    console.log(`[${bot.username}] ✅ Moved ${distanceMoved.toFixed(2)} blocks backward`);
+    
+    await sleep(500); // Settle after moving
+    
+    // STEP 4: Build tower underneath (8 blocks high)
+    console.log(`[${bot.username}] 🗼 STEP 4: Building ${TOWER_HEIGHT}-block tower...`);
     const towerResult = await buildTowerUnderneath(bot, TOWER_HEIGHT, args);
     
     if (towerResult.failed > 2) {
@@ -381,14 +469,14 @@ function getOnTowerBridgePhaseFn(
     // Wait a moment for both bots to finish their towers
     await sleep(1500);
     
-    // STEP 4: Enable sneaking to prevent falling off tower
-    console.log(`[${bot.username}] 🐢 STEP 4: Enabling sneak mode (crouch) to prevent falling...`);
+    // STEP 5: Enable sneaking to prevent falling off tower
+    console.log(`[${bot.username}] 🐢 STEP 5: Enabling sneak mode (crouch) to prevent falling...`);
     bot.setControlState('sneak', true);
     await sleep(500);
     console.log(`[${bot.username}] ✅ Sneak mode enabled - safe to build bridge!`);
     
-    // STEP 5: Look at each other from top of towers
-    console.log(`[${bot.username}] 👀 STEP 5: Looking at other bot from tower top...`);
+    // STEP 6: Look at each other from top of towers
+    console.log(`[${bot.username}] 👀 STEP 6: Looking at other bot from tower top...`);
     try {
       const otherEntity2 = bot.players[otherBotName]?.entity;
       if (otherEntity2) {
@@ -401,8 +489,8 @@ function getOnTowerBridgePhaseFn(
       console.log(`[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`);
     }
     
-    // STEP 6: Calculate midpoint at new height
-    console.log(`[${bot.username}] 📐 STEP 6: Calculating midpoint at tower height...`);
+    // STEP 7: Calculate midpoint at new height
+    console.log(`[${bot.username}] 📐 STEP 7: Calculating midpoint at tower height...`);
     const myPos = bot.entity.position.clone();
     
     // Try to get updated other bot position
@@ -437,8 +525,8 @@ function getOnTowerBridgePhaseFn(
     
     console.log(`[${bot.username}] 🎯 Midpoint (cardinal): ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`);
 
-    // STEP 7: Build bridge towards midpoint
-    console.log(`[${bot.username}] 🌉 STEP 7: Building bridge towards midpoint...`);
+    // STEP 8: Build bridge towards midpoint
+    console.log(`[${bot.username}] 🌉 STEP 8: Building bridge towards midpoint...`);
     const bridgeResult = await buildBridgeTowards(bot, midpoint, args);
     
     console.log(`[${bot.username}] ✅ Bridge building complete! Placed ${bridgeResult.blocksPlaced} blocks`);
@@ -448,8 +536,8 @@ function getOnTowerBridgePhaseFn(
     bot.setControlState('sneak', false);
     await sleep(300);
     
-    // STEP 8: Final eye contact
-    console.log(`[${bot.username}] 👀 STEP 8: Final eye contact...`);
+    // STEP 9: Final eye contact
+    console.log(`[${bot.username}] 👀 STEP 9: Final eye contact...`);
     try {
       const otherEntity4 = bot.players[otherBotName]?.entity;
       if (otherEntity4) {
@@ -464,7 +552,7 @@ function getOnTowerBridgePhaseFn(
     console.log(`[${bot.username}] ✅ TOWER-BRIDGE phase complete!`);
     console.log(`[${bot.username}] 📊 Final stats: Tower ${towerResult.heightGained} blocks, Bridge ${bridgeResult.blocksPlaced} blocks`);
     
-    // STEP 9: Transition to stop phase (end episode)
+    // STEP 10: Transition to stop phase (end episode)
     coordinator.onceEvent(
       "stopPhase",
       getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName)
