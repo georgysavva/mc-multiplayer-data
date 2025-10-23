@@ -11,9 +11,9 @@ const MIN_TOWER_HEIGHT = 8;              // Minimum tower height
 const MAX_TOWER_HEIGHT = 8;              // Maximum tower height
 const TOWER_BLOCK_TYPE = 'oak_planks';   // Block type for towers
 const JUMP_DURATION_MS = 50;             // How long to hold jump
-const PLACE_RETRY_DELAY_MS = 10;         // Delay between place attempts
+const PLACE_RETRY_DELAY_MS = 20;         // Delay between place attempts
 const MAX_PLACE_ATTEMPTS = 10;           // Max attempts to place a block
-const SETTLE_DELAY_MS = 300;             // Delay to settle after placing
+const SETTLE_DELAY_MS = 200;             // Delay to settle after placing
 
 /**
  * Place a block directly underneath the bot at specific coordinates
@@ -72,6 +72,24 @@ async function placeBlockAtPosition(bot, targetPos, blockType) {
 }
 
 /**
+ * Fast block placement - no checks, just place immediately
+ * Used during pillar jumping where we know the context
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Block} referenceBlock - Block to place on top of
+ * @returns {Promise<boolean>} True if placement was attempted
+ */
+async function fastPlaceBlock(bot, referenceBlock) {
+  try {
+    const faceVector = new Vec3(0, 1, 0); // Top face
+    await bot.placeBlock(referenceBlock, faceVector);
+    return true;
+  } catch (error) {
+    // Don't log here - too noisy during spam attempts
+    return false;
+  }
+}
+
+/**
  * Build a tower by jumping and placing blocks directly underneath
  * @param {Bot} bot - Mineflayer bot instance
  * @param {number} towerHeight - Height of tower to build
@@ -92,57 +110,62 @@ async function buildTowerUnderneath(bot, towerHeight, args) {
   const startY = Math.floor(startPos.y);
   console.log(`[${bot.username}] 📍 Starting position: X=${startPos.x.toFixed(2)}, Y=${startPos.y.toFixed(2)}, Z=${startPos.z.toFixed(2)}`);
   
+  // Look down ONCE before starting (don't repeat this in the loop)
+  console.log(`[${bot.username}] 👇 Looking down once...`);
+  await bot.look(bot.entity.yaw, -1.45, true);
+  await sleep(50);
+  
   for (let i = 0; i < towerHeight; i++) {
     console.log(`[${bot.username}] ═══════════════════════════════════════`);
-    console.log(`[${bot.username}] � Building block ${i + 1}/${towerHeight}`);
+    console.log(`[${bot.username}] 🧱 Building block ${i + 1}/${towerHeight}`);
     
-    // STEP 1: Get current bot position
+    // Get reference block (the block we're standing on)
     const currentPos = bot.entity.position.clone();
-    const currentX = Math.floor(currentPos.x);
-    const currentY = Math.floor(currentPos.y);
-    const currentZ = Math.floor(currentPos.z);
+    const groundPos = new Vec3(Math.floor(currentPos.x), Math.floor(currentPos.y) - 1, Math.floor(currentPos.z));
+    const referenceBlock = bot.blockAt(groundPos);
     
-    console.log(`[${bot.username}] 📍 Current bot position: X=${currentX}, Y=${currentY}, Z=${currentZ}`);
+    if (!referenceBlock || referenceBlock.name === 'air') {
+      console.log(`[${bot.username}] ❌ No ground block at ${groundPos}`);
+      failed++;
+      break;
+    }
     
-    // STEP 2: Calculate target position (directly below bot at Y-1)
-    const targetPos = new Vec3(currentX, currentY - 1, currentZ);
-    console.log(`[${bot.username}] 🎯 Target block position: ${targetPos}`);
+    console.log(`[${bot.username}] 📦 Reference block: ${referenceBlock.name} at ${groundPos}`);
     
-    // STEP 3: Look directly down
-    console.log(`[${bot.username}] 👇 Looking down...`);
-    await bot.look(0, -1.45, true);
-    await sleep(100);
+    // Target position (where the new block will be)
+    const targetPos = groundPos.offset(0, 1, 0);
     
-    // STEP 4: Jump and place block with retries
-    let placed = false;
+    // Jump and spam place attempts
+    console.log(`[${bot.username}] 🦘 Jumping and spamming place...`);
+    bot.setControlState('jump', true);
+    
+    // Spam place attempts immediately while jumping (fire-and-forget to avoid memory overload)
     for (let attempt = 1; attempt <= MAX_PLACE_ATTEMPTS; attempt++) {
-      console.log(`[${bot.username}] 🦘 Jump attempt ${attempt}/${MAX_PLACE_ATTEMPTS}`);
+      // Fire without awaiting - let the server handle it asynchronously
+      fastPlaceBlock(bot, referenceBlock)
+        .then(() => console.log(`[${bot.username}] 🎯 Place fired on attempt ${attempt}`))
+        .catch(() => {}); // Silent failure
       
-      // Jump
-      bot.setControlState('jump', true);
-      
-      // Try to place immediately while in air
-      placed = await placeBlockAtPosition(bot, targetPos, TOWER_BLOCK_TYPE);
-      
-      await sleep(JUMP_DURATION_MS);
-      bot.setControlState('jump', false);
-      
-      if (placed) {
-        console.log(`[${bot.username}] ✅ Block placed successfully on attempt ${attempt}`);
-        success++;
-        break;
-      }
-      
+      // Tiny delay between spam attempts
       await sleep(PLACE_RETRY_DELAY_MS);
     }
     
-    if (!placed) {
-      console.log(`[${bot.username}] ❌ Failed to place block ${i + 1} after ${MAX_PLACE_ATTEMPTS} attempts`);
+    await sleep(JUMP_DURATION_MS);
+    bot.setControlState('jump', false);
+    
+    // Verify placement after jump completes
+    await sleep(50);
+    const placedBlock = bot.blockAt(targetPos);
+    if (placedBlock && placedBlock.name === TOWER_BLOCK_TYPE) {
+      console.log(`[${bot.username}] ✅ Block ${i + 1} placed successfully: ${placedBlock.name} at ${targetPos}`);
+      success++;
+    } else {
+      console.log(`[${bot.username}] ❌ Block ${i + 1} placement failed at ${targetPos}`);
       failed++;
-      break; // Stop building if we can't place a block
+      break;
     }
     
-    // STEP 5: Settle on the new block
+    // Settle on the new block
     console.log(`[${bot.username}] ⏳ Settling...`);
     await sleep(SETTLE_DELAY_MS);
     

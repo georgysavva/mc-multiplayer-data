@@ -26,10 +26,10 @@ const { buildTower, getOnBuildTowerPhaseFn } = require('./build-tower-episode');
 // Add episode type selection - Enable multiple types for diverse data collection
 const episodeTypes = [
   // "chase",
-  // "orbit",
+  "orbit",
   // "pvp",
   // "buildWall",
-  "buildTower",
+  // "buildTower",
   // "placeBlock",
   // "mvcTest"  // Add MVC test episode for validation
   // "bridgeBuilder"  // Add cooperative bridge building episode
