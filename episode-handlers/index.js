@@ -17,17 +17,19 @@ const { walkStraightWhileLooking, getOnStraightLineWalkPhaseFn } = require('./st
 const { chaseRunner, runFromChaser, getOnChasePhaseFn } = require('./chase-episode');
 const { orbitAroundFixedPoint, getOnOrbitPhaseFn } = require('./orbit-episode');
 const { testMVCBehavior, getOnMVCTestPhaseFn } = require('./mvc-test-episode');
-const { buildCooperativeBridge, getOnBridgeBuilderPhaseFn } = require('./bridge-builder-episode');
+// const { buildCooperativeBridge, getOnBridgeBuilderPhaseFn } = require('./bridge-builder-episode');
 const { placeDirtBlock, getOnPlaceBlockPhaseFn } = require('./place-block-episode');
 const { pvpCombatLoop, getOnPvpPhaseFn } = require('./pvp-episode');
 const { buildStructure, getOnBuildPhaseFn } = require('./build-structure-episode');
+const { buildTower, getOnBuildTowerPhaseFn } = require('./build-tower-episode');
 
 // Add episode type selection - Enable multiple types for diverse data collection
 const episodeTypes = [
   // "chase",
   // "orbit",
   // "pvp",
-  "buildWall",
+  // "buildWall",
+  "buildTower",
   // "placeBlock",
   // "mvcTest"  // Add MVC test episode for validation
   // "bridgeBuilder"  // Add cooperative bridge building episode
@@ -428,6 +430,26 @@ function getOnTeleportPhaseFn(
           getOnStopPhaseFn,
           args,
           'wall'  // structure type
+        )
+      );
+      coordinator.sendToOtherBot(
+        `buildPhase_${iterationID}`,
+        bot.entity.position.clone(),
+        "teleportPhase end"
+      );
+    } else if (selectedEpisodeType === "buildTower") {
+      coordinator.onceEvent(
+        `buildPhase_${iterationID}`,
+        getOnBuildPhaseFn(
+          bot,
+          sharedBotRng,
+          coordinator,
+          iterationID,
+          args.other_bot_name,
+          episodeNum,
+          getOnStopPhaseFn,
+          args,
+          'tower'  // structure type
         )
       );
       coordinator.sendToOtherBot(
