@@ -20,9 +20,9 @@ const {
 // Import episode-specific handlers
 const episodeTypes = [
   "chase",
-  // "orbit",
-  // "walkLook",
-  // "walkLookAway",
+  "orbit",
+  "walkLook",
+  "walkLookAway",
   // "mvcTest"  // Add MVC test episode for validation
   // "bridgeBuilder"  // Add cooperative bridge building episode
 ];

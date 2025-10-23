@@ -28,7 +28,7 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data53:/data
+      - ./data:/data
     healthcheck:
       test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
       interval: 10s
@@ -37,6 +37,9 @@ services:
 
   sender_alpha:
     image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     depends_on:
       mc:
         condition: service_healthy
@@ -55,18 +58,14 @@ services:
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
       EPISODES_NUM: 1
-      EPISODE_CATEGORY: look_away
       MC_HOST: host.docker.internal
       MC_PORT: 25565
       RCON_HOST: host.docker.internal
       RCON_PORT: 25575
       RCON_PASSWORD: research
-      COLOR: red
+      WALK_TIMEOUT: 5
       BOOTSTRAP_WAIT_TIME: 20
-      ENABLE_CAMERA_WAIT: 0
-      MIN_RUN_ACTIONS: 1
-      MAX_RUN_ACTIONS: 1
-      ITERATIONS_NUM_PER_EPISODE: 5
+      ENABLE_CAMERA_WAIT: 1
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
@@ -76,6 +75,9 @@ services:
 
   sender_bravo:
     image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     depends_on:
       mc:
         condition: service_healthy
@@ -95,19 +97,16 @@ services:
       OTHER_COORD_HOST: sender_alpha
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
-      EPISODE_CATEGORY: look_away
       EPISODES_NUM: 1
       MC_HOST: host.docker.internal
       MC_PORT: 25565
       RCON_HOST: host.docker.internal
       RCON_PORT: 25575
       RCON_PASSWORD: research
-      COLOR: blue
       BOOTSTRAP_WAIT_TIME: 20
-      ENABLE_CAMERA_WAIT: 0
-      MIN_RUN_ACTIONS: 1
-      MAX_RUN_ACTIONS: 1
+      ENABLE_CAMERA_WAIT: 1
       ITERATIONS_NUM_PER_EPISODE: 5
+      WALK_TIMEOUT: 5
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
