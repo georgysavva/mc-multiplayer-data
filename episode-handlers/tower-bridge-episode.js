@@ -277,7 +277,7 @@ async function buildBridgeTowards(bot, targetPos, args) {
       await bot.look(targetYaw, 0, true);
       
       bot.setControlState('forward', true);
-      await sleep(1000); // Longer time since we're sneaking
+      await sleep(600); // Reduced to prevent overshooting (sneaking speed ~1.3 blocks/s, so 600ms = ~0.78 blocks)
       bot.setControlState('forward', false);
       
       await sleep(300); // Settle on new block
@@ -419,8 +419,24 @@ function getOnTowerBridgePhaseFn(
     
     console.log(`[${bot.username}] 📍 My position: ${myPos.x.toFixed(2)}, ${myPos.y.toFixed(2)}, ${myPos.z.toFixed(2)}`);
     console.log(`[${bot.username}] 📍 Other bot position: ${actualOtherBotPosition.x.toFixed(2)}, ${actualOtherBotPosition.y.toFixed(2)}, ${actualOtherBotPosition.z.toFixed(2)}`);
-    console.log(`[${bot.username}] 🎯 Midpoint: ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`);
+    console.log(`[${bot.username}] 🎯 Midpoint (original): ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`);
     
+    // Snap midpoint to cardinal direction to avoid diagonal bridging issues
+    const dx = Math.abs(midpoint.x - myPos.x);
+    const dz = Math.abs(midpoint.z - myPos.z);
+    
+    if (dx > dz) {
+      // Move primarily in X direction, keep Z the same
+      midpoint.z = Math.floor(myPos.z);
+      console.log(`[${bot.username}] 🧭 Snapping to X-axis (East/West) - keeping Z at ${midpoint.z}`);
+    } else {
+      // Move primarily in Z direction, keep X the same
+      midpoint.x = Math.floor(myPos.x);
+      console.log(`[${bot.username}] 🧭 Snapping to Z-axis (North/South) - keeping X at ${midpoint.x}`);
+    }
+    
+    console.log(`[${bot.username}] 🎯 Midpoint (cardinal): ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`);
+
     // STEP 7: Build bridge towards midpoint
     console.log(`[${bot.username}] 🌉 STEP 7: Building bridge towards midpoint...`);
     const bridgeResult = await buildBridgeTowards(bot, midpoint, args);
