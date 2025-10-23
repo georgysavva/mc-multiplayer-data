@@ -13,9 +13,9 @@ const ORBIT_DURATION_MS = 25000; // 25 seconds of orbiting
 const NUM_CHECKPOINTS = 12; // 12 checkpoints around the circle (30° apart)
 const CHECKPOINT_REACH_DISTANCE = 1.5; // How close to get to checkpoint (blocks)
 const LOOK_WAIT_MS = 0; // No wait before/after looking (removed for fluid motion)
-const RECORDING_DELAY_MS = 500; // Reduced from 2000ms - enough for recording to stabilize
-const INITIAL_EYE_CONTACT_MS = 300; // Reduced from 1000ms - enough to capture the moment
-const CHECKPOINT_POLL_MS = 50; // Reduced from 100ms - faster response time
+const RECORDING_DELAY_MS = 300; // Reduced from 500ms - minimal delay for recording to stabilize
+const INITIAL_EYE_CONTACT_MS = 400; // 400ms - brief initial eye contact
+const CHECKPOINT_POLL_MS = 30; // Reduced from 50ms - faster checkpoint detection
 
 /**
  * Calculate checkpoints around a circle
@@ -57,7 +57,7 @@ async function waitUntilReachedCheckpoint(bot, checkpoint, maxWaitMs = 10000) {
       return true;
     }
     
-    await sleep(CHECKPOINT_POLL_MS); // Check every 50ms
+    await sleep(CHECKPOINT_POLL_MS); // Check every 30ms
   }
   
   console.log(`[${bot.username}] Timeout waiting for checkpoint`);
@@ -119,7 +119,7 @@ async function orbitAroundSharedMidpoint(bot, coordinator, otherBotName, sharedM
       bot.pathfinder.setGoal(new GoalNear(checkpoint.x, checkpoint.y, checkpoint.z, CHECKPOINT_REACH_DISTANCE));
       
       // Wait until checkpoint is reached or timeout
-      const reached = await waitUntilReachedCheckpoint(bot, checkpoint, 8000);
+      const reached = await waitUntilReachedCheckpoint(bot, checkpoint, 5000);
       
       if (reached) {
         checkpointsVisited++;
@@ -207,7 +207,7 @@ function getOnOrbitPhaseFn(
     console.log(`[${bot.username}] STEP 1: Bot spawned`);
     
     // Strategic delay to ensure recording has fully started
-    const recordingDelay = RECORDING_DELAY_MS; // 500ms
+    const recordingDelay = RECORDING_DELAY_MS; // 300ms
     console.log(`[${bot.username}] Waiting ${recordingDelay}ms for recording to stabilize...`);
     await sleep(recordingDelay);
     
@@ -216,7 +216,7 @@ function getOnOrbitPhaseFn(
     try {
       await lookAtBot(bot, otherBotName, 180);
       console.log(`[${bot.username}] Initial eye contact established with ${otherBotName}`);
-      await sleep(INITIAL_EYE_CONTACT_MS); // Hold eye contact for 300ms
+      await sleep(INITIAL_EYE_CONTACT_MS); // Hold eye contact for 150ms
     } catch (lookError) {
       console.log(`[${bot.username}] Failed initial look: ${lookError.message}`);
     }
