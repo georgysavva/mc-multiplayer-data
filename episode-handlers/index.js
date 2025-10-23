@@ -20,6 +20,14 @@ const { testMVCBehavior, getOnMVCTestPhaseFn } = require('./mvc-test-episode');
 const { buildCooperativeBridge, getOnBridgeBuilderPhaseFn } = require('./bridge-builder-episode');
 const { placeDirtBlock, getOnPlaceBlockPhaseFn } = require('./place-block-episode');
 
+// Add episode type selection - Enable multiple types for diverse data collection
+const episodeTypes = [
+  // "chase",
+  "orbit",
+  // "placeBlock",
+  // "mvcTest"  // Add MVC test episode for validation
+  // "bridgeBuilder"  // Add cooperative bridge building episode
+];
 /**
  * Run a single episode
  * @param {Bot} bot - Mineflayer bot instance
@@ -264,14 +272,7 @@ function getOnTeleportPhaseFn(
     bot.emit("startepisode", episodeNum === 0 ? 50 : 0);
     // await sleep(episodeNum === 0 ? 6000 : 1000);
 
-    // Add episode type selection - Enable multiple types for diverse data collection
-    const episodeTypes = [
-      // "chase",
-      // "orbit",
-      "placeBlock",
-      // "mvcTest"  // Add MVC test episode for validation
-      // "bridgeBuilder"  // Add cooperative bridge building episode
-    ];
+
     const selectedEpisodeType = episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
 
     console.log(`[${bot.username}] Selected episode type: ${selectedEpisodeType}`);
