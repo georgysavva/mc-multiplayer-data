@@ -44,7 +44,6 @@ compose_cmd() {
 ensure_directories() {
   mkdir -p \
     "${PROJECT_DIR}/output" \
-    "${PROJECT_DIR}/output8" \
     "${PROJECT_DIR}/camera/data_alpha" \
     "${PROJECT_DIR}/camera/data_bravo" \
     "${PROJECT_DIR}/camera/output_alpha" \

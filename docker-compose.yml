@@ -193,10 +193,12 @@ services:
       RCON_PASSWORD: "research"
       BOT_NAME: "Alpha"
       CAMERA_NAME: "CameraAlpha"
+      RETRIES: "60"
     volumes:
       - ./camera/spectator.js:/app/spectator.js:ro
       - ./camera/package.json:/app/package.json:ro
-    command: ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
+    command:
+      ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
 
   camera_bravo:
     image: ojmichel/mineflayer-spectator-client:latest
@@ -242,7 +244,9 @@ services:
       RCON_PASSWORD: "research"
       BOT_NAME: "Bravo"
       CAMERA_NAME: "CameraBravo"
+      RETRIES: "60"
     volumes:
       - ./camera/spectator.js:/app/spectator.js:ro
       - ./camera/package.json:/app/package.json:ro
-    command: ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
+    command:
+      ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
