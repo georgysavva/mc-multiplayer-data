@@ -23,6 +23,7 @@ const { pvpCombatLoop, getOnPvpPhaseFn } = require('./pvp-episode');
 const { buildStructure, getOnBuildPhaseFn } = require('./build-structure-episode');
 const { buildTower, getOnBuildTowerPhaseFn } = require('./build-tower-episode');
 const { getOnMinePhaseFn } = require('./mine-episode');
+const { getOnTowerBridgePhaseFn } = require('./tower-bridge-episode');
 
 // Add episode type selection - Enable multiple types for diverse data collection
 const episodeTypes = [
@@ -32,7 +33,8 @@ const episodeTypes = [
   // "buildWall",
   // "buildTower",
   // "placeBlock",
-  "mine",
+  // "mine",
+  "towerBridge",
   // "mvcTest"  // Add MVC test episode for validation
   // "bridgeBuilder"  // Add cooperative bridge building episode
 ];
@@ -476,6 +478,25 @@ function getOnTeleportPhaseFn(
       );
       coordinator.sendToOtherBot(
         `minePhase_${iterationID}`,
+        bot.entity.position.clone(),
+        "teleportPhase end"
+      );
+    } else if (selectedEpisodeType === "towerBridge") {
+      coordinator.onceEvent(
+        `towerBridgePhase_${iterationID}`,
+        getOnTowerBridgePhaseFn(
+          bot,
+          sharedBotRng,
+          coordinator,
+          iterationID,
+          args.other_bot_name,
+          episodeNum,
+          getOnStopPhaseFn,
+          args
+        )
+      );
+      coordinator.sendToOtherBot(
+        `towerBridgePhase_${iterationID}`,
         bot.entity.position.clone(),
         "teleportPhase end"
       );
