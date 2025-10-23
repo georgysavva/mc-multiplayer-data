@@ -80,6 +80,7 @@ start_log_capture() {
 
 cmd_up() {
   local generate_comparison=${1:-}
+  local build_images=${2:-}
   ensure_directories
   local running_ids
   running_ids=$(compose_cmd ps -q 2>/dev/null || true)
@@ -88,8 +89,13 @@ cmd_up() {
     stop_log_capture
     compose_cmd down
   fi
-  echo "[run] pulling images and starting stack"
-  compose_cmd pull
+  if [[ "${build_images}" == "true" ]]; then
+    echo "[run] building images and starting stack"
+    compose_cmd build
+  else
+    echo "[run] pulling images and starting stack"
+    compose_cmd pull
+  fi
   compose_cmd up -d
   start_log_capture
   echo "[run] stack started; log files under ${LOG_DIR}"
@@ -171,8 +177,10 @@ usage() {
 Usage: ${0##*/} <command> [options]
 
 Commands:
-  up [--compare]    Start the docker stack and begin capturing logs
+  up [--compare] [--build]
+                    Start the docker stack and begin capturing logs
                     --compare: Generate side-by-side comparison videos (slower)
+                    --build: Build images instead of pulling them
   down              Stop log capture and docker stack
   status            Show container status from docker compose
   logs [service]    Tail saved logs for a service (default: list available logs)
@@ -189,11 +197,23 @@ main() {
   case "${cmd}" in
     up)
       local generate_comparison="false"
-      if [[ "${1:-}" == "--compare" ]]; then
-        generate_comparison="true"
-        shift
-      fi
-      cmd_up "${generate_comparison}" "$@"
+      local build_images="false"
+      while [[ $# -gt 0 ]]; do
+        case "${1}" in
+          --compare)
+            generate_comparison="true"
+            shift
+            ;;
+          --build)
+            build_images="true"
+            shift
+            ;;
+          *)
+            break
+            ;;
+        esac
+      done
+      cmd_up "${generate_comparison}" "${build_images}" "$@"
       ;;
     down)
       cmd_down "$@"

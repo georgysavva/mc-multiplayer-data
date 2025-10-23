@@ -4,30 +4,28 @@ const { sleep } = require("../utils/helpers");
 const { land_pos, lookAtSmooth } = require("../utils/movement");
 const { rconTp } = require("../utils/coordination");
 const { waitForCameras } = require("../utils/camera-ready");
+const { getOnStraightLineWalkPhaseFn } = require("./straight-line-episode");
+const { getOnChasePhaseFn } = require("./chase-episode");
+const { getOnOrbitPhaseFn } = require("./orbit-episode");
+const { getOnMVCTestPhaseFn } = require("./mvc-test-episode");
+const { getOnBridgeBuilderPhaseFn } = require("./bridge-builder-episode");
+const { getOnWalkLookPhaseFn } = require("./walk-look-episode");
+const { getOnWalkLookAwayPhaseFn } = require("./walk-look-away-episode");
 const {
   MIN_BOTS_DISTANCE,
   MAX_BOTS_DISTANCE,
-  CAMERA_SPEED_DEGREES_PER_SEC,
-  MIN_RUN_ACTIONS,
-  MAX_RUN_ACTIONS,
+  DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
 } = require("../utils/constants");
 
 // Import episode-specific handlers
-const {
-  walkStraightWhileLooking,
-  getOnStraightLineWalkPhaseFn,
-} = require("./straight-line-episode");
-const {
-  chaseRunner,
-  runFromChaser,
-  getOnChasePhaseFn,
-} = require("./chase-episode");
-const { orbitAroundFixedPoint, getOnOrbitPhaseFn } = require("./orbit-episode");
-const { testMVCBehavior, getOnMVCTestPhaseFn } = require("./mvc-test-episode");
-const {
-  buildCooperativeBridge,
-  getOnBridgeBuilderPhaseFn,
-} = require("./bridge-builder-episode");
+const episodeTypes = [
+  "chase",
+  // "orbit",
+  // "walkLook",
+  // "walkLookAway",
+  // "mvcTest"  // Add MVC test episode for validation
+  // "bridgeBuilder"  // Add cooperative bridge building episode
+];
 /**
  * Run a single episode
  * @param {Bot} bot - Mineflayer bot instance
@@ -302,253 +300,189 @@ function getOnTeleportPhaseFn(
     await lookAtSmooth(
       bot,
       computedOtherBotPosition,
-      CAMERA_SPEED_DEGREES_PER_SEC
+      DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
     );
     await sleep(1000);
     console.log(`[${bot.username}] starting episode recording`);
     bot.emit("startepisode", episodeNum === 0 ? 50 : 0);
     // await sleep(episodeNum === 0 ? 6000 : 1000);
 
-    // Add episode type selection - Enable multiple types for diverse data collection
-    const episodeTypes = [
-      "chase",
-      "orbit",
-      // "mvcTest"  // Add MVC test episode for validation
-      // "bridgeBuilder"  // Add cooperative bridge building episode
-    ];
-    const selectedEpisodeType =
-      episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
-
-    console.log(
-      `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
+    startEpisode(
+      bot,
+      sharedBotRng,
+      coordinator,
+      episodeNum,
+      args,
+      getOnStopPhaseFn
     );
-
-    const iterationID = 0;
-    if (selectedEpisodeType === "straightLineWalk") {
-      coordinator.onceEvent(
-        `straightLineWalkPhase_${iterationID}`,
-        getOnStraightLineWalkPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `straightLineWalkPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "chase") {
-      coordinator.onceEvent(
-        `chasePhase_${iterationID}`,
-        getOnChasePhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `chasePhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "orbit") {
-      coordinator.onceEvent(
-        `orbitPhase_${iterationID}`,
-        getOnOrbitPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `orbitPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "mvcTest") {
-      coordinator.onceEvent(
-        `mvcTestPhase_${iterationID}`,
-        getOnMVCTestPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `mvcTestPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "bridgeBuilder") {
-      coordinator.onceEvent(
-        `bridgeBuilderPhase_${iterationID}`,
-        getOnBridgeBuilderPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `bridgeBuilderPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else {
-      // Original walkAndLook episode
-      coordinator.onceEvent(
-        `walkAndLookPhase_${iterationID}`,
-        getOnWalkAndLookPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `walkAndLookPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    }
   };
 }
 
 /**
- * Get walk and look phase handler function
+ * Start an episode by selecting episode type and initializing the appropriate handler
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Function} sharedBotRng - Shared random number generator
  * @param {BotCoordinator} coordinator - Bot coordinator instance
- * @param {number} iterationID - Iteration ID
- * @param {string} otherBotName - Other bot name
  * @param {number} episodeNum - Episode number
  * @param {Object} args - Configuration arguments
- * @returns {Function} Walk and look phase handler
+ * @param {Function} getOnStopPhaseFn - Function to get stop phase handler
  */
-function getOnWalkAndLookPhaseFn(
+function startEpisode(
   bot,
   sharedBotRng,
   coordinator,
-  iterationID,
-  otherBotName,
   episodeNum,
-  args
+  args,
+  getOnStopPhaseFn
 ) {
-  return async (otherBotPosition) => {
-    coordinator.sendToOtherBot(
-      `walkAndLookPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      `walkAndLookPhase_${iterationID} beginning`
-    );
-    const actionCount =
-      MIN_RUN_ACTIONS +
-      Math.floor(sharedBotRng() * (MAX_RUN_ACTIONS - MIN_RUN_ACTIONS + 1));
+  // Add episode type selection - Enable multiple types for diverse data collection
+  const selectedEpisodeType =
+    episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
 
-    // Define three walking phase modes and randomly pick one using sharedBotRng
-    const walkingModes = [
-      "lower_name_walks_straight",
-      "bigger_name_walks_straight",
-    ];
-    const selectedMode =
-      walkingModes[Math.floor(sharedBotRng() * walkingModes.length)];
+  console.log(
+    `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
+  );
 
-    console.log(
-      `[iter ${iterationID}] [${bot.username}] starting walk phase with ${actionCount} actions - mode: ${selectedMode}`
-    );
-
-    // Determine if this bot should walk based on the selected mode
-    let shouldThisBotWalk = false;
-
-    switch (selectedMode) {
-      case "both_bots_walk":
-        shouldThisBotWalk = true;
-        break;
-      case "lower_name_walks":
-        shouldThisBotWalk = bot.username < otherBotName;
-        break;
-      case "bigger_name_walks":
-        shouldThisBotWalk = bot.username > otherBotName;
-        break;
-    }
-
-    console.log(
-      `[iter ${iterationID}] [${bot.username}] will ${
-        shouldThisBotWalk ? "walk" : "sleep"
-      } during this phase`
-    );
-
-    // Look at the other bot smoothly at the start of the phase
-    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
-
-    // Either run() or sleep() based on the mode
-    if (shouldThisBotWalk) {
-      await run(bot, actionCount, args);
-    } else {
-      // Bot doesn't run, so no sleep is needed
-      console.log(
-        `[iter ${iterationID}] [${bot.username}] not walking this phase`
-      );
-    }
-
-    if (iterationID == args.iterations_num_per_episode - 1) {
-      coordinator.onceEvent(
-        "stopPhase",
-        getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
-      );
-      coordinator.sendToOtherBot(
-        "stopPhase",
-        bot.entity.position.clone(),
-        `walkAndLookPhase_${iterationID} end`
-      );
-      return;
-    }
-    const nextIterationID = iterationID + 1;
+  const iterationID = 0;
+  if (selectedEpisodeType === "straightLineWalk") {
     coordinator.onceEvent(
-      `walkAndLookPhase_${nextIterationID}`,
-      getOnWalkAndLookPhaseFn(
+      `straightLineWalkPhase_${iterationID}`,
+      getOnStraightLineWalkPhaseFn(
         bot,
         sharedBotRng,
         coordinator,
-        nextIterationID,
+        iterationID,
         args.other_bot_name,
         episodeNum,
+        getOnStopPhaseFn,
         args
       )
     );
     coordinator.sendToOtherBot(
-      `walkAndLookPhase_${nextIterationID}`,
+      `straightLineWalkPhase_${iterationID}`,
       bot.entity.position.clone(),
-      `walkAndLookPhase_${iterationID} end`
+      "teleportPhase end"
     );
-  };
+  } else if (selectedEpisodeType === "chase") {
+    coordinator.onceEvent(
+      `chasePhase_${iterationID}`,
+      getOnChasePhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name,
+        episodeNum,
+        getOnStopPhaseFn,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `chasePhase_${iterationID}`,
+      bot.entity.position.clone(),
+      "teleportPhase end"
+    );
+  } else if (selectedEpisodeType === "orbit") {
+    coordinator.onceEvent(
+      `orbitPhase_${iterationID}`,
+      getOnOrbitPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name,
+        episodeNum,
+        getOnStopPhaseFn,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `orbitPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      "teleportPhase end"
+    );
+  } else if (selectedEpisodeType === "mvcTest") {
+    coordinator.onceEvent(
+      `mvcTestPhase_${iterationID}`,
+      getOnMVCTestPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name,
+        episodeNum,
+        getOnStopPhaseFn,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `mvcTestPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      "teleportPhase end"
+    );
+  } else if (selectedEpisodeType === "bridgeBuilder") {
+    coordinator.onceEvent(
+      `bridgeBuilderPhase_${iterationID}`,
+      getOnBridgeBuilderPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name,
+        episodeNum,
+        getOnStopPhaseFn,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `bridgeBuilderPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      "teleportPhase end"
+    );
+  } else if (selectedEpisodeType === "walkLook") {
+    // Original walkAndLook episode
+    coordinator.onceEvent(
+      `walkLookPhase_${iterationID}`,
+      getOnWalkLookPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        getOnStopPhaseFn,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `walkLookPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      "teleportPhase end"
+    );
+  } else if (selectedEpisodeType === "walkLookAway") {
+    coordinator.onceEvent(
+      `walkLookAwayPhase_${iterationID}`,
+      getOnWalkLookAwayPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        getOnStopPhaseFn,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `walkLookAwayPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      "teleportPhase end"
+    );
+  } else {
+    throw new Error(
+      `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${episodeTypes.join(
+        ", "
+      )}`
+    );
+  }
 }
 
 /**
@@ -629,7 +563,6 @@ module.exports = {
   runSingleEpisode,
   getOnSpawnFn,
   getOnTeleportPhaseFn,
-  getOnWalkAndLookPhaseFn,
   getOnStopPhaseFn,
   getOnStoppedPhaseFn,
 };
