@@ -1,5 +1,25 @@
 services:
+  prep_data:
+    image: busybox:latest
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /data /plugins /data/plugins &&
+        chmod 777 /data /plugins /data/plugins &&
+        if [ -n "$(ls -A /plugins 2>/dev/null)" ]; then
+          cp -rf /plugins/. /data/plugins/;
+        fi;
+        chmod -R 777 /data/plugins
+    volumes:
+      - ./data:/data
+      - ./plugins:/plugins
+    restart: "no"
+
   mc:
+    depends_on:
+      prep_data:
+        condition: service_completed_successfully
     image: itzg/minecraft-server
     tty: true
     ports:
@@ -14,6 +34,7 @@ services:
       ENFORCE_SECURE_PROFILE: false
       RCON_PASSWORD: change-me
       BROADCAST_RCON_TO_OPS: true
+      OPS: timwm,Pengulu
       # Absolutely no hostile mobs
       DIFFICULTY: peaceful
       SPAWN_MONSTERS: false
@@ -37,6 +58,7 @@ services:
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./data:/data
+      - ./plugins:/data/plugins
 
   sender_alpha:
     build:

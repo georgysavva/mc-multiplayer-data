@@ -1,5 +1,25 @@
 services:
+  prep_data:
+    image: busybox:latest
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /data /plugins /data/plugins &&
+        chmod 777 /data /plugins /data/plugins &&
+        if [ -n "$(ls -A /plugins 2>/dev/null)" ]; then
+          cp -rf /plugins/. /data/plugins/;
+        fi;
+        chmod -R 777 /data/plugins
+    volumes:
+      - ./data53:/data
+      - ./plugins:/plugins
+    restart: "no"
+
   mc:
+    depends_on:
+      prep_data:
+        condition: service_completed_successfully
     image: itzg/minecraft-server
     tty: true
     network_mode: host # this is needed because otherwise it cannot download the server zip file on certain machines
@@ -12,6 +32,7 @@ services:
       ENFORCE_SECURE_PROFILE: false
       RCON_PASSWORD: research
       BROADCAST_RCON_TO_OPS: true
+      OPS: timwm,Pengulu
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
@@ -29,6 +50,7 @@ services:
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./data53:/data
+      - ./plugins:/data/plugins
     healthcheck:
       test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
       interval: 10s

@@ -1,0 +1,9 @@
+name: MirrorBot
+version: '1.0'
+main: me.berrycraft.mirrorbot.EpisodeManager
+api-version: '1.21'
+softdepend: [ "SkinsRestorer" , "ProtocolLib"]
+commands:
+  episode:
+    description: Start or stop an episode test.
+    usage: /episode <start | stop>
