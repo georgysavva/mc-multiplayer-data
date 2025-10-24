@@ -7,22 +7,17 @@ services:
       - "25575:25575"  # RCON port
     environment:
       EULA: "TRUE"
-      VERSION: 1.21
+      VERSION: 1.20.4
       TYPE: PAPER
-      MODE: creative
+      MODE: survival
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
-      RCON_PASSWORD: change-me
+      PVP: "TRUE"
+      RCON_PASSWORD: research
       BROADCAST_RCON_TO_OPS: true
-      # Absolutely no hostile mobs
-      DIFFICULTY: peaceful
-      SPAWN_MONSTERS: false
-      SPAWN_ANIMALS: false  
-      SPAWN_NPCS: false
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
-      LEVEL: superflat-peaceful
       LEVEL_TYPE: minecraft:flat
       GENERATOR_SETTINGS: >-
         {
@@ -36,16 +31,23 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data:/data
+      - ./data53:/data
+    healthcheck:
+      test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   sender_alpha:
     build:
       context: .
       dockerfile: Dockerfile.windows
-    image: nyu-mc-data-enhanced:latest
+    image: ojmichel/mc-multiplayer-base:latest
     depends_on:
-      - mc
-      - receiver_alpha
+      mc:
+        condition: service_healthy
+      receiver_alpha:
+        condition: service_started
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./output:/output
@@ -56,27 +58,36 @@ services:
       RECEIVER_PORT: 8090
       COORD_PORT: 8100
       OTHER_COORD_HOST: sender_bravo
-      OTHER_COORD_PORT: 8100
+      OTHER_COORD_PORT: 8101
       BOT_RNG_SEED: "12345"
-      EPISODES_NUM: 25
-      RUN_ID: 1
+      EPISODES_NUM: 1
+      EPISODE_CATEGORY: look_away
       MC_HOST: mc
       MC_PORT: 25565
       RCON_HOST: mc
       RCON_PORT: 25575
       RCON_PASSWORD: research
       COLOR: red
-      BOOTSTRAP_WAIT_TIME: 30
+      BOOTSTRAP_WAIT_TIME: 20
+      MIN_RUN_ACTIONS: 1
+      MAX_RUN_ACTIONS: 1
+      ITERATIONS_NUM_PER_EPISODE: 5
+      MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
 
   sender_bravo:
-    image: nyu-mc-data-enhanced:latest
+    image: ojmichel/mc-multiplayer-base:latest
     depends_on:
-      - mc
-      - receiver_bravo
-      - sender_alpha
+      mc:
+        condition: service_healthy
+      receiver_bravo:
+        condition: service_started
+      sender_alpha:
+        condition: service_started
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./output:/output
@@ -85,25 +96,31 @@ services:
       OTHER_BOT_NAME: Alpha
       RECEIVER_HOST: receiver_bravo
       RECEIVER_PORT: 8090
-      COORD_PORT: 8100
+      COORD_PORT: 8101
       OTHER_COORD_HOST: sender_alpha
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
-      EPISODES_NUM: 25
-      RUN_ID: 1
+      EPISODE_CATEGORY: look_away
+      EPISODES_NUM: 1
       MC_HOST: mc
       MC_PORT: 25565
       RCON_HOST: mc
       RCON_PORT: 25575
       RCON_PASSWORD: research
       COLOR: blue
-      BOOTSTRAP_WAIT_TIME: 30
+      BOOTSTRAP_WAIT_TIME: 20
+      MIN_RUN_ACTIONS: 1
+      MAX_RUN_ACTIONS: 1
+      ITERATIONS_NUM_PER_EPISODE: 5
+      MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
 
   receiver_alpha:
-    image: nyu-mc-data-enhanced:latest
+    image: ojmichel/mc-multiplayer-base:latest
     environment:
       PORT: 8090
       NAME: Alpha
@@ -116,7 +133,7 @@ services:
     command: ./entrypoint_receiver.sh
 
   receiver_bravo:
-    image: nyu-mc-data-enhanced:latest
+    image: ojmichel/mc-multiplayer-base:latest
     environment:
       PORT: 8090
       NAME: Bravo
@@ -129,12 +146,109 @@ services:
     command: ./entrypoint_receiver.sh
 
   script:
-    image: nyu-mc-data-enhanced:latest
-    depends_on:
-      - sender_alpha
-      - sender_bravo
+    image: ojmichel/mc-multiplayer-base:latest
     tty: true
+    entrypoint: ["sleep", "infinity"]
+    restart: "no"
     volumes:
-      # attach the relative directory 'data' to the container's /data path
-      - ./output:/output
-    command: python output-post-processing-utils/batch_process_all.py --output-dir /output
+      - .:/usr/src/app
+
+  camera_alpha:
+    image: ojmichel/mineflayer-spectator-client:latest
+    container_name: mc_camera_alpha
+    restart: unless-stopped
+    ports:
+      - "5901:5901"  # VNC port
+      - "6901:6901"  # noVNC port
+    depends_on:
+      mc:
+        condition: service_healthy
+    environment:
+      MC_VERSION: "1.20.4"
+      MC_HOST: mc
+      MC_PORT: "25565"
+      CAMERA_NAME: "CameraAlpha"
+      DISPLAY: ":99"
+      VNC_PORT: "5901"
+      NOVNC_PORT: "6901"
+      WIDTH: "1280"
+      HEIGHT: "720"
+      FPS: "20"
+      VNC_PASSWORD: "research"
+      ENABLE_RECORDING: "1"
+      RECORDING_PATH: "/output/camera_alpha.mp4"
+    volumes:
+      - ./camera/data_alpha:/root
+      - ./camera/output_alpha:/output
+      - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
+      - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
+
+  camera_alpha_follow:
+    image: node:20
+    container_name: mc_camera_alpha_follow
+    depends_on:
+      mc:
+        condition: service_healthy
+      camera_alpha:
+        condition: service_started
+    working_dir: /app
+    environment:
+      RCON_HOST: mc
+      RCON_PORT: "25575"
+      RCON_PASSWORD: "research"
+      BOT_NAME: "Alpha"
+      CAMERA_NAME: "CameraAlpha"
+    volumes:
+      - ./camera/spectator.js:/app/spectator.js:ro
+      - ./camera/package.json:/app/package.json:ro
+    command: ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
+
+  camera_bravo:
+    image: ojmichel/mineflayer-spectator-client:latest
+    container_name: mc_camera_bravo
+    restart: unless-stopped
+    ports:
+      - "5902:5902"  # VNC port
+      - "6902:6902"  # noVNC port
+    depends_on:
+      mc:
+        condition: service_healthy
+    environment:
+      MC_VERSION: "1.20.4"
+      MC_HOST: mc
+      MC_PORT: "25565"
+      CAMERA_NAME: "CameraBravo"
+      DISPLAY: ":100"
+      VNC_PORT: "5902"
+      NOVNC_PORT: "6902"
+      WIDTH: "1280"
+      HEIGHT: "720"
+      FPS: "20"
+      VNC_PASSWORD: "research"
+      ENABLE_RECORDING: "1"
+      RECORDING_PATH: "/output/camera_bravo.mp4"
+    volumes:
+      - ./camera/data_bravo:/root
+      - ./camera/output_bravo:/output
+      - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
+      - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
+
+  camera_bravo_follow:
+    image: node:20
+    container_name: mc_camera_bravo_follow
+    depends_on:
+      mc:
+        condition: service_healthy
+      camera_bravo:
+        condition: service_started
+    working_dir: /app
+    environment:
+      RCON_HOST: mc
+      RCON_PORT: "25575"
+      RCON_PASSWORD: "research"
+      BOT_NAME: "Bravo"
+      CAMERA_NAME: "CameraBravo"
+    volumes:
+      - ./camera/spectator.js:/app/spectator.js:ro
+      - ./camera/package.json:/app/package.json:ro
+    command: ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
