@@ -72,9 +72,18 @@ function getOnPVEPhaseFn(
   return async (phaseDataOther) => {
     coordinator.sendToOtherBot(
       `pvePhase`,
-      bot.entity.position.clone(),
+      { position: bot.entity.position.clone() },
       `pvePhase beginning`
     );
+    console.log(
+      `[${bot.username}] Looking at other bot at position: ${phaseDataOther}`
+    );
+    await lookAtSmooth(
+      bot,
+      phaseDataOther.position,
+      CAMERA_SPEED_DEGREES_PER_SEC
+    );
+    await sleep(1000);
     let mob = null;
     if (isPrimaryBot(bot, args)) {
       console.log(`[${bot.username}] Primary bot, getting nearest hostile`);
@@ -143,6 +152,7 @@ function getOnPVEFightPhaseFn(
     );
     const mob = isPrimaryBot(bot, args) ? phaseDataOur.mob : phaseDataOther.mob;
     console.log(`[${bot.username}] PVE fight phase: mob=${mob.name}`);
+    bot.pvp.attack(mob);
     await sleep(10000);
     coordinator.onceEvent(
       "stopPhase",
