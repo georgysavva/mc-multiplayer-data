@@ -1,12 +1,14 @@
+const { isPrimaryBot } = require("../utils/coordination");
 const { lookAtSmooth, sleep } = require("../utils/movement");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 
 const ITERATIONS_NUM_PER_EPISODE = 5;
+const VIEW_DISTANCE = 16;
 async function spawnWithRconAround(
   bot,
   rcon,
-  { mob = "minecraft:zombie", count = 8, radius = 6, yOffset = 0 } = {}
+  { mob = "minecraft:zombie", count = 8, yOffset = 0 } = {}
 ) {
   const { x, y, z } = bot.entity.position;
 
@@ -21,9 +23,10 @@ async function spawnWithRconAround(
     baseZ = Math.floor(z);
   const cmds = [];
   for (let i = 0; i < count; i++) {
-    const angle = (2 * Math.PI * i) / count;
-    const dx = Math.round(Math.cos(angle) * radius);
-    const dz = Math.round(Math.sin(angle) * radius);
+    const angle = Math.random() * 2 * Math.PI;
+    const r = Math.sqrt(Math.random()) * VIEW_DISTANCE;
+    const dx = Math.round(Math.cos(angle) * r);
+    const dz = Math.round(Math.sin(angle) * r);
     cmds.push(`summon ${mob} ${baseX + dx} ${baseY} ${baseZ + dz}`);
   }
 
@@ -33,31 +36,28 @@ async function spawnWithRconAround(
   }
 }
 
-function isHostileMob(e) {
-  return e;
+function isHostileMobFilter(bot) {
+  return (e) =>
+    e &&
+    e.name === "zombie" &&
+    e.position.distanceTo(bot.entity.position) < VIEW_DISTANCE;
 }
 
 function getNearestHostile(bot) {
-  return bot.nearestEntity(isHostileMob);
-}
+  const mob = bot.nearestEntity(isHostileMobFilter(bot));
 
-function reportNearestHostile(bot) {
-  const mob = getNearestHostile(bot);
   if (!mob) {
     console.log(`[${bot.username}] No hostile mob in range.`);
     return;
   }
   const dist = bot.entity.position.distanceTo(mob.position).toFixed(1);
   const msg =
-    `[${bot.username}] Nearest hostile: name=${mob.name}, type=${mob.type}, mobType=${mob.mobType} @ ${dist} blocks ` +
+    `[${bot.username}] Nearest hostile: name=${mob.name}, type=${mob.type}, displayName=${mob.displayName} @ ${dist} blocks ` +
     `pos(${mob.position.x.toFixed(1)},${mob.position.y.toFixed(
       1
     )},${mob.position.z.toFixed(1)})`;
   console.log(msg);
-  // also tell in chat (optional)
-  try {
-    bot.chat(msg);
-  } catch {}
+  return mob;
 }
 
 function getOnPVEPhaseFn(
@@ -65,33 +65,85 @@ function getOnPVEPhaseFn(
   rcon,
   sharedBotRng,
   coordinator,
-  iterationID,
   episodeNum,
   getOnStopPhaseFn,
   args
 ) {
-  return async (otherBotPosition) => {
+  return async (phaseDataOther) => {
     coordinator.sendToOtherBot(
-      `pvePhase_${iterationID}`,
+      `pvePhase`,
       bot.entity.position.clone(),
-      `pvePhase_${iterationID} beginning`
+      `pvePhase beginning`
     );
-    await spawnWithRconAround(bot, rcon, {
-      mob: "minecraft:zombie",
-      count: 8,
-      radius: 6,
-      yOffset: 0,
-    });
-
-    // Report nearest hostile every 2 seconds for 50 seconds
-    const intervalMs = 2000;
-    const totalDurationMs = 50000;
-    const numIntervals = Math.floor(totalDurationMs / intervalMs);
-    for (let i = 0; i < numIntervals; i++) {
-      reportNearestHostile(bot);
-      await sleep(intervalMs);
+    let mob = null;
+    if (isPrimaryBot(bot, args)) {
+      console.log(`[${bot.username}] Primary bot, getting nearest hostile`);
+      mob = getNearestHostile(bot);
+      if (!mob) {
+        await spawnWithRconAround(bot, rcon, {
+          mob: "minecraft:zombie",
+          count: 1,
+          yOffset: 0,
+        });
+        while (!mob) {
+          await sleep(1000);
+          mob = getNearestHostile(bot);
+        }
+      }
     }
-
+    const phaseDataOur = { mob: mob };
+    const iterationID = 0;
+    coordinator.onceEvent(
+      `pvePhase_fight_${iterationID}`,
+      getOnPVEFightPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        getOnStopPhaseFn,
+        args,
+        phaseDataOur
+      )
+    );
+    coordinator.sendToOtherBot(
+      `pvePhase_fight_${iterationID}`,
+      phaseDataOur,
+      `pvePhase end`
+    );
+    // coordinator.onceEvent(
+    //   "stopPhase",
+    //   getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+    // );
+    // coordinator.sendToOtherBot(
+    //   "stopPhase",
+    //   bot.entity.position.clone(),
+    //   `pvePhase_${iterationID} end`
+    // );
+    return;
+  };
+}
+function getOnPVEFightPhaseFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  iterationID,
+  episodeNum,
+  getOnStopPhaseFn,
+  args,
+  phaseDataOur
+) {
+  return async (phaseDataOther) => {
+    coordinator.sendToOtherBot(
+      `pvePhase_fight_${iterationID}`,
+      phaseDataOur,
+      `pvePhase_fight_${iterationID} beginning`
+    );
+    const mob = isPrimaryBot(bot, args) ? phaseDataOur.mob : phaseDataOther.mob;
+    console.log(`[${bot.username}] PVE fight phase: mob=${mob.name}`);
+    await sleep(10000);
     coordinator.onceEvent(
       "stopPhase",
       getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
@@ -101,7 +153,6 @@ function getOnPVEPhaseFn(
       bot.entity.position.clone(),
       `pvePhase_${iterationID} end`
     );
-    return;
   };
 }
 module.exports = {

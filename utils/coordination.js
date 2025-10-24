@@ -2,6 +2,9 @@ const { Rcon } = require("rcon-client");
 const net = require("net");
 const EventEmitter = require("events");
 
+function isPrimaryBot(bot, args) {
+  return bot.username < args.other_bot_name;
+}
 /**
  * RCON teleportation function
  * @param {string} name - Player name
@@ -157,4 +160,5 @@ class BotCoordinator extends EventEmitter {
 module.exports = {
   rconTp,
   BotCoordinator,
+  isPrimaryBot,
 };

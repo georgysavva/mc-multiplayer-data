@@ -498,21 +498,20 @@ function startEpisode(
     );
   } else if (selectedEpisodeType === "pve") {
     coordinator.onceEvent(
-      `pvePhase_${iterationID}`,
+      `pvePhase`,
       getOnPVEPhaseFn(
         bot,
         rcon,
         sharedBotRng,
         coordinator,
-        iterationID,
         episodeNum,
         getOnStopPhaseFn,
         args
       )
     );
     coordinator.sendToOtherBot(
-      `pvePhase_${iterationID}`,
-      bot.entity.position.clone(),
+      `pvePhase`,
+      { position: bot.entity.position.clone() },
       "teleportPhase end"
     );
   } else {
