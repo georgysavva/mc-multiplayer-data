@@ -53,4 +53,5 @@ exec node senders.js \
   --camera_ready_retries "${CAMERA_READY_RETRIES:-30}" \
   --camera_ready_check_interval "${CAMERA_READY_CHECK_INTERVAL:-2000}" \
   --walk_timeout "${WALK_TIMEOUT:-5}" \
+  --teleport "${TELEPORT:-0}" \
   --mc_version "${MC_VERSION:-1.20.4}"

@@ -8,17 +8,10 @@ const EventEmitter = require("events");
  * @param {number} x - X coordinate
  * @param {number} y - Y coordinate
  * @param {number} z - Z coordinate
- * @param {Object} args - Configuration arguments with rcon settings
  * @returns {Promise<string>} RCON response
  */
-async function rconTp(name, x, y, z, args) {
-  const rcon = await Rcon.connect({
-    host: args.rcon_host,
-    port: args.rcon_port,
-    password: args.rcon_password,
-  });
+async function rconTp(rcon, name, x, y, z) {
   const res = await rcon.send(`tp ${name} ${x} ${y} ${z}`);
-  await rcon.end();
   return res;
 }
 

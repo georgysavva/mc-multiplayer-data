@@ -1,6 +1,7 @@
 const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const Vec3 = require("vec3").Vec3;
 const { sleep } = require("../utils/helpers");
+const { Rcon } = require("rcon-client");
 const { land_pos, lookAtSmooth } = require("../utils/movement");
 const { rconTp } = require("../utils/coordination");
 const { waitForCameras } = require("../utils/camera-ready");
@@ -16,13 +17,15 @@ const {
   MAX_BOTS_DISTANCE,
   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
 } = require("../utils/constants");
+const { getOnPVEPhaseFn } = require("./pve-episode");
 
 // Import episode-specific handlers
 const episodeTypes = [
-  "chase",
-  "orbit",
-  "walkLook",
-  "walkLookAway",
+  // "chase",
+  // "orbit",
+  // "walkLook",
+  // "walkLookAway",
+  "pve",
   // "mvcTest"  // Add MVC test episode for validation
   // "bridgeBuilder"  // Add cooperative bridge building episode
 ];
@@ -38,6 +41,7 @@ const episodeTypes = [
  */
 async function runSingleEpisode(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   episodeNum,
@@ -60,9 +64,9 @@ async function runSingleEpisode(
       "teleportPhase",
       getOnTeleportPhaseFn(
         bot,
+        rcon,
         sharedBotRng,
         coordinator,
-        args.other_bot_name,
         episodeNum,
         run_id,
         args
@@ -140,7 +144,11 @@ function getOnSpawnFn(
       height: 360,
       frames: 400,
     });
-
+    const rcon = await Rcon.connect({
+      host: args.rcon_host,
+      port: args.rcon_port,
+      password: args.rcon_password,
+    });
     // Run multiple episodes
     for (
       let episodeNum = args.start_episode_id;
@@ -149,6 +157,7 @@ function getOnSpawnFn(
     ) {
       await runSingleEpisode(
         bot,
+        rcon,
         sharedBotRng,
         coordinator,
         episodeNum,
@@ -157,6 +166,7 @@ function getOnSpawnFn(
       );
       console.log(`[${bot.username}] Episode ${episodeNum} completed`);
     }
+    await rcon.end();
 
     console.log(
       `[${bot.username}] All ${args.episodes_num} episodes completed`
@@ -178,9 +188,9 @@ function getOnSpawnFn(
  */
 function getOnTeleportPhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
-  otherBotName,
   episodeNum,
   run_id,
   args
@@ -191,115 +201,20 @@ function getOnTeleportPhaseFn(
       bot.entity.position.clone(),
       "teleportPhase beginning"
     );
+    if (args.teleport) {
+      otherBotPosition = await teleport(
+        bot,
+        rcon,
+        sharedBotRng,
+        args,
+        otherBotPosition
+      );
+    }
 
     // Generate desired distance between bots using sharedBotRng
-    const desiredDistance =
-      MIN_BOTS_DISTANCE +
-      sharedBotRng() * (MAX_BOTS_DISTANCE - MIN_BOTS_DISTANCE);
-
-    // Pick a random point in the world within the specified radius from center
-    const randomAngle = sharedBotRng() * 2 * Math.PI;
-    const randomDistance = sharedBotRng() * args.teleport_radius;
-
-    const randomPointX =
-      args.teleport_center_x + randomDistance * Math.cos(randomAngle);
-    const randomPointZ =
-      args.teleport_center_z + randomDistance * Math.sin(randomAngle);
-
-    console.log(
-      `[${bot.username}] picked random point at (${randomPointX.toFixed(
-        2
-      )}, ${randomPointZ.toFixed(
-        2
-      )}) with desired bot distance: ${desiredDistance.toFixed(2)}`
-    );
-
-    // Generate a random angle to position bots on opposite sides of the random point
-    const botAngle = sharedBotRng() * 2 * Math.PI;
-
-    // Calculate distance from random point to each bot (half the desired distance between bots)
-    const halfDistance = desiredDistance / 2;
-
-    let newX, newZ;
-
-    // Position bots on opposite sides of the random point
-    if (bot.username < otherBotName) {
-      // Bot A goes in one direction
-      newX = randomPointX + halfDistance * Math.cos(botAngle);
-      newZ = randomPointZ + halfDistance * Math.sin(botAngle);
-    } else {
-      // Bot B goes in opposite direction
-      newX = randomPointX - halfDistance * Math.cos(botAngle);
-      newZ = randomPointZ - halfDistance * Math.sin(botAngle);
-    }
-
-    // Use land_pos to determine proper Y coordinate
-    const landPosition = await land_pos(bot, newX, newZ);
-    const currentPos = bot.entity.position.clone();
-    const newY = landPosition ? landPosition.y + 1 : currentPos.y;
-
-    // Compute the other bot's new position (opposite side of the random point)
-    let otherBotNewX, otherBotNewZ;
-    if (bot.username < otherBotName) {
-      // This bot goes in one direction, other bot goes in opposite direction
-      otherBotNewX = randomPointX - halfDistance * Math.cos(botAngle);
-      otherBotNewZ = randomPointZ - halfDistance * Math.sin(botAngle);
-    } else {
-      // This bot goes in opposite direction, other bot goes in initial direction
-      otherBotNewX = randomPointX + halfDistance * Math.cos(botAngle);
-      otherBotNewZ = randomPointZ + halfDistance * Math.sin(botAngle);
-    }
-
-    // Estimate other bot's Y coordinate
-    const otherBotLandPosition = await land_pos(
-      bot,
-      otherBotNewX,
-      otherBotNewZ
-    );
-    const otherBotNewY = otherBotLandPosition
-      ? otherBotLandPosition.y + 1
-      : otherBotPosition.y;
-
-    const computedOtherBotPosition = new Vec3(
-      otherBotNewX,
-      otherBotNewY,
-      otherBotNewZ
-    );
-
-    console.log(
-      `[${bot.username}] teleporting to (${newX.toFixed(2)}, ${newY.toFixed(
-        2
-      )}, ${newZ.toFixed(2)})`
-    );
-    console.log(
-      `[${bot.username}] other bot will be at (${otherBotNewX.toFixed(
-        2
-      )}, ${otherBotNewY.toFixed(2)}, ${otherBotNewZ.toFixed(2)})`
-    );
-
-    // Teleport using rcon
-    try {
-      await rconTp(
-        bot.username,
-        Math.floor(newX),
-        Math.floor(newY),
-        Math.floor(newZ),
-        args
-      );
-      // await sleep(1000);
-      console.log(
-        `[${
-          bot.username
-        }] teleport completed. New local position: (${newX.toFixed(
-          2
-        )}, ${newY.toFixed(2)}, ${newZ.toFixed(2)})`
-      );
-    } catch (error) {
-      console.error(`[${bot.username}] teleport failed:`, error);
-    }
     await lookAtSmooth(
       bot,
-      computedOtherBotPosition,
+      otherBotPosition,
       DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
     );
     await sleep(1000);
@@ -309,6 +224,7 @@ function getOnTeleportPhaseFn(
 
     startEpisode(
       bot,
+      rcon,
       sharedBotRng,
       coordinator,
       episodeNum,
@@ -316,6 +232,109 @@ function getOnTeleportPhaseFn(
       getOnStopPhaseFn
     );
   };
+}
+async function teleport(bot, rcon, sharedBotRng, args, otherBotPosition) {
+  const desiredDistance =
+    MIN_BOTS_DISTANCE +
+    sharedBotRng() * (MAX_BOTS_DISTANCE - MIN_BOTS_DISTANCE);
+
+  // Pick a random point in the world within the specified radius from center
+  const randomAngle = sharedBotRng() * 2 * Math.PI;
+  const randomDistance = sharedBotRng() * args.teleport_radius;
+
+  const randomPointX =
+    args.teleport_center_x + randomDistance * Math.cos(randomAngle);
+  const randomPointZ =
+    args.teleport_center_z + randomDistance * Math.sin(randomAngle);
+
+  console.log(
+    `[${bot.username}] picked random point at (${randomPointX.toFixed(
+      2
+    )}, ${randomPointZ.toFixed(
+      2
+    )}) with desired bot distance: ${desiredDistance.toFixed(2)}`
+  );
+
+  // Generate a random angle to position bots on opposite sides of the random point
+  const botAngle = sharedBotRng() * 2 * Math.PI;
+
+  // Calculate distance from random point to each bot (half the desired distance between bots)
+  const halfDistance = desiredDistance / 2;
+
+  let newX, newZ;
+
+  // Position bots on opposite sides of the random point
+  if (bot.username < args.other_bot_name) {
+    // Bot A goes in one direction
+    newX = randomPointX + halfDistance * Math.cos(botAngle);
+    newZ = randomPointZ + halfDistance * Math.sin(botAngle);
+  } else {
+    // Bot B goes in opposite direction
+    newX = randomPointX - halfDistance * Math.cos(botAngle);
+    newZ = randomPointZ - halfDistance * Math.sin(botAngle);
+  }
+
+  // Use land_pos to determine proper Y coordinate
+  const landPosition = await land_pos(bot, newX, newZ);
+  const currentPos = bot.entity.position.clone();
+  const newY = landPosition ? landPosition.y + 1 : currentPos.y;
+
+  // Compute the other bot's new position (opposite side of the random point)
+  let otherBotNewX, otherBotNewZ;
+  if (bot.username < args.other_bot_name) {
+    // This bot goes in one direction, other bot goes in opposite direction
+    otherBotNewX = randomPointX - halfDistance * Math.cos(botAngle);
+    otherBotNewZ = randomPointZ - halfDistance * Math.sin(botAngle);
+  } else {
+    // This bot goes in opposite direction, other bot goes in initial direction
+    otherBotNewX = randomPointX + halfDistance * Math.cos(botAngle);
+    otherBotNewZ = randomPointZ + halfDistance * Math.sin(botAngle);
+  }
+
+  // Estimate other bot's Y coordinate
+  const otherBotLandPosition = await land_pos(bot, otherBotNewX, otherBotNewZ);
+  const otherBotNewY = otherBotLandPosition
+    ? otherBotLandPosition.y + 1
+    : otherBotPosition.y;
+
+  const computedOtherBotPosition = new Vec3(
+    otherBotNewX,
+    otherBotNewY,
+    otherBotNewZ
+  );
+
+  console.log(
+    `[${bot.username}] teleporting to (${newX.toFixed(2)}, ${newY.toFixed(
+      2
+    )}, ${newZ.toFixed(2)})`
+  );
+  console.log(
+    `[${bot.username}] other bot will be at (${otherBotNewX.toFixed(
+      2
+    )}, ${otherBotNewY.toFixed(2)}, ${otherBotNewZ.toFixed(2)})`
+  );
+
+  // Teleport using rcon
+  try {
+    await rconTp(
+      rcon,
+      bot.username,
+      Math.floor(newX),
+      Math.floor(newY),
+      Math.floor(newZ)
+    );
+    // await sleep(1000);
+    console.log(
+      `[${
+        bot.username
+      }] teleport completed. New local position: (${newX.toFixed(
+        2
+      )}, ${newY.toFixed(2)}, ${newZ.toFixed(2)})`
+    );
+  } catch (error) {
+    console.error(`[${bot.username}] teleport failed:`, error);
+  }
+  return computedOtherBotPosition;
 }
 
 /**
@@ -329,6 +348,7 @@ function getOnTeleportPhaseFn(
  */
 function startEpisode(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   episodeNum,
@@ -473,6 +493,25 @@ function startEpisode(
     );
     coordinator.sendToOtherBot(
       `walkLookAwayPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      "teleportPhase end"
+    );
+  } else if (selectedEpisodeType === "pve") {
+    coordinator.onceEvent(
+      `pvePhase_${iterationID}`,
+      getOnPVEPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        getOnStopPhaseFn,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `pvePhase_${iterationID}`,
       bot.entity.position.clone(),
       "teleportPhase end"
     );
