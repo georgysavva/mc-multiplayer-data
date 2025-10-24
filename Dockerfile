@@ -18,7 +18,7 @@ ENV MESA_GL_VERSION_OVERRIDE=3.3
 ENV MESA_GLSL_VERSION_OVERRIDE=330
 # (Optional) library lookup hints
 ENV LIBGL_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/aarch64-linux-gnu:/usr/lib/x86_64-linux-gnu
+ENV LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/usr/lib/x86_64-linux-gnu
 ENV PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig"
 
 
@@ -29,16 +29,17 @@ ENV PATH="/opt/venv/bin:${PATH}"
 WORKDIR /usr/src/app
 
 # Install dependencies first to leverage Docker layer caching
-COPY requirements.txt ./
+COPY requirements-docker.txt ./
 RUN python -m pip install --upgrade pip setuptools wheel && \
-    python -m pip install --no-cache-dir -r requirements.txt
+    python -m pip install --no-cache-dir -r requirements-docker.txt
 COPY package.json ./
 RUN npm install 
 RUN npm i rcon-client
 # These echo numbers are needed to trigger a rebuild of this image in the case a downstream dependency has changed.
-RUN echo "41" && npm install github:georgysavva/mineflayer
+RUN echo "42" && npm install github:georgysavva/mineflayer
 RUN echo "47" && npm install github:PrismarineJS/mineflayer-pathfinder
-RUN echo "39" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "41" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "48" && npm install minecraft-data
 RUN set -eux; \
   PKG_DIR="node_modules/prismarine-viewer-colalab"; \
   mkdir -p "$PKG_DIR/public/textures/1.16.4/entity"; \

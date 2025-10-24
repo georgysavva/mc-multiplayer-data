@@ -27,9 +27,9 @@ ENV PATH="/opt/venv/bin:${PATH}"
 WORKDIR /usr/src/app
 
 # Install dependencies first to leverage Docker layer caching
-COPY requirements.txt ./
+COPY requirements-docker.txt ./
 RUN python -m pip install --upgrade pip setuptools wheel && \
-    python -m pip install --no-cache-dir -r requirements.txt
+    python -m pip install --no-cache-dir -r requirements-docker.txt
 COPY package.json ./
 RUN npm install 
 RUN npm i rcon-client
