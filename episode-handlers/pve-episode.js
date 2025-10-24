@@ -32,39 +32,9 @@ async function spawnWithRconAround(
     console.log(`[${bot.username}] Spawned mob: ${cmd} with response: ${res}`);
   }
 }
-const HOSTILES = new Set([
-  "zombie",
-  "husk",
-  "drowned",
-  "zombie_villager",
-  "zoglin",
-  "skeleton",
-  "stray",
-  "wither_skeleton",
-  "creeper",
-  "spider",
-  "cave_spider",
-  "slime",
-  "magma_cube",
-  "witch",
-  "enderman",
-  "endermite",
-  "silverfish",
-  "guardian",
-  "elder_guardian",
-  "phantom",
-  "evoker",
-  "vindicator",
-  "pillager",
-  "ravager",
-  "blaze",
-  "ghast",
-  "shulker",
-  "warden",
-  // usually neutral unless provoked: 'zombified_piglin','goat','wolf'
-]);
+
 function isHostileMob(e) {
-  return e && e.type === "mob" && HOSTILES.has(e.name);
+  return e;
 }
 
 function getNearestHostile(bot) {
@@ -79,7 +49,7 @@ function reportNearestHostile(bot) {
   }
   const dist = bot.entity.position.distanceTo(mob.position).toFixed(1);
   const msg =
-    `[${bot.username}] Nearest hostile: ${mob.name} @ ${dist} blocks ` +
+    `[${bot.username}] Nearest hostile: name=${mob.name}, type=${mob.type}, mobType=${mob.mobType} @ ${dist} blocks ` +
     `pos(${mob.position.x.toFixed(1)},${mob.position.y.toFixed(
       1
     )},${mob.position.z.toFixed(1)})`;

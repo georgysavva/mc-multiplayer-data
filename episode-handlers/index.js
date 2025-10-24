@@ -219,7 +219,7 @@ function getOnTeleportPhaseFn(
     );
     await sleep(1000);
     console.log(`[${bot.username}] starting episode recording`);
-    bot.emit("startepisode", episodeNum === 0 ? 50 : 0);
+    bot.emit("startepisode", 0);
     // await sleep(episodeNum === 0 ? 6000 : 1000);
 
     startEpisode(
