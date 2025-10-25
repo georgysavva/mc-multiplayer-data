@@ -5,7 +5,6 @@
  * All utility functions have been extracted into separate modules for better maintainability.
  */
 
-const seedrandom = require("seedrandom");
 const { sleep } = require("./utils/helpers");
 const { BotCoordinator } = require("./utils/coordination");
 const { makeBot } = require("./utils/bot-factory");
@@ -41,8 +40,6 @@ async function main() {
   });
 
   // Initialize shared RNG and coordinator
-  const botsRngSeed = args.bot_rng_seed;
-  const sharedBotRng = seedrandom(botsRngSeed);
   const coordinator = new BotCoordinator(
     args.bot_name,
     args.coord_port,
@@ -53,14 +50,7 @@ async function main() {
   // Set up spawn event handler
   bot.once(
     "spawn",
-    getOnSpawnFn(
-      bot,
-      args.receiver_host,
-      args.receiver_port,
-      sharedBotRng,
-      coordinator,
-      args
-    )
+    getOnSpawnFn(bot, args.receiver_host, args.receiver_port, coordinator, args)
   );
 
   // Handle system chat packets

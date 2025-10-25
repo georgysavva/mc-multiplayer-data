@@ -2,6 +2,7 @@ const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const Vec3 = require("vec3").Vec3;
 const { sleep } = require("../utils/helpers");
 const { Rcon } = require("rcon-client");
+const seedrandom = require("seedrandom");
 const { land_pos, lookAtSmooth } = require("../utils/movement");
 const { rconTp } = require("../utils/coordination");
 const { waitForCameras } = require("../utils/camera-ready");
@@ -168,14 +169,7 @@ async function notifyPeerErrorAndStop(
  * @param {Object} args - Configuration arguments
  * @returns {Function} Spawn phase handler
  */
-function getOnSpawnFn(
-  bot,
-  host,
-  receiverPort,
-  sharedBotRng,
-  coordinator,
-  args
-) {
+function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
   return async () => {
     // Wait for both connections to be established
     console.log("Setting up coordinator connections...");
@@ -233,6 +227,10 @@ function getOnSpawnFn(
       episodeNum < args.start_episode_id + args.episodes_num;
       episodeNum++
     ) {
+      const botsRngBaseSeed = args.bot_rng_seed;
+      // Concatenate episodeNum to the seed string to get a unique, reproducible seed per episode
+      const botsRngSeedWithEpisode = `${botsRngBaseSeed}_${episodeNum}`;
+      const sharedBotRng = seedrandom(botsRngSeedWithEpisode);
       await runSingleEpisode(
         bot,
         rcon,
