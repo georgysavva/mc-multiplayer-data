@@ -2,8 +2,13 @@ const { Rcon } = require("rcon-client");
 const net = require("net");
 const EventEmitter = require("events");
 
-function isPrimaryBot(bot, args) {
-  return bot.username < args.other_bot_name;
+function decidePrimaryBot(bot, sharedBotRng, args) {
+  // Build a sorted array of both bot names
+  const bots = [bot.username, args.other_bot_name].sort();
+  // Draw a random index (0 or 1)
+  const chosenIndex = Math.floor(sharedBotRng() * bots.length);
+  // Return true if this bot's name matches the chosen index's name
+  return bot.username === bots[chosenIndex];
 }
 /**
  * RCON teleportation function
@@ -160,5 +165,5 @@ class BotCoordinator extends EventEmitter {
 module.exports = {
   rconTp,
   BotCoordinator,
-  isPrimaryBot,
+  decidePrimaryBot,
 };
