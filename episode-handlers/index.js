@@ -51,13 +51,60 @@ async function runSingleEpisode(
   console.log(`[${bot.username}] Starting episode ${episodeNum}`);
 
   return new Promise((resolve) => {
-    bot._currentEpisodeResolve = resolve;
+    // Reset episode stopping guard at the start of each episode
+    bot._episodeStopping = false;
+
+    // Episode-scoped error handler that captures this episode number
+    let episodeErrorHandled = false;
+    const handleAnyError = async (err) => {
+      if (episodeErrorHandled) {
+        console.log(
+          `[${bot.username}] Episode ${episodeNum} error already handled, skipping.`
+        );
+        return;
+      }
+      episodeErrorHandled = true;
+      await notifyPeerErrorAndStop(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        args,
+        err
+      );
+    };
+    const cleanupErrorHandlers = () => {
+      process.removeListener("unhandledRejection", handleAnyError);
+      process.removeListener("uncaughtException", handleAnyError);
+    };
+    process.on("unhandledRejection", handleAnyError);
+    process.on("uncaughtException", handleAnyError);
+
+    // Ensure we clean up episode-scoped handlers when the episode resolves
+    bot._currentEpisodeResolve = () => {
+      cleanupErrorHandlers();
+      resolve(undefined);
+    };
 
     const { x, y, z } = bot.entity.position;
     console.log(
       `[${bot.username}] episode ${episodeNum} at (${x.toFixed(2)}, ${y.toFixed(
         2
       )}, ${z.toFixed(2)})`
+    );
+
+    coordinator.onceEvent(
+      `peerErrorPhase_${episodeNum}`,
+      getOnPeerErrorPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        run_id,
+        args
+      )
     );
 
     coordinator.onceEvent(
@@ -78,6 +125,37 @@ async function runSingleEpisode(
       "spawnPhase end"
     );
   });
+}
+
+async function notifyPeerErrorAndStop(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  episodeNum,
+  args,
+  error
+) {
+  const reason = error && error.message ? error.message : String(error);
+  console.error(
+    `[${bot.username}] Episode ${episodeNum} encountered an error:`,
+    error
+  );
+  coordinator.sendToOtherBot(
+    `peerErrorPhase_${episodeNum}`,
+    { reason },
+    "error notifier"
+  );
+  coordinator.onceEvent(
+    "stopPhase",
+    getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+  );
+  coordinator.sendToOtherBot(
+    "stopPhase",
+    bot.entity.position.clone(),
+    `error notifier end`
+  );
+  // Initiate our own stop sequence
 }
 
 /**
@@ -522,7 +600,31 @@ function startEpisode(
     );
   }
 }
-
+function getOnPeerErrorPhaseFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  episodeNum,
+  run_id,
+  args
+) {
+  return async (phaseDataOther) => {
+    console.error(
+      `[${bot.username}] Received peerErrorPhase_${episodeNum} from peer, stopping.`,
+      phaseDataOther["reason"]
+    );
+    coordinator.onceEvent(
+      "stopPhase",
+      getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+    );
+    coordinator.sendToOtherBot(
+      "stopPhase",
+      bot.entity.position.clone(),
+      `peerErrorPhase_${episodeNum} end`
+    );
+  };
+}
 /**
  * Get stop phase handler function
  * @param {Bot} bot - Mineflayer bot instance
@@ -533,6 +635,13 @@ function startEpisode(
  */
 function getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName) {
   return async (otherBotPosition) => {
+    if (bot._episodeStopping) {
+      console.log(
+        `[${bot.username}] Episode already stopping, skipping stop phase.`
+      );
+      return;
+    }
+    bot._episodeStopping = true;
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
