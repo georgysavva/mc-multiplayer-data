@@ -38,8 +38,8 @@ RUN npm i rcon-client
 # These echo numbers are needed to trigger a rebuild of this image in the case a downstream dependency has changed.
 RUN echo "42" && npm install github:georgysavva/mineflayer
 RUN echo "47" && npm install github:PrismarineJS/mineflayer-pathfinder
-RUN echo "41" && npm install github:georgysavva/prismarine-viewer-colalab
-RUN echo "48" && npm install minecraft-data
+RUN echo "42" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "50" && npm install minecraft-data
 RUN npm install --save mineflayer-pvp
 RUN set -eux; \
   PKG_DIR="node_modules/prismarine-viewer-colalab"; \

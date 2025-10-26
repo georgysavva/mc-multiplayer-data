@@ -34,6 +34,7 @@ function parseArgs() {
       camera_ready_check_interval: 2000, // milliseconds
       rcon_password: "research",
       teleport: 1,
+      viewer_rendering_disabled: 0,
     },
   });
 }

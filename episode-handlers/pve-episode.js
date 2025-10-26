@@ -18,6 +18,22 @@ const FOV_DEGREES = 90; // total FOV in front of the bot
 const MIN_MOBS = 2;
 const MAX_MOBS = 5;
 
+// Hostile mobs we allow for spawning and targeting
+const HOSTILE_MOBS_SUMMON_IDS = [
+  // "minecraft:zombie",
+  // "minecraft:skeleton",
+  // "minecraft:spider",
+  // "minecraft:creeper",
+  // "minecraft:husk",
+  // "minecraft:drowned",
+  // "minecraft:stray",
+  "minecraft:witch",
+  // "minecraft:enderman",
+];
+const HOSTILE_ENTITY_NAMES = new Set(
+  HOSTILE_MOBS_SUMMON_IDS.map((id) => id.split(":")[1])
+);
+
 /**
  * Check if a position is within the bot's forward-facing FOV cone.
  * @param {any} bot - The bot instance
@@ -68,12 +84,11 @@ function isInForwardFOV(bot, targetPos, fovDegrees = FOV_DEGREES) {
 async function spawnWithRconAround(
   bot,
   rcon,
-  { mob = "minecraft:zombie", count = 8, maxRadius: maxRadiusOpt } = {}
+  { mob, count = 8, maxRadius: maxRadiusOpt } = {}
 ) {
   const { x, y, z } = bot.entity.position;
 
   // Make sure the world will actually keep hostiles:
-  await rcon.send("difficulty easy"); // or hard
   // If you want hard night spawns:
   // await rcon.send('time set midnight');
   // await rcon.send('weather thunder');
@@ -119,7 +134,7 @@ async function spawnWithRconAround(
  * Create a filter function for hostile mobs within FOV and distance.
  * @param {any} bot - The bot instance
  * @param {number} maxDistance - Maximum distance to search (default VIEW_DISTANCE)
- * @param {number} fovDegrees - Field of view in degrees (default FOV_DEGREES)
+ * @param {boolean} checkFOV - Whether to require entity to be within forward FOV
  * @returns {function} Filter function for entities
  */
 function isHostileMobFilter(
@@ -128,7 +143,9 @@ function isHostileMobFilter(
   checkFOV = false
 ) {
   return (e) => {
-    if (!e || e.name !== "zombie") return false;
+    if (!e || !HOSTILE_ENTITY_NAMES.has(e.name)) {
+      return false;
+    }
 
     const dist = e.position.distanceTo(bot.entity.position);
     if (dist >= maxDistance) return false;
@@ -277,11 +294,15 @@ function getOnPVEFightPhaseFn(
     for (let mobI = 0; mobI < numMobs; mobI++) {
       const mobInFov = getNearestHostile(bot, mobDist, true);
       if (!mobInFov) {
+        const chosenMob =
+          HOSTILE_MOBS_SUMMON_IDS[
+            Math.floor(Math.random() * HOSTILE_MOBS_SUMMON_IDS.length)
+          ];
         console.log(
-          `[${bot.username}] No mob in FOV, Spawning mob ${mobI} in FOV.`
+          `[${bot.username}] No mob in FOV, Spawning mob ${mobI} ${chosenMob} in FOV.`
         );
         await spawnWithRconAround(bot, rcon, {
-          mob: "minecraft:zombie",
+          mob: chosenMob,
           count: 1,
           maxRadius: mobDist,
         });
@@ -350,44 +371,6 @@ function getOnPVEPhaseFn(
       `pvePhase beginning`
     );
 
-    // Give bot a random sword
-    const swords = [
-      "minecraft:wooden_sword",
-      "minecraft:stone_sword",
-      "minecraft:iron_sword",
-      "minecraft:golden_sword",
-      "minecraft:diamond_sword",
-      "minecraft:netherite_sword",
-    ];
-    const randomSword = swords[Math.floor(Math.random() * swords.length)];
-    const giveSwordRes = await rcon.send(
-      `give ${bot.username} ${randomSword} 1`
-    );
-    console.log(
-      `[${bot.username}] Gave random sword: ${randomSword}, response=${giveSwordRes}`
-    );
-
-    // Wait for the item to be added to inventory
-    await sleep(500);
-
-    // Find and equip the sword
-    const swordName = randomSword.split(":")[1]; // e.g., "diamond_sword"
-    const swordItem = bot.inventory
-      .items()
-      .find((item) => item.name === swordName);
-    if (swordItem) {
-      await bot.equip(swordItem, "hand");
-      console.log(`[${bot.username}] Equipped ${swordName} to hand`);
-    } else {
-      console.log(
-        `[${bot.username}] Warning: Could not find ${swordName} in inventory to equip`
-      );
-    }
-
-    const resistEffectRes = await rcon.send(
-      `effect give ${bot.username} minecraft:resistance 999999 255 true`
-    );
-    console.log(`[${bot.username}] resistEffectRes=${resistEffectRes}`);
     const iterationID = 0;
     const nextPhaseDataOur = {
       guardPosition: bot.entity.position.clone(),
@@ -420,7 +403,42 @@ class PveEpisode extends BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = 10;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
-    // optional setup
+    const difficultyRes = await rcon.send("difficulty easy"); // or hard
+    console.log(
+      `[${bot.username}] set difficulty to easy, difficultyRes=${difficultyRes}`
+    );
+    const swords = [
+      "minecraft:wooden_sword",
+      "minecraft:stone_sword",
+      "minecraft:iron_sword",
+      "minecraft:golden_sword",
+      "minecraft:diamond_sword",
+      "minecraft:netherite_sword",
+    ];
+    const randomSword = swords[Math.floor(Math.random() * swords.length)];
+    const giveSwordRes = await rcon.send(
+      `give ${bot.username} ${randomSword} 1`
+    );
+    console.log(
+      `[${bot.username}] Gave random sword: ${randomSword}, response=${giveSwordRes}`
+    );
+
+    // Wait for the item to be added to inventory
+    await sleep(500);
+
+    // Find and equip the sword
+    const swordName = randomSword.split(":")[1]; // e.g., "diamond_sword"
+    const swordItem = bot.inventory
+      .items()
+      .find((item) => item.name === swordName);
+    if (swordItem) {
+      await bot.equip(swordItem, "hand");
+      console.log(`[${bot.username}] Equipped ${swordName} to hand`);
+    } else {
+      console.log(
+        `[${bot.username}] Warning: Could not find ${swordName} in inventory to equip`
+      );
+    }
   }
 
   async entryPoint(
@@ -460,6 +478,33 @@ class PveEpisode extends BaseEpisode {
     args
   ) {
     // optional teardown
+    const difficultyRes = await rcon.send("difficulty peaceful"); // or hard
+    console.log(
+      `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`
+    );
+    // Make the bot unequip the sword (from main hand)
+    if (bot && bot.entity && bot.inventory) {
+      // Check if the bot has a sword equipped
+      const itemInHand = bot.heldItem;
+      if (
+        itemInHand &&
+        itemInHand.name &&
+        (itemInHand.name.includes("sword") ||
+          itemInHand.displayName?.toLowerCase().includes("sword"))
+      ) {
+        // Safely unequip the main hand item
+        try {
+          await bot.unequip("hand");
+          console.log(`[${bot.username}] Unequipped sword from main hand`);
+        } catch (err) {
+          console.log(
+            `[${bot.username}] Failed to unequip from main hand: ${String(
+              err?.message || err
+            )}`
+          );
+        }
+      }
+    }
   }
 }
 module.exports = {

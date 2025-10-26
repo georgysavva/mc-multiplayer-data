@@ -70,43 +70,6 @@ async function runSingleEpisode(
 
     // Episode-scoped error handler that captures this episode number
     let episodeErrorHandled = false;
-    const handleAnyError = async (err) => {
-      if (episodeErrorHandled) {
-        console.log(
-          `[${bot.username}] Episode ${episodeNum} error already handled, skipping.`
-        );
-        return;
-      }
-      episodeErrorHandled = true;
-      await notifyPeerErrorAndStop(
-        bot,
-        rcon,
-        sharedBotRng,
-        coordinator,
-        episodeNum,
-        args,
-        err
-      );
-    };
-    const cleanupErrorHandlers = () => {
-      process.removeListener("unhandledRejection", handleAnyError);
-      process.removeListener("uncaughtException", handleAnyError);
-    };
-    process.on("unhandledRejection", handleAnyError);
-    process.on("uncaughtException", handleAnyError);
-
-    // Ensure we clean up episode-scoped handlers when the episode resolves
-    bot._currentEpisodeResolve = () => {
-      cleanupErrorHandlers();
-      resolve(undefined);
-    };
-
-    const { x, y, z } = bot.entity.position;
-    console.log(
-      `[${bot.username}] episode ${episodeNum} at (${x.toFixed(2)}, ${y.toFixed(
-        2
-      )}, ${z.toFixed(2)})`
-    );
     const selectedEpisodeType =
       episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
 
@@ -130,6 +93,44 @@ async function runSingleEpisode(
 
     console.log(
       `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
+    );
+    const handleAnyError = async (err) => {
+      if (episodeErrorHandled) {
+        console.log(
+          `[${bot.username}] Episode ${episodeNum} error already handled, skipping.`
+        );
+        return;
+      }
+      episodeErrorHandled = true;
+      await notifyPeerErrorAndStop(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        episodeInstance,
+        args,
+        err
+      );
+    };
+    const cleanupErrorHandlers = () => {
+      process.removeListener("unhandledRejection", handleAnyError);
+      process.removeListener("uncaughtException", handleAnyError);
+    };
+    process.on("unhandledRejection", handleAnyError);
+    process.on("uncaughtException", handleAnyError);
+
+    // Ensure we clean up episode-scoped handlers when the episode resolves
+    bot._currentEpisodeResolve = () => {
+      cleanupErrorHandlers();
+      resolve(undefined);
+    };
+
+    const { x, y, z } = bot.entity.position;
+    console.log(
+      `[${bot.username}] episode ${episodeNum} at (${x.toFixed(2)}, ${y.toFixed(
+        2
+      )}, ${z.toFixed(2)})`
     );
 
     coordinator.onceEvent(
@@ -171,6 +172,7 @@ async function notifyPeerErrorAndStop(
   sharedBotRng,
   coordinator,
   episodeNum,
+  episodeInstance,
   args,
   error
 ) {
@@ -216,6 +218,15 @@ async function notifyPeerErrorAndStop(
  */
 function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
   return async () => {
+    const rcon = await Rcon.connect({
+      host: args.rcon_host,
+      port: args.rcon_port,
+      password: args.rcon_password,
+    });
+    const resistEffectRes = await rcon.send(
+      `effect give ${bot.username} minecraft:resistance 999999 255 true`
+    );
+    console.log(`[${bot.username}] resistEffectRes=${resistEffectRes}`);
     // Wait for both connections to be established
     console.log("Setting up coordinator connections...");
     await coordinator.setupConnections();
@@ -260,11 +271,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       width: 640,
       height: 360,
       frames: 400,
-    });
-    const rcon = await Rcon.connect({
-      host: args.rcon_host,
-      port: args.rcon_port,
-      password: args.rcon_password,
+      disableRendering: args.viewer_rendering_disabled,
     });
     // Run multiple episodes
     for (
@@ -329,7 +336,7 @@ function getOnTeleportPhaseFn(
         sharedBotRng,
         args,
         otherBotPosition,
-        episodeInstance,
+        episodeInstance
       );
     }
 
@@ -339,7 +346,7 @@ function getOnTeleportPhaseFn(
       otherBotPosition,
       DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
     );
-
+    console.log(`[${bot.username}] setting up episode ${episodeNum}`);
     await episodeInstance.setupEpisode(
       bot,
       rcon,
@@ -376,11 +383,14 @@ async function teleport(
   episodeInstance
 ) {
   const desiredDistance =
-    episodeInstance.INIT_MIN_BOTS_DISTANCE +
+    episodeInstance.constructor.INIT_MIN_BOTS_DISTANCE +
     sharedBotRng() *
-      (episodeInstance.INIT_MAX_BOTS_DISTANCE -
-        episodeInstance.INIT_MIN_BOTS_DISTANCE);
+      (episodeInstance.constructor.INIT_MAX_BOTS_DISTANCE -
+        episodeInstance.constructor.INIT_MIN_BOTS_DISTANCE);
 
+  console.log(
+    `[${bot.username}] desired distance: ${desiredDistance.toFixed(2)}`
+  );
   // Pick a random point in the world within the specified radius from center
   const randomAngle = sharedBotRng() * 2 * Math.PI;
   const randomDistance = sharedBotRng() * args.teleport_radius;

@@ -71,6 +71,7 @@ services:
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
+      VIEWER_RENDERING_DISABLED: 1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -113,6 +114,7 @@ services:
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
+      VIEWER_RENDERING_DISABLED: 1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -124,6 +126,7 @@ services:
       NAME: Alpha
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
+      VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -137,6 +140,7 @@ services:
       NAME: Bravo
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
+      VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
