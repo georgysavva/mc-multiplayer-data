@@ -408,6 +408,9 @@ function getOnPVEPhaseFn(
 }
 
 class PveEpisode extends BaseEpisode {
+  static INIT_MIN_BOTS_DISTANCE = 5;
+  static INIT_MAX_BOTS_DISTANCE = 10;
+
   async setupEpisode(
     bot,
     rcon,

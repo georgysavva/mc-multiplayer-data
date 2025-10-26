@@ -1,8 +1,13 @@
+const { MIN_BOTS_DISTANCE, MAX_BOTS_DISTANCE } = require("../utils/constants");
+
 /**
  * BaseEpisode provides a common lifecycle for episodes.
  * Subclasses should override execute().
  */
 class BaseEpisode {
+  static INIT_MIN_BOTS_DISTANCE = MIN_BOTS_DISTANCE;
+  static INIT_MAX_BOTS_DISTANCE = MAX_BOTS_DISTANCE;
+
   /**
    * Optional setup hook. No-op by default.
    * @returns {Promise<void>}

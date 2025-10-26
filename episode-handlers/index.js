@@ -291,6 +291,31 @@ function getOnTeleportPhaseFn(
       bot.entity.position.clone(),
       "teleportPhase beginning"
     );
+    const selectedEpisodeType =
+      episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
+
+    console.log(
+      `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
+    );
+
+    // Get the episode class for the selected type
+    const EpisodeClass = episodeClassMap[selectedEpisodeType];
+
+    if (!EpisodeClass) {
+      throw new Error(
+        `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${episodeTypes.join(
+          ", "
+        )}`
+      );
+    }
+
+    // Create an instance of the episode class
+    const episodeInstance = new EpisodeClass({});
+
+    console.log(
+      `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
+    );
+
     if (args.teleport) {
       otherBotPosition = await teleport(
         bot,
@@ -298,6 +323,7 @@ function getOnTeleportPhaseFn(
         sharedBotRng,
         args,
         otherBotPosition
+        episdeClass,
       );
     }
 
@@ -307,26 +333,29 @@ function getOnTeleportPhaseFn(
       otherBotPosition,
       DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
     );
-    await sleep(1000);
     console.log(`[${bot.username}] starting episode recording`);
     bot.emit("startepisode", 0);
+    await sleep(1000);
     // await sleep(episodeNum === 0 ? 6000 : 1000);
 
-    startEpisode(
+    // Call the entry point method
+    const iterationID = 0;
+    episodeInstance.entryPoint(
       bot,
       rcon,
       sharedBotRng,
       coordinator,
+      iterationID,
       episodeNum,
-      args,
-      getOnStopPhaseFn
+      getOnStopPhaseFn,
+      args
     );
   };
 }
-async function teleport(bot, rcon, sharedBotRng, args, otherBotPosition) {
+async function teleport(bot, rcon, sharedBotRng, args, otherBotPosition, episodeClass) {
   const desiredDistance =
-    MIN_BOTS_DISTANCE +
-    sharedBotRng() * (MAX_BOTS_DISTANCE - MIN_BOTS_DISTANCE);
+    episodeClass.INIT_MIN_BOTS_DISTANCE +
+    sharedBotRng() * (episodeClass.INIT_MAX_BOTS_DISTANCE - episodeClass.INIT_MIN_BOTS_DISTANCE);
 
   // Pick a random point in the world within the specified radius from center
   const randomAngle = sharedBotRng() * 2 * Math.PI;
@@ -446,43 +475,6 @@ function startEpisode(
   getOnStopPhaseFn
 ) {
   // Add episode type selection - Enable multiple types for diverse data collection
-  const selectedEpisodeType =
-    episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
-
-  console.log(
-    `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
-  );
-
-  // Get the episode class for the selected type
-  const EpisodeClass = episodeClassMap[selectedEpisodeType];
-
-  if (!EpisodeClass) {
-    throw new Error(
-      `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${episodeTypes.join(
-        ", "
-      )}`
-    );
-  }
-
-  // Create an instance of the episode class
-  const episodeInstance = new EpisodeClass({});
-
-  console.log(
-    `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
-  );
-
-  // Call the entry point method
-  const iterationID = 0;
-  episodeInstance.entryPoint(
-    bot,
-    rcon,
-    sharedBotRng,
-    coordinator,
-    iterationID,
-    episodeNum,
-    getOnStopPhaseFn,
-    args
-  );
 }
 function getOnPeerErrorPhaseFn(
   bot,
