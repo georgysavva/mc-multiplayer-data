@@ -192,18 +192,19 @@ async function orbitAroundSharedMidpoint(
  * @param {number} iterationID - Iteration ID
  * @param {string} otherBotName - Other bot name
  * @param {number} episodeNum - Episode number
- * @param {Function} getOnStopPhaseFn - Stop phase function getter
+ * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
  * @returns {Function} Orbit phase handler
  */
 function getOnOrbitPhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   iterationID,
   otherBotName,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args
 ) {
   return async (otherBotPosition) => {
@@ -253,7 +254,15 @@ function getOnOrbitPhaseFn(
     // Transition to stop phase
     coordinator.onceEvent(
       "stopPhase",
-      getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName)
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        otherBotName,
+        episodeNum,
+        args
+      )
     );
     coordinator.sendToOtherBot(
       "stopPhase",
@@ -264,15 +273,7 @@ function getOnOrbitPhaseFn(
 }
 
 class OrbitEpisode extends BaseEpisode {
-  async setupEpisode(
-    bot,
-    rcon,
-    sharedBotRng,
-    coordinator,
-    episodeNum,
-    runId,
-    args
-  ) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     // optional setup
   }
 
@@ -283,19 +284,19 @@ class OrbitEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    getOnStopPhaseFn,
     args
   ) {
     coordinator.onceEvent(
       `orbitPhase_${iterationID}`,
       getOnOrbitPhaseFn(
         bot,
+        rcon,
         sharedBotRng,
         coordinator,
         iterationID,
         args.other_bot_name,
         episodeNum,
-        getOnStopPhaseFn,
+        this,
         args
       )
     );
@@ -312,7 +313,6 @@ class OrbitEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    runId,
     args
   ) {
     // optional teardown

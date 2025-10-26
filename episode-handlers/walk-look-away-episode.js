@@ -9,11 +9,12 @@ const MAX_RUN_ACTIONS = 1;
 
 function getOnWalkLookAwayPhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   iterationID,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args
 ) {
   return async (otherBotPosition) => {
@@ -69,7 +70,15 @@ function getOnWalkLookAwayPhaseFn(
     if (iterationID == ITERATIONS_NUM_PER_EPISODE - 1) {
       coordinator.onceEvent(
         "stopPhase",
-        getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+        episodeInstance.getOnStopPhaseFn(
+          bot,
+          rcon,
+          sharedBotRng,
+          coordinator,
+          args.other_bot_name,
+          episodeNum,
+          args
+        )
       );
       coordinator.sendToOtherBot(
         "stopPhase",
@@ -83,11 +92,12 @@ function getOnWalkLookAwayPhaseFn(
       `walkLookAwayPhase_${nextIterationID}`,
       getOnWalkLookAwayPhaseFn(
         bot,
+        rcon,
         sharedBotRng,
         coordinator,
         nextIterationID,
         episodeNum,
-        getOnStopPhaseFn,
+        episodeInstance,
         args
       )
     );
@@ -106,7 +116,6 @@ class WalkLookAwayEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    runId,
     args
   ) {
     // optional setup
@@ -119,18 +128,18 @@ class WalkLookAwayEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    getOnStopPhaseFn,
     args
   ) {
     coordinator.onceEvent(
       `walkLookAwayPhase_${iterationID}`,
       getOnWalkLookAwayPhaseFn(
         bot,
+        rcon,
         sharedBotRng,
         coordinator,
         iterationID,
         episodeNum,
-        getOnStopPhaseFn,
+        this,
         args
       )
     );
@@ -147,7 +156,6 @@ class WalkLookAwayEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    runId,
     args
   ) {
     // optional teardown

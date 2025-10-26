@@ -252,7 +252,7 @@ function getOnPVEFightPhaseFn(
   coordinator,
   iterationID,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args,
   phaseDataOur
 ) {
@@ -317,7 +317,15 @@ function getOnPVEFightPhaseFn(
     }
     coordinator.onceEvent(
       "stopPhase",
-      getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args
+      )
     );
     coordinator.sendToOtherBot(
       "stopPhase",
@@ -332,7 +340,7 @@ function getOnPVEPhaseFn(
   sharedBotRng,
   coordinator,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args
 ) {
   return async (phaseDataOther) => {
@@ -393,7 +401,7 @@ function getOnPVEPhaseFn(
         coordinator,
         iterationID,
         episodeNum,
-        getOnStopPhaseFn,
+        episodeInstance,
         args,
         nextPhaseDataOur
       )
@@ -411,15 +419,7 @@ class PveEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 5;
   static INIT_MAX_BOTS_DISTANCE = 10;
 
-  async setupEpisode(
-    bot,
-    rcon,
-    sharedBotRng,
-    coordinator,
-    episodeNum,
-    runId,
-    args
-  ) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     // optional setup
   }
 
@@ -430,7 +430,6 @@ class PveEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    getOnStopPhaseFn,
     args
   ) {
     coordinator.onceEvent(
@@ -441,7 +440,7 @@ class PveEpisode extends BaseEpisode {
         sharedBotRng,
         coordinator,
         episodeNum,
-        getOnStopPhaseFn,
+        this,
         args
       )
     );
@@ -458,13 +457,11 @@ class PveEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    runId,
     args
   ) {
     // optional teardown
   }
 }
-
 module.exports = {
   getOnPVEPhaseFn,
   PveEpisode,

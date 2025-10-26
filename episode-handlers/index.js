@@ -60,7 +60,6 @@ async function runSingleEpisode(
   sharedBotRng,
   coordinator,
   episodeNum,
-  run_id,
   args
 ) {
   console.log(`[${bot.username}] Starting episode ${episodeNum}`);
@@ -108,6 +107,30 @@ async function runSingleEpisode(
         2
       )}, ${z.toFixed(2)})`
     );
+    const selectedEpisodeType =
+      episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
+
+    console.log(
+      `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
+    );
+
+    // Get the episode class for the selected type
+    const EpisodeClass = episodeClassMap[selectedEpisodeType];
+
+    if (!EpisodeClass) {
+      throw new Error(
+        `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${episodeTypes.join(
+          ", "
+        )}`
+      );
+    }
+
+    // Create an instance of the episode class
+    const episodeInstance = new EpisodeClass({});
+
+    console.log(
+      `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
+    );
 
     coordinator.onceEvent(
       `peerErrorPhase_${episodeNum}`,
@@ -117,7 +140,7 @@ async function runSingleEpisode(
         sharedBotRng,
         coordinator,
         episodeNum,
-        run_id,
+        episodeInstance,
         args
       )
     );
@@ -130,7 +153,7 @@ async function runSingleEpisode(
         sharedBotRng,
         coordinator,
         episodeNum,
-        run_id,
+        episodeInstance,
         args
       )
     );
@@ -163,7 +186,15 @@ async function notifyPeerErrorAndStop(
   );
   coordinator.onceEvent(
     "stopPhase",
-    getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+    episodeInstance.getOnStopPhaseFn(
+      bot,
+      rcon,
+      sharedBotRng,
+      coordinator,
+      args.other_bot_name,
+      episodeNum,
+      args
+    )
   );
   coordinator.sendToOtherBot(
     "stopPhase",
@@ -251,7 +282,6 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
         sharedBotRng,
         coordinator,
         episodeNum,
-        args.run_id,
         args
       );
       console.log(`[${bot.username}] Episode ${episodeNum} completed`);
@@ -282,7 +312,7 @@ function getOnTeleportPhaseFn(
   sharedBotRng,
   coordinator,
   episodeNum,
-  run_id,
+  episodeInstance,
   args
 ) {
   return async (otherBotPosition) => {
@@ -291,30 +321,6 @@ function getOnTeleportPhaseFn(
       bot.entity.position.clone(),
       "teleportPhase beginning"
     );
-    const selectedEpisodeType =
-      episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
-
-    console.log(
-      `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
-    );
-
-    // Get the episode class for the selected type
-    const EpisodeClass = episodeClassMap[selectedEpisodeType];
-
-    if (!EpisodeClass) {
-      throw new Error(
-        `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${episodeTypes.join(
-          ", "
-        )}`
-      );
-    }
-
-    // Create an instance of the episode class
-    const episodeInstance = new EpisodeClass({});
-
-    console.log(
-      `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
-    );
 
     if (args.teleport) {
       otherBotPosition = await teleport(
@@ -322,8 +328,8 @@ function getOnTeleportPhaseFn(
         rcon,
         sharedBotRng,
         args,
-        otherBotPosition
-        episdeClass,
+        otherBotPosition,
+        episodeInstance,
       );
     }
 
@@ -333,6 +339,16 @@ function getOnTeleportPhaseFn(
       otherBotPosition,
       DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
     );
+
+    await episodeInstance.setupEpisode(
+      bot,
+      rcon,
+      sharedBotRng,
+      coordinator,
+      episodeNum,
+      args
+    );
+
     console.log(`[${bot.username}] starting episode recording`);
     bot.emit("startepisode", 0);
     await sleep(1000);
@@ -347,15 +363,23 @@ function getOnTeleportPhaseFn(
       coordinator,
       iterationID,
       episodeNum,
-      getOnStopPhaseFn,
       args
     );
   };
 }
-async function teleport(bot, rcon, sharedBotRng, args, otherBotPosition, episodeClass) {
+async function teleport(
+  bot,
+  rcon,
+  sharedBotRng,
+  args,
+  otherBotPosition,
+  episodeInstance
+) {
   const desiredDistance =
-    episodeClass.INIT_MIN_BOTS_DISTANCE +
-    sharedBotRng() * (episodeClass.INIT_MAX_BOTS_DISTANCE - episodeClass.INIT_MIN_BOTS_DISTANCE);
+    episodeInstance.INIT_MIN_BOTS_DISTANCE +
+    sharedBotRng() *
+      (episodeInstance.INIT_MAX_BOTS_DISTANCE -
+        episodeInstance.INIT_MIN_BOTS_DISTANCE);
 
   // Pick a random point in the world within the specified radius from center
   const randomAngle = sharedBotRng() * 2 * Math.PI;
@@ -456,33 +480,13 @@ async function teleport(bot, rcon, sharedBotRng, args, otherBotPosition, episode
   return computedOtherBotPosition;
 }
 
-/**
- * Start an episode by selecting episode type and initializing the appropriate handler
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
- * @param {number} episodeNum - Episode number
- * @param {Object} args - Configuration arguments
- * @param {Function} getOnStopPhaseFn - Function to get stop phase handler
- */
-function startEpisode(
-  bot,
-  rcon,
-  sharedBotRng,
-  coordinator,
-  episodeNum,
-  args,
-  getOnStopPhaseFn
-) {
-  // Add episode type selection - Enable multiple types for diverse data collection
-}
 function getOnPeerErrorPhaseFn(
   bot,
   rcon,
   sharedBotRng,
   coordinator,
   episodeNum,
-  run_id,
+  episodeInstance,
   args
 ) {
   return async (phaseDataOther) => {
@@ -492,7 +496,15 @@ function getOnPeerErrorPhaseFn(
     );
     coordinator.onceEvent(
       "stopPhase",
-      getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args
+      )
     );
     coordinator.sendToOtherBot(
       "stopPhase",
@@ -501,90 +513,9 @@ function getOnPeerErrorPhaseFn(
     );
   };
 }
-/**
- * Get stop phase handler function
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
- * @param {string} otherBotName - Other bot name
- * @returns {Function} Stop phase handler
- */
-function getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName) {
-  return async (otherBotPosition) => {
-    if (bot._episodeStopping) {
-      console.log(
-        `[${bot.username}] Episode already stopping, skipping stop phase.`
-      );
-      return;
-    }
-    bot._episodeStopping = true;
-    coordinator.sendToOtherBot(
-      "stopPhase",
-      bot.entity.position.clone(),
-      "stopPhase beginning"
-    );
-    console.log(`[${bot.username}] stops recording`);
-    bot.emit("endepisode");
-
-    // Wait for the connection to actually close
-    console.log(`[${bot.username}] waiting for episode to end...`);
-    await new Promise((resolve) => {
-      bot.once("episodeended", resolve);
-    });
-    console.log(`[${bot.username}] episode ended, connection closed`);
-    await sleep(1000);
-
-    coordinator.onceEvent(
-      "stoppedPhase",
-      getOnStoppedPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        otherBotName,
-        bot._currentEpisodeResolve
-      )
-    );
-    coordinator.sendToOtherBot(
-      "stoppedPhase",
-      bot.entity.position.clone(),
-      "StopPhase end"
-    );
-  };
-}
-
-/**
- * Get stopped phase handler function
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
- * @param {string} otherBotName - Other bot name
- * @param {Function} episodeResolve - Episode resolve function
- * @returns {Function} Stopped phase handler
- */
-function getOnStoppedPhaseFn(
-  bot,
-  sharedBotRng,
-  coordinator,
-  otherBotName,
-  episodeResolve
-) {
-  return async (otherBotPosition) => {
-    coordinator.sendToOtherBot(
-      "stoppedPhase",
-      bot.entity.position.clone(),
-      "stoppedPhase beginning"
-    );
-
-    console.log(`[${bot.username}] stopped`);
-    // Resolve the episode promise instead of exiting
-    episodeResolve();
-  };
-}
 
 module.exports = {
   runSingleEpisode,
   getOnSpawnFn,
   getOnTeleportPhaseFn,
-  getOnStopPhaseFn,
-  getOnStoppedPhaseFn,
 };

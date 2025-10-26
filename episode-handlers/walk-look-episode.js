@@ -9,11 +9,12 @@ const MIN_RUN_ACTIONS = 3;
 const MAX_RUN_ACTIONS = 5;
 function getOnWalkLookPhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   iterationID,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args
 ) {
   return async (otherBotPosition) => {
@@ -76,7 +77,15 @@ function getOnWalkLookPhaseFn(
     if (iterationID == ITERATIONS_NUM_PER_EPISODE - 1) {
       coordinator.onceEvent(
         "stopPhase",
-        getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+        episodeInstance.getOnStopPhaseFn(
+          bot,
+          rcon,
+          sharedBotRng,
+          coordinator,
+          args.other_bot_name,
+          episodeNum,
+          args
+        )
       );
       coordinator.sendToOtherBot(
         "stopPhase",
@@ -90,11 +99,12 @@ function getOnWalkLookPhaseFn(
       `walkLookPhase_${nextIterationID}`,
       getOnWalkLookPhaseFn(
         bot,
+        rcon,
         sharedBotRng,
         coordinator,
         nextIterationID,
         episodeNum,
-        getOnStopPhaseFn,
+        episodeInstance,
         args
       )
     );
@@ -113,7 +123,6 @@ class WalkLookEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    runId,
     args
   ) {
     // optional setup
@@ -126,18 +135,18 @@ class WalkLookEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    getOnStopPhaseFn,
     args
   ) {
     coordinator.onceEvent(
       `walkLookPhase_${iterationID}`,
       getOnWalkLookPhaseFn(
         bot,
+        rcon,
         sharedBotRng,
         coordinator,
         iterationID,
         episodeNum,
-        getOnStopPhaseFn,
+        this,
         args
       )
     );
@@ -154,7 +163,6 @@ class WalkLookEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    runId,
     args
   ) {
     // optional teardown
