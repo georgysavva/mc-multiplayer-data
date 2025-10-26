@@ -4,34 +4,6 @@
  */
 class BaseEpisode {
   /**
-   * @param {Object=} context
-   * @param {any=} context.bot
-   * @param {any=} context.rcon
-   * @param {Function=} context.sharedBotRng
-   * @param {any=} context.coordinator
-   * @param {number=} context.episodeNum
-   * @param {string=} context.runId
-   * @param {Object=} context.args
-   */
-  constructor({
-    bot,
-    rcon,
-    sharedBotRng,
-    coordinator,
-    episodeNum,
-    runId,
-    args,
-  } = {}) {
-    this.bot = bot;
-    this.rcon = rcon;
-    this.sharedBotRng = sharedBotRng;
-    this.coordinator = coordinator;
-    this.episodeNum = episodeNum;
-    this.runId = runId;
-    this.args = args;
-  }
-
-  /**
    * Optional setup hook. No-op by default.
    * @returns {Promise<void>}
    */

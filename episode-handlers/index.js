@@ -6,19 +6,33 @@ const seedrandom = require("seedrandom");
 const { land_pos, lookAtSmooth } = require("../utils/movement");
 const { rconTp } = require("../utils/coordination");
 const { waitForCameras } = require("../utils/camera-ready");
-const { getOnStraightLineWalkPhaseFn } = require("./straight-line-episode");
-const { getOnChasePhaseFn } = require("./chase-episode");
-const { getOnOrbitPhaseFn } = require("./orbit-episode");
-const { getOnMVCTestPhaseFn } = require("./mvc-test-episode");
-const { getOnBridgeBuilderPhaseFn } = require("./bridge-builder-episode");
-const { getOnWalkLookPhaseFn } = require("./walk-look-episode");
-const { getOnWalkLookAwayPhaseFn } = require("./walk-look-away-episode");
 const {
   MIN_BOTS_DISTANCE,
   MAX_BOTS_DISTANCE,
   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
 } = require("../utils/constants");
-const { getOnPVEPhaseFn } = require("./pve-episode");
+
+// Import episode classes
+const { StraightLineEpisode } = require("./straight-line-episode");
+const { ChaseEpisode } = require("./chase-episode");
+const { OrbitEpisode } = require("./orbit-episode");
+const { MvcTestEpisode } = require("./mvc-test-episode");
+const { BridgeBuilderEpisode } = require("./bridge-builder-episode");
+const { WalkLookEpisode } = require("./walk-look-episode");
+const { WalkLookAwayEpisode } = require("./walk-look-away-episode");
+const { PveEpisode } = require("./pve-episode");
+
+// Map episode type strings to their class implementations
+const episodeClassMap = {
+  straightLineWalk: StraightLineEpisode,
+  chase: ChaseEpisode,
+  orbit: OrbitEpisode,
+  mvcTest: MvcTestEpisode,
+  bridgeBuilder: BridgeBuilderEpisode,
+  walkLook: WalkLookEpisode,
+  walkLookAway: WalkLookAwayEpisode,
+  pve: PveEpisode,
+};
 
 // Import episode-specific handlers
 const episodeTypes = [
@@ -439,164 +453,36 @@ function startEpisode(
     `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
   );
 
-  const iterationID = 0;
-  if (selectedEpisodeType === "straightLineWalk") {
-    coordinator.onceEvent(
-      `straightLineWalkPhase_${iterationID}`,
-      getOnStraightLineWalkPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `straightLineWalkPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "chase") {
-    coordinator.onceEvent(
-      `chasePhase_${iterationID}`,
-      getOnChasePhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `chasePhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "orbit") {
-    coordinator.onceEvent(
-      `orbitPhase_${iterationID}`,
-      getOnOrbitPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `orbitPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "mvcTest") {
-    coordinator.onceEvent(
-      `mvcTestPhase_${iterationID}`,
-      getOnMVCTestPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `mvcTestPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "bridgeBuilder") {
-    coordinator.onceEvent(
-      `bridgeBuilderPhase_${iterationID}`,
-      getOnBridgeBuilderPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `bridgeBuilderPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "walkLook") {
-    // Original walkAndLook episode
-    coordinator.onceEvent(
-      `walkLookPhase_${iterationID}`,
-      getOnWalkLookPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `walkLookPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "walkLookAway") {
-    coordinator.onceEvent(
-      `walkLookAwayPhase_${iterationID}`,
-      getOnWalkLookAwayPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `walkLookAwayPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "pve") {
-    coordinator.onceEvent(
-      `pvePhase`,
-      getOnPVEPhaseFn(
-        bot,
-        rcon,
-        sharedBotRng,
-        coordinator,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `pvePhase`,
-      { position: bot.entity.position.clone() },
-      "teleportPhase end"
-    );
-  } else {
+  // Get the episode class for the selected type
+  const EpisodeClass = episodeClassMap[selectedEpisodeType];
+
+  if (!EpisodeClass) {
     throw new Error(
       `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${episodeTypes.join(
         ", "
       )}`
     );
   }
+
+  // Create an instance of the episode class
+  const episodeInstance = new EpisodeClass({});
+
+  console.log(
+    `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
+  );
+
+  // Call the entry point method
+  const iterationID = 0;
+  episodeInstance.entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    getOnStopPhaseFn,
+    args
+  );
 }
 function getOnPeerErrorPhaseFn(
   bot,
