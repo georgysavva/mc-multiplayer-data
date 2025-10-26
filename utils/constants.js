@@ -1,8 +1,8 @@
 // Movement and behavior constants
 const MIN_WALK_DISTANCE = 3;
 const MAX_WALK_DISTANCE = 4;
-const MIN_BOTS_DISTANCE = 9;
-const MAX_BOTS_DISTANCE = 10;
+const MIN_BOTS_DISTANCE = 15;
+const MAX_BOTS_DISTANCE = 20;
 const DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const JUMP_PROBABILITY = 0.25;
 const MIN_JUMP_DURATION_SEC = 1;
