@@ -7,6 +7,7 @@ const {
 } = require("../utils/movement");
 
 const { GoalNear, Movements } = require("../utils/bot-factory");
+const { BaseEpisode } = require("./base-episode");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 
@@ -404,6 +405,61 @@ function getOnPVEPhaseFn(
     );
     return;
   };
+}
+
+class PveEpisode extends BaseEpisode {
+  async setupEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    runId,
+    args
+  ) {
+    // optional setup
+  }
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    getOnStopPhaseFn,
+    args
+  ) {
+    coordinator.onceEvent(
+      `pvePhase`,
+      getOnPVEPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        getOnStopPhaseFn,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `pvePhase`,
+      { position: bot.entity.position.clone() },
+      "entryPoint end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    runId,
+    args
+  ) {
+    // optional teardown
+  }
 }
 module.exports = {
   getOnPVEPhaseFn,
