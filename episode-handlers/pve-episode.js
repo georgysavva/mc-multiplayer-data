@@ -461,6 +461,8 @@ class PveEpisode extends BaseEpisode {
     // optional teardown
   }
 }
+
 module.exports = {
   getOnPVEPhaseFn,
+  PveEpisode,
 };

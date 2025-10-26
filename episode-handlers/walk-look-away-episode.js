@@ -1,5 +1,6 @@
 const { lookAtSmooth } = require("../utils/movement");
 const { run } = require("../utils/random-movement");
+const { BaseEpisode } = require("./base-episode");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const ITERATIONS_NUM_PER_EPISODE = 3;
@@ -97,6 +98,63 @@ function getOnWalkLookAwayPhaseFn(
     );
   };
 }
+
+class WalkLookAwayEpisode extends BaseEpisode {
+  async setupEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    runId,
+    args
+  ) {
+    // optional setup
+  }
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    getOnStopPhaseFn,
+    args
+  ) {
+    coordinator.onceEvent(
+      `walkLookAwayPhase_${iterationID}`,
+      getOnWalkLookAwayPhaseFn(
+        bot,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        getOnStopPhaseFn,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `walkLookAwayPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      "teleportPhase end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    runId,
+    args
+  ) {
+    // optional teardown
+  }
+}
+
 module.exports = {
   getOnWalkLookAwayPhaseFn,
+  WalkLookAwayEpisode,
 };
