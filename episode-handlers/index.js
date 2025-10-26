@@ -654,6 +654,7 @@ function getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName) {
       bot.once("episodeended", resolve);
     });
     console.log(`[${bot.username}] episode ended, connection closed`);
+    await sleep(1000);
 
     coordinator.onceEvent(
       "stoppedPhase",
@@ -695,8 +696,6 @@ function getOnStoppedPhaseFn(
       bot.entity.position.clone(),
       "stoppedPhase beginning"
     );
-
-    await sleep(3000);
 
     console.log(`[${bot.username}] stopped`);
     // Resolve the episode promise instead of exiting
