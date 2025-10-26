@@ -6,13 +6,16 @@ const {
   horizontalDistanceTo,
 } = require("../utils/movement");
 
+const { GoalNear, Movements } = require("../utils/bot-factory");
+
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 
-const ITERATIONS_NUM_PER_EPISODE = 1;
 const VIEW_DISTANCE = 16;
 const LOCK_EYE_DURATION_MIN = 1000;
 const LOCK_EYE_DURATION_MAX = 3000;
 const FOV_DEGREES = 90; // total FOV in front of the bot
+const MIN_MOBS = 2;
+const MAX_MOBS = 5;
 
 /**
  * Check if a position is within the bot's forward-facing FOV cone.
@@ -121,15 +124,14 @@ async function spawnWithRconAround(
 function isHostileMobFilter(
   bot,
   maxDistance = VIEW_DISTANCE,
-  fovDegrees = FOV_DEGREES
+  checkFOV = false
 ) {
   return (e) => {
     if (!e || e.name !== "zombie") return false;
 
     const dist = e.position.distanceTo(bot.entity.position);
     if (dist >= maxDistance) return false;
-
-    // Check if mob is in the bot's forward FOV
+    if (checkFOV && !isInForwardFOV(bot, e.position)) return false;
     return true;
   };
 }
@@ -140,14 +142,14 @@ function isHostileMobFilter(
  * @param {number} maxDistance - Maximum distance to search (default VIEW_DISTANCE)
  * @returns {any} The nearest hostile mob or undefined
  */
-function getNearestHostile(bot, maxDistance = VIEW_DISTANCE) {
-  const mob = bot.nearestEntity(isHostileMobFilter(bot, maxDistance));
+function getNearestHostile(bot, maxDistance = VIEW_DISTANCE, checkFOV = false) {
+  const mob = bot.nearestEntity(isHostileMobFilter(bot, maxDistance, checkFOV));
 
   if (!mob) {
     console.log(
-      `[${bot.username}] No hostile mob in FOV within ${maxDistance.toFixed(
-        1
-      )} blocks.`
+      `[${bot.username}] No hostile mob ${
+        checkFOV ? "in FOV" : ""
+      } within ${maxDistance.toFixed(1)} blocks.`
     );
     return;
   }
@@ -164,227 +166,82 @@ function getNearestHostile(bot, maxDistance = VIEW_DISTANCE) {
 /**
  * Guard-based combat system for PvE fighting
  * @param {any} bot - The bot instance
- * @param {Vec3} guardPosition - The position to guard
- * @param {Vec3} otherBotGuardPosition - The other bot's guard position to look at
- * @param {number} maxCombatTime - Maximum time for combat in milliseconds
+ * @param {any} guardPosition - The position to guard
+ * @param {any} otherBotGuardPosition - The other bot's guard position to look at
  * @returns {Promise} Promise that resolves when combat is complete
  */
-async function guardAndFight(
-  bot,
-  guardPosition,
-  otherBotGuardPosition,
-  maxCombatTime = 120000
-) {
-  const mcData = require("minecraft-data")(bot.version);
-  const { Movements, GoalNear } = require("../utils/bot-factory");
+async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
+  const MELEE_RANGE = 3.5;
 
-  let guardPos = guardPosition;
-  let movingToGuardPos = false;
-  let combatActive = true;
-  const startTime = Date.now();
+  // Ensure we're not currently pathfinding/combat from a previous step
+  await bot.pvp.stop();
+  bot.pathfinder.setGoal(null);
 
-  // Pathfinder to the guard position
-  async function moveToGuardPos() {
-    if (movingToGuardPos) return;
-
-    console.log(`[${bot.username}] Moving to guard position`);
-    bot.pathfinder.setMovements(new Movements(bot, mcData));
-
-    movingToGuardPos = true;
-    await bot.pathfinder.goto(
-      new GoalNear(guardPos.x, guardPos.y, guardPos.z, 2)
-    );
-    movingToGuardPos = false;
-    console.log(`[${bot.username}] Reached guard position`);
-
-    // Look at other bot's guard position when at own guard position
-    await lookAtSmooth(
-      bot,
-      otherBotGuardPosition,
-      CAMERA_SPEED_DEGREES_PER_SEC
-    );
-  }
-
-  // Handler for when bot stops attacking (enemy is dead)
-  const onStoppedAttacking = async () => {
-    if (combatActive) {
+  // Wait for a hostile mob to come within melee distance
+  let target;
+  while (true) {
+    await sleep(200);
+    target = getNearestHostile(bot, MELEE_RANGE);
+    if (!target) {
       console.log(
-        `[${bot.username}] Enemy defeated, returning to guard position`
+        `[${
+          bot.username
+        }] nothing to guard no hostile mob in ${MELEE_RANGE.toFixed(1)} blocks.`
       );
-      await moveToGuardPos();
+      continue;
     }
-  };
-
-  // Main combat loop - check for enemies on physics tick
-  const onPhysicsTick = async () => {
-    if (!combatActive) return;
-    if (!guardPos) return;
-
-    // Check timeout
-    if (Date.now() - startTime > maxCombatTime) {
-      combatActive = false;
-      return;
-    }
-
-    let entity = null;
-
-    // Only look for mobs if bot is close to guard position
-    if (bot.entity.position.distanceTo(guardPos) < 16) {
-      // Look for hostile mobs within 10 blocks
-      const filter = (e) => {
-        return (
-          e.name === "zombie" &&
-          e.position.distanceTo(bot.entity.position) < 10 &&
-          e.displayName !== "Armor Stand"
-        );
-      };
-      entity = bot.nearestEntity(filter);
-    }
-
-    if (entity != null && !movingToGuardPos) {
-      // Found an enemy and not moving back - attack!
-      if (!bot.pvp.target || bot.pvp.target.id !== entity.id) {
-        console.log(
-          `[${bot.username}] Engaging enemy: ${
-            entity.name
-          } at distance ${entity.position
-            .distanceTo(bot.entity.position)
-            .toFixed(1)}`
-        );
-        bot.pvp.attack(entity);
-      }
-    } else {
-      // No enemy or moving back to guard position
-      if (bot.entity.position.distanceTo(guardPos) < 2) {
-        // Already at guard position, just look at other bot's position
-        if (otherBotGuardPosition && !bot.pvp.target) {
-          await lookAtSmooth(
-            bot,
-            otherBotGuardPosition,
-            CAMERA_SPEED_DEGREES_PER_SEC
-          );
-        }
-        return;
-      }
-
-      // Too far from guard position - stop combat and return
-      if (bot.pvp.target) {
-        await bot.pvp.stop();
-      }
-      await moveToGuardPos();
-    }
-  };
-
-  // Register event handlers
-  bot.on("stoppedAttacking", onStoppedAttacking);
-  bot.on("physicsTick", onPhysicsTick);
-
-  // First move to guard position
-  await moveToGuardPos();
-
-  // Wait for combat to complete (either all enemies dead or timeout)
-  await new Promise((resolve, reject) => {
-    const checkInterval = setInterval(() => {
-      // Check if no more zombies nearby
-      const filter = (e) =>
-        e.name === "zombie" && e.position.distanceTo(bot.entity.position) < 20;
-      const nearbyZombies = Object.values(bot.entities).filter(filter);
-
-      if (nearbyZombies.length === 0 || !combatActive) {
-        clearInterval(checkInterval);
-        resolve(undefined);
-      }
-    }, 1000);
-  });
-
-  // Cleanup
-  combatActive = false;
-  bot.removeListener("stoppedAttacking", onStoppedAttacking);
-  bot.removeListener("physicsTick", onPhysicsTick);
-
-  // Stop any ongoing combat
-  if (bot.pvp.target) {
-    await bot.pvp.stop();
+    break;
   }
+  console.log(`[${bot.username}] Target found: ${target.name}`);
 
-  // Final move to guard position
-  await moveToGuardPos();
+  // Engage using mineflayer-pvp
+  bot.pvp.attack(target);
 
-  console.log(`[${bot.username}] Guard and fight phase complete`);
-}
+  // Wait until the target is defeated (despawned/dead)
+  while (true) {
+    await sleep(200);
+    const still = bot.entities[target.id];
+    if (!still || !still.isValid) break;
+  }
+  console.log(`[${bot.username}] Target defeated.`);
 
-function getOnPVESetupPhaseFn(
-  bot,
-  rcon,
-  sharedBotRng,
-  coordinator,
-  iterationID,
-  episodeNum,
-  getOnStopPhaseFn,
-  args,
-  phaseDataOur
-) {
-  return async (phaseDataOther) => {
-    coordinator.sendToOtherBot(
-      `pvePhase_setup_${iterationID}`,
-      phaseDataOur,
-      `pvePhase_setup_${iterationID} beginning`
-    );
-    await lookAtSmooth(
-      bot,
-      phaseDataOther.guardPosition,
-      CAMERA_SPEED_DEGREES_PER_SEC
-    );
-    await sleep(
-      LOCK_EYE_DURATION_MIN +
-        sharedBotRng() * (LOCK_EYE_DURATION_MAX - LOCK_EYE_DURATION_MIN)
-    );
-    let mob = null;
-    const distToOther = horizontalDistanceTo(
-      bot.entity.position,
-      phaseDataOther.position
-    );
-    const mobDist = distToOther / 4;
+  // Stop combat if still active
+  console.log(`[${bot.username}] Stopping combat.`);
+  await bot.pvp.stop();
 
-    await spawnWithRconAround(bot, rcon, {
-      mob: "minecraft:zombie",
-      count: 1,
-      maxRadius: mobDist,
-    });
-    let retries = 5;
-    while (!mob && retries > 0) {
-      await sleep(1000);
-      mob = getNearestHostile(bot, mobDist);
-      retries--;
-    }
-    if (!mob) {
-      throw new Error(
-        `[${bot.username}] Could not find hostile mob after spawning and waiting.`
+  const goal = new GoalNear(
+    guardPosition.x,
+    guardPosition.y,
+    guardPosition.z,
+    1
+  );
+  const mcData = require("minecraft-data")(bot.version);
+  bot.pathfinder.setMovements(new Movements(bot, mcData));
+  let reached = false;
+  for (let attempt = 0; attempt < 2 && !reached; attempt++) {
+    try {
+      await bot.pathfinder.goto(goal);
+      reached = true;
+    } catch (err) {
+      const msg = String(err?.message || err || "");
+      console.log(
+        `[${bot.username}] goto to guard failed (attempt ${
+          attempt + 1
+        }): ${msg}`
       );
+      // Ignore PathStopped and retry once after clearing goal
+      bot.pathfinder.setGoal(null);
+      await sleep(200);
     }
-    const nextPhaseDataOur = {
-      guardPosition: phaseDataOther.guardPosition,
-    };
-    coordinator.onceEvent(
-      `pvePhase_fight_${iterationID}`,
-      getOnPVEFightPhaseFn(
-        bot,
-        rcon,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        episodeNum,
-        getOnStopPhaseFn,
-        args,
-        nextPhaseDataOur
-      )
-    );
-    coordinator.sendToOtherBot(
-      `pvePhase_fight_${iterationID}`,
-      nextPhaseDataOur,
-      `pvePhase_setup_${iterationID} end`
-    );
-  };
+  }
+  // If still not at guard, just continue (avoid crashing the episode)
+
+  // Look at the other bot's guard position for a random lock-eye interval
+  await lookAtSmooth(bot, otherBotGuardPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+  await sleep(
+    LOCK_EYE_DURATION_MIN +
+      Math.random() * (LOCK_EYE_DURATION_MAX - LOCK_EYE_DURATION_MIN)
+  );
 }
 
 function getOnPVEFightPhaseFn(
@@ -404,61 +261,67 @@ function getOnPVEFightPhaseFn(
       phaseDataOur,
       `pvePhase_fight_${iterationID} beginning`
     );
-
-    console.log(
-      `[${
-        bot.username
-      }] iteration ${iterationID} starting PvE, health=${bot.health.toFixed(
-        1
-      )}/20 food=${bot.food}`
+    let mob = null;
+    const distToOther = horizontalDistanceTo(
+      phaseDataOur.guardPosition,
+      phaseDataOther.guardPosition
     );
+    const mobDist = distToOther / 4;
 
     // Use guard-based combat: guard our position and look at other bot's position
     const ourGuardPosition = phaseDataOur.guardPosition;
     const otherGuardPosition = phaseDataOther.guardPosition;
-
-    await guardAndFight(bot, ourGuardPosition, otherGuardPosition);
-
-    console.log(
-      `[${
-        bot.username
-      }] iteration ${iterationID} finished PvE, health=${bot.health.toFixed(
-        1
-      )}/20 food=${bot.food}`
-    );
-    if (iterationID + 1 >= ITERATIONS_NUM_PER_EPISODE) {
-      coordinator.onceEvent(
-        "stopPhase",
-        getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+    const numMobs =
+      Math.floor(sharedBotRng() * (MAX_MOBS - MIN_MOBS + 1)) + MIN_MOBS;
+    for (let mobI = 0; mobI < numMobs; mobI++) {
+      const mobInFov = getNearestHostile(bot, mobDist, true);
+      if (!mobInFov) {
+        console.log(
+          `[${bot.username}] No mob in FOV, Spawning mob ${mobI} in FOV.`
+        );
+        await spawnWithRconAround(bot, rcon, {
+          mob: "minecraft:zombie",
+          count: 1,
+          maxRadius: mobDist,
+        });
+      }
+      let retries = 5;
+      while (!mob && retries > 0) {
+        await sleep(1000);
+        mob = getNearestHostile(bot, mobDist);
+        retries--;
+      }
+      if (!mob) {
+        throw new Error(
+          `[${bot.username}] Could not find hostile mob ${mobI} after spawning and waiting.`
+        );
+      }
+      console.log(
+        `[${
+          bot.username
+        }] iteration ${iterationID} mob ${mobI} starting PvE, health=${bot.health.toFixed(
+          1
+        )}/20 food=${bot.food}`
       );
-      coordinator.sendToOtherBot(
-        "stopPhase",
-        bot.entity.position.clone(),
-        `pvePhase_${iterationID} end`
+
+      await guardAndFight(bot, ourGuardPosition, otherGuardPosition);
+
+      console.log(
+        `[${
+          bot.username
+        }] iteration ${iterationID} mob ${mobI} finished PvE, health=${bot.health.toFixed(
+          1
+        )}/20 food=${bot.food}`
       );
-      return;
     }
-    const nextPhaseDataOur = {
-      position: bot.entity.position.clone(),
-    };
     coordinator.onceEvent(
-      `pvePhase_setup_${iterationID + 1}`,
-      getOnPVESetupPhaseFn(
-        bot,
-        rcon,
-        sharedBotRng,
-        coordinator,
-        iterationID + 1,
-        episodeNum,
-        getOnStopPhaseFn,
-        args,
-        nextPhaseDataOur
-      )
+      "stopPhase",
+      getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
     );
     coordinator.sendToOtherBot(
-      `pvePhase_setup_${iterationID + 1}`,
-      nextPhaseDataOur,
-      `pvePhase_fight_${iterationID} end`
+      "stopPhase",
+      bot.entity.position.clone(),
+      `pvePhase_${iterationID} end`
     );
   };
 }
@@ -477,60 +340,52 @@ function getOnPVEPhaseFn(
       { position: bot.entity.position.clone() },
       `pvePhase beginning`
     );
+
+    // Give bot a random sword
+    const swords = [
+      "minecraft:wooden_sword",
+      "minecraft:stone_sword",
+      "minecraft:iron_sword",
+      "minecraft:golden_sword",
+      "minecraft:diamond_sword",
+      "minecraft:netherite_sword",
+    ];
+    const randomSword = swords[Math.floor(Math.random() * swords.length)];
+    const giveSwordRes = await rcon.send(
+      `give ${bot.username} ${randomSword} 1`
+    );
+    console.log(
+      `[${bot.username}] Gave random sword: ${randomSword}, response=${giveSwordRes}`
+    );
+
+    // Wait for the item to be added to inventory
+    await sleep(500);
+
+    // Find and equip the sword
+    const swordName = randomSword.split(":")[1]; // e.g., "diamond_sword"
+    const swordItem = bot.inventory
+      .items()
+      .find((item) => item.name === swordName);
+    if (swordItem) {
+      await bot.equip(swordItem, "hand");
+      console.log(`[${bot.username}] Equipped ${swordName} to hand`);
+    } else {
+      console.log(
+        `[${bot.username}] Warning: Could not find ${swordName} in inventory to equip`
+      );
+    }
+
     const resistEffectRes = await rcon.send(
       `effect give ${bot.username} minecraft:resistance 999999 255 true`
     );
     console.log(`[${bot.username}] resistEffectRes=${resistEffectRes}`);
-    // Kill all hostile mobs (not just zombies). List from Minecraft 1.20.4.
-    // Hostile mobs (not every possible hostile mob, but all vanilla main ones)
-    // const hostileTypes = [
-    //   "minecraft:zombie",
-    //   "minecraft:skeleton",
-    //   "minecraft:creeper",
-    //   "minecraft:spider",
-    //   "minecraft:enderman",
-    //   "minecraft:wither_skeleton",
-    //   "minecraft:stray",
-    //   "minecraft:husk",
-    //   "minecraft:pillager",
-    //   "minecraft:vindicator",
-    //   "minecraft:evoker",
-    //   "minecraft:illusioner",
-    //   "minecraft:witch",
-    //   "minecraft:drowned",
-    //   "minecraft:phantom",
-    //   "minecraft:zombified_piglin",
-    //   "minecraft:blaze",
-    //   "minecraft:cave_spider",
-    //   "minecraft:magma_cube",
-    //   "minecraft:slime",
-    //   "minecraft:silverfish",
-    //   "minecraft:shulker",
-    //   "minecraft:endermite",
-    //   "minecraft:guardian",
-    //   "minecraft:elder_guardian",
-    //   "minecraft:vex",
-    //   "minecraft:ravager",
-    //   "minecraft:warden",
-    //   "minecraft:piglin_brute",
-    //   "minecraft:hoglin",
-    //   "minecraft:zoglin",
-    // ];
-    // let killHostileRes = [];
-    // for (const mobType of hostileTypes) {
-    //   const res = await rcon.send(`kill @e[type=${mobType}]`);
-    //   killHostileRes.push(`${mobType}: ${res}`);
-    // }
-    // const killZombieRes = killHostileRes.join("; ");
-    // console.log(`[${bot.username}] killZombieRes=${killZombieRes}`);
-    // await sleep(1000);
     const iterationID = 0;
     const nextPhaseDataOur = {
       guardPosition: bot.entity.position.clone(),
     };
     coordinator.onceEvent(
-      `pvePhase_setup_${iterationID}`,
-      getOnPVESetupPhaseFn(
+      `pvePhase_fight_${iterationID}`,
+      getOnPVEFightPhaseFn(
         bot,
         rcon,
         sharedBotRng,
@@ -543,7 +398,7 @@ function getOnPVEPhaseFn(
       )
     );
     coordinator.sendToOtherBot(
-      `pvePhase_setup_${iterationID}`,
+      `pvePhase_fight_${iterationID}`,
       nextPhaseDataOur,
       `pvePhase end`
     );
