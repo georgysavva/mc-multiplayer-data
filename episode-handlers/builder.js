@@ -249,6 +249,206 @@ async function placeMultiple(bot, positions, itemName, options = {}) {
   return { success, failed };
 }
 
+/**
+ * Fast block placement - no checks, just place immediately
+ * Used during pillar jumping where we know the context
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Block} referenceBlock - Block to place on top of
+ * @returns {Promise<boolean>} True if placement was attempted
+ */
+async function fastPlaceBlock(bot, referenceBlock) {
+  try {
+    const faceVector = new Vec3(0, 1, 0); // Top face
+    await bot.placeBlock(referenceBlock, faceVector);
+    return true;
+  } catch (error) {
+    // Don't log here - too noisy during spam attempts
+    return false;
+  }
+}
+
+/**
+ * Build a tower by jumping and placing blocks directly underneath
+ * Uses the classic Minecraft "pillar jumping" technique with configurable retry logic
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} towerHeight - Height of tower to build
+ * @param {Object} args - Configuration arguments (for RCON if needed)
+ * @param {Object} options - Optional configuration
+ * @param {string} options.blockType - Type of block to place (default: 'oak_planks')
+ * @param {boolean} options.enableRetry - Enable retry logic for failed placements (default: true)
+ * @param {boolean} options.breakOnFailure - Break immediately on failure (default: false)
+ * @param {number} options.maxPlaceAttempts - Max attempts to place each block (default: 10)
+ * @param {number} options.settleDelayMs - Delay to settle after placing (default: 200)
+ * @param {number} options.jumpDurationMs - How long to hold jump (default: 50)
+ * @param {number} options.placeRetryDelayMs - Delay between place attempts (default: 20)
+ * @returns {Promise<Object>} Build statistics {success, failed, heightGained}
+ */
+async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
+  const {
+    blockType = 'oak_planks',
+    enableRetry = true,
+    breakOnFailure = false,
+    maxPlaceAttempts = 10,
+    settleDelayMs = 200,
+    jumpDurationMs = 50,
+    placeRetryDelayMs = 20
+  } = options;
+
+  console.log(`[${bot.username}] 🗼 Starting tower build: ${towerHeight} blocks`);
+  
+  let success = 0;
+  let failed = 0;
+  
+  // Ensure we have the blocks
+  await ensureItemInHand(bot, blockType, args);
+  
+  // Get bot's starting position
+  const startPos = bot.entity.position.clone();
+  const startY = Math.floor(startPos.y);
+  console.log(`[${bot.username}] 📍 Starting position: X=${startPos.x.toFixed(2)}, Y=${startPos.y.toFixed(2)}, Z=${startPos.z.toFixed(2)}`);
+  
+  // Look down ONCE before starting
+  console.log(`[${bot.username}] 👇 Looking down once...`);
+  await bot.look(bot.entity.yaw, -1.45, true);
+  await new Promise(res => setTimeout(res, 50));
+  
+  for (let i = 0; i < towerHeight; i++) {
+    console.log(`[${bot.username}] ═══════════════════════════════════════`);
+    console.log(`[${bot.username}] 🧱 Building block ${i + 1}/${towerHeight}`);
+    
+    // Get reference block (the block we're standing on)
+    const currentPos = bot.entity.position.clone();
+    const groundPos = new Vec3(
+      Math.floor(currentPos.x), 
+      Math.floor(currentPos.y) - 1, 
+      Math.floor(currentPos.z)
+    );
+    const groundBlock = bot.blockAt(groundPos);
+    
+    if (!groundBlock || groundBlock.name === 'air') {
+      console.log(`[${bot.username}] ❌ No ground block at ${groundPos}`);
+      failed++;
+      if (breakOnFailure) break;
+      continue;
+    }
+    
+    console.log(`[${bot.username}] 📦 Reference block: ${groundBlock.name} at ${groundPos}`);
+    
+    // Target position (where the new block will be)
+    const targetPos = groundPos.offset(0, 1, 0);
+    
+    // Jump and spam place attempts
+    console.log(`[${bot.username}] 🦘 Jumping and spamming place...`);
+    bot.setControlState('jump', true);
+    
+    // Spam place attempts immediately while jumping
+    for (let attempt = 1; attempt <= maxPlaceAttempts; attempt++) {
+      fastPlaceBlock(bot, groundBlock)
+        .then(() => console.log(`[${bot.username}] 🎯 Place fired on attempt ${attempt}`))
+        .catch(() => {});
+      
+      await new Promise(res => setTimeout(res, placeRetryDelayMs));
+    }
+    
+    await new Promise(res => setTimeout(res, jumpDurationMs));
+    bot.setControlState('jump', false);
+    
+    // Verify placement after jump completes
+    await new Promise(res => setTimeout(res, 50));
+    const placedBlock = bot.blockAt(targetPos);
+    if (placedBlock && placedBlock.name === blockType) {
+      console.log(`[${bot.username}] ✅ Block ${i + 1} placed successfully: ${placedBlock.name} at ${targetPos}`);
+      success++;
+    } else {
+      console.log(`[${bot.username}] ❌ Block ${i + 1} placement failed at ${targetPos}`);
+      failed++;
+      
+      if (breakOnFailure) {
+        console.log(`[${bot.username}] 🛑 Breaking on failure`);
+        break;
+      }
+      
+      if (!enableRetry) {
+        console.log(`[${bot.username}] ⚠️ Continuing without retry...`);
+        continue;
+      }
+      
+      console.log(`[${bot.username}] ⚠️ Continuing despite failure...`);
+    }
+    
+    // Settle on the new block
+    console.log(`[${bot.username}] ⏳ Settling...`);
+    await new Promise(res => setTimeout(res, settleDelayMs + 100));
+    
+    // Verify height
+    const newPos = bot.entity.position.clone();
+    const newY = Math.floor(newPos.y);
+    const heightGained = newY - startY;
+    console.log(`[${bot.username}] 📏 New Y: ${newY} (gained ${heightGained} blocks, target: ${i + 1})`);
+    
+    // If we haven't gained height and retry is enabled, retry this block
+    if (enableRetry && heightGained < i + 1) {
+      console.log(`[${bot.username}] ⚠️ Height mismatch! Expected ${i + 1}, got ${heightGained}`);
+      console.log(`[${bot.username}] 🔄 Retrying block ${i + 1}...`);
+      
+      // Get reference block again
+      const retryCurrentPos = bot.entity.position.clone();
+      const retryGroundPos = new Vec3(
+        Math.floor(retryCurrentPos.x), 
+        Math.floor(retryCurrentPos.y) - 1, 
+        Math.floor(retryCurrentPos.z)
+      );
+      const retryGroundBlock = bot.blockAt(retryGroundPos);
+      
+      if (!retryGroundBlock || retryGroundBlock.name === 'air') {
+        console.log(`[${bot.username}] ❌ No ground block at ${retryGroundPos}`);
+        failed++;
+        if (breakOnFailure) break;
+        continue;
+      }
+      
+      // Look down again
+      await bot.look(bot.entity.yaw, -1.45, true);
+      await new Promise(res => setTimeout(res, 50));
+      
+      // Try one more time
+      bot.setControlState('jump', true);
+      for (let retry = 1; retry <= maxPlaceAttempts; retry++) {
+        fastPlaceBlock(bot, retryGroundBlock).catch(() => {});
+        await new Promise(res => setTimeout(res, placeRetryDelayMs));
+      }
+      await new Promise(res => setTimeout(res, jumpDurationMs));
+      bot.setControlState('jump', false);
+      await new Promise(res => setTimeout(res, settleDelayMs + 100));
+      
+      // Check again
+      const retryPos = bot.entity.position.clone();
+      const retryY = Math.floor(retryPos.y);
+      const retryHeight = retryY - startY;
+      console.log(`[${bot.username}] 📏 After retry - Y: ${retryY}, height: ${retryHeight}`);
+      
+      if (retryHeight < i + 1) {
+        console.log(`[${bot.username}] ❌ Retry failed - ${breakOnFailure ? 'aborting' : 'continuing'}`);
+        failed++;
+        if (breakOnFailure) break;
+      }
+    }
+  }
+  
+  const finalPos = bot.entity.position.clone();
+  const finalY = Math.floor(finalPos.y);
+  const totalHeight = finalY - startY;
+  
+  console.log(`[${bot.username}] ═══════════════════════════════════════`);
+  console.log(`[${bot.username}] 🏁 Tower build complete!`);
+  console.log(`[${bot.username}]    Blocks placed: ${success}/${towerHeight}`);
+  console.log(`[${bot.username}]    Failed: ${failed}/${towerHeight}`);
+  console.log(`[${bot.username}]    Height gained: ${totalHeight} blocks`);
+  console.log(`[${bot.username}]    Final position: X=${finalPos.x.toFixed(2)}, Y=${finalPos.y.toFixed(2)}, Z=${finalPos.z.toFixed(2)}`);
+  
+  return { success, failed, heightGained: totalHeight };
+}
+
 module.exports = {
   placeAt,
   placeMultiple,
@@ -257,5 +457,7 @@ module.exports = {
   ensureItemInHand,
   findPlaceReference,
   ensureReachAndSight,
+  fastPlaceBlock,
+  buildTowerUnderneath,
   CARDINALS
 };

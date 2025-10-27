@@ -31,12 +31,10 @@ const episodeTypes = [
   // "orbit",
   // "pvp",
   // "buildWall",
-  // "buildTower",
+  "buildTower",
   // "placeBlock",
   // "mine",
-  "towerBridge",
-  // "mvcTest"  // Add MVC test episode for validation
-  // "bridgeBuilder"  // Add cooperative bridge building episode
+  // "towerBridge",
 ];
 /**
  * Run a single episode
