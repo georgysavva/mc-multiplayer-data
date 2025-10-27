@@ -26,9 +26,9 @@ const { getOnTowerBridgePhaseFn } = require('./tower-bridge-episode');
 const episodeTypes = [
   // "chase",
   // "orbit",
-  // "pvp",
+  "pvp",
   // "buildWall",
-  "buildTower",
+  // "buildTower",
   // "mine",
   // "towerBridge",
 ];
