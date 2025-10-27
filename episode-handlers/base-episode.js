@@ -86,22 +86,6 @@ class BaseEpisode {
       console.log(`[${bot.username}] episode ended, connection closed`);
       await sleep(1000);
 
-      console.log(`[${bot.username}] tearing down episode ${episodeNum}`);
-      try {
-        await this.tearDownEpisode(
-          bot,
-          rcon,
-          sharedBotRng,
-          coordinator,
-          episodeNum,
-          args
-        );
-      } catch (err) {
-        console.error(
-          `[${bot.username}] Error during tearDownEpisode, continuing:`,
-          err
-        );
-      }
 
       coordinator.onceEvent(
         "stoppedPhase",

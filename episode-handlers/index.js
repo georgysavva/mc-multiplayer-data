@@ -60,6 +60,7 @@ async function runSingleEpisode(
   sharedBotRng,
   coordinator,
   episodeNum,
+  episodeInstance,
   args
 ) {
   console.log(`[${bot.username}] Starting episode ${episodeNum}`);
@@ -70,30 +71,6 @@ async function runSingleEpisode(
 
     // Episode-scoped error handler that captures this episode number
     let episodeErrorHandled = false;
-    const selectedEpisodeType =
-      episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
-
-    console.log(
-      `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
-    );
-
-    // Get the episode class for the selected type
-    const EpisodeClass = episodeClassMap[selectedEpisodeType];
-
-    if (!EpisodeClass) {
-      throw new Error(
-        `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${episodeTypes.join(
-          ", "
-        )}`
-      );
-    }
-
-    // Create an instance of the episode class
-    const episodeInstance = new EpisodeClass({});
-
-    console.log(
-      `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
-    );
     const handleAnyError = async (err) => {
       if (episodeErrorHandled) {
         console.log(
@@ -290,15 +267,72 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       // Concatenate episodeNum to the seed string to get a unique, reproducible seed per episode
       const botsRngSeedWithEpisode = `${botsRngBaseSeed}_${episodeNum}`;
       const sharedBotRng = seedrandom(botsRngSeedWithEpisode);
+      const selectedEpisodeType =
+        episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
+
+      console.log(
+        `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
+      );
+
+      // Get the episode class for the selected type
+      const EpisodeClass = episodeClassMap[selectedEpisodeType];
+
+      if (!EpisodeClass) {
+        throw new Error(
+          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${episodeTypes.join(
+            ", "
+          )}`
+        );
+      }
+
+      // Create an instance of the episode class
+      const episodeInstance = new EpisodeClass({});
+
+      console.log(
+        `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
+      );
       await runSingleEpisode(
         bot,
         rcon,
         sharedBotRng,
         coordinator,
         episodeNum,
+        episodeInstance,
         args
       );
+      await coordinator.waitForAllPhasesToFinish();
+
+      // Force stop bot.pvp and pathfinder navigation
+      if (bot.pvp) {
+        bot.pvp.forceStop();
+        console.log(`[${bot.username}] Stopped PVP for episode ${episodeNum}`);
+      }
+      if (bot.pathfinder) {
+        bot.pathfinder.setGoal(null);
+        console.log(
+          `[${bot.username}] Stopped pathfinder navigation for episode ${episodeNum}`
+        );
+      }
+
+      console.log(`[${bot.username}] tearing down episode ${episodeNum}`);
+      try {
+        await episodeInstance.tearDownEpisode(
+          bot,
+          rcon,
+          sharedBotRng,
+          coordinator,
+          episodeNum,
+          args
+        );
+      } catch (err) {
+        console.error(
+          `[${bot.username}] Error during tearDownEpisode, continuing:`,
+          err
+        );
+      }
       console.log(`[${bot.username}] Episode ${episodeNum} completed`);
+      console.log(`[${bot.username}] Syncing bots for episode ${episodeNum}`);
+      await coordinator.syncBots(episodeNum);
     }
     await rcon.end();
 
