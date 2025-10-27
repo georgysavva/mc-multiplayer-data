@@ -4,13 +4,6 @@ const { sleep } = require("../utils/helpers");
 const { land_pos, lookAtSmooth } = require("../utils/movement");
 const { rconTp } = require("../utils/coordination");
 const { waitForCameras } = require("../utils/camera-ready");
-const { getOnStraightLineWalkPhaseFn } = require("./straight-line-episode");
-const { getOnChasePhaseFn } = require("./chase-episode");
-const { getOnOrbitPhaseFn } = require("./orbit-episode");
-const { getOnMVCTestPhaseFn } = require("./mvc-test-episode");
-const { getOnBridgeBuilderPhaseFn } = require("./bridge-builder-episode");
-const { getOnWalkLookPhaseFn } = require("./walk-look-episode");
-const { getOnWalkLookAwayPhaseFn } = require("./walk-look-away-episode");
 const {
   MIN_BOTS_DISTANCE,
   MAX_BOTS_DISTANCE,
@@ -21,9 +14,8 @@ const {
 const { walkStraightWhileLooking, getOnStraightLineWalkPhaseFn } = require('./straight-line-episode');
 const { chaseRunner, runFromChaser, getOnChasePhaseFn } = require('./chase-episode');
 const { orbitAroundFixedPoint, getOnOrbitPhaseFn } = require('./orbit-episode');
-const { testMVCBehavior, getOnMVCTestPhaseFn } = require('./mvc-test-episode');
-// const { buildCooperativeBridge, getOnBridgeBuilderPhaseFn } = require('./bridge-builder-episode');
-const { placeDirtBlock, getOnPlaceBlockPhaseFn } = require('./place-block-episode');
+const { getOnWalkLookPhaseFn } = require("./walk-look-episode");
+const { getOnWalkLookAwayPhaseFn } = require("./walk-look-away-episode");
 const { pvpCombatLoop, getOnPvpPhaseFn } = require('./pvp-episode');
 const { buildStructure, getOnBuildPhaseFn } = require('./build-structure-episode');
 const { buildTower, getOnBuildTowerPhaseFn } = require('./build-tower-episode');
@@ -37,10 +29,10 @@ const episodeTypes = [
   // "pvp",
   // "buildWall",
   "buildTower",
-  // "placeBlock",
   // "mine",
   // "towerBridge",
 ];
+
 /**
  * Run a single episode
  * @param {Bot} bot - Mineflayer bot instance
@@ -368,25 +360,6 @@ function getOnTeleportPhaseFn(
         bot.entity.position.clone(),
         "teleportPhase end"
       );
-    } else if (selectedEpisodeType === "placeBlock") {
-      coordinator.onceEvent(
-        `placeBlockPhase_${iterationID}`,
-        getOnPlaceBlockPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `placeBlockPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
     } else if (selectedEpisodeType === "orbit") {
       coordinator.onceEvent(
         `orbitPhase_${iterationID}`,
@@ -403,25 +376,6 @@ function getOnTeleportPhaseFn(
       );
       coordinator.sendToOtherBot(
         `orbitPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "mvcTest") {
-      coordinator.onceEvent(
-        `mvcTestPhase_${iterationID}`,
-        getOnMVCTestPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `mvcTestPhase_${iterationID}`,
         bot.entity.position.clone(),
         "teleportPhase end"
       );
