@@ -34,6 +34,66 @@ const episodeTypes = [
 ];
 
 /**
+ * Get episode handler configuration for a given episode type
+ * @param {string} episodeType - The type of episode
+ * @returns {Object} Configuration object with eventName and handler function
+ */
+function getEpisodeHandlerConfig(episodeType) {
+  const configs = {
+    straightLineWalk: {
+      eventName: 'straightLineWalkPhase',
+      handler: getOnStraightLineWalkPhaseFn
+    },
+    chase: {
+      eventName: 'chasePhase',
+      handler: getOnChasePhaseFn
+    },
+    orbit: {
+      eventName: 'orbitPhase',
+      handler: getOnOrbitPhaseFn
+    },
+    pvp: {
+      eventName: 'pvpPhase',
+      handler: getOnPvpPhaseFn
+    },
+    buildWall: {
+      eventName: 'buildPhase',
+      handler: getOnBuildPhaseFn,
+      extraArgs: ['wall'] // structure type
+    },
+    buildTower: {
+      eventName: 'buildTowerPhase',
+      handler: getOnBuildTowerPhaseFn
+    },
+    mine: {
+      eventName: 'minePhase',
+      handler: getOnMinePhaseFn
+    },
+    towerBridge: {
+      eventName: 'towerBridgePhase',
+      handler: getOnTowerBridgePhaseFn
+    },
+    walkLook: {
+      eventName: 'walkLookPhase',
+      handler: getOnWalkLookPhaseFn
+    },
+    walkLookAway: {
+      eventName: 'walkLookAwayPhase',
+      handler: getOnWalkLookAwayPhaseFn
+    }
+  };
+
+  const config = configs[episodeType];
+  if (!config) {
+    throw new Error(
+      `Invalid episode type: ${episodeType}, allowed types are: ${Object.keys(configs).join(', ')}`
+    );
+  }
+  
+  return config;
+}
+
+/**
  * Run a single episode
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Function} sharedBotRng - Shared random number generator
@@ -316,204 +376,31 @@ function getOnTeleportPhaseFn(
     bot.emit("startepisode", episodeNum === 0 ? 50 : 0);
     // await sleep(episodeNum === 0 ? 6000 : 1000);
 
-
     const selectedEpisodeType = episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
 
     console.log(`[${bot.username}] Selected episode type: ${selectedEpisodeType}`);
 
     const iterationID = 0;
-    if (selectedEpisodeType === "straightLineWalk") {
-      coordinator.onceEvent(
-        `straightLineWalkPhase_${iterationID}`,
-        getOnStraightLineWalkPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `straightLineWalkPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "chase") {
-      coordinator.onceEvent(
-        `chasePhase_${iterationID}`,
-        getOnChasePhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `chasePhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "orbit") {
-      coordinator.onceEvent(
-        `orbitPhase_${iterationID}`,
-        getOnOrbitPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `orbitPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "bridgeBuilder") {
-      coordinator.onceEvent(
-        `bridgeBuilderPhase_${iterationID}`,
-        getOnBridgeBuilderPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `bridgeBuilderPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "pvp") {
-      coordinator.onceEvent(
-        `pvpPhase_${iterationID}`,
-        getOnPvpPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `pvpPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "buildWall") {
-      coordinator.onceEvent(
-        `buildPhase_${iterationID}`,
-        getOnBuildPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args,
-          'wall'  // structure type
-        )
-      );
-      coordinator.sendToOtherBot(
-        `buildPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "buildTower") {
-      coordinator.onceEvent(
-        `buildTowerPhase_${iterationID}`,
-        getOnBuildTowerPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `buildTowerPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "mine") {
-      coordinator.onceEvent(
-        `minePhase_${iterationID}`,
-        getOnMinePhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `minePhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else if (selectedEpisodeType === "towerBridge") {
-      coordinator.onceEvent(
-        `towerBridgePhase_${iterationID}`,
-        getOnTowerBridgePhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          getOnStopPhaseFn,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `towerBridgePhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    } else {
-      // Original walkAndLook episode
-      coordinator.onceEvent(
-        `walkAndLookPhase_${iterationID}`,
-        getOnWalkAndLookPhaseFn(
-          bot,
-          sharedBotRng,
-          coordinator,
-          iterationID,
-          args.other_bot_name,
-          episodeNum,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        `walkAndLookPhase_${iterationID}`,
-        bot.entity.position.clone(),
-        "teleportPhase end"
-      );
-    }
+    const episodeConfig = getEpisodeHandlerConfig(selectedEpisodeType);
+    coordinator.onceEvent(
+      `${episodeConfig.eventName}_${iterationID}`,
+      episodeConfig.handler(
+        bot,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name,
+        episodeNum,
+        getOnStopPhaseFn,
+        args,
+        ...(episodeConfig.extraArgs || [])
+      )
+    );
+    coordinator.sendToOtherBot(
+      `${episodeConfig.eventName}_${iterationID}`,
+      bot.entity.position.clone(),
+      "teleportPhase end"
+    );
   };
 }
 
@@ -543,145 +430,26 @@ function startEpisode(
   );
 
   const iterationID = 0;
-  if (selectedEpisodeType === "straightLineWalk") {
-    coordinator.onceEvent(
-      `straightLineWalkPhase_${iterationID}`,
-      getOnStraightLineWalkPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `straightLineWalkPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "chase") {
-    coordinator.onceEvent(
-      `chasePhase_${iterationID}`,
-      getOnChasePhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `chasePhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "orbit") {
-    coordinator.onceEvent(
-      `orbitPhase_${iterationID}`,
-      getOnOrbitPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `orbitPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "mvcTest") {
-    coordinator.onceEvent(
-      `mvcTestPhase_${iterationID}`,
-      getOnMVCTestPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `mvcTestPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "bridgeBuilder") {
-    coordinator.onceEvent(
-      `bridgeBuilderPhase_${iterationID}`,
-      getOnBridgeBuilderPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        args.other_bot_name,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `bridgeBuilderPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "walkLook") {
-    // Original walkAndLook episode
-    coordinator.onceEvent(
-      `walkLookPhase_${iterationID}`,
-      getOnWalkLookPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `walkLookPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else if (selectedEpisodeType === "walkLookAway") {
-    coordinator.onceEvent(
-      `walkLookAwayPhase_${iterationID}`,
-      getOnWalkLookAwayPhaseFn(
-        bot,
-        sharedBotRng,
-        coordinator,
-        iterationID,
-        episodeNum,
-        getOnStopPhaseFn,
-        args
-      )
-    );
-    coordinator.sendToOtherBot(
-      `walkLookAwayPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      "teleportPhase end"
-    );
-  } else {
-    throw new Error(
-      `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${episodeTypes.join(
-        ", "
-      )}`
-    );
-  }
+  const episodeConfig = getEpisodeHandlerConfig(selectedEpisodeType);
+  coordinator.onceEvent(
+    `${episodeConfig.eventName}_${iterationID}`,
+    episodeConfig.handler(
+      bot,
+      sharedBotRng,
+      coordinator,
+      iterationID,
+      args.other_bot_name,
+      episodeNum,
+      getOnStopPhaseFn,
+      args,
+      ...(episodeConfig.extraArgs || [])
+    )
+  );
+  coordinator.sendToOtherBot(
+    `${episodeConfig.eventName}_${iterationID}`,
+    bot.entity.position.clone(),
+    "teleportPhase end"
+  );
 }
 
 /**

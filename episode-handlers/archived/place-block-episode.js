@@ -87,11 +87,6 @@ function getOnPlaceBlockPhaseFn(
     console.log(`[${bot.username}] 📍 Current position: ${bot.entity.position.x.toFixed(2)}, ${bot.entity.position.y.toFixed(2)}, ${bot.entity.position.z.toFixed(2)}`);
     console.log(`[${bot.username}] 📍 Passed other bot position: ${otherBotPosition.x.toFixed(2)}, ${otherBotPosition.y.toFixed(2)}, ${otherBotPosition.z.toFixed(2)}`);
     
-    // Strategic delay to ensure recording has fully started and stabilized
-    const recordingDelay = 0; // 2 seconds
-    console.log(`[${bot.username}] ⏳ Waiting ${recordingDelay}ms for recording to stabilize...`);
-    await sleep(recordingDelay);
-    
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
     
