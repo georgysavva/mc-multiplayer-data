@@ -23,8 +23,8 @@ function parseArgs() {
       episodes_num: 1,
       start_episode_id: 0,
       run_id: 1,
-      color: "red", // default color name
       bootstrap_wait_time: 0,
+      enable_camera_wait: 1,
       teleport_center_x: 0,
       teleport_center_z: 0,
       teleport_radius: 500,
@@ -38,5 +38,5 @@ function parseArgs() {
 }
 
 module.exports = {
-  parseArgs
+  parseArgs,
 };
