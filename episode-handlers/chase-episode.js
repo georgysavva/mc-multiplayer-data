@@ -1,15 +1,15 @@
 const Vec3 = require("vec3").Vec3;
-const { Movements, GoalNear, GoalFollow } = require('../utils/bot-factory');
-const { 
-  lookAtBot, 
-  lookAtSmooth, 
+const { Movements, GoalNear, GoalFollow } = require("../utils/bot-factory");
+const {
+  lookAtBot,
+  lookAtSmooth,
   sleep,
   horizontalDistanceTo,
   getDirectionTo,
   stopAll,
   initializePathfinder,
-  stopPathfinder
-} = require('../utils/movement');
+  stopPathfinder,
+} = require("../utils/movement");
 
 // Constants for chase behavior
 const CHASE_DURATION_MS = 10000; // 10 seconds of chase
@@ -27,28 +27,40 @@ const CAMERA_SPEED = 90; // Camera movement speed (degrees per second)
  * @param {number} chaseDurationMs - Duration to chase in milliseconds
  */
 async function chaseRunner(bot, coordinator, otherBotName, chaseDurationMs) {
-  console.log(`[${bot.username}] 🏃 Starting PURE pathfinder chase of ${otherBotName} for ${chaseDurationMs/1000}s`);
+  console.log(
+    `[${
+      bot.username
+    }] 🏃 Starting PURE pathfinder chase of ${otherBotName} for ${
+      chaseDurationMs / 1000
+    }s`
+  );
 
   // Set up pathfinder movements like the GPS example
   const defaultMove = new Movements(bot);
   defaultMove.allowSprinting = true;
   defaultMove.allowParkour = true;
   defaultMove.canDig = false;
-  
+
   bot.pathfinder.setMovements(defaultMove);
-  console.log(`[${bot.username}] ✅ Pure pathfinder movements configured for intelligent chase`);
+  console.log(
+    `[${bot.username}] ✅ Pure pathfinder movements configured for intelligent chase`
+  );
 
   const startTime = Date.now();
   let lastCameraUpdate = 0;
   let lastGoalUpdate = 0;
-  
+
   // Set up position request handler for coordination
   const positionRequestHandler = (requestData) => {
-    coordinator.sendToOtherBot('positionUpdate', bot.entity.position.clone(), 'chaser position update');
+    coordinator.sendToOtherBot(
+      "positionUpdate",
+      bot.entity.position.clone(),
+      "chaser position update"
+    );
   };
-  
-  coordinator.on('requestPosition', positionRequestHandler);
-  
+
+  coordinator.on("requestPosition", positionRequestHandler);
+
   try {
     while (Date.now() - startTime < chaseDurationMs) {
       // Get runner's current position
@@ -57,43 +69,64 @@ async function chaseRunner(bot, coordinator, otherBotName, chaseDurationMs) {
         const targetPos = runnerBot.entity.position;
         const currentPos = bot.entity.position;
         const distance = horizontalDistanceTo(currentPos, targetPos);
-        
-        console.log(`[${bot.username}] 🎯 CHASING: distance to ${otherBotName} = ${distance.toFixed(2)} blocks`);
-        
+
+        console.log(
+          `[${
+            bot.username
+          }] 🎯 CHASING: distance to ${otherBotName} = ${distance.toFixed(
+            2
+          )} blocks`
+        );
+
         // Update camera to look at runner periodically
         const now = Date.now();
-        if (now - lastCameraUpdate > 2000) { // Update camera every 2 seconds
+        if (now - lastCameraUpdate > 2000) {
+          // Update camera every 2 seconds
           await lookAtBot(bot, otherBotName, CAMERA_SPEED);
           lastCameraUpdate = now;
         }
-        
+
         // Update pathfinder goal periodically like the GPS example
-        if (now - lastGoalUpdate > 1000) { // Update goal every second
+        if (now - lastGoalUpdate > 1000) {
+          // Update goal every second
           if (distance > MIN_CHASE_DISTANCE) {
-            console.log(`[${bot.username}] 🤖 Setting pure pathfinder goal for intelligent chase`);
-            
+            console.log(
+              `[${bot.username}] 🤖 Setting pure pathfinder goal for intelligent chase`
+            );
+
             // Use GoalNear like the GPS example - this is the correct way
             const { x: playerX, y: playerY, z: playerZ } = targetPos;
-            bot.pathfinder.setGoal(new GoalNear(playerX, playerY, playerZ, MIN_CHASE_DISTANCE));
-            console.log(`[${bot.username}] ✅ Pure pathfinder GoalNear set to (${playerX.toFixed(1)}, ${playerY.toFixed(1)}, ${playerZ.toFixed(1)})`);
-            
+            bot.pathfinder.setGoal(
+              new GoalNear(playerX, playerY, playerZ, MIN_CHASE_DISTANCE)
+            );
+            console.log(
+              `[${
+                bot.username
+              }] ✅ Pure pathfinder GoalNear set to (${playerX.toFixed(
+                1
+              )}, ${playerY.toFixed(1)}, ${playerZ.toFixed(1)})`
+            );
           } else {
             // Too close, stop pathfinder
             bot.pathfinder.setGoal(null);
-            console.log(`[${bot.username}] 🛑 Too close to ${otherBotName}, stopping pathfinder`);
+            console.log(
+              `[${bot.username}] 🛑 Too close to ${otherBotName}, stopping pathfinder`
+            );
           }
           lastGoalUpdate = now;
         }
       } else {
-        console.log(`[${bot.username}] ❌ Cannot see ${otherBotName}, stopping chase`);
+        console.log(
+          `[${bot.username}] ❌ Cannot see ${otherBotName}, stopping chase`
+        );
         bot.pathfinder.setGoal(null);
         stopAll(bot);
       }
-      
+
       await sleep(POSITION_UPDATE_INTERVAL_MS);
     }
   } finally {
-    coordinator.removeListener('requestPosition', positionRequestHandler);
+    coordinator.removeListener("requestPosition", positionRequestHandler);
     bot.pathfinder.setGoal(null); // Clear pathfinder goal
     stopAll(bot);
     console.log(`[${bot.username}] ✅ Pure pathfinder chase complete`);
@@ -107,16 +140,20 @@ async function chaseRunner(bot, coordinator, otherBotName, chaseDurationMs) {
  * @param {number} chaseDurationMs - Duration to run in milliseconds
  */
 async function runFromChaser(bot, coordinator, otherBotName, chaseDurationMs) {
-  console.log(`[${bot.username}] 🏃‍♂️ Starting pathfinder escape from ${otherBotName} for ${chaseDurationMs/1000}s`);
+  console.log(
+    `[${bot.username}] 🏃‍♂️ Starting pathfinder escape from ${otherBotName} for ${
+      chaseDurationMs / 1000
+    }s`
+  );
 
   // Initialize pathfinder with optimal settings for running
   const movements = initializePathfinder(bot, {
     allowSprinting: true,
     allowParkour: true,
     canDig: false,
-    allowEntityDetection: true
+    allowEntityDetection: true,
   });
-  
+
   console.log(`[${bot.username}] ✅ Pathfinder initialized for escape`);
 
   // Get chaser's initial position to calculate escape destination
@@ -127,22 +164,24 @@ async function runFromChaser(bot, coordinator, otherBotName, chaseDurationMs) {
   } else {
     // Fallback to bot's current position if chaser not visible
     chaserPos = bot.entity.position;
-    console.log(`[${bot.username}] ⚠️ Cannot see ${otherBotName}, using own position as reference`);
+    console.log(
+      `[${bot.username}] ⚠️ Cannot see ${otherBotName}, using own position as reference`
+    );
   }
 
   // Calculate deterministic escape destination: Alpha runs directly away from Bravo
   const currentPos = bot.entity.position; // A (Alpha's position)
-  
+
   // Use Bravo's position as B, or fallback to current position
   const bravoPos = chaserPos || currentPos; // B (Bravo's position)
-  
+
   // Compute direction d = normalize(A - B) to get direction away from Bravo
   const dx = currentPos.x - bravoPos.x; // A.x - B.x
   const dz = currentPos.z - bravoPos.z; // A.z - B.z (horizontal only, ignore Y)
-  
+
   // Calculate horizontal distance for normalization
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
-  
+
   // Normalize direction vector (handle case where bots are at same position)
   let normalizedDx, normalizedDz;
   if (horizontalDistance > 0) {
@@ -152,25 +191,37 @@ async function runFromChaser(bot, coordinator, otherBotName, chaseDurationMs) {
     // If bots are at same position, default to North direction
     normalizedDx = 0;
     normalizedDz = -1;
-    console.log(`[${bot.username}] ⚠️ Bots at same position, defaulting to North direction`);
+    console.log(
+      `[${bot.username}] ⚠️ Bots at same position, defaulting to North direction`
+    );
   }
-  
+
   // Calculate escape destination: C = A + 100 * d
   const escapeDistance = 100;
   const escapeX = currentPos.x + normalizedDx * escapeDistance;
   const escapeY = currentPos.y; // Keep same Y level
   const escapeZ = currentPos.z + normalizedDz * escapeDistance;
-  
-  console.log(`[${bot.username}] 🎯 Deterministic escape: Running directly away from ${otherBotName} to (${escapeX.toFixed(1)}, ${escapeY.toFixed(1)}, ${escapeZ.toFixed(1)}) - ${escapeDistance} blocks away`);
-  
+
+  console.log(
+    `[${
+      bot.username
+    }] 🎯 Deterministic escape: Running directly away from ${otherBotName} to (${escapeX.toFixed(
+      1
+    )}, ${escapeY.toFixed(1)}, ${escapeZ.toFixed(
+      1
+    )}) - ${escapeDistance} blocks away`
+  );
+
   const startTime = Date.now();
   let lastCameraUpdate = 0;
-  
+
   try {
     // Set the single escape goal using GoalNear
     bot.pathfinder.setGoal(new GoalNear(escapeX, escapeY, escapeZ, 2));
-    console.log(`[${bot.username}] ✅ Single escape GoalNear set - will pathfind here for entire chase duration`);
-    
+    console.log(
+      `[${bot.username}] ✅ Single escape GoalNear set - will pathfind here for entire chase duration`
+    );
+
     while (Date.now() - startTime < chaseDurationMs) {
       // Occasionally look back at the chaser for realistic behavior
       const now = Date.now();
@@ -178,7 +229,7 @@ async function runFromChaser(bot, coordinator, otherBotName, chaseDurationMs) {
       //   await lookAtBot(bot, otherBotName, CAMERA_SPEED);
       //   lastCameraUpdate = now;
       // }
-      
+
       // Just sleep and let pathfinder do its work
       await sleep(POSITION_UPDATE_INTERVAL_MS);
     }
@@ -218,20 +269,26 @@ function getOnChasePhaseFn(
       `chasePhase_${iterationID} beginning`
     );
 
-    console.log(`[${bot.username}] 🎬 Starting pathfinder-enhanced chase phase ${iterationID}`);
-    
+    console.log(
+      `[${bot.username}] 🎬 Starting pathfinder-enhanced chase phase ${iterationID}`
+    );
+
     // Fixed roles: Alpha runs away, Bravo chases (sharedBotRng available but not used for decisions)
     const isChaser = bot.username === "Bravo";
-    
-    console.log(`[${bot.username}] 🎭 Fixed roles: Alpha runs, Bravo chases - I am the ${isChaser ? '🏃 CHASER' : '🏃‍♂️ RUNNER'}`);
-    
+
+    console.log(
+      `[${bot.username}] 🎭 Fixed roles: Alpha runs, Bravo chases - I am the ${
+        isChaser ? "🏃 CHASER" : "🏃‍♂️ RUNNER"
+      }`
+    );
+
     // Execute appropriate behavior using pathfinder-enhanced functions
     if (isChaser) {
       await chaseRunner(bot, coordinator, otherBotName, CHASE_DURATION_MS);
     } else {
       await runFromChaser(bot, coordinator, otherBotName, CHASE_DURATION_MS);
     }
-    
+
     // Transition to stop phase
     coordinator.onceEvent(
       "stopPhase",
@@ -248,5 +305,5 @@ function getOnChasePhaseFn(
 module.exports = {
   chaseRunner,
   runFromChaser,
-  getOnChasePhaseFn
+  getOnChasePhaseFn,
 };
