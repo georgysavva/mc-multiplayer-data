@@ -211,6 +211,7 @@ function getOnOrbitPhaseFn(
     coordinator.sendToOtherBot(
       `orbitPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `orbitPhase_${iterationID} beginning`
     );
 
@@ -254,6 +255,7 @@ function getOnOrbitPhaseFn(
     // Transition to stop phase
     coordinator.onceEvent(
       "stopPhase",
+      episodeNum,
       episodeInstance.getOnStopPhaseFn(
         bot,
         rcon,
@@ -267,6 +269,7 @@ function getOnOrbitPhaseFn(
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `orbitPhase_${iterationID} end`
     );
   };
@@ -288,6 +291,7 @@ class OrbitEpisode extends BaseEpisode {
   ) {
     coordinator.onceEvent(
       `orbitPhase_${iterationID}`,
+      episodeNum,
       getOnOrbitPhaseFn(
         bot,
         rcon,
@@ -303,6 +307,7 @@ class OrbitEpisode extends BaseEpisode {
     coordinator.sendToOtherBot(
       `orbitPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       "teleportPhase end"
     );
   }

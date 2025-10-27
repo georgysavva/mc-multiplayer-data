@@ -135,6 +135,7 @@ async function runSingleEpisode(
 
     coordinator.onceEvent(
       `peerErrorPhase_${episodeNum}`,
+      episodeNum,
       getOnPeerErrorPhaseFn(
         bot,
         rcon,
@@ -148,6 +149,7 @@ async function runSingleEpisode(
 
     coordinator.onceEvent(
       "teleportPhase",
+      episodeNum,
       getOnTeleportPhaseFn(
         bot,
         rcon,
@@ -161,6 +163,7 @@ async function runSingleEpisode(
     coordinator.sendToOtherBot(
       "teleportPhase",
       bot.entity.position.clone(),
+      episodeNum,
       "spawnPhase end"
     );
   });
@@ -184,10 +187,12 @@ async function notifyPeerErrorAndStop(
   coordinator.sendToOtherBot(
     `peerErrorPhase_${episodeNum}`,
     { reason },
+    episodeNum,
     "error notifier"
   );
   coordinator.onceEvent(
     "stopPhase",
+    episodeNum,
     episodeInstance.getOnStopPhaseFn(
       bot,
       rcon,
@@ -201,6 +206,7 @@ async function notifyPeerErrorAndStop(
   coordinator.sendToOtherBot(
     "stopPhase",
     bot.entity.position.clone(),
+    episodeNum,
     `error notifier end`
   );
   // Initiate our own stop sequence
@@ -327,6 +333,7 @@ function getOnTeleportPhaseFn(
     coordinator.sendToOtherBot(
       "teleportPhase",
       bot.entity.position.clone(),
+      episodeNum,
       "teleportPhase beginning"
     );
 
@@ -507,6 +514,7 @@ function getOnPeerErrorPhaseFn(
     );
     coordinator.onceEvent(
       "stopPhase",
+      episodeNum,
       episodeInstance.getOnStopPhaseFn(
         bot,
         rcon,
@@ -520,6 +528,7 @@ function getOnPeerErrorPhaseFn(
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `peerErrorPhase_${episodeNum} end`
     );
   };

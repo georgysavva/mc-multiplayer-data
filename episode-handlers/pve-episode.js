@@ -272,6 +272,7 @@ function getOnPVEFightPhaseFn(
     coordinator.sendToOtherBot(
       `pvePhase_fight_${iterationID}`,
       phaseDataOur,
+      episodeNum,
       `pvePhase_fight_${iterationID} beginning`
     );
     let mob = null;
@@ -334,6 +335,7 @@ function getOnPVEFightPhaseFn(
     }
     coordinator.onceEvent(
       "stopPhase",
+      episodeNum,
       episodeInstance.getOnStopPhaseFn(
         bot,
         rcon,
@@ -347,6 +349,7 @@ function getOnPVEFightPhaseFn(
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `pvePhase_${iterationID} end`
     );
   };
@@ -364,6 +367,7 @@ function getOnPVEPhaseFn(
     coordinator.sendToOtherBot(
       `pvePhase`,
       { position: bot.entity.position.clone() },
+      episodeNum,
       `pvePhase beginning`
     );
 
@@ -373,6 +377,7 @@ function getOnPVEPhaseFn(
     };
     coordinator.onceEvent(
       `pvePhase_fight_${iterationID}`,
+      episodeNum,
       getOnPVEFightPhaseFn(
         bot,
         rcon,
@@ -388,6 +393,7 @@ function getOnPVEPhaseFn(
     coordinator.sendToOtherBot(
       `pvePhase_fight_${iterationID}`,
       nextPhaseDataOur,
+      episodeNum,
       `pvePhase end`
     );
     return;
@@ -448,6 +454,7 @@ class PveEpisode extends BaseEpisode {
   ) {
     coordinator.onceEvent(
       `pvePhase`,
+      episodeNum,
       getOnPVEPhaseFn(
         bot,
         rcon,
@@ -461,6 +468,7 @@ class PveEpisode extends BaseEpisode {
     coordinator.sendToOtherBot(
       `pvePhase`,
       { position: bot.entity.position.clone() },
+      episodeNum,
       "entryPoint end"
     );
   }

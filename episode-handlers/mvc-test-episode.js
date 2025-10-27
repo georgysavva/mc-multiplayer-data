@@ -204,6 +204,7 @@ function getOnMVCTestPhaseFn(
     coordinator.sendToOtherBot(
       `mvcTestPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `mvcTestPhase_${iterationID} beginning`
     );
 
@@ -215,6 +216,7 @@ function getOnMVCTestPhaseFn(
     // Transition to stop phase
     coordinator.onceEvent(
       "stopPhase",
+      episodeNum,
       episodeInstance.getOnStopPhaseFn(
         bot,
         rcon,
@@ -228,6 +230,7 @@ function getOnMVCTestPhaseFn(
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `mvcTestPhase_${iterationID} end`
     );
   };
@@ -249,6 +252,7 @@ class MvcTestEpisode extends BaseEpisode {
   ) {
     coordinator.onceEvent(
       `mvcTestPhase_${iterationID}`,
+      episodeNum,
       getOnMVCTestPhaseFn(
         bot,
         rcon,
@@ -264,6 +268,7 @@ class MvcTestEpisode extends BaseEpisode {
     coordinator.sendToOtherBot(
       `mvcTestPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       "teleportPhase end"
     );
   }

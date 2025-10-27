@@ -268,6 +268,7 @@ function getOnChasePhaseFn(
     coordinator.sendToOtherBot(
       `chasePhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `chasePhase_${iterationID} beginning`
     );
 
@@ -294,6 +295,7 @@ function getOnChasePhaseFn(
     // Transition to stop phase
     coordinator.onceEvent(
       "stopPhase",
+      episodeNum,
       episodeInstance.getOnStopPhaseFn(
         bot,
         rcon,
@@ -307,6 +309,7 @@ function getOnChasePhaseFn(
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `chasePhase_${iterationID} end`
     );
   };
@@ -328,6 +331,7 @@ class ChaseEpisode extends BaseEpisode {
   ) {
     coordinator.onceEvent(
       `chasePhase_${iterationID}`,
+      episodeNum,
       getOnChasePhaseFn(
         bot,
         rcon,
@@ -343,6 +347,7 @@ class ChaseEpisode extends BaseEpisode {
     coordinator.sendToOtherBot(
       `chasePhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       "teleportPhase end"
     );
   }

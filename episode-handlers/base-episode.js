@@ -72,6 +72,7 @@ class BaseEpisode {
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
+        episodeNum,
         "stopPhase beginning"
       );
       console.log(`[${bot.username}] stops recording`);
@@ -104,17 +105,20 @@ class BaseEpisode {
 
       coordinator.onceEvent(
         "stoppedPhase",
+        episodeNum,
         this.getOnStoppedPhaseFn(
           bot,
           sharedBotRng,
           coordinator,
           otherBotName,
+          episodeNum,
           bot._currentEpisodeResolve
         )
       );
       coordinator.sendToOtherBot(
         "stoppedPhase",
         bot.entity.position.clone(),
+        episodeNum,
         "StopPhase end"
       );
     };
@@ -126,6 +130,7 @@ class BaseEpisode {
    * @param {Object} sharedBotRng - Shared random number generator
    * @param {Object} coordinator - Coordinator for bot communication
    * @param {string} otherBotName - Name of the other bot
+   * @param {number} episodeNum - Episode number
    * @param {Function} episodeResolve - Function to resolve the episode promise
    * @returns {Function} Async function that handles the stopped phase
    */
@@ -134,12 +139,14 @@ class BaseEpisode {
     sharedBotRng,
     coordinator,
     otherBotName,
+    episodeNum,
     episodeResolve
   ) {
     return async (otherBotPosition) => {
       coordinator.sendToOtherBot(
         "stoppedPhase",
         bot.entity.position.clone(),
+        episodeNum,
         "stoppedPhase beginning"
       );
 

@@ -128,6 +128,7 @@ function getOnStraightLineWalkPhaseFn(
     coordinator.sendToOtherBot(
       `straightLineWalkPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `straightLineWalkPhase_${iterationID} beginning`
     );
 
@@ -188,6 +189,7 @@ function getOnStraightLineWalkPhaseFn(
       // Assuming 3 iterations like the original
       coordinator.onceEvent(
         "stopPhase",
+        episodeNum,
         episodeInstance.getOnStopPhaseFn(
           bot,
           rcon,
@@ -201,6 +203,7 @@ function getOnStraightLineWalkPhaseFn(
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
+        episodeNum,
         `straightLineWalkPhase_${iterationID} end`
       );
       return;
@@ -209,6 +212,7 @@ function getOnStraightLineWalkPhaseFn(
     const nextIterationID = iterationID + 1;
     coordinator.onceEvent(
       `straightLineWalkPhase_${nextIterationID}`,
+      episodeNum,
       getOnStraightLineWalkPhaseFn(
         bot,
         rcon,
@@ -224,6 +228,7 @@ function getOnStraightLineWalkPhaseFn(
     coordinator.sendToOtherBot(
       `straightLineWalkPhase_${nextIterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `straightLineWalkPhase_${iterationID} end`
     );
   };
@@ -245,6 +250,7 @@ class StraightLineEpisode extends BaseEpisode {
   ) {
     coordinator.onceEvent(
       `straightLineWalkPhase_${iterationID}`,
+      episodeNum,
       getOnStraightLineWalkPhaseFn(
         bot,
         rcon,
@@ -260,6 +266,7 @@ class StraightLineEpisode extends BaseEpisode {
     coordinator.sendToOtherBot(
       `straightLineWalkPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       "teleportPhase end"
     );
   }

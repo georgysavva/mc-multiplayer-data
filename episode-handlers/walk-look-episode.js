@@ -21,6 +21,7 @@ function getOnWalkLookPhaseFn(
     coordinator.sendToOtherBot(
       `walkLookPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `walkLookPhase_${iterationID} beginning`
     );
     const actionCount =
@@ -77,6 +78,7 @@ function getOnWalkLookPhaseFn(
     if (iterationID == ITERATIONS_NUM_PER_EPISODE - 1) {
       coordinator.onceEvent(
         "stopPhase",
+        episodeNum,
         episodeInstance.getOnStopPhaseFn(
           bot,
           rcon,
@@ -90,6 +92,7 @@ function getOnWalkLookPhaseFn(
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
+        episodeNum,
         `walkLookPhase_${iterationID} end`
       );
       return;
@@ -97,6 +100,7 @@ function getOnWalkLookPhaseFn(
     const nextIterationID = iterationID + 1;
     coordinator.onceEvent(
       `walkLookPhase_${nextIterationID}`,
+      episodeNum,
       getOnWalkLookPhaseFn(
         bot,
         rcon,
@@ -111,20 +115,14 @@ function getOnWalkLookPhaseFn(
     coordinator.sendToOtherBot(
       `walkLookPhase_${nextIterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `walkLookPhase_${iterationID} end`
     );
   };
 }
 
 class WalkLookEpisode extends BaseEpisode {
-  async setupEpisode(
-    bot,
-    rcon,
-    sharedBotRng,
-    coordinator,
-    episodeNum,
-    args
-  ) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     // optional setup
   }
 
@@ -139,6 +137,7 @@ class WalkLookEpisode extends BaseEpisode {
   ) {
     coordinator.onceEvent(
       `walkLookPhase_${iterationID}`,
+      episodeNum,
       getOnWalkLookPhaseFn(
         bot,
         rcon,
@@ -153,6 +152,7 @@ class WalkLookEpisode extends BaseEpisode {
     coordinator.sendToOtherBot(
       `walkLookPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       "teleportPhase end"
     );
   }

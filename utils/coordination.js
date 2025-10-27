@@ -143,7 +143,8 @@ class BotCoordinator extends EventEmitter {
     });
   }
 
-  sendToOtherBot(eventName, eventParams, location) {
+  sendToOtherBot( eventName, eventParams, episodeNum, location) {
+    eventName = getEventName(eventName, episodeNum);
     if (this.clientConnection) {
       const message = JSON.stringify({ eventName, eventParams });
       console.log(
@@ -157,9 +158,13 @@ class BotCoordinator extends EventEmitter {
     }
   }
 
-  onceEvent(eventName, handler) {
-    this.once(eventName, handler);
+  onceEvent(eventName, episodeNum, handler) {
+    this.once(getEventName(eventName, episodeNum), handler);
   }
+}
+
+function getEventName(eventName, episodeNum) {
+  return `episode_${episodeNum}_${eventName}`;
 }
 
 module.exports = {

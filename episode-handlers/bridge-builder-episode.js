@@ -350,6 +350,7 @@ function getOnBridgeBuilderPhaseFn(
     coordinator.sendToOtherBot(
       `bridgeBuilderPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `bridgeBuilderPhase_${iterationID} beginning`
     );
 
@@ -368,6 +369,7 @@ function getOnBridgeBuilderPhaseFn(
     // Transition to stop phase
     coordinator.onceEvent(
       "stopPhase",
+      episodeNum,
       episodeInstance.getOnStopPhaseFn(
         bot,
         rcon,
@@ -381,6 +383,7 @@ function getOnBridgeBuilderPhaseFn(
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `bridgeBuilderPhase_${iterationID} end`
     );
   };
@@ -402,6 +405,7 @@ class BridgeBuilderEpisode extends BaseEpisode {
   ) {
     coordinator.onceEvent(
       `bridgeBuilderPhase_${iterationID}`,
+      episodeNum,
       getOnBridgeBuilderPhaseFn(
         bot,
         rcon,
@@ -417,6 +421,7 @@ class BridgeBuilderEpisode extends BaseEpisode {
     coordinator.sendToOtherBot(
       `bridgeBuilderPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       "teleportPhase end"
     );
   }
