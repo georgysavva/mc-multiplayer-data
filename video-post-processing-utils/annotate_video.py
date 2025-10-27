@@ -53,15 +53,25 @@ def format_action_text(frame_data):
     action = frame_data.get("action", {})
     text_lines = []
 
-    # Movement and interaction actions
-    movement_actions = [
-        "forward", "back", "left", "right", "jump", "sprint", "sneak",
-        "attack", "dig", "use", "place_block"
+    # All actions
+    all_actions = [
+        "forward",
+        "back",
+        "left",
+        "right",
+        "jump",
+        "sprint",
+        "sneak",
+        "attack",
+        "use",
+        "mount",
+        "dismount",
+        "place_block",
+        "place_entity",
+        "mine",
     ]
     active_actions = [
-        action_name
-        for action_name in movement_actions
-        if action.get(action_name, False)
+        action_name for action_name in all_actions if action.get(action_name, False)
     ]
 
     if active_actions:
@@ -125,7 +135,7 @@ def annotate_video(video_file, action_data, output_file):
         f"Mismatch between JSON frames ({len(action_data)}) and video frames ({total_frames}). "
         f"The JSON file must contain exactly one action object per video frame."
     )
-    print(f"* Verified: JSON contains {len(action_data)} frames matching video")
+    print(f"✓ Verified: JSON contains {len(action_data)} frames matching video")
 
     # Define codec and create VideoWriter
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
