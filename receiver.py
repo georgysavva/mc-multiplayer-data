@@ -125,9 +125,10 @@ def process_frame_worker(frame_queue, output_path, viewer_rendering_disabled):
 
         # clean up
         out.release()
+        print("Video saved to ", f"{output_path}.mp4")
     with open(output_path + ".json", "w") as f:
         json.dump(action_data, f)
-    print("saved to ", f"{output_path}.mp4")
+    print("Actions saved to ", f"{output_path}.json")
 
     if episode_start_epoch is None:
         episode_start_epoch = time.time()

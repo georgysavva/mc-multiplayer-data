@@ -272,6 +272,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       height: 360,
       frames: 400,
       disableRendering: args.viewer_rendering_disabled,
+      interval: 50,
     });
     // Run multiple episodes
     for (

@@ -28,7 +28,7 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data66:/data
+      - ./data68:/data
     healthcheck:
       test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
       interval: 10s

@@ -20,15 +20,10 @@ const MAX_MOBS = 5;
 
 // Hostile mobs we allow for spawning and targeting
 const HOSTILE_MOBS_SUMMON_IDS = [
-  // "minecraft:zombie",
-  // "minecraft:skeleton",
-  // "minecraft:spider",
-  // "minecraft:creeper",
-  // "minecraft:husk",
-  // "minecraft:drowned",
-  // "minecraft:stray",
-  "minecraft:witch",
-  // "minecraft:enderman",
+  "minecraft:zombie",
+  "minecraft:skeleton",
+  "minecraft:spider",
+  "minecraft:husk",
 ];
 const HOSTILE_ENTITY_NAMES = new Set(
   HOSTILE_MOBS_SUMMON_IDS.map((id) => id.split(":")[1])
@@ -314,9 +309,10 @@ function getOnPVEFightPhaseFn(
         retries--;
       }
       if (!mob) {
-        throw new Error(
+        console.log(
           `[${bot.username}] Could not find hostile mob ${mobI} after spawning and waiting.`
         );
+        continue;
       }
       console.log(
         `[${
