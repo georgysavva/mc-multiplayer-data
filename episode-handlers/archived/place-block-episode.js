@@ -88,7 +88,7 @@ function getOnPlaceBlockPhaseFn(
     console.log(`[${bot.username}] 📍 Passed other bot position: ${otherBotPosition.x.toFixed(2)}, ${otherBotPosition.y.toFixed(2)}, ${otherBotPosition.z.toFixed(2)}`);
     
     // Strategic delay to ensure recording has fully started and stabilized
-    const recordingDelay = 2000; // 2 seconds
+    const recordingDelay = 0; // 2 seconds
     console.log(`[${bot.username}] ⏳ Waiting ${recordingDelay}ms for recording to stabilize...`);
     await sleep(recordingDelay);
     
