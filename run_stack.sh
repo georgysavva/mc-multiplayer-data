@@ -80,6 +80,7 @@ start_log_capture() {
 cmd_up() {
   local generate_comparison=${1:-}
   local build_images=${2:-}
+  local run_alignment=${3:-}
   ensure_directories
   local running_ids
   running_ids=$(compose_cmd ps -q 2>/dev/null || true)
@@ -136,6 +137,19 @@ cmd_up() {
     echo "[run] WARNING: Bravo processing failed (exit code $?)" >&2
   fi
   
+  # Add video annotation and alignment if requested
+  if [[ "${run_alignment}" == "true" ]]; then
+    echo "[run] running video annotation and alignment"
+    if python3 "${PROJECT_DIR}/video-post-processing-utils/batch_process_all.py" \
+      --output-dir "${PROJECT_DIR}/output"; then
+      echo "[run] video processing completed successfully"
+      echo "[run] aligned videos available in: ${PROJECT_DIR}/output/aligned-annotated/"
+    else
+      echo "[run] WARNING: video processing failed (exit code $?)" >&2
+      echo "[run] you can manually run: python3 video-post-processing-utils/batch_process_all.py --output-dir output"
+    fi
+  fi
+  
   echo "[run] post-processing complete (check output above for any warnings)"
 }
 
@@ -176,10 +190,11 @@ usage() {
 Usage: ${0##*/} <command> [options]
 
 Commands:
-  up [--compare] [--build]
+  up [--compare] [--build] [--align]
                     Start the docker stack and begin capturing logs
                     --compare: Generate side-by-side comparison videos (slower)
                     --build: Build images instead of pulling them
+                    --align: Run alignment after stack shutdown
   down              Stop log capture and docker stack
   status            Show container status from docker compose
   logs [service]    Tail saved logs for a service (default: list available logs)
@@ -197,6 +212,7 @@ main() {
     up)
       local generate_comparison="false"
       local build_images="false"
+      local run_alignment="false"
       while [[ $# -gt 0 ]]; do
         case "${1}" in
           --compare)
@@ -207,12 +223,16 @@ main() {
             build_images="true"
             shift
             ;;
+          --align)
+            run_alignment="true"
+            shift
+            ;;
           *)
             break
             ;;
         esac
       done
-      cmd_up "${generate_comparison}" "${build_images}" "$@"
+      cmd_up "${generate_comparison}" "${build_images}" "${run_alignment}" "$@"
       ;;
     down)
       cmd_down "$@"
