@@ -1,14 +1,14 @@
 const Vec3 = require("vec3").Vec3;
-const { 
-  stopAll, 
+const {
+  stopAll,
   lookAtBot,
-  lookAtSmooth, 
+  lookAtSmooth,
   sleep,
   horizontalDistanceTo,
   moveToward,
-  isNearPosition
-} = require('../utils/movement');
-const { tickMVC, createMVC } = require('../utils/mvc');
+  isNearPosition,
+} = require("../utils/movement");
+const { tickMVC, createMVC } = require("../utils/mvc");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for bridge building episode

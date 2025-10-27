@@ -1,15 +1,15 @@
 const Vec3 = require("vec3").Vec3;
-const { Movements, GoalNear } = require('../utils/bot-factory');
-const { 
-  stopAll, 
+const { Movements, GoalNear } = require("../utils/bot-factory");
+const {
+  stopAll,
   lookAtBot,
-  lookAtSmooth, 
+  lookAtSmooth,
   sleep,
   horizontalDistanceTo,
   initializePathfinder,
-  stopPathfinder
-} = require('../utils/movement');
-const { tickMVC, createMVC } = require('../utils/mvc');
+  stopPathfinder,
+} = require("../utils/movement");
+const { tickMVC, createMVC } = require("../utils/mvc");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for orbit behavior

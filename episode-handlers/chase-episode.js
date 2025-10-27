@@ -1,15 +1,15 @@
 const Vec3 = require("vec3").Vec3;
-const { Movements, GoalNear, GoalFollow } = require('../utils/bot-factory');
-const { 
-  lookAtBot, 
-  lookAtSmooth, 
+const { Movements, GoalNear, GoalFollow } = require("../utils/bot-factory");
+const {
+  lookAtBot,
+  lookAtSmooth,
   sleep,
   horizontalDistanceTo,
   getDirectionTo,
   stopAll,
   initializePathfinder,
-  stopPathfinder
-} = require('../utils/movement');
+  stopPathfinder,
+} = require("../utils/movement");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for chase behavior

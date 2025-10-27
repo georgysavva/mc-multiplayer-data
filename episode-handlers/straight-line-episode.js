@@ -1,15 +1,15 @@
 // New episode functions for straight-line movement while facing other bot
 
 const Vec3 = require("vec3").Vec3;
-const { 
-  stopAll, 
-  moveToward, 
-  lookAtSmooth, 
+const {
+  stopAll,
+  moveToward,
+  lookAtSmooth,
   lookAtBot,
   sleep,
   horizontalDistanceTo,
-  getDirectionTo 
-} = require('../utils/movement');
+  getDirectionTo,
+} = require("../utils/movement");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for the new episode

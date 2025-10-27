@@ -1,11 +1,11 @@
 const Vec3 = require("vec3").Vec3;
-const { 
-  stopAll, 
+const {
+  stopAll,
   sleep,
   moveDirection,
-  horizontalDistanceTo
-} = require('../utils/movement');
-const { tickMVC, createMVC, DEFAULT_MVC_CONFIG } = require('../utils/mvc');
+  horizontalDistanceTo,
+} = require("../utils/movement");
+const { tickMVC, createMVC, DEFAULT_MVC_CONFIG } = require("../utils/mvc");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for MVC test episode
