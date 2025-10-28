@@ -35,6 +35,7 @@ function parseArgs() {
       rcon_password: "research",
       teleport: 1,
       viewer_rendering_disabled: 0,
+      smoke_test: 0,
     },
   });
 }

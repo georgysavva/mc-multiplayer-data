@@ -10,7 +10,6 @@ const { BaseEpisode } = require("./base-episode");
 
 // Constants for building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
-const RECORDING_DELAY_MS = 500; // Recording stabilization delay
 const BUILD_BLOCK_TYPES = ["stone", "cobblestone", "oak_planks", "bricks"];
 
 /**
@@ -136,6 +135,7 @@ function getOnBuildPhaseFn(
     coordinator.sendToOtherBot(
       `buildPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `buildPhase_${iterationID} beginning`
     );
 
@@ -143,12 +143,6 @@ function getOnBuildPhaseFn(
 
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
-
-    // Strategic delay to ensure recording has fully started
-    console.log(
-      `[${bot.username}] ⏳ Waiting ${RECORDING_DELAY_MS}ms for recording to stabilize...`
-    );
-    await sleep(RECORDING_DELAY_MS);
 
     // STEP 2: Initial eye contact
     console.log(

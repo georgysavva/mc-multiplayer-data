@@ -15,7 +15,6 @@ const { BaseEpisode } = require("./base-episode");
 // Constants for tower building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const FINAL_EYE_CONTACT_MS = 1500; // Final look duration
-const RECORDING_DELAY_MS = 500; // Recording stabilization delay
 const MIN_TOWER_HEIGHT = 8; // Minimum tower height
 const MAX_TOWER_HEIGHT = 8; // Maximum tower height
 const TOWER_BLOCK_TYPE = "oak_planks"; // Block type for towers
@@ -119,6 +118,7 @@ function getOnBuildTowerPhaseFn(
     coordinator.sendToOtherBot(
       `buildTowerPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `buildTowerPhase_${iterationID} beginning`
     );
 
@@ -128,13 +128,6 @@ function getOnBuildTowerPhaseFn(
 
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
-
-    // Strategic delay to ensure recording has fully started
-    console.log(
-      `[${bot.username}] ⏳ Waiting ${RECORDING_DELAY_MS}ms for recording to stabilize...`
-    );
-    await sleep(RECORDING_DELAY_MS);
-
     // STEP 2: Initial eye contact
     console.log(
       `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`

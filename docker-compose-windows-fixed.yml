@@ -3,8 +3,8 @@ services:
     image: itzg/minecraft-server
     tty: true
     ports:
-      - "25565:25565"  # Minecraft server port
-      - "25575:25575"  # RCON port
+      - "25565:25565" # Minecraft server port
+      - "25575:25575" # RCON port
     environment:
       EULA: "TRUE"
       VERSION: 1.20.4
@@ -75,6 +75,7 @@ services:
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
+      SMOKE_TEST: 0
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -115,6 +116,7 @@ services:
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
+      SMOKE_TEST: 0
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -158,8 +160,8 @@ services:
     container_name: mc_camera_alpha
     restart: unless-stopped
     ports:
-      - "5901:5901"  # VNC port
-      - "6901:6901"  # noVNC port
+      - "5901:5901" # VNC port
+      - "6901:6901" # noVNC port
     depends_on:
       mc:
         condition: service_healthy
@@ -201,15 +203,16 @@ services:
     volumes:
       - ./camera/spectator.js:/app/spectator.js:ro
       - ./camera/package.json:/app/package.json:ro
-    command: ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
+    command:
+      ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
 
   camera_bravo:
     image: ojmichel/mineflayer-spectator-client:latest
     container_name: mc_camera_bravo
     restart: unless-stopped
     ports:
-      - "5902:5902"  # VNC port
-      - "6902:6902"  # noVNC port
+      - "5902:5902" # VNC port
+      - "6902:6902" # noVNC port
     depends_on:
       mc:
         condition: service_healthy
@@ -251,4 +254,5 @@ services:
     volumes:
       - ./camera/spectator.js:/app/spectator.js:ro
       - ./camera/package.json:/app/package.json:ro
-    command: ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
+    command:
+      ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]

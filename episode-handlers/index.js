@@ -36,7 +36,7 @@ const episodeClassMap = {
   pve: PveEpisode,
   buildStructure: BuildStructureEpisode,
   buildTower: BuildTowerEpisode,
-  mine: MineEpisode,
+  // mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
 };
 
@@ -44,17 +44,17 @@ const episodeClassMap = {
 
 // Add episode type selection - Enable multiple types for diverse data collection
 const episodeTypes = [
-  // "straightLineWalk",
-  // "chase",
-  // "orbit",
-  // "walkLook",
-  // "walkLookAway",
+  "straightLineWalk",
+  "chase",
+  "orbit",
+  "walkLook",
+  "walkLookAway",
   "pvp",
-  // "pve",
-  // "buildStructure",
-  // "buildTower",
-  // "mine",
-  // "towerBridge",
+  "pve",
+  "buildStructure",
+  "buildTower",
+  "mine",
+  "towerBridge",
 ];
 /**
  * Run a single episode
@@ -270,17 +270,40 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       interval: 50,
     });
     // Run multiple episodes
-    for (
-      let episodeNum = args.start_episode_id;
-      episodeNum < args.start_episode_id + args.episodes_num;
-      episodeNum++
-    ) {
+    // In smoke test mode, iterate over all episode types in alphabetical order
+    let episodesToRun = [];
+    if (args.smoke_test === 1) {
+      // Get all episode types and sort alphabetically
+      const allEpisodeTypes = Object.keys(episodeClassMap).sort();
+      episodesToRun = allEpisodeTypes.map((episodeType, index) => ({
+        episodeNum: args.start_episode_id + index,
+        episodeType: episodeType,
+      }));
+      console.log(
+        `[${bot.username}] SMOKE TEST MODE: Running all ${episodesToRun.length} episode types in alphabetical order`
+      );
+    } else {
+      // Normal mode: use the configured episode types and episodes_num
+      for (let i = 0; i < args.episodes_num; i++) {
+        episodesToRun.push({
+          episodeNum: args.start_episode_id + i,
+          episodeType: null, // Will be randomly selected
+        });
+      }
+    }
+
+    for (const episodeConfig of episodesToRun) {
+      const episodeNum = episodeConfig.episodeNum;
       const botsRngBaseSeed = args.bot_rng_seed;
       // Concatenate episodeNum to the seed string to get a unique, reproducible seed per episode
       const botsRngSeedWithEpisode = `${botsRngBaseSeed}_${episodeNum}`;
       const sharedBotRng = seedrandom(botsRngSeedWithEpisode);
+
+      // Select episode type
       const selectedEpisodeType =
-        episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
+        args.smoke_test === 1
+          ? episodeConfig.episodeType
+          : episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
 
       console.log(
         `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
@@ -349,9 +372,8 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
     }
     await rcon.end();
 
-    console.log(
-      `[${bot.username}] All ${args.episodes_num} episodes completed`
-    );
+    const totalEpisodesRun = episodesToRun.length;
+    console.log(`[${bot.username}] All ${totalEpisodesRun} episodes completed`);
     process.exit(0);
   };
 }

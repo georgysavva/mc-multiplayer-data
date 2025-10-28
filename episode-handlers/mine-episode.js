@@ -12,7 +12,6 @@ const { unequipHand } = require("../utils/items");
 // Constants for mining behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const FINAL_EYE_CONTACT_MS = 1500; // Final look duration
-const RECORDING_DELAY_MS = 500; // Recording stabilization delay
 const DIG_DELAY_MS = 100; // Delay between dig attempts
 const TOOL_TYPE = "diamond_pickaxe"; // Tool for mining
 const PATHFIND_TIMEOUT_MS = 30000; // 30 second timeout for pathfinding
@@ -278,6 +277,7 @@ function getOnMinePhaseFn(
     coordinator.sendToOtherBot(
       `minePhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `minePhase_${iterationID} beginning`
     );
 
@@ -288,12 +288,6 @@ function getOnMinePhaseFn(
 
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
-
-    // Strategic delay to ensure recording has fully started
-    console.log(
-      `[${bot.username}] ⏳ Waiting ${RECORDING_DELAY_MS}ms for recording to stabilize...`
-    );
-    await sleep(RECORDING_DELAY_MS);
 
     // STEP 2: Initial eye contact
     console.log(

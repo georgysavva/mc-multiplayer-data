@@ -12,7 +12,6 @@ const { BaseEpisode } = require("./base-episode");
 // Constants for tower-bridge behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const FINAL_EYE_CONTACT_MS = 1500; // Final look duration
-const RECORDING_DELAY_MS = 500; // Recording stabilization delay
 const TOWER_HEIGHT = 8; // Fixed tower height
 const TOWER_BLOCK_TYPE = "oak_planks"; // Block type for towers
 const BRIDGE_BLOCK_TYPE = "oak_planks"; // Block type for bridge
@@ -279,6 +278,7 @@ function getOnTowerBridgePhaseFn(
     coordinator.sendToOtherBot(
       `towerBridgePhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `towerBridgePhase_${iterationID} beginning`
     );
 
@@ -291,12 +291,6 @@ function getOnTowerBridgePhaseFn(
 
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
-
-    // Strategic delay to ensure recording has fully started
-    console.log(
-      `[${bot.username}] ⏳ Waiting ${RECORDING_DELAY_MS}ms for recording to stabilize...`
-    );
-    await sleep(RECORDING_DELAY_MS);
 
     // STEP 2: Initial eye contact
     console.log(

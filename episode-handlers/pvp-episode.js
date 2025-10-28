@@ -20,7 +20,6 @@ const COMBAT_LOOP_INTERVAL_MS = 100; // Combat loop update rate
 const MIN_SPAWN_DISTANCE = 8; // Minimum distance between bots at spawn
 const MAX_SPAWN_DISTANCE = 15; // Maximum distance between bots at spawn
 const INITIAL_EYE_CONTACT_MS = 500; // Initial look duration
-const RECORDING_DELAY_MS = 500; // Recording stabilization delay
 
 // Available sword types (will pick randomly)
 const SWORD_TYPES = [
@@ -341,6 +340,7 @@ function getOnPvpPhaseFn(
     coordinator.sendToOtherBot(
       `pvpPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `pvpPhase_${iterationID} beginning`
     );
 

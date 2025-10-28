@@ -55,4 +55,5 @@ exec node senders.js \
   --walk_timeout "${WALK_TIMEOUT:-5}" \
   --teleport "${TELEPORT:-0}" \
   --mc_version "${MC_VERSION:-1.20.4}" \
-  --viewer_rendering_disabled "${VIEWER_RENDERING_DISABLED:-0}"
+  --viewer_rendering_disabled "${VIEWER_RENDERING_DISABLED:-0}" \
+  --smoke_test "${SMOKE_TEST:-0}"
