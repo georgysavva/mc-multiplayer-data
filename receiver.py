@@ -18,7 +18,7 @@ HOST = ""
 PORT = 8089
 
 
-def process_frame_worker(frame_queue, output_path):
+def process_frame_worker(frame_queue, output_path, viewer_rendering_disabled):
     action_data = []
     frames = []
     out = None
@@ -66,6 +66,8 @@ def process_frame_worker(frame_queue, output_path):
             }
             action_data.append(pos)
 
+            if viewer_rendering_disabled:
+                continue
             # Store frames for later processing
             if img is None:
                 print(f"Error: Received None image at frame {img_count}")
@@ -111,21 +113,23 @@ def process_frame_worker(frame_queue, output_path):
     print("Video FPS (capped at 20):", video_fps)
 
     # Now create video writer with calculated FPS and write all frames
-    out = cv2.VideoWriter(
-        f"{output_path}.mp4",
-        cv2.VideoWriter_fourcc(*"mp4v"),
-        video_fps,
-        (640, 360),
-    )
+    if not viewer_rendering_disabled:
+        out = cv2.VideoWriter(
+            f"{output_path}.mp4",
+            cv2.VideoWriter_fourcc(*"mp4v"),
+            video_fps,
+            (640, 360),
+        )
 
-    for frame in frames:
-        out.write(frame)
+        for frame in frames:
+            out.write(frame)
 
-    # clean up
-    out.release()
+        # clean up
+        out.release()
+        print("Video saved to ", f"{output_path}.mp4")
     with open(output_path + ".json", "w") as f:
         json.dump(action_data, f)
-    print("saved to ", f"{output_path}.mp4")
+    print("Actions saved to ", f"{output_path}.json")
 
     if episode_start_epoch is None:
         episode_start_epoch = time.time()
@@ -179,6 +183,13 @@ argparser.add_argument(
     help="Starting number for incremental file naming",
 )
 argparser.add_argument("--port", type=int, default=8089, help="Port number")
+argparser.add_argument(
+    "--viewer_rendering_disabled",
+    type=bool,
+    default=False,
+    help="Disable rendering in the viewer (default: enabled)",
+)
+
 argparser.add_argument("--output_path", type=str, required=True, help="output path")
 argparser.add_argument(
     "--instance_id",
@@ -188,6 +199,7 @@ argparser.add_argument(
 )
 
 args = argparser.parse_args()
+print("args.viewer_rendering_disabled", bool(args.viewer_rendering_disabled))
 PORT = args.port
 
 
@@ -210,7 +222,10 @@ while True:
         f"{args.output_path}/{timestamp}_{id:06d}_{args.name}_instance_{args.instance_id:03d}"
     )
 
-    processor = Thread(target=process_frame_worker, args=(frame_queue, output_path))
+    processor = Thread(
+        target=process_frame_worker,
+        args=(frame_queue, output_path, args.viewer_rendering_disabled),
+    )
     processor.daemon = True
     processor.start()
     try:
@@ -254,22 +269,25 @@ while True:
             #     "pitch": 0,
             #     "frame_count": img_count,
             # }
-            length = recvint(conn)
-            if length == 0:
-                print("ERROR! recv 0 image length")
-                retcode = 1
-                break
+            if args.viewer_rendering_disabled:
+                img = None
+            else:
+                length = recvint(conn)
+                if length == 0:
+                    print("ERROR! recv 0 image length")
+                    retcode = 1
+                    break
 
-            stringData = recvall(conn, int(length))
-            if stringData is None:
-                print("[Error] Received None instead of valid image data")
-                retcode = 1
-                break
+                stringData = recvall(conn, int(length))
+                if stringData is None:
+                    print("[Error] Received None instead of valid image data")
+                    retcode = 1
+                    break
+                img = cv2.imdecode(
+                    np.frombuffer(stringData, dtype=np.uint8), cv2.IMREAD_UNCHANGED
+                )
 
             img_count += 1
-            img = cv2.imdecode(
-                np.frombuffer(stringData, dtype=np.uint8), cv2.IMREAD_UNCHANGED
-            )
             try:
                 frame_queue.put((img, pos))
             except Queue.Full:

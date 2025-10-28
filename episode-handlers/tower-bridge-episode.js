@@ -7,11 +7,11 @@ const {
   fastPlaceBlock,
   buildTowerUnderneath,
 } = require("./builder");
+const { BaseEpisode } = require("./base-episode");
 
 // Constants for tower-bridge behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const FINAL_EYE_CONTACT_MS = 1500; // Final look duration
-const RECORDING_DELAY_MS = 500; // Recording stabilization delay
 const TOWER_HEIGHT = 8; // Fixed tower height
 const TOWER_BLOCK_TYPE = "oak_planks"; // Block type for towers
 const BRIDGE_BLOCK_TYPE = "oak_planks"; // Block type for bridge
@@ -255,29 +255,30 @@ function findSneakingBlock(bot) {
 /**
  * Get the phase function for tower-bridge episodes
  * @param {Bot} bot - Mineflayer bot instance
+ * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
  * @param {BotCoordinator} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
- * @param {string} otherBotName - Other bot name
  * @param {number} episodeNum - Episode number
- * @param {Function} getOnStopPhaseFn - Stop phase function getter
+ * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
  * @returns {Function} Phase function
  */
 function getOnTowerBridgePhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   iterationID,
-  otherBotName,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args
 ) {
   return async function onTowerBridgePhase(otherBotPosition) {
     coordinator.sendToOtherBot(
       `towerBridgePhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `towerBridgePhase_${iterationID} beginning`
     );
 
@@ -291,19 +292,13 @@ function getOnTowerBridgePhaseFn(
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
 
-    // Strategic delay to ensure recording has fully started
-    console.log(
-      `[${bot.username}] ⏳ Waiting ${RECORDING_DELAY_MS}ms for recording to stabilize...`
-    );
-    await sleep(RECORDING_DELAY_MS);
-
     // STEP 2: Initial eye contact
     console.log(
-      `[${bot.username}] 👀 STEP 2: Making eye contact with ${otherBotName}...`
+      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
     );
     let actualOtherBotPosition = null;
     try {
-      const otherEntity = bot.players[otherBotName]?.entity;
+      const otherEntity = bot.players[args.other_bot_name]?.entity;
       if (otherEntity) {
         actualOtherBotPosition = otherEntity.position.clone();
         const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
@@ -400,7 +395,7 @@ function getOnTowerBridgePhaseFn(
       `[${bot.username}] 👀 STEP 6: Looking at other bot from tower top...`
     );
     try {
-      const otherEntity2 = bot.players[otherBotName]?.entity;
+      const otherEntity2 = bot.players[args.other_bot_name]?.entity;
       if (otherEntity2) {
         actualOtherBotPosition = otherEntity2.position.clone();
         const targetPos = otherEntity2.position.offset(
@@ -424,7 +419,7 @@ function getOnTowerBridgePhaseFn(
     const myPos = bot.entity.position.clone();
 
     // Try to get updated other bot position
-    const otherEntity3 = bot.players[otherBotName]?.entity;
+    const otherEntity3 = bot.players[args.other_bot_name]?.entity;
     if (otherEntity3) {
       actualOtherBotPosition = otherEntity3.position.clone();
     }
@@ -505,7 +500,7 @@ function getOnTowerBridgePhaseFn(
     // STEP 9: Final eye contact
     console.log(`[${bot.username}] 👀 STEP 9: Final eye contact...`);
     try {
-      const otherEntity4 = bot.players[otherBotName]?.entity;
+      const otherEntity4 = bot.players[args.other_bot_name]?.entity;
       if (otherEntity4) {
         const targetPos = otherEntity4.position.offset(
           0,
@@ -529,16 +524,76 @@ function getOnTowerBridgePhaseFn(
     // STEP 10: Transition to stop phase (end episode)
     coordinator.onceEvent(
       "stopPhase",
-      getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName)
+      episodeNum,
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args
+      )
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `towerBridgePhase_${iterationID} end`
     );
 
     return { towerResult, bridgeResult };
   };
+}
+
+/**
+ * TowerBridgeEpisode - Episode class for tower building and bridging
+ */
+class TowerBridgeEpisode extends BaseEpisode {
+  static INIT_MIN_BOTS_DISTANCE = 12;
+  static INIT_MAX_BOTS_DISTANCE = 20;
+
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args
+  ) {
+    coordinator.onceEvent(
+      `towerBridgePhase_${iterationID}`,
+      episodeNum,
+      getOnTowerBridgePhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        this,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `towerBridgePhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      "entryPoint end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args
+  ) {}
 }
 
 module.exports = {
@@ -547,4 +602,5 @@ module.exports = {
   TOWER_HEIGHT,
   TOWER_BLOCK_TYPE,
   BRIDGE_BLOCK_TYPE,
+  TowerBridgeEpisode,
 };

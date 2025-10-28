@@ -7,7 +7,7 @@ services:
       EULA: "TRUE"
       VERSION: 1.20.4
       TYPE: PAPER
-      MODE: creative
+      MODE: survival
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
       RCON_PASSWORD: research
@@ -28,7 +28,7 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data:/data
+      - ./data73:/data
     healthcheck:
       test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
       interval: 10s
@@ -64,11 +64,15 @@ services:
       RCON_PORT: 25575
       RCON_PASSWORD: research
       WALK_TIMEOUT: 5
-      BOOTSTRAP_WAIT_TIME: 20
+      TELEPORT: 1
+      BOOTSTRAP_WAIT_TIME: 1
       ENABLE_CAMERA_WAIT: 1
+      ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
+      VIEWER_RENDERING_DISABLED: 1
+      SMOKE_TEST: 1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -103,13 +107,16 @@ services:
       RCON_HOST: host.docker.internal
       RCON_PORT: 25575
       RCON_PASSWORD: research
-      BOOTSTRAP_WAIT_TIME: 20
+      WALK_TIMEOUT: 5
+      TELEPORT: 1
+      BOOTSTRAP_WAIT_TIME: 1
       ENABLE_CAMERA_WAIT: 1
       ITERATIONS_NUM_PER_EPISODE: 5
-      WALK_TIMEOUT: 5
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
+      VIEWER_RENDERING_DISABLED: 1
+      SMOKE_TEST: 1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -121,6 +128,7 @@ services:
       NAME: Alpha
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
+      VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -134,6 +142,7 @@ services:
       NAME: Bravo
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
+      VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path

@@ -6,6 +6,7 @@ const {
   horizontalDistanceTo,
 } = require("../utils/movement");
 const { tickMVC, createMVC, DEFAULT_MVC_CONFIG } = require("../utils/mvc");
+const { BaseEpisode } = require("./base-episode");
 
 // Constants for MVC test episode
 const MVC_TEST_DURATION_MS = 10000; // 10 seconds of MVC testing
@@ -184,24 +185,26 @@ async function testMVCBehavior(bot, coordinator, otherBotName, durationMs) {
  * @param {number} iterationID - Iteration ID
  * @param {string} otherBotName - Other bot name
  * @param {number} episodeNum - Episode number
- * @param {Function} getOnStopPhaseFn - Stop phase function getter
+ * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
  * @returns {Function} MVC test phase handler
  */
 function getOnMVCTestPhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   iterationID,
   otherBotName,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       `mvcTestPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `mvcTestPhase_${iterationID} beginning`
     );
 
@@ -213,18 +216,78 @@ function getOnMVCTestPhaseFn(
     // Transition to stop phase
     coordinator.onceEvent(
       "stopPhase",
-      getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName)
+      episodeNum,
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        otherBotName,
+        episodeNum,
+        args
+      )
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `mvcTestPhase_${iterationID} end`
     );
   };
+}
+
+class MvcTestEpisode extends BaseEpisode {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+    // optional setup
+  }
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args
+  ) {
+    coordinator.onceEvent(
+      `mvcTestPhase_${iterationID}`,
+      episodeNum,
+      getOnMVCTestPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name,
+        episodeNum,
+        this,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `mvcTestPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      "teleportPhase end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args
+  ) {
+    // optional teardown
+  }
 }
 
 module.exports = {
   testMVCBehavior,
   getOnMVCTestPhaseFn,
   MVC_TEST_CONFIG,
+  MvcTestEpisode,
 };

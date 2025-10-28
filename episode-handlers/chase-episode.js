@@ -10,6 +10,7 @@ const {
   initializePathfinder,
   stopPathfinder,
 } = require("../utils/movement");
+const { BaseEpisode } = require("./base-episode");
 
 // Constants for chase behavior
 const CHASE_DURATION_MS = 10000; // 10 seconds of chase
@@ -26,7 +27,13 @@ const CAMERA_SPEED = 90; // Camera movement speed (degrees per second)
  * @param {string} otherBotName - Name of the runner bot
  * @param {number} chaseDurationMs - Duration to chase in milliseconds
  */
-async function chaseRunner(bot, coordinator, otherBotName, chaseDurationMs) {
+async function chaseRunner(
+  bot,
+  coordinator,
+  otherBotName,
+  episodeNum,
+  chaseDurationMs
+) {
   console.log(
     `[${
       bot.username
@@ -51,15 +58,6 @@ async function chaseRunner(bot, coordinator, otherBotName, chaseDurationMs) {
   let lastGoalUpdate = 0;
 
   // Set up position request handler for coordination
-  const positionRequestHandler = (requestData) => {
-    coordinator.sendToOtherBot(
-      "positionUpdate",
-      bot.entity.position.clone(),
-      "chaser position update"
-    );
-  };
-
-  coordinator.on("requestPosition", positionRequestHandler);
 
   try {
     while (Date.now() - startTime < chaseDurationMs) {
@@ -126,7 +124,6 @@ async function chaseRunner(bot, coordinator, otherBotName, chaseDurationMs) {
       await sleep(POSITION_UPDATE_INTERVAL_MS);
     }
   } finally {
-    coordinator.removeListener("requestPosition", positionRequestHandler);
     bot.pathfinder.setGoal(null); // Clear pathfinder goal
     stopAll(bot);
     console.log(`[${bot.username}] ✅ Pure pathfinder chase complete`);
@@ -139,7 +136,13 @@ async function chaseRunner(bot, coordinator, otherBotName, chaseDurationMs) {
  * @param {string} otherBotName - Name of the chaser bot
  * @param {number} chaseDurationMs - Duration to run in milliseconds
  */
-async function runFromChaser(bot, coordinator, otherBotName, chaseDurationMs) {
+async function runFromChaser(
+  bot,
+  coordinator,
+  otherBotName,
+  episodeNum,
+  chaseDurationMs
+) {
   console.log(
     `[${bot.username}] 🏃‍♂️ Starting pathfinder escape from ${otherBotName} for ${
       chaseDurationMs / 1000
@@ -248,24 +251,26 @@ async function runFromChaser(bot, coordinator, otherBotName, chaseDurationMs) {
  * @param {number} iterationID - Iteration ID
  * @param {string} otherBotName - Other bot name
  * @param {number} episodeNum - Episode number
- * @param {Function} getOnStopPhaseFn - Stop phase function getter
+ * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
  * @returns {Function} Chase phase handler
  */
 function getOnChasePhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   iterationID,
   otherBotName,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       `chasePhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `chasePhase_${iterationID} beginning`
     );
 
@@ -284,26 +289,98 @@ function getOnChasePhaseFn(
 
     // Execute appropriate behavior using pathfinder-enhanced functions
     if (isChaser) {
-      await chaseRunner(bot, coordinator, otherBotName, CHASE_DURATION_MS);
+      await chaseRunner(
+        bot,
+        coordinator,
+        otherBotName,
+        episodeNum,
+        CHASE_DURATION_MS
+      );
     } else {
-      await runFromChaser(bot, coordinator, otherBotName, CHASE_DURATION_MS);
+      await runFromChaser(
+        bot,
+        coordinator,
+        otherBotName,
+        episodeNum,
+        CHASE_DURATION_MS
+      );
     }
 
     // Transition to stop phase
     coordinator.onceEvent(
       "stopPhase",
-      getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName)
+      episodeNum,
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        otherBotName,
+        episodeNum,
+        args
+      )
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `chasePhase_${iterationID} end`
     );
   };
+}
+
+class ChaseEpisode extends BaseEpisode {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+    // optional setup
+  }
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args
+  ) {
+    coordinator.onceEvent(
+      `chasePhase_${iterationID}`,
+      episodeNum,
+      getOnChasePhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name,
+        episodeNum,
+        this,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `chasePhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      "teleportPhase end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args
+  ) {
+    // optional teardown
+  }
 }
 
 module.exports = {
   chaseRunner,
   runFromChaser,
   getOnChasePhaseFn,
+  ChaseEpisode,
 };

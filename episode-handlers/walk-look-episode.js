@@ -1,5 +1,6 @@
 const { lookAtSmooth } = require("../utils/movement");
 const { run } = require("../utils/random-movement");
+const { BaseEpisode } = require("./base-episode");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 
@@ -8,17 +9,19 @@ const MIN_RUN_ACTIONS = 3;
 const MAX_RUN_ACTIONS = 5;
 function getOnWalkLookPhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   iterationID,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       `walkLookPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `walkLookPhase_${iterationID} beginning`
     );
     const actionCount =
@@ -75,11 +78,21 @@ function getOnWalkLookPhaseFn(
     if (iterationID == ITERATIONS_NUM_PER_EPISODE - 1) {
       coordinator.onceEvent(
         "stopPhase",
-        getOnStopPhaseFn(bot, sharedBotRng, coordinator, args.other_bot_name)
+        episodeNum,
+        episodeInstance.getOnStopPhaseFn(
+          bot,
+          rcon,
+          sharedBotRng,
+          coordinator,
+          args.other_bot_name,
+          episodeNum,
+          args
+        )
       );
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
+        episodeNum,
         `walkLookPhase_${iterationID} end`
       );
       return;
@@ -87,23 +100,76 @@ function getOnWalkLookPhaseFn(
     const nextIterationID = iterationID + 1;
     coordinator.onceEvent(
       `walkLookPhase_${nextIterationID}`,
+      episodeNum,
       getOnWalkLookPhaseFn(
         bot,
+        rcon,
         sharedBotRng,
         coordinator,
         nextIterationID,
         episodeNum,
-        getOnStopPhaseFn,
+        episodeInstance,
         args
       )
     );
     coordinator.sendToOtherBot(
       `walkLookPhase_${nextIterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `walkLookPhase_${iterationID} end`
     );
   };
 }
+
+class WalkLookEpisode extends BaseEpisode {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+    // optional setup
+  }
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args
+  ) {
+    coordinator.onceEvent(
+      `walkLookPhase_${iterationID}`,
+      episodeNum,
+      getOnWalkLookPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        this,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `walkLookPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      "teleportPhase end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args
+  ) {
+    // optional teardown
+  }
+}
+
 module.exports = {
   getOnWalkLookPhaseFn,
+  WalkLookEpisode,
 };

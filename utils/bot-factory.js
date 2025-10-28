@@ -1,5 +1,11 @@
 const mineflayer = require("mineflayer");
-const { pathfinder, Movements, goals: { GoalNear, GoalNearXZ, GoalBlock, GoalFollow } } = require('mineflayer-pathfinder');
+const {
+  pathfinder,
+  Movements,
+  goals: { GoalNear, GoalNearXZ, GoalBlock, GoalFollow },
+} = require("mineflayer-pathfinder");
+
+const pvp = require("mineflayer-pvp").plugin;
 
 /**
  * Create a new Mineflayer bot instance
@@ -21,6 +27,7 @@ function makeBot({ username, host, port, version = "1.20.4" }) {
 
   // Load pathfinder plugin
   bot.loadPlugin(pathfinder);
+  bot.loadPlugin(pvp);
 
   bot.on("end", () => console.log(`[${bot.username}] disconnected.`));
   bot.on("kicked", (reason) =>
@@ -35,7 +42,7 @@ module.exports = {
   makeBot,
   Movements,
   GoalNear,
-  GoalNearXZ, 
+  GoalNearXZ,
   GoalBlock,
-  GoalFollow
+  GoalFollow,
 };

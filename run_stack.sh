@@ -80,7 +80,8 @@ start_log_capture() {
 cmd_up() {
   local generate_comparison=${1:-}
   local build_images=${2:-}
-  local run_alignment=${3:-}
+  local skip_post_process=${3:-}
+  local run_alignment=${4:-}
   ensure_directories
   local running_ids
   running_ids=$(compose_cmd ps -q 2>/dev/null || true)
@@ -109,34 +110,37 @@ cmd_up() {
   fi
   stop_log_capture
   compose_cmd down
-  echo "[run] aligning camera recordings"
-  
-  local comparison_flag=""
-  if [[ "${generate_comparison}" == "true" ]]; then
-    comparison_flag="--comparison-video"
-    echo "[run] comparison videos will be generated (slower)"
-  fi
-  
-  if python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
-    --bot Alpha \
-    --actions-dir "${PROJECT_DIR}/output" \
-    --camera-prefix "${PROJECT_DIR}/camera" \
-    ${comparison_flag}; then
-    echo "[run] Alpha processing completed successfully"
+  if [[ "${skip_post_process}" == "true" ]]; then
+    echo "[run] skipping post-processing per --skip-post-process"
   else
-    echo "[run] WARNING: Alpha processing failed (exit code $?)" >&2
-  fi
-  
-  if python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
-    --bot Bravo \
-    --actions-dir "${PROJECT_DIR}/output" \
-    --camera-prefix "${PROJECT_DIR}/camera" \
-    ${comparison_flag}; then
-    echo "[run] Bravo processing completed successfully"
-  else
-    echo "[run] WARNING: Bravo processing failed (exit code $?)" >&2
-  fi
-  
+    echo "[run] aligning camera recordings"
+    
+    local comparison_flag=""
+    if [[ "${generate_comparison}" == "true" ]]; then
+      comparison_flag="--comparison-video"
+      echo "[run] comparison videos will be generated (slower)"
+    fi
+    
+    if python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
+      --bot Alpha \
+      --actions-dir "${PROJECT_DIR}/output" \
+      --camera-prefix "${PROJECT_DIR}/camera" \
+      ${comparison_flag}; then
+      echo "[run] Alpha processing completed successfully"
+    else
+      echo "[run] WARNING: Alpha processing failed (exit code $?)" >&2
+    fi
+    
+    if python3 "${PROJECT_DIR}/postprocess/process_recordings.py" \
+      --bot Bravo \
+      --actions-dir "${PROJECT_DIR}/output" \
+      --camera-prefix "${PROJECT_DIR}/camera" \
+      ${comparison_flag}; then
+      echo "[run] Bravo processing completed successfully"
+    else
+      echo "[run] WARNING: Bravo processing failed (exit code $?)" >&2
+    fi
+    
   # Add video annotation and alignment if requested
   if [[ "${run_alignment}" == "true" ]]; then
     echo "[run] running video annotation and alignment"
@@ -150,7 +154,8 @@ cmd_up() {
     fi
   fi
   
-  echo "[run] post-processing complete (check output above for any warnings)"
+    echo "[run] post-processing complete (check output above for any warnings)"
+  fi
 }
 
 cmd_down() {
@@ -190,10 +195,11 @@ usage() {
 Usage: ${0##*/} <command> [options]
 
 Commands:
-  up [--compare] [--build] [--align]
+  up [--compare] [--build] [--skip-post-process] [--align]
                     Start the docker stack and begin capturing logs
                     --compare: Generate side-by-side comparison videos (slower)
                     --build: Build images instead of pulling them
+                    --skip-post-process: Skip aligning and processing recordings
                     --align: Run alignment after stack shutdown
   down              Stop log capture and docker stack
   status            Show container status from docker compose
@@ -212,6 +218,7 @@ main() {
     up)
       local generate_comparison="false"
       local build_images="false"
+      local skip_post_process="false"
       local run_alignment="false"
       while [[ $# -gt 0 ]]; do
         case "${1}" in
@@ -223,6 +230,10 @@ main() {
             build_images="true"
             shift
             ;;
+          --skip-post-process)
+            skip_post_process="true"
+            shift
+            ;;
           --align)
             run_alignment="true"
             shift
@@ -232,7 +243,7 @@ main() {
             ;;
         esac
       done
-      cmd_up "${generate_comparison}" "${build_images}" "${run_alignment}" "$@"
+      cmd_up "${generate_comparison}" "${build_images}" "${skip_post_process}" "${run_alignment}" "$@"
       ;;
     down)
       cmd_down "$@"

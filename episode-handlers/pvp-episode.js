@@ -1,5 +1,6 @@
 const Vec3 = require("vec3").Vec3;
 const { Movements, GoalFollow, GoalNear } = require("../utils/bot-factory");
+const { unequipHand } = require("../utils/items");
 const {
   stopAll,
   lookAtBot,
@@ -8,6 +9,7 @@ const {
   stopPathfinder,
 } = require("../utils/movement");
 const Rcon = require("rcon-client").Rcon;
+const { BaseEpisode } = require("./base-episode");
 
 // Constants for PVP behavior
 const PVP_DURATION_MS = 10000; // 10 seconds of combat
@@ -18,14 +20,12 @@ const COMBAT_LOOP_INTERVAL_MS = 100; // Combat loop update rate
 const MIN_SPAWN_DISTANCE = 8; // Minimum distance between bots at spawn
 const MAX_SPAWN_DISTANCE = 15; // Maximum distance between bots at spawn
 const INITIAL_EYE_CONTACT_MS = 500; // Initial look duration
-const RECORDING_DELAY_MS = 500; // Recording stabilization delay
 
 // Available sword types (will pick randomly)
 const SWORD_TYPES = [
   "netherite_sword",
   "diamond_sword",
   "iron_sword",
-
   "stone_sword",
   "golden_sword",
   "wooden_sword",
@@ -307,23 +307,23 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
 /**
  * Get PVP phase handler function
  * @param {Bot} bot - Mineflayer bot instance
+ * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
  * @param {BotCoordinator} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
- * @param {string} otherBotName - Other bot name
  * @param {number} episodeNum - Episode number
- * @param {Function} getOnStopPhaseFn - Stop phase function getter
+ * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
  * @returns {Function} PVP phase handler
  */
 function getOnPvpPhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   iterationID,
-  otherBotName,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args
 ) {
   return async (otherBotPosition) => {
@@ -340,6 +340,7 @@ function getOnPvpPhaseFn(
     coordinator.sendToOtherBot(
       `pvpPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `pvpPhase_${iterationID} beginning`
     );
 
@@ -348,18 +349,12 @@ function getOnPvpPhaseFn(
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
 
-    // Strategic delay to ensure recording has fully started
-    console.log(
-      `[${bot.username}] ⏳ Waiting ${RECORDING_DELAY_MS}ms for recording to stabilize...`
-    );
-    await sleep(RECORDING_DELAY_MS);
-
     // STEP 2: Both bots look at each other
     console.log(`[${bot.username}] 👀 STEP 2: Looking at other bot...`);
     try {
-      await lookAtBot(bot, otherBotName, 180);
+      await lookAtBot(bot, args.other_bot_name, 180);
       console.log(
-        `[${bot.username}] ✅ Initial eye contact established with ${otherBotName}`
+        `[${bot.username}] ✅ Initial eye contact established with ${args.other_bot_name}`
       );
       await sleep(INITIAL_EYE_CONTACT_MS);
     } catch (lookError) {
@@ -380,11 +375,11 @@ function getOnPvpPhaseFn(
       )}, ${myPosition.y.toFixed(1)}, ${myPosition.z.toFixed(1)})`
     );
     console.log(
-      `[${
-        bot.username
-      }]    ${otherBotName} position: (${otherPosition.x.toFixed(
+      `[${bot.username}]    ${
+        args.other_bot_name
+      } position: (${otherPosition.x.toFixed(1)}, ${otherPosition.y.toFixed(
         1
-      )}, ${otherPosition.y.toFixed(1)}, ${otherPosition.z.toFixed(1)})`
+      )}, ${otherPosition.z.toFixed(1)})`
     );
     console.log(
       `[${bot.username}]    Distance: ${initialDistance.toFixed(2)} blocks`
@@ -420,7 +415,7 @@ function getOnPvpPhaseFn(
 
     // STEP 5-7: Enter combat loop
     console.log(`[${bot.username}] ⚔️ STEP 5-7: Beginning PVP combat...`);
-    await pvpCombatLoop(bot, otherBotName, PVP_DURATION_MS);
+    await pvpCombatLoop(bot, args.other_bot_name, PVP_DURATION_MS);
 
     // STEP 8: Episode ends
     console.log(`[${bot.username}] 🎬 STEP 8: PVP episode ending...`);
@@ -438,11 +433,21 @@ function getOnPvpPhaseFn(
     console.log(`[${bot.username}] 🔄 Transitioning to stop phase...`);
     coordinator.onceEvent(
       "stopPhase",
-      getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName)
+      episodeNum,
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args
+      )
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `pvpPhase_${iterationID} end`
     );
 
@@ -452,10 +457,65 @@ function getOnPvpPhaseFn(
   };
 }
 
+/**
+ * PvpEpisode - Episode class for player vs player combat
+ */
+class PvpEpisode extends BaseEpisode {
+  static INIT_MIN_BOTS_DISTANCE = MIN_SPAWN_DISTANCE;
+  static INIT_MAX_BOTS_DISTANCE = MAX_SPAWN_DISTANCE;
+
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+    // No setup needed - swords are equipped during the episode
+  }
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args
+  ) {
+    coordinator.onceEvent(
+      `pvpPhase_${iterationID}`,
+      episodeNum,
+      getOnPvpPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        this,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `pvpPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      "entryPoint end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args
+  ) {
+    await unequipHand(bot);
+  }
+}
+
 module.exports = {
   pvpCombatLoop,
   equipRandomSword,
   equipSwordViaRcon,
   rconCommand,
   getOnPvpPhaseFn,
+  PvpEpisode,
 };

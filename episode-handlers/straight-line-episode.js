@@ -10,6 +10,7 @@ const {
   horizontalDistanceTo,
   getDirectionTo,
 } = require("../utils/movement");
+const { BaseEpisode } = require("./base-episode");
 
 // Constants for the new episode
 const STRAIGHT_WALK_DISTANCE = 8; // Distance to walk in straight line
@@ -108,24 +109,26 @@ async function walkStraightWhileLooking(
  * @param {number} iterationID - Iteration ID
  * @param {string} otherBotName - Other bot name
  * @param {number} episodeNum - Episode number
- * @param {Function} getOnStopPhaseFn - Stop phase function getter
+ * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
  * @returns {Function} Straight line walk phase handler
  */
 function getOnStraightLineWalkPhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   iterationID,
   otherBotName,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       `straightLineWalkPhase_${iterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `straightLineWalkPhase_${iterationID} beginning`
     );
 
@@ -186,11 +189,21 @@ function getOnStraightLineWalkPhaseFn(
       // Assuming 3 iterations like the original
       coordinator.onceEvent(
         "stopPhase",
-        getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName)
+        episodeNum,
+        episodeInstance.getOnStopPhaseFn(
+          bot,
+          rcon,
+          sharedBotRng,
+          coordinator,
+          otherBotName,
+          episodeNum,
+          args
+        )
       );
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
+        episodeNum,
         `straightLineWalkPhase_${iterationID} end`
       );
       return;
@@ -199,26 +212,79 @@ function getOnStraightLineWalkPhaseFn(
     const nextIterationID = iterationID + 1;
     coordinator.onceEvent(
       `straightLineWalkPhase_${nextIterationID}`,
+      episodeNum,
       getOnStraightLineWalkPhaseFn(
         bot,
+        rcon,
         sharedBotRng,
         coordinator,
         nextIterationID,
         otherBotName,
         episodeNum,
-        getOnStopPhaseFn,
+        episodeInstance,
         args
       )
     );
     coordinator.sendToOtherBot(
       `straightLineWalkPhase_${nextIterationID}`,
       bot.entity.position.clone(),
+      episodeNum,
       `straightLineWalkPhase_${iterationID} end`
     );
   };
 }
 
+class StraightLineEpisode extends BaseEpisode {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+    // optional setup
+  }
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args
+  ) {
+    coordinator.onceEvent(
+      `straightLineWalkPhase_${iterationID}`,
+      episodeNum,
+      getOnStraightLineWalkPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        args.other_bot_name,
+        episodeNum,
+        this,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `straightLineWalkPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      "teleportPhase end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args
+  ) {
+    // optional teardown
+  }
+}
+
 module.exports = {
   walkStraightWhileLooking,
   getOnStraightLineWalkPhaseFn,
+  StraightLineEpisode,
 };
