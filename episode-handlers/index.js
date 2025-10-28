@@ -3,7 +3,7 @@ const Vec3 = require("vec3").Vec3;
 const { sleep } = require("../utils/helpers");
 const { Rcon } = require("rcon-client");
 const seedrandom = require("seedrandom");
-const { land_pos, lookAtSmooth } = require("../utils/movement");
+const { land_pos, lookAtSmooth, stopAll } = require("../utils/movement");
 const { rconTp } = require("../utils/coordination");
 const { waitForCameras } = require("../utils/camera-ready");
 const {
@@ -21,8 +21,9 @@ const { WalkLookAwayEpisode } = require("./walk-look-away-episode");
 const { PvpEpisode } = require("./pvp-episode");
 const { BuildStructureEpisode } = require("./build-structure-episode");
 const { BuildTowerEpisode } = require("./build-tower-episode");
-const { mineEpisode } = require("./mine-episode");
+const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
+const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -36,19 +37,24 @@ const episodeClassMap = {
   buildStructure: BuildStructureEpisode,
   buildTower: BuildTowerEpisode,
   mine: MineEpisode,
+  towerBridge: TowerBridgeEpisode,
 };
 
 // Import episode-specific handlers
 
 // Add episode type selection - Enable multiple types for diverse data collection
 const episodeTypes = [
+  // "straightLineWalk",
   // "chase",
   // "orbit",
   // "walkLook",
   // "walkLookAway",
-  "pve",
-  // "mvcTest"  // Add MVC test episode for validation
-  // "bridgeBuilder"  // Add cooperative bridge building episode
+  "pvp",
+  // "pve",
+  // "buildStructure",
+  // "buildTower",
+  // "mine",
+  // "towerBridge",
 ];
 /**
  * Run a single episode
@@ -319,6 +325,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
           `[${bot.username}] Stopped pathfinder navigation for episode ${episodeNum}`
         );
       }
+      stopAll(bot);
 
       console.log(`[${bot.username}] tearing down episode ${episodeNum}`);
       try {

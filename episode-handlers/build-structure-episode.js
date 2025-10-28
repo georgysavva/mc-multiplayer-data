@@ -6,6 +6,7 @@ const {
   stopPathfinder,
 } = require("../utils/movement");
 const { placeAt, placeMultiple } = require("./builder");
+const { BaseEpisode } = require("./base-episode");
 
 // Constants for building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
@@ -110,24 +111,24 @@ async function buildStructure(bot, positions, blockType, args) {
 /**
  * Get the phase function for building episodes
  * @param {Bot} bot - Mineflayer bot instance
+ * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
  * @param {BotCoordinator} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
- * @param {string} otherBotName - Other bot name
  * @param {number} episodeNum - Episode number
- * @param {Function} getOnStopPhaseFn - Stop phase function getter
+ * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
  * @param {string} structureType - Type of structure ('wall', 'tower', 'platform')
  * @returns {Function} Phase function
  */
 function getOnBuildPhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   iterationID,
-  otherBotName,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args,
   structureType = "wall"
 ) {
@@ -151,10 +152,10 @@ function getOnBuildPhaseFn(
 
     // STEP 2: Initial eye contact
     console.log(
-      `[${bot.username}] 👀 STEP 2: Making eye contact with ${otherBotName}...`
+      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
     );
     try {
-      const otherEntity = bot.players[otherBotName]?.entity;
+      const otherEntity = bot.players[args.other_bot_name]?.entity;
       if (otherEntity) {
         const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
         await bot.lookAt(targetPos);
@@ -221,7 +222,7 @@ function getOnBuildPhaseFn(
     // STEP 5: Final eye contact
     console.log(`[${bot.username}] 👀 STEP 5: Final eye contact...`);
     try {
-      const otherEntity = bot.players[otherBotName]?.entity;
+      const otherEntity = bot.players[args.other_bot_name]?.entity;
       if (otherEntity) {
         const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
         await bot.lookAt(targetPos);
@@ -238,16 +239,84 @@ function getOnBuildPhaseFn(
     // Transition to stop phase
     coordinator.onceEvent(
       "stopPhase",
-      getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName)
+      episodeNum,
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args
+      )
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `buildPhase_${iterationID} end`
     );
 
     return buildResult;
   };
+}
+
+/**
+ * BuildStructureEpisode - Episode class for collaborative structure building
+ */
+class BuildStructureEpisode extends BaseEpisode {
+  static INIT_MIN_BOTS_DISTANCE = 8;
+  static INIT_MAX_BOTS_DISTANCE = 15;
+
+  constructor({ structureType = "wall" } = {}) {
+    super();
+    this.structureType = structureType;
+  }
+
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args
+  ) {
+    coordinator.onceEvent(
+      `buildPhase_${iterationID}`,
+      episodeNum,
+      getOnBuildPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        this,
+        args,
+        this.structureType
+      )
+    );
+    coordinator.sendToOtherBot(
+      `buildPhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      "entryPoint end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args
+  ) {
+    // Clean up any remaining blocks from inventory
+  }
 }
 
 module.exports = {
@@ -256,4 +325,5 @@ module.exports = {
   generateTowerPositions,
   generatePlatformPositions,
   getOnBuildPhaseFn,
+  BuildStructureEpisode,
 };

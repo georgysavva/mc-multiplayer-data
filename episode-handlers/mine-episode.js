@@ -6,6 +6,8 @@ const {
   stopPathfinder,
 } = require("../utils/movement");
 const { ensureItemInHand } = require("./builder");
+const { BaseEpisode } = require("./base-episode");
+const { unequipHand } = require("../utils/items");
 
 // Constants for mining behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
@@ -253,23 +255,23 @@ async function mineTunnelTowards(bot, targetPos, maxBlocks = 20) {
 /**
  * Get the phase function for mining episodes
  * @param {Bot} bot - Mineflayer bot instance
+ * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
  * @param {BotCoordinator} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
- * @param {string} otherBotName - Other bot name
  * @param {number} episodeNum - Episode number
- * @param {Function} getOnStopPhaseFn - Stop phase function getter
+ * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
  * @returns {Function} Phase function
  */
 function getOnMinePhaseFn(
   bot,
+  rcon,
   sharedBotRng,
   coordinator,
   iterationID,
-  otherBotName,
   episodeNum,
-  getOnStopPhaseFn,
+  episodeInstance,
   args
 ) {
   return async function onMinePhase(otherBotPosition) {
@@ -295,11 +297,11 @@ function getOnMinePhaseFn(
 
     // STEP 2: Initial eye contact
     console.log(
-      `[${bot.username}] 👀 STEP 2: Making eye contact with ${otherBotName}...`
+      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
     );
     let actualOtherBotPosition = null;
     try {
-      const otherEntity = bot.players[otherBotName]?.entity;
+      const otherEntity = bot.players[args.other_bot_name]?.entity;
       if (otherEntity) {
         actualOtherBotPosition = otherEntity.position.clone();
         const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
@@ -338,11 +340,21 @@ function getOnMinePhaseFn(
       // Transition to stop phase
       coordinator.onceEvent(
         "stopPhase",
-        getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName)
+        episodeNum,
+        episodeInstance.getOnStopPhaseFn(
+          bot,
+          rcon,
+          sharedBotRng,
+          coordinator,
+          args.other_bot_name,
+          episodeNum,
+          args
+        )
       );
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
+        episodeNum,
         `minePhase_${iterationID} end (failed)`
       );
       return;
@@ -356,7 +368,7 @@ function getOnMinePhaseFn(
       `[${bot.username}] 👀 STEP 5: Looking towards other bot's direction...`
     );
     try {
-      const otherEntity = bot.players[otherBotName]?.entity;
+      const otherEntity = bot.players[args.other_bot_name]?.entity;
       if (otherEntity) {
         actualOtherBotPosition = otherEntity.position.clone();
 
@@ -386,7 +398,7 @@ function getOnMinePhaseFn(
     const myPos = bot.entity.position.clone();
 
     // Try to get updated other bot position
-    const otherEntity = bot.players[otherBotName]?.entity;
+    const otherEntity = bot.players[args.other_bot_name]?.entity;
     if (otherEntity) {
       actualOtherBotPosition = otherEntity.position.clone();
     }
@@ -428,7 +440,7 @@ function getOnMinePhaseFn(
     // STEP 8: Final eye contact
     console.log(`[${bot.username}] 👀 STEP 8: Final eye contact...`);
     try {
-      const otherEntity2 = bot.players[otherBotName]?.entity;
+      const otherEntity2 = bot.players[args.other_bot_name]?.entity;
       if (otherEntity2) {
         const targetPos = otherEntity2.position.offset(
           0,
@@ -454,16 +466,79 @@ function getOnMinePhaseFn(
     // STEP 9: Transition to stop phase (end episode)
     coordinator.onceEvent(
       "stopPhase",
-      getOnStopPhaseFn(bot, sharedBotRng, coordinator, otherBotName)
+      episodeNum,
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args
+      )
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
+      episodeNum,
       `minePhase_${iterationID} end`
     );
 
     return miningResult;
   };
+}
+
+/**
+ * MineEpisode - Episode class for mining towards each other
+ */
+class MineEpisode extends BaseEpisode {
+  static INIT_MIN_BOTS_DISTANCE = 10;
+  static INIT_MAX_BOTS_DISTANCE = 20;
+
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args
+  ) {
+    coordinator.onceEvent(
+      `minePhase_${iterationID}`,
+      episodeNum,
+      getOnMinePhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        this,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `minePhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      "entryPoint end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args
+  ) {
+    // Unequip pickaxe from main hand
+    await unequipHand(bot);
+  }
 }
 
 module.exports = {
@@ -472,4 +547,5 @@ module.exports = {
   digDownOneBlock,
   mineTunnelTowards,
   TOOL_TYPE,
+  MineEpisode,
 };

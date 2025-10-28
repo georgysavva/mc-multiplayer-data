@@ -8,6 +8,7 @@ const {
 
 const { GoalNear, Movements } = require("../utils/bot-factory");
 const { BaseEpisode } = require("./base-episode");
+const { unequipHand } = require("../utils/items");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 
@@ -487,28 +488,7 @@ class PveEpisode extends BaseEpisode {
       `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`
     );
     // Make the bot unequip the sword (from main hand)
-    if (bot && bot.entity && bot.inventory) {
-      // Check if the bot has a sword equipped
-      const itemInHand = bot.heldItem;
-      if (
-        itemInHand &&
-        itemInHand.name &&
-        (itemInHand.name.includes("sword") ||
-          itemInHand.displayName?.toLowerCase().includes("sword"))
-      ) {
-        // Safely unequip the main hand item
-        try {
-          await bot.unequip("hand");
-          console.log(`[${bot.username}] Unequipped sword from main hand`);
-        } catch (err) {
-          console.log(
-            `[${bot.username}] Failed to unequip from main hand: ${String(
-              err?.message || err
-            )}`
-          );
-        }
-      }
-    }
+    await unequipHand(bot);
   }
 }
 module.exports = {
