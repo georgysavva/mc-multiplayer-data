@@ -185,9 +185,10 @@ argparser.add_argument(
 argparser.add_argument("--port", type=int, default=8089, help="Port number")
 argparser.add_argument(
     "--viewer_rendering_disabled",
-    type=bool,
-    default=False,
-    help="Disable rendering in the viewer (default: enabled)",
+    type=int,
+    choices=[0, 1],
+    default=0,
+    help="Disable rendering in the viewer (0 = enabled, 1 = disabled)",
 )
 
 argparser.add_argument("--output_path", type=str, required=True, help="output path")
@@ -224,7 +225,7 @@ while True:
 
     processor = Thread(
         target=process_frame_worker,
-        args=(frame_queue, output_path, args.viewer_rendering_disabled),
+        args=(frame_queue, output_path, bool(args.viewer_rendering_disabled)),
     )
     processor.daemon = True
     processor.start()
