@@ -53,7 +53,7 @@ const episodeTypes = [
   "pve",
   "buildStructure",
   "buildTower",
-  "mine",
+  // "mine",
   "towerBridge",
 ];
 /**
