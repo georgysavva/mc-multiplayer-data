@@ -5,7 +5,6 @@ const {
   lookAtBot,
   lookAtSmooth,
   sleep,
-  horizontalDistanceTo,
   initializePathfinder,
   stopPathfinder,
 } = require("../utils/movement");
@@ -31,11 +30,12 @@ const ORBIT_MVC_CONFIG = {
 };
 
 /**
- * Make both bots orbit around their shared midpoint with pathfinder, eye contact, and MVC
+ * Make both bots orbit around their shared midpoint using checkpoints
  * @param {Bot} bot - Mineflayer bot instance
  * @param {BotCoordinator} coordinator - Bot coordinator instance
  * @param {string} otherBotName - Name of the other bot
  * @param {Vec3} sharedMidpoint - Shared orbit center between both bots
+ * @param {number} radius - Orbit radius
  * @param {number} durationMs - Duration to orbit in milliseconds
  */
 async function orbitAroundSharedMidpoint(
@@ -55,8 +55,8 @@ async function orbitAroundSharedMidpoint(
 
   // Initialize pathfinder with optimal settings for orbiting
   initializePathfinder(bot, {
-    allowSprinting: true,
-    allowParkour: true,
+    allowSprinting: false,
+    allowParkour: false,
     canDig: false,
     allowEntityDetection: true,
   });
@@ -208,6 +208,16 @@ function getOnOrbitPhaseFn(
   args
 ) {
   return async (otherBotPosition) => {
+    const startTime = Date.now();
+    console.log(
+      `[${bot.username}] ORBIT EPISODE STARTING - Episode ${episodeNum}, Iteration ${iterationID}`
+    );
+    console.log(
+      `[${bot.username}] Episode start time: ${new Date(
+        startTime
+      ).toISOString()}`
+    );
+
     coordinator.sendToOtherBot(
       `orbitPhase_${iterationID}`,
       bot.entity.position.clone(),
@@ -253,6 +263,7 @@ function getOnOrbitPhaseFn(
     );
 
     // Transition to stop phase
+    console.log(`[${bot.username}] Transitioning to stop phase...`);
     coordinator.onceEvent(
       "stopPhase",
       episodeNum,
@@ -271,6 +282,10 @@ function getOnOrbitPhaseFn(
       bot.entity.position.clone(),
       episodeNum,
       `orbitPhase_${iterationID} end`
+    );
+
+    console.log(
+      `[${bot.username}] Orbit phase ${iterationID} transition complete`
     );
   };
 }

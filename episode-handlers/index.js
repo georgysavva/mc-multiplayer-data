@@ -16,10 +16,12 @@ const {
 const { StraightLineEpisode } = require("./straight-line-episode");
 const { ChaseEpisode } = require("./chase-episode");
 const { OrbitEpisode } = require("./orbit-episode");
-const { MvcTestEpisode } = require("./mvc-test-episode");
-const { BridgeBuilderEpisode } = require("./bridge-builder-episode");
 const { WalkLookEpisode } = require("./walk-look-episode");
 const { WalkLookAwayEpisode } = require("./walk-look-away-episode");
+const { PvpEpisode } = require("./pvp-episode");
+const { BuildStructureEpisode } = require("./build-structure-episode");
+const { BuildTowerEpisode } = require("./build-tower-episode");
+const { mineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 
 // Map episode type strings to their class implementations
@@ -27,14 +29,18 @@ const episodeClassMap = {
   straightLineWalk: StraightLineEpisode,
   chase: ChaseEpisode,
   orbit: OrbitEpisode,
-  mvcTest: MvcTestEpisode,
-  bridgeBuilder: BridgeBuilderEpisode,
   walkLook: WalkLookEpisode,
   walkLookAway: WalkLookAwayEpisode,
+  pvp: PvpEpisode,
   pve: PveEpisode,
+  buildStructure: BuildStructureEpisode,
+  buildTower: BuildTowerEpisode,
+  mine: MineEpisode,
 };
 
 // Import episode-specific handlers
+
+// Add episode type selection - Enable multiple types for diverse data collection
 const episodeTypes = [
   // "chase",
   // "orbit",
