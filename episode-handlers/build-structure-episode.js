@@ -1,12 +1,16 @@
 // build-structure-episode.js - Collaborative building episode
-const { Vec3 } = require('vec3');
-const { sleep, initializePathfinder, stopPathfinder } = require('../utils/movement');
-const { placeAt, placeMultiple } = require('./builder');
+const { Vec3 } = require("vec3");
+const {
+  sleep,
+  initializePathfinder,
+  stopPathfinder,
+} = require("../utils/movement");
+const { placeAt, placeMultiple } = require("./builder");
 
 // Constants for building behavior
-const INITIAL_EYE_CONTACT_MS = 1500;     // Initial look duration
-const RECORDING_DELAY_MS = 500;          // Recording stabilization delay
-const BUILD_BLOCK_TYPES = ['stone', 'cobblestone', 'oak_planks', 'bricks'];
+const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
+const RECORDING_DELAY_MS = 500; // Recording stabilization delay
+const BUILD_BLOCK_TYPES = ["stone", "cobblestone", "oak_planks", "bricks"];
 
 /**
  * Generate positions for a simple wall structure
@@ -16,11 +20,11 @@ const BUILD_BLOCK_TYPES = ['stone', 'cobblestone', 'oak_planks', 'bricks'];
  * @param {string} direction - 'x' or 'z' axis
  * @returns {Array<Vec3>} Array of positions
  */
-function generateWallPositions(startPos, length, height, direction = 'x') {
+function generateWallPositions(startPos, length, height, direction = "x") {
   const positions = [];
   for (let y = 0; y < height; y++) {
     for (let i = 0; i < length; i++) {
-      if (direction === 'x') {
+      if (direction === "x") {
         positions.push(startPos.offset(i, y, 0));
       } else {
         positions.push(startPos.offset(0, y, i));
@@ -70,27 +74,33 @@ function generatePlatformPositions(startPos, width, depth) {
  * @returns {Promise<Object>} Build statistics
  */
 async function buildStructure(bot, positions, blockType, args) {
-  console.log(`[${bot.username}] 🏗️ Starting to build ${positions.length} blocks...`);
-  
+  console.log(
+    `[${bot.username}] 🏗️ Starting to build ${positions.length} blocks...`
+  );
+
   // Initialize pathfinder for movement
   initializePathfinder(bot, {
     allowSprinting: false,
     allowParkour: false,
     canDig: false,
-    allowEntityDetection: true
+    allowEntityDetection: true,
   });
-  
+
   try {
     const result = await placeMultiple(bot, positions, blockType, {
       useSneak: true,
       tries: 5,
-      args: args
+      args: args,
     });
-    
+
     console.log(`[${bot.username}] 🏁 Build complete!`);
-    console.log(`[${bot.username}]    Success: ${result.success}/${positions.length}`);
-    console.log(`[${bot.username}]    Failed: ${result.failed}/${positions.length}`);
-    
+    console.log(
+      `[${bot.username}]    Success: ${result.success}/${positions.length}`
+    );
+    console.log(
+      `[${bot.username}]    Failed: ${result.failed}/${positions.length}`
+    );
+
     return result;
   } finally {
     stopPathfinder(bot);
@@ -119,7 +129,7 @@ function getOnBuildPhaseFn(
   episodeNum,
   getOnStopPhaseFn,
   args,
-  structureType = 'wall'
+  structureType = "wall"
 ) {
   return async function onBuildPhase(otherBotPosition) {
     coordinator.sendToOtherBot(
@@ -127,18 +137,22 @@ function getOnBuildPhaseFn(
       bot.entity.position.clone(),
       `buildPhase_${iterationID} beginning`
     );
-    
+
     console.log(`[${bot.username}] 🚀 Starting BUILD phase ${iterationID}`);
-    
+
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
-    
+
     // Strategic delay to ensure recording has fully started
-    console.log(`[${bot.username}] ⏳ Waiting ${RECORDING_DELAY_MS}ms for recording to stabilize...`);
+    console.log(
+      `[${bot.username}] ⏳ Waiting ${RECORDING_DELAY_MS}ms for recording to stabilize...`
+    );
     await sleep(RECORDING_DELAY_MS);
-    
+
     // STEP 2: Initial eye contact
-    console.log(`[${bot.username}] 👀 STEP 2: Making eye contact with ${otherBotName}...`);
+    console.log(
+      `[${bot.username}] 👀 STEP 2: Making eye contact with ${otherBotName}...`
+    );
     try {
       const otherEntity = bot.players[otherBotName]?.entity;
       if (otherEntity) {
@@ -147,52 +161,63 @@ function getOnBuildPhaseFn(
         await sleep(INITIAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {
-      console.log(`[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`);
+      console.log(
+        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+      );
     }
-    
+
     // STEP 3: Determine build positions based on bot role
     console.log(`[${bot.username}] 📐 STEP 3: Planning structure...`);
-    
+
     const botPos = bot.entity.position.floored();
     let positions = [];
-    let blockType = BUILD_BLOCK_TYPES[Math.floor(sharedBotRng() * BUILD_BLOCK_TYPES.length)];
-    
-    if (structureType === 'wall') {
+    let blockType =
+      BUILD_BLOCK_TYPES[Math.floor(sharedBotRng() * BUILD_BLOCK_TYPES.length)];
+
+    if (structureType === "wall") {
       // Alpha builds left side, Bravo builds right side
       const startPos = botPos.offset(2, 0, 0);
       const length = 5;
       const height = 3;
-      
-      if (bot.username === 'Alpha') {
-        positions = generateWallPositions(startPos, length, height, 'x');
+
+      if (bot.username === "Alpha") {
+        positions = generateWallPositions(startPos, length, height, "x");
       } else {
-        positions = generateWallPositions(startPos.offset(0, 0, 2), length, height, 'x');
+        positions = generateWallPositions(
+          startPos.offset(0, 0, 2),
+          length,
+          height,
+          "x"
+        );
       }
-    } else if (structureType === 'tower') {
+    } else if (structureType === "tower") {
       // Each bot builds their own tower
-      const startPos = botPos.offset(3, 0, bot.username === 'Alpha' ? 0 : 3);
+      const startPos = botPos.offset(3, 0, bot.username === "Alpha" ? 0 : 3);
       const height = 5;
       positions = generateTowerPositions(startPos, height);
-    } else if (structureType === 'platform') {
+    } else if (structureType === "platform") {
       // Bots build a shared platform
       const startPos = botPos.offset(2, 0, 0);
       const width = 4;
       const depth = 4;
-      
+
       // Split platform: Alpha does first half, Bravo does second half
       const allPositions = generatePlatformPositions(startPos, width, depth);
       const half = Math.floor(allPositions.length / 2);
-      positions = bot.username === 'Alpha' ? 
-        allPositions.slice(0, half) : 
-        allPositions.slice(half);
+      positions =
+        bot.username === "Alpha"
+          ? allPositions.slice(0, half)
+          : allPositions.slice(half);
     }
-    
-    console.log(`[${bot.username}] 📋 Building ${positions.length} blocks with ${blockType}`);
-    
+
+    console.log(
+      `[${bot.username}] 📋 Building ${positions.length} blocks with ${blockType}`
+    );
+
     // STEP 4: Build the structure
     console.log(`[${bot.username}] 🏗️ STEP 4: Building structure...`);
     const buildResult = await buildStructure(bot, positions, blockType, args);
-    
+
     // STEP 5: Final eye contact
     console.log(`[${bot.username}] 👀 STEP 5: Final eye contact...`);
     try {
@@ -203,11 +228,13 @@ function getOnBuildPhaseFn(
         await sleep(INITIAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {
-      console.log(`[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`);
+      console.log(
+        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+      );
     }
-    
+
     console.log(`[${bot.username}] ✅ BUILD phase complete!`);
-    
+
     // Transition to stop phase
     coordinator.onceEvent(
       "stopPhase",
@@ -218,7 +245,7 @@ function getOnBuildPhaseFn(
       bot.entity.position.clone(),
       `buildPhase_${iterationID} end`
     );
-    
+
     return buildResult;
   };
 }
@@ -228,5 +255,5 @@ module.exports = {
   generateWallPositions,
   generateTowerPositions,
   generatePlatformPositions,
-  getOnBuildPhaseFn
+  getOnBuildPhaseFn,
 };
