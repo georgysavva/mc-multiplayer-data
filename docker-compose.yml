@@ -30,7 +30,7 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data77:/data
+      - ${MC_DATA_DIR:-./data}:/data
     healthcheck:
       test:
         [
