@@ -37,6 +37,7 @@ function parseArgs() {
       viewer_rendering_disabled: 0,
       viewer_recording_interval: 50,
       smoke_test: 0,
+      world_type: "flat",
     },
   });
 }

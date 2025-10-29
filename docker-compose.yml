@@ -79,6 +79,7 @@ services:
       CAMERA_READY_CHECK_INTERVAL: 2000
       VIEWER_RENDERING_DISABLED: 0
       VIEWER_RECORDING_INTERVAL: 30 # should be 50 when rendering is disabled to have 20 FPS
+      WORLD_TYPE: flat # flat or normal
       SMOKE_TEST: 1
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -125,6 +126,7 @@ services:
       VIEWER_RENDERING_DISABLED: 0
       VIEWER_RECORDING_INTERVAL: 30
       SMOKE_TEST: 1
+      WORLD_TYPE: flat # flat or normal
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh

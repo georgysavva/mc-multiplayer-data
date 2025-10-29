@@ -270,20 +270,35 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       interval: 50,
     });
     // Run multiple episodes
-    // In smoke test mode, iterate over all episode types in alphabetical order
+    // Respect world type for eligible episode filtering
+    const worldType = (args.world_type || "flat").toLowerCase();
+    const isFlatWorld = worldType === "flat";
+    const allEpisodeTypes = Object.keys(episodeClassMap);
+    const eligibleEpisodeTypesForWorld = isFlatWorld
+      ? allEpisodeTypes
+      : allEpisodeTypes.filter(
+          (type) => episodeClassMap[type].WORKS_IN_NON_FLAT_WORLD === true
+        );
+
+    if (!isFlatWorld && eligibleEpisodeTypesForWorld.length === 0) {
+      throw new Error(
+        "No episodes are eligible for normal world. Mark episode classes with WORKS_IN_NON_FLAT_WORLD = true."
+      );
+    }
+    const sortedEligible = eligibleEpisodeTypesForWorld.slice().sort();
+
+    // In smoke test mode, iterate over all eligible episode types in alphabetical order
     let episodesToRun = [];
     if (args.smoke_test === 1) {
-      // Get all episode types and sort alphabetically
-      const allEpisodeTypes = Object.keys(episodeClassMap).sort();
-      episodesToRun = allEpisodeTypes.map((episodeType, index) => ({
+      episodesToRun = sortedEligible.map((episodeType, index) => ({
         episodeNum: args.start_episode_id + index,
         episodeType: episodeType,
       }));
       console.log(
-        `[${bot.username}] SMOKE TEST MODE: Running all ${episodesToRun.length} episode types in alphabetical order`
+        `[${bot.username}] SMOKE TEST MODE: Running ${episodesToRun.length} eligible episode types (world_type=${worldType}) in alphabetical order`
       );
     } else {
-      // Normal mode: use the configured episode types and episodes_num
+      // Normal mode: use the configured episodes_num, episode type picked at random from eligible
       for (let i = 0; i < args.episodes_num; i++) {
         episodesToRun.push({
           episodeNum: args.start_episode_id + i,
@@ -303,7 +318,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       const selectedEpisodeType =
         args.smoke_test === 1
           ? episodeConfig.episodeType
-          : episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
+          : sortedEligible[Math.floor(sharedBotRng() * sortedEligible.length)];
 
       console.log(
         `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
@@ -314,7 +329,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
 
       if (!EpisodeClass) {
         throw new Error(
-          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${episodeTypes.join(
+          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${sortedEligible.join(
             ", "
           )}`
         );

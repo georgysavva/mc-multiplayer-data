@@ -57,4 +57,5 @@ exec node senders.js \
   --mc_version "${MC_VERSION:-1.20.4}" \
   --viewer_rendering_disabled "${VIEWER_RENDERING_DISABLED:-0}" \
   --viewer_recording_interval "${VIEWER_RECORDING_INTERVAL:-50}" \
-  --smoke_test "${SMOKE_TEST:-0}"
+  --smoke_test "${SMOKE_TEST:-0}" \
+  --world_type "${WORLD_TYPE:-flat}"
