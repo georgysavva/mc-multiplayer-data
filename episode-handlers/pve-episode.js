@@ -65,22 +65,10 @@ function isInForwardFOV(bot, targetPos, fovDegrees = FOV_DEGREES) {
 
   return dotProduct >= angleThreshold;
 }
-/**
- * @typedef {Object} SpawnOptions
- * @property {string=} mob
- * @property {number=} count
- * @property {number=} maxRadius
- */
-/**
- * Spawn mobs around the bot within its forward-facing FOV.
- * @param {any} bot
- * @param {any} rcon
- * @param {SpawnOptions=} options
- */
 async function spawnWithRconAround(
   bot,
   rcon,
-  { mob, count = 8, maxRadius: maxRadiusOpt } = {}
+  { mob, count, maxRadius, minRadius }
 ) {
   const { x, y, z } = bot.entity.position;
 
@@ -95,8 +83,6 @@ async function spawnWithRconAround(
   const forwardX = -Math.sin(yaw);
   const forwardZ = -Math.cos(yaw);
   const fovRadians = (FOV_DEGREES * Math.PI) / 180;
-  const minRadius = 2;
-  const maxRadius = Math.max(minRadius + 1, maxRadiusOpt ?? VIEW_DISTANCE);
   const cmds = [];
   for (let i = 0; i < count; i++) {
     // Pick a random direction within the forward FOV cone
@@ -185,7 +171,7 @@ function getNearestHostile(bot, maxDistance = VIEW_DISTANCE, checkFOV = false) {
  * @returns {Promise} Promise that resolves when combat is complete
  */
 async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
-  const MELEE_RANGE = 3.5;
+  const MELEE_RANGE = 7;
 
   // Ensure we're not currently pathfinding/combat from a previous step
   await bot.pvp.stop();
@@ -193,8 +179,23 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
 
   // Wait for a hostile mob to come within melee distance
   let target;
+  const targetSearchStartTime = Date.now();
+  const TIMEOUT_MS = 15000; // 15 seconds
   while (true) {
     await sleep(200);
+
+    // Check for timeout
+    if (Date.now() - targetSearchStartTime > TIMEOUT_MS) {
+      console.log(
+        `[${
+          bot.username
+        }] Timeout waiting for hostile mob within ${MELEE_RANGE.toFixed(
+          1
+        )} blocks.`
+      );
+      return; // Exit guardAndFight early
+    }
+
     target = getNearestHostile(bot, MELEE_RANGE);
     if (!target) {
       console.log(
@@ -212,8 +213,19 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
   bot.pvp.attack(target);
 
   // Wait until the target is defeated (despawned/dead)
+  const combatStartTime = Date.now();
   while (true) {
     await sleep(200);
+
+    // Check for timeout
+    if (Date.now() - combatStartTime > TIMEOUT_MS) {
+      console.log(
+        `[${bot.username}] Timeout waiting for target defeat, stopping combat.`
+      );
+      await bot.pvp.stop();
+      return; // Exit guardAndFight early
+    }
+
     const still = bot.entities[target.id];
     if (!still || !still.isValid) break;
   }
@@ -281,7 +293,8 @@ function getOnPVEFightPhaseFn(
       phaseDataOur.guardPosition,
       phaseDataOther.guardPosition
     );
-    const mobDist = distToOther / 4;
+    const mobDistMax = distToOther / 4;
+    const mobDistMin = mobDistMax / 2;
 
     // Use guard-based combat: guard our position and look at other bot's position
     const ourGuardPosition = phaseDataOur.guardPosition;
@@ -289,7 +302,7 @@ function getOnPVEFightPhaseFn(
     const numMobs =
       Math.floor(sharedBotRng() * (MAX_MOBS - MIN_MOBS + 1)) + MIN_MOBS;
     for (let mobI = 0; mobI < numMobs; mobI++) {
-      const mobInFov = getNearestHostile(bot, mobDist, true);
+      const mobInFov = getNearestHostile(bot, mobDistMax, true);
       if (!mobInFov) {
         const chosenMob =
           HOSTILE_MOBS_SUMMON_IDS[
@@ -301,20 +314,9 @@ function getOnPVEFightPhaseFn(
         await spawnWithRconAround(bot, rcon, {
           mob: chosenMob,
           count: 1,
-          maxRadius: mobDist,
+          maxRadius: mobDistMax,
+          minRadius: mobDistMin,
         });
-      }
-      let retries = 5;
-      while (!mob && retries > 0) {
-        await sleep(1000);
-        mob = getNearestHostile(bot, mobDist);
-        retries--;
-      }
-      if (!mob) {
-        console.log(
-          `[${bot.username}] Could not find hostile mob ${mobI} after spawning and waiting.`
-        );
-        continue;
       }
       console.log(
         `[${
@@ -402,8 +404,8 @@ function getOnPVEPhaseFn(
 }
 
 class PveEpisode extends BaseEpisode {
-  static INIT_MIN_BOTS_DISTANCE = 5;
-  static INIT_MAX_BOTS_DISTANCE = 10;
+  static INIT_MIN_BOTS_DISTANCE = 15;
+  static INIT_MAX_BOTS_DISTANCE = 25;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     const difficultyRes = await rcon.send("difficulty easy"); // or hard
