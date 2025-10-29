@@ -10,6 +10,8 @@ services:
       MODE: survival
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
+      SERVER_PORT: ${MC_SERVER_PORT:-25565}
+      RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       BROADCAST_RCON_TO_OPS: true
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
@@ -28,9 +30,13 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data73:/data
+      - ./data77:/data
     healthcheck:
-      test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
+      test:
+        [
+          "CMD-SHELL",
+          "mc-monitor status --host localhost --port ${MC_SERVER_PORT:-25565}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -59,9 +65,9 @@ services:
       BOT_RNG_SEED: "12345"
       EPISODES_NUM: 1
       MC_HOST: host.docker.internal
-      MC_PORT: 25565
+      MC_PORT: ${MC_SERVER_PORT:-25565}
       RCON_HOST: host.docker.internal
-      RCON_PORT: 25575
+      RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       WALK_TIMEOUT: 5
       TELEPORT: 1
@@ -103,9 +109,9 @@ services:
       BOT_RNG_SEED: "12345"
       EPISODES_NUM: 1
       MC_HOST: host.docker.internal
-      MC_PORT: 25565
+      MC_PORT: ${MC_SERVER_PORT:-25565}
       RCON_HOST: host.docker.internal
-      RCON_PORT: 25575
+      RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       WALK_TIMEOUT: 5
       TELEPORT: 1
@@ -160,7 +166,6 @@ services:
 
   camera_alpha:
     image: ojmichel/mineflayer-spectator-client:latest
-    container_name: mc_camera_alpha
     restart: unless-stopped
     network_mode: host
     depends_on:
@@ -169,15 +174,15 @@ services:
     environment:
       MC_VERSION: "1.20.4"
       MC_HOST: "127.0.0.1"
-      MC_PORT: "25565"
+      MC_PORT: "${MC_SERVER_PORT:-25565}"
       CAMERA_NAME: "CameraAlpha"
-      DISPLAY: ":99"
-      VNC_PORT: "5901"
-      NOVNC_PORT: "6901"
+      DISPLAY: "${CAMERA_ALPHA_DISPLAY:-:99}"
+      VNC_PORT: "${CAMERA_ALPHA_VNC_PORT:-5901}"
+      NOVNC_PORT: "${CAMERA_ALPHA_NOVNC_PORT:-6901}"
       WIDTH: "1280"
       HEIGHT: "720"
       FPS: "20"
-      VNC_PASSWORD: "research"
+      VNC_PASSWORD: "${VNC_PASSWORD:-research}"
       ENABLE_RECORDING: "1"
       RECORDING_PATH: "/output/camera_alpha.mp4"
     volumes:
@@ -188,7 +193,6 @@ services:
 
   camera_alpha_follow:
     image: node:20
-    container_name: mc_camera_alpha_follow
     network_mode: host
     depends_on:
       mc:
@@ -198,7 +202,7 @@ services:
     working_dir: /app
     environment:
       RCON_HOST: "127.0.0.1"
-      RCON_PORT: "25575"
+      RCON_PORT: "${MC_RCON_PORT:-25575}"
       RCON_PASSWORD: "research"
       BOT_NAME: "Alpha"
       CAMERA_NAME: "CameraAlpha"
@@ -211,7 +215,6 @@ services:
 
   camera_bravo:
     image: ojmichel/mineflayer-spectator-client:latest
-    container_name: mc_camera_bravo
     restart: unless-stopped
     network_mode: host
     depends_on:
@@ -220,15 +223,15 @@ services:
     environment:
       MC_VERSION: "1.20.4"
       MC_HOST: "127.0.0.1"
-      MC_PORT: "25565"
+      MC_PORT: "${MC_SERVER_PORT:-25565}"
       CAMERA_NAME: "CameraBravo"
-      DISPLAY: ":100"
-      VNC_PORT: "5902"
-      NOVNC_PORT: "6902"
+      DISPLAY: "${CAMERA_BRAVO_DISPLAY:-:100}"
+      VNC_PORT: "${CAMERA_BRAVO_VNC_PORT:-5902}"
+      NOVNC_PORT: "${CAMERA_BRAVO_NOVNC_PORT:-6902}"
       WIDTH: "1280"
       HEIGHT: "720"
       FPS: "20"
-      VNC_PASSWORD: "research"
+      VNC_PASSWORD: "${VNC_PASSWORD:-research}"
       ENABLE_RECORDING: "1"
       RECORDING_PATH: "/output/camera_bravo.mp4"
     volumes:
@@ -239,7 +242,6 @@ services:
 
   camera_bravo_follow:
     image: node:20
-    container_name: mc_camera_bravo_follow
     network_mode: host
     depends_on:
       mc:
@@ -249,7 +251,7 @@ services:
     working_dir: /app
     environment:
       RCON_HOST: "127.0.0.1"
-      RCON_PORT: "25575"
+      RCON_PORT: "${MC_RCON_PORT:-25575}"
       RCON_PASSWORD: "research"
       BOT_NAME: "Bravo"
       CAMERA_NAME: "CameraBravo"
