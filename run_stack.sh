@@ -77,7 +77,7 @@ start_log_capture() {
   for service in "${LOG_SERVICES[@]}"; do
     local logfile="${LOG_DIR}/${service}.log"
     echo "[run] capturing logs for ${service} -> ${logfile}"
-    nohup "${COMPOSE_BIN[@]}" -f "${COMPOSE_FILE}" logs --no-color --timestamps --follow "${service}" >"${logfile}" 2>&1 &
+    nohup "${COMPOSE_BIN[@]}" -f "${COMPOSE_FILE}" -p "${USER:-$(whoami)}" logs --no-color --timestamps --follow "${service}" >"${logfile}" 2>&1 &
     local pid=$!
     echo "${pid}:${service}" >> "${PID_FILE}"
     # small delay to avoid overwhelming docker compose with concurrent log followers
@@ -108,10 +108,8 @@ cmd_up() {
   compose_cmd up -d
   start_log_capture
   echo "[run] stack started; log files under ${LOG_DIR}"
-  echo "[run] VNC/noVNC alpha: http://localhost:${CAMERA_ALPHA_NOVNC_PORT:-6901} (pwd: ${VNC_PASSWORD:-research})"
-  echo "[run] VNC/noVNC bravo: http://localhost:${CAMERA_BRAVO_NOVNC_PORT:-6902} (pwd: ${VNC_PASSWORD:-research})"
   echo "[run] waiting for sender services to finish"
-  if "${COMPOSE_BIN[@]}" -f "${COMPOSE_FILE}" wait sender_alpha sender_bravo; then
+  if compose_cmd wait sender_alpha sender_bravo; then
     echo "[run] senders completed; shutting down stack"
   else
     echo "[run] sender wait failed; shutting down stack" >&2
