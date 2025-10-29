@@ -108,6 +108,8 @@ cmd_up() {
   compose_cmd up -d
   start_log_capture
   echo "[run] stack started; log files under ${LOG_DIR}"
+  echo "[run] VNC/noVNC alpha: http://localhost:${CAMERA_ALPHA_NOVNC_PORT:-6901} (pwd: ${VNC_PASSWORD:-research})"
+  echo "[run] VNC/noVNC bravo: http://localhost:${CAMERA_BRAVO_NOVNC_PORT:-6902} (pwd: ${VNC_PASSWORD:-research})"
   echo "[run] waiting for sender services to finish"
   if compose_cmd wait sender_alpha sender_bravo; then
     echo "[run] senders completed; shutting down stack"
