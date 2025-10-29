@@ -56,4 +56,5 @@ exec node senders.js \
   --teleport "${TELEPORT:-0}" \
   --mc_version "${MC_VERSION:-1.20.4}" \
   --viewer_rendering_disabled "${VIEWER_RENDERING_DISABLED:-0}" \
+  --viewer_recording_interval "${VIEWER_RECORDING_INTERVAL:-50}" \
   --smoke_test "${SMOKE_TEST:-0}"

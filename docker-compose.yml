@@ -75,9 +75,10 @@ services:
       ENABLE_CAMERA_WAIT: 1
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
-      CAMERA_READY_RETRIES: 30
+      CAMERA_READY_RETRIES: 300
       CAMERA_READY_CHECK_INTERVAL: 2000
-      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RENDERING_DISABLED: 0
+      VIEWER_RECORDING_INTERVAL: 30 # should be 50 when rendering is disabled to have 20 FPS
       SMOKE_TEST: 1
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -119,9 +120,10 @@ services:
       ENABLE_CAMERA_WAIT: 1
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
-      CAMERA_READY_RETRIES: 30
+      CAMERA_READY_RETRIES: 300
       CAMERA_READY_CHECK_INTERVAL: 2000
-      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RENDERING_DISABLED: 0
+      VIEWER_RECORDING_INTERVAL: 30
       SMOKE_TEST: 1
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -134,7 +136,7 @@ services:
       NAME: Alpha
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
-      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RENDERING_DISABLED: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -148,7 +150,7 @@ services:
       NAME: Bravo
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
-      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RENDERING_DISABLED: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -190,6 +192,12 @@ services:
       - ./camera/output_alpha:/output
       - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
       - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
+    extra_hosts:
+      - "sessionserver.mojang.com:127.0.0.1"
+      - "api.minecraftservices.com:127.0.0.1"
+      - "authserver.mojang.com:127.0.0.1"
+      - "textures.minecraft.net:127.0.0.1"
+      - "pc.realms.minecraft.net:127.0.0.1"
 
   camera_alpha_follow:
     image: node:20
@@ -239,6 +247,12 @@ services:
       - ./camera/output_bravo:/output
       - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
       - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
+    extra_hosts:
+      - "sessionserver.mojang.com:127.0.0.1"
+      - "api.minecraftservices.com:127.0.0.1"
+      - "authserver.mojang.com:127.0.0.1"
+      - "textures.minecraft.net:127.0.0.1"
+      - "pc.realms.minecraft.net:127.0.0.1"
 
   camera_bravo_follow:
     image: node:20
