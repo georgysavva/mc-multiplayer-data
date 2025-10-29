@@ -5,3 +5,4 @@ videos/
 logs/
 aligned/
 __pycache__/
+.env
