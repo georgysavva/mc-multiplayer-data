@@ -204,9 +204,9 @@ services:
       - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
       - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
 
-  camera_alpha_follow:
+  episode_starter:
     image: node:20
-    container_name: mc_camera_alpha_follow
+    container_name: mc_episode_starter
     network_mode: host
     depends_on:
       mc:
@@ -218,15 +218,13 @@ services:
       RCON_HOST: "127.0.0.1"
       RCON_PORT: "25575"
       RCON_PASSWORD: "research"
-      BOT_NAME: "Alpha"
-      CAMERA_NAME: "CameraAlpha"
-      RETRIES: "60"
-      REQUIRED_PLAYERS: "Alpha,CameraAlpha,Bravo,CameraBravo"
-      EPISODE_ARGS: "1_technoblade.png 2_test.png"
+      EPISODE_START_RETRIES: "60"
+      EPISODE_REQUIRED_PLAYERS: "Alpha,CameraAlpha,Bravo,CameraBravo"
+      EPISODE_START_COMMAND: "episode start technoblade.png technoblade.png"
     volumes:
-      - ./camera/spectator.js:/app/spectator.js:ro
+      - ./camera/episode_starter.js:/app/episode_starter.js:ro
       - ./camera/package.json:/app/package.json:ro
-    command: ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
+    command: ["sh", "-c", "npm install --omit=dev --no-progress && node episode_starter.js"]
 
   camera_bravo:
     image: ojmichel/mineflayer-spectator-client:latest
@@ -255,25 +253,3 @@ services:
       - ./camera/output_bravo:/output
       - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
       - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
-
-  camera_bravo_follow:
-    image: node:20
-    container_name: mc_camera_bravo_follow
-    network_mode: host
-    depends_on:
-      mc:
-        condition: service_healthy
-      camera_bravo:
-        condition: service_started
-    working_dir: /app
-    environment:
-      RCON_HOST: "127.0.0.1"
-      RCON_PORT: "25575"
-      RCON_PASSWORD: "research"
-      BOT_NAME: "Bravo"
-      CAMERA_NAME: "CameraBravo"
-      RETRIES: "60"
-    volumes:
-      - ./camera/spectator.js:/app/spectator.js:ro
-      - ./camera/package.json:/app/package.json:ro
-    command: ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
