@@ -11,6 +11,7 @@ const {
   stopPathfinder,
 } = require("../utils/movement");
 const { BaseEpisode } = require("./base-episode");
+const { decidePrimaryBot } = require("../utils/coordination");
 
 // Constants for chase behavior
 const CHASE_DURATION_MS = 10000; // 10 seconds of chase
@@ -176,11 +177,11 @@ async function runFromChaser(
   const currentPos = bot.entity.position; // A (Alpha's position)
 
   // Use Bravo's position as B, or fallback to current position
-  const bravoPos = chaserPos || currentPos; // B (Bravo's position)
+  const chaseOrCurrentPos = chaserPos || currentPos;
 
   // Compute direction d = normalize(A - B) to get direction away from Bravo
-  const dx = currentPos.x - bravoPos.x; // A.x - B.x
-  const dz = currentPos.z - bravoPos.z; // A.z - B.z (horizontal only, ignore Y)
+  const dx = currentPos.x - chaseOrCurrentPos.x; // A.x - B.x
+  const dz = currentPos.z - chaseOrCurrentPos.z; // A.z - B.z (horizontal only, ignore Y)
 
   // Calculate horizontal distance for normalization
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
@@ -278,13 +279,10 @@ function getOnChasePhaseFn(
       `[${bot.username}] 🎬 Starting pathfinder-enhanced chase phase ${iterationID}`
     );
 
-    // Fixed roles: Alpha runs away, Bravo chases (sharedBotRng available but not used for decisions)
-    const isChaser = bot.username === "Bravo";
+    const isChaser = decidePrimaryBot(bot, sharedBotRng, args);
 
     console.log(
-      `[${bot.username}] 🎭 Fixed roles: Alpha runs, Bravo chases - I am the ${
-        isChaser ? "🏃 CHASER" : "🏃‍♂️ RUNNER"
-      }`
+      `[${bot.username}] 🎭 I am the ${isChaser ? "🏃 CHASER" : "🏃‍♂️ RUNNER"}`
     );
 
     // Execute appropriate behavior using pathfinder-enhanced functions

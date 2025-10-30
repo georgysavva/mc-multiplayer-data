@@ -168,6 +168,7 @@ function getOnBuildPhaseFn(
     let positions = [];
     let blockType =
       BUILD_BLOCK_TYPES[Math.floor(sharedBotRng() * BUILD_BLOCK_TYPES.length)];
+    const botNameSmaller = bot.username < args.other_bot_name;
 
     if (structureType === "wall") {
       // Alpha builds left side, Bravo builds right side
@@ -175,7 +176,7 @@ function getOnBuildPhaseFn(
       const length = 5;
       const height = 3;
 
-      if (bot.username === "Alpha") {
+      if (botNameSmaller) {
         positions = generateWallPositions(startPos, length, height, "x");
       } else {
         positions = generateWallPositions(
@@ -187,7 +188,7 @@ function getOnBuildPhaseFn(
       }
     } else if (structureType === "tower") {
       // Each bot builds their own tower
-      const startPos = botPos.offset(3, 0, bot.username === "Alpha" ? 0 : 3);
+      const startPos = botPos.offset(3, 0, botNameSmaller ? 0 : 3);
       const height = 5;
       positions = generateTowerPositions(startPos, height);
     } else if (structureType === "platform") {
@@ -199,10 +200,9 @@ function getOnBuildPhaseFn(
       // Split platform: Alpha does first half, Bravo does second half
       const allPositions = generatePlatformPositions(startPos, width, depth);
       const half = Math.floor(allPositions.length / 2);
-      positions =
-        bot.username === "Alpha"
-          ? allPositions.slice(0, half)
-          : allPositions.slice(half);
+      positions = botNameSmaller
+        ? allPositions.slice(0, half)
+        : allPositions.slice(half);
     }
 
     console.log(
