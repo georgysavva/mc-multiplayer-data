@@ -3,17 +3,21 @@
 const Vec3 = require("vec3").Vec3;
 const {
   stopAll,
-  moveToward,
+  gotoWithTimeout,
+  initializePathfinder,
   lookAtSmooth,
   lookAtBot,
   sleep,
   horizontalDistanceTo,
   getDirectionTo,
+  land_pos,
 } = require("../utils/movement");
+const { GoalNear } = require("../utils/bot-factory");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for the new episode
-const STRAIGHT_WALK_DISTANCE = 8; // Distance to walk in straight line
+const DISTANCE_PAST_TARGET_MIN = 4; // Distance to walk in straight line
+const DISTANCE_PAST_TARGET_MAX = 8; // Distance to walk in straight line
 const LOOK_UPDATE_INTERVAL = 50; // How often to update look direction (ms)
 const CAMERA_SPEED_DEGREES_PER_SEC = 180; // Same as main file
 
@@ -21,81 +25,73 @@ const CAMERA_SPEED_DEGREES_PER_SEC = 180; // Same as main file
  * Walk straight while looking at other bot with offset to avoid collision
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Vec3} otherBotPosition - Position of the other bot
- * @param {number} walkDistance - Distance to walk
+ * @param {number} walkDistancePastTarget - Distance to walk
  * @param {number} walkTimeoutSec - Timeout for walking in seconds
  */
 async function walkStraightWhileLooking(
   bot,
   otherBotPosition,
-  walkDistance,
+  walkDistancePastTarget,
   walkTimeoutSec
 ) {
   console.log(
-    `[${bot.username}] Starting straight walk toward other bot with ${walkDistance} block distance`
+    `[${bot.username}] Starting straight walk past other bot by ${walkDistancePastTarget} blocks`
   );
 
   const startPos = bot.entity.position.clone();
   const walkTimeoutMs = walkTimeoutSec * 1000;
 
-  // Calculate direction toward other bot
+  // Direction from us to the other bot (normalized)
   const direction = getDirectionTo(startPos, otherBotPosition);
 
-  // Add slight offset to avoid direct collision (walk past the other bot)
-  const offsetDistance = walkDistance + 2; // Walk 2 blocks past the target
-  const targetPos = new Vec3(
-    startPos.x + direction.x * offsetDistance,
-    startPos.y,
-    startPos.z + direction.z * offsetDistance
+  // Compute an XZ point that is walkDistancePastTarget beyond the other bot
+  const pastTargetX = otherBotPosition.x + direction.x * walkDistancePastTarget;
+  const pastTargetZ = otherBotPosition.z + direction.z * walkDistancePastTarget;
+
+  // Resolve an appropriate Y at that XZ using land_pos
+  let landingPos = land_pos(
+    bot,
+    Math.round(pastTargetX),
+    Math.round(pastTargetZ)
   );
+  if (!landingPos) {
+    // Fallback: if chunk not loaded, aim near the other bot's Y
+    landingPos = new Vec3(
+      Math.round(pastTargetX),
+      Math.round(otherBotPosition.y),
+      Math.round(pastTargetZ)
+    );
+  }
 
   console.log(
-    `[${bot.username}] Walking from (${startPos.x.toFixed(
-      2
-    )}, ${startPos.z.toFixed(2)}) toward (${targetPos.x.toFixed(
-      2
-    )}, ${targetPos.z.toFixed(2)})`
+    `[${bot.username}] Targeting past point (${landingPos.x}, ${landingPos.y}, ${landingPos.z})`
   );
 
-  const startTime = Date.now();
-  let lastLookUpdate = 0;
+  // Randomize sprint usage via pathfinder movements
+  const allowSprinting = Math.random() < 0.5;
+  initializePathfinder(bot, { allowSprinting });
+
+  // Navigate with a small radius around the landing position
+  const goal = new GoalNear(landingPos.x, landingPos.y + 1, landingPos.z, 1);
 
   try {
-    while (Date.now() - startTime < walkTimeoutMs) {
-      const currentPos = bot.entity.position;
-      const distanceWalked = horizontalDistanceTo(startPos, currentPos);
+    await gotoWithTimeout(bot, goal, {
+      timeoutMs: walkTimeoutMs,
+      stopOnTimeout: true,
+    });
 
-      // Check if we've walked far enough
-      if (distanceWalked >= walkDistance) {
-        console.log(
-          `[${bot.username}] Completed straight walk: ${distanceWalked.toFixed(
-            2
-          )} blocks`
-        );
-        break;
-      }
-
-      // Update look direction periodically
-      const now = Date.now();
-      if (now - lastLookUpdate > LOOK_UPDATE_INTERVAL) {
-        await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
-        lastLookUpdate = now;
-      }
-
-      // Use movement building block to move toward target
-      const moveDirection = moveToward(bot, targetPos, true, 0.5); // Sprint enabled
-
-      // Small delay for smooth movement
-      await sleep(50);
-    }
+    // After arriving, look at the other bot smoothly
+    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
 
     const finalDistance = horizontalDistanceTo(startPos, bot.entity.position);
     console.log(
       `[${
         bot.username
-      }] Completed offset straight walk: ${finalDistance.toFixed(2)} blocks`
+      }] Completed straight walk past target. Walked ~${finalDistance.toFixed(
+        2
+      )} blocks`
     );
   } finally {
-    // Stop all movement
     stopAll(bot);
     console.log(`[${bot.username}] Straight walk complete`);
   }
@@ -166,11 +162,17 @@ function getOnStraightLineWalkPhaseFn(
 
     if (shouldThisBotWalk) {
       // Execute straight line walking using building blocks
+      const walkDistancePastTarget =
+        DISTANCE_PAST_TARGET_MIN +
+        Math.floor(
+          Math.random() *
+            (DISTANCE_PAST_TARGET_MAX - DISTANCE_PAST_TARGET_MIN + 1)
+        );
       await walkStraightWhileLooking(
         bot,
         otherBotPosition,
-        STRAIGHT_WALK_DISTANCE,
-        args.walk_timeout
+        walkDistancePastTarget,
+        /* timeout */ 20
       );
     } else {
       // Bot doesn't walk, just looks at the other bot
@@ -178,55 +180,24 @@ function getOnStraightLineWalkPhaseFn(
         `[${bot.username}] Staying in place and looking at other bot`
       );
       await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
-
-      // Wait for the walking bot to complete (approximate time)
-      const estimatedWalkTime = (STRAIGHT_WALK_DISTANCE / 4.3) * 1000; // Rough estimate based on sprint speed
-      await sleep(estimatedWalkTime);
     }
 
-    // Continue to next iteration or stop
-    if (iterationID == 2) {
-      // Assuming 3 iterations like the original
-      coordinator.onceEvent(
-        "stopPhase",
-        episodeNum,
-        episodeInstance.getOnStopPhaseFn(
-          bot,
-          rcon,
-          sharedBotRng,
-          coordinator,
-          otherBotName,
-          episodeNum,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        "stopPhase",
-        bot.entity.position.clone(),
-        episodeNum,
-        `straightLineWalkPhase_${iterationID} end`
-      );
-      return;
-    }
-
-    const nextIterationID = iterationID + 1;
+    // Assuming 3 iterations like the original
     coordinator.onceEvent(
-      `straightLineWalkPhase_${nextIterationID}`,
+      "stopPhase",
       episodeNum,
-      getOnStraightLineWalkPhaseFn(
+      episodeInstance.getOnStopPhaseFn(
         bot,
         rcon,
         sharedBotRng,
         coordinator,
-        nextIterationID,
         otherBotName,
         episodeNum,
-        episodeInstance,
         args
       )
     );
     coordinator.sendToOtherBot(
-      `straightLineWalkPhase_${nextIterationID}`,
+      "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
       `straightLineWalkPhase_${iterationID} end`
@@ -235,6 +206,7 @@ function getOnStraightLineWalkPhaseFn(
 }
 
 class StraightLineEpisode extends BaseEpisode {
+  static WORKS_IN_NON_FLAT_WORLD = true;
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     // optional setup
   }

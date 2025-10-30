@@ -10,6 +10,10 @@ class BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = MAX_BOTS_DISTANCE;
   static WORKS_IN_NON_FLAT_WORLD = false;
 
+  constructor(sharedBotRng) {
+    // This constructor intentionally does nothing with sharedBotRng
+  }
+
   /**
    * Optional setup hook. No-op by default.
    * @returns {Promise<void>}

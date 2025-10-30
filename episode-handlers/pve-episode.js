@@ -407,6 +407,7 @@ function getOnPVEPhaseFn(
 class PveEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 15;
   static INIT_MAX_BOTS_DISTANCE = 25;
+  static WORKS_IN_NON_FLAT_WORLD = true;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     const difficultyRes = await rcon.send("difficulty easy"); // or hard

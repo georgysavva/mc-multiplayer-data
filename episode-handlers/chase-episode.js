@@ -14,7 +14,8 @@ const { BaseEpisode } = require("./base-episode");
 const { decidePrimaryBot } = require("../utils/coordination");
 
 // Constants for chase behavior
-const CHASE_DURATION_MS = 10000; // 10 seconds of chase
+const CHASE_DURATION_MS_MIN = 5000; // 5 seconds of chase
+const CHASE_DURATION_MS_MAX = 15000; // 15 seconds of chase
 const POSITION_UPDATE_INTERVAL_MS = 500; // Update positions every 500ms
 const MIN_CHASE_DISTANCE = 3.0; // Minimum distance to maintain chase
 const ESCAPE_DISTANCE = 8.0; // Distance at which runner changes direction
@@ -285,6 +286,11 @@ function getOnChasePhaseFn(
       `[${bot.username}] 🎭 I am the ${isChaser ? "🏃 CHASER" : "🏃‍♂️ RUNNER"}`
     );
 
+    const chaseDurationMs =
+      CHASE_DURATION_MS_MIN +
+      Math.floor(
+        sharedBotRng() * (CHASE_DURATION_MS_MAX - CHASE_DURATION_MS_MIN + 1)
+      );
     // Execute appropriate behavior using pathfinder-enhanced functions
     if (isChaser) {
       await chaseRunner(
@@ -292,7 +298,7 @@ function getOnChasePhaseFn(
         coordinator,
         otherBotName,
         episodeNum,
-        CHASE_DURATION_MS
+        chaseDurationMs
       );
     } else {
       await runFromChaser(
@@ -300,7 +306,7 @@ function getOnChasePhaseFn(
         coordinator,
         otherBotName,
         episodeNum,
-        CHASE_DURATION_MS
+        chaseDurationMs
       );
     }
 
@@ -328,6 +334,7 @@ function getOnChasePhaseFn(
 }
 
 class ChaseEpisode extends BaseEpisode {
+  static WORKS_IN_NON_FLAT_WORLD = true;
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     // optional setup
   }
