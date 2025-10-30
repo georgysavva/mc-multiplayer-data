@@ -3,6 +3,7 @@ package me.berrycraft.mirrorbot;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -29,14 +30,17 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.UUID;
 
 public class EpisodeManager extends JavaPlugin implements Listener {
 
     private final Map<String, String> controllerToCamera = Map.of(
-            "Pengulu", "timwm"
+            "Alpha", "CameraAlpha",
+            "Bravo", "CameraBravo"
     );
 
     private final Map<Player, Player> activePairs = new ConcurrentHashMap<>();
+    private final Map<UUID, UUID> activeCameraControllers = new ConcurrentHashMap<>();
     private BukkitTask followTask;
     private boolean testRunning = false;
 
@@ -78,26 +82,42 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         Player player = e.getPlayer();
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
         player.setInvisible(false);
+        player.setGameMode(GameMode.SURVIVAL);
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             player.showPlayer(this, p);
             p.showPlayer(this, player);
         }
 
-        // Hide non-participants if test running
         if (testRunning) {
             boolean isController = controllerToCamera.containsKey(player.getName());
             boolean isCamera = controllerToCamera.containsValue(player.getName());
 
-            if (!isController && !isCamera) {
+            if (isCamera) {
+                UUID controllerId = activeCameraControllers.get(player.getUniqueId());
+                Player controller = controllerId != null ? Bukkit.getPlayer(controllerId) : null;
                 for (Player other : Bukkit.getOnlinePlayers()) {
-                    if (!other.equals(player)) {
+                    if (other.equals(player)) {
+                        continue;
+                    }
+                    boolean otherIsCamera = activeCameraControllers.containsKey(other.getUniqueId());
+                    boolean shouldHide = (controller != null && other.equals(controller)) || otherIsCamera;
+                    if (shouldHide) {
                         player.hidePlayer(this, other);
-                        other.hidePlayer(this, player);
+                    } else {
+                        player.showPlayer(this, other);
+                    }
+                }
+            } else if (!isController) {
+                for (UUID cameraId : activeCameraControllers.keySet()) {
+                    Player camera = Bukkit.getPlayer(cameraId);
+                    if (camera != null && !player.equals(camera)) {
+                        player.hidePlayer(this, camera);
                     }
                 }
             }
         }
+
     }
 
     @EventHandler
@@ -128,26 +148,26 @@ public class EpisodeManager extends JavaPlugin implements Listener {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        if (!(sender instanceof Player p)) {
-            sender.sendMessage(ChatColor.RED + "Only players can run this command.");
-            return true;
-        }
 
         if (args.length == 0) {
-            p.sendMessage(ChatColor.YELLOW + "Usage: /episode <start|stop>");
+            sendUsage(sender);
             return true;
         }
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "start" -> startEpisode(p, Arrays.copyOfRange(args, 1, args.length));
-            case "stop" -> stopEpisode(p);
-            default -> p.sendMessage(ChatColor.YELLOW + "Usage: /episode <start|stop>");
+            case "start" -> startEpisode(sender, Arrays.copyOfRange(args, 1, args.length));
+            case "stop" -> stopEpisode(sender);
+            default -> sendUsage(sender);
         }
 
         return true;
     }
 
-    private void startEpisode(Player starter, String[] requestedSkins) {
+    private void sendUsage(CommandSender sender) {
+        sender.sendMessage(ChatColor.YELLOW + "Usage: /episode <start|stop>");
+    }
+
+    private void startEpisode(CommandSender starter, String[] requestedSkins) {
         if (testRunning) {
             starter.sendMessage(ChatColor.RED + "Episode already running!");
             return;
@@ -173,6 +193,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
 
         testRunning = true;
         activePairs.clear();
+        activeCameraControllers.clear();
 
         int index = 0;
         for (var entry : controllerToCamera.entrySet()) {
@@ -194,31 +215,56 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                 continue;
             }
 
+            controller.setGameMode(GameMode.SURVIVAL);
+            camera.setGameMode(GameMode.SURVIVAL);
+
             activePairs.put(controller, camera);
+            activeCameraControllers.put(camera.getUniqueId(), controller.getUniqueId());
 
             applySharedSkin(controller, camera, skinFile);
-
-            // Explicit hide between controller and camera
-            controller.hidePlayer(this, camera);
-            camera.hidePlayer(this, controller);
         }
 
-        // Hide cameras from everything except themselves
-        for (Player camera : Bukkit.getOnlinePlayers()) {
-            if (controllerToCamera.containsValue(camera.getName())) {
-                for (Player other : Bukkit.getOnlinePlayers()) {
-                    if (!other.equals(camera)) {
-                        camera.hidePlayer(this, other);
-                    }
+        // Ensure a clean visibility baseline so spectators can watch
+        for (Player p1 : Bukkit.getOnlinePlayers()) {
+            for (Player p2 : Bukkit.getOnlinePlayers()) {
+                if (!p1.equals(p2)) {
+                    p1.showPlayer(this, p2);
                 }
             }
         }
 
-        // Hide non-participants completely
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!controllerToCamera.containsKey(p.getName()) && !controllerToCamera.containsValue(p.getName())) {
-                for (Player other : Bukkit.getOnlinePlayers()) {
-                    if (!p.equals(other)) p.hidePlayer(this, other);
+        // Camera bots should only hide their controller and other cameras
+        for (var entry : activeCameraControllers.entrySet()) {
+            Player camera = Bukkit.getPlayer(entry.getKey());
+            Player controller = Bukkit.getPlayer(entry.getValue());
+            if (camera == null) {
+                continue;
+            }
+            for (Player other : Bukkit.getOnlinePlayers()) {
+                if (other.equals(camera)) {
+                    continue;
+                }
+                boolean otherIsCamera = activeCameraControllers.containsKey(other.getUniqueId());
+                boolean shouldHide = (controller != null && other.equals(controller)) || otherIsCamera;
+                if (shouldHide) {
+                    camera.hidePlayer(this, other);
+                } else {
+                    camera.showPlayer(this, other);
+                }
+            }
+        }
+
+        // Hide cameras from non-participants so spectators do not see them
+        for (Player spectator : Bukkit.getOnlinePlayers()) {
+            boolean isParticipant = controllerToCamera.containsKey(spectator.getName())
+                    || controllerToCamera.containsValue(spectator.getName());
+            if (isParticipant) {
+                continue;
+            }
+            for (UUID cameraId : activeCameraControllers.keySet()) {
+                Player camera = Bukkit.getPlayer(cameraId);
+                if (camera != null && !spectator.equals(camera)) {
+                    spectator.hidePlayer(this, camera);
                 }
             }
         }
@@ -249,7 +295,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         Bukkit.broadcastMessage(ChatColor.GREEN + "[Episode] Episode started!");
     }
 
-    private void stopEpisode(Player caller) {
+    private void stopEpisode(CommandSender caller) {
         cleanupEpisode();
         Bukkit.broadcastMessage(ChatColor.RED + "[Episode] Episode stopped. All visibility and skins reset.");
     }
@@ -262,6 +308,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
 
         activePairs.clear();
         testRunning = false;
+        activeCameraControllers.clear();
 
         // Restore visibility and remove invisibility
         for (Player p1 : Bukkit.getOnlinePlayers()) {

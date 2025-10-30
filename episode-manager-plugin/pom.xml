@@ -58,13 +58,18 @@
                             <target>
                                 <property name="plugin.jar"
                                           value="${project.build.directory}/${project.build.finalName}.jar" />
+                                <property name="plugin.filename"
+                                          value="${project.build.finalName}.jar" />
                                 <mkdir dir="${project.basedir}/../plugins" />
+                                <delete file="${project.basedir}/../plugins/${plugin.filename}"
+                                        quiet="true"
+                                        failonerror="false" />
                                 <copy file="${plugin.jar}"
                                       todir="${project.basedir}/../plugins"
                                       overwrite="true" />
                                 <exec executable="bash">
                                     <arg value="-lc" />
-                                    <arg value="for d in ../data*/plugins; do if [ -d &quot;$d&quot; ]; then cp -f '${plugin.jar}' &quot;$d/&quot;; fi; done" />
+                                    <arg value="for d in ../data*/plugins; do if [ -d &quot;$d&quot; ]; then rm -f &quot;$d/${plugin.filename}&quot; &amp;&amp; cp '${plugin.jar}' &quot;$d/&quot;; fi; done" />
                                 </exec>
                             </target>
                         </configuration>
@@ -103,7 +108,7 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21-R0.1-SNAPSHOT</version>
+            <version>1.20.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

@@ -6,10 +6,13 @@ const {
   RCON_PASSWORD = 'research',
   BOT_NAME = 'Alpha',
   CAMERA_NAME = 'CameraAlpha',
-  SPECTATE_COMMAND = 'spectate',
+  REQUIRED_PLAYERS = '',
+  EPISODE_COMMAND = 'episode start 1_technoblade.png 1_technoblade.png',
+  SKIN = '',
   RETRIES = '15',
 } = process.env;
 
+const requiredPlayers = parsePlayers(REQUIRED_PLAYERS, BOT_NAME, CAMERA_NAME);
 const maxAttempts = Number(RETRIES);
 const retryDelayMs = 2000;
 
@@ -39,8 +42,8 @@ async function waitForPlayers() {
     try {
       const list = await useRcon((rcon) => rcon.send('list'));
       const players = extractPlayers(list);
-      if (players.has(BOT_NAME) && players.has(CAMERA_NAME)) {
-        console.log('[spectator] Both players present');
+      if (requiredPlayers.every((name) => players.has(name))) {
+        console.log('[spectator] Required players present:', requiredPlayers.join(', '));
         return true;
       }
       console.log(
@@ -73,27 +76,13 @@ function extractPlayers(listResponse) {
   return players;
 }
 
-async function applySpectator() {
+async function triggerEpisode() {
+  const episodeArgs = EPISODE_COMMAND;
   try {
-    await useRcon(async (rcon) => {
-      const gm = await rcon.send(`gamemode spectator ${CAMERA_NAME}`);
-      console.log('[spectator] gamemode response:', gm?.trim());
-
-      const spectateCommand = `${SPECTATE_COMMAND} ${BOT_NAME} ${CAMERA_NAME}`;
-      const spectate = await rcon.send(spectateCommand);
-      console.log('[spectator] spectate response:', spectate?.trim());
-
-      const acceptCommand = `execute as ${CAMERA_NAME} run spectate accept ${BOT_NAME}`;
-      try {
-        const accept = await rcon.send(acceptCommand);
-        console.log('[spectator] accept response:', accept?.trim());
-      } catch (err) {
-        console.warn('[spectator] accept command failed:', err?.message || err);
-      }
-    });
-    console.log('[spectator] spectator commands issued');
+    const response = await useRcon((rcon) => rcon.send(episodeArgs));
+    console.log('[spectator] episode command response:', response?.trim());
   } catch (err) {
-    console.error('[spectator] Failed to issue spectator commands:', err?.message || err);
+    console.error('[spectator] Failed to issue episode command:', err?.message || err);
   }
 }
 
@@ -103,8 +92,19 @@ async function main() {
   if (!ready) {
     process.exit(1);
   }
-  await applySpectator();
+  await triggerEpisode();
   process.exit(0);
+}
+
+function parsePlayers(rawList, defaultA, defaultB) {
+  const provided = (rawList || '')
+    .split(/[, ]+/)
+    .map((name) => name.trim())
+    .filter(Boolean);
+  if (provided.length > 0) {
+    return provided;
+  }
+  return Array.from(new Set([defaultA, defaultB].filter(Boolean)));
 }
 
 function sleep(ms) {

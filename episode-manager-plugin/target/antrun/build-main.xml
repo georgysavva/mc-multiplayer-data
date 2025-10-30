@@ -2,11 +2,13 @@
 <project name="maven-antrun-" default="main">
   <target name="main">
     <property name="plugin.jar" value="/home/tmeehan/snap/snapd-desktop-integration/315/Repos/mc-multiplayer-data/episode-manager-plugin/target/MirrorBot-1.0.jar" />
+    <property name="plugin.filename" value="MirrorBot-1.0.jar" />
     <mkdir dir="/home/tmeehan/snap/snapd-desktop-integration/315/Repos/mc-multiplayer-data/episode-manager-plugin/../plugins" />
+    <delete file="/home/tmeehan/snap/snapd-desktop-integration/315/Repos/mc-multiplayer-data/episode-manager-plugin/../plugins/${plugin.filename}" failonerror="false" quiet="true" />
     <copy file="${plugin.jar}" todir="/home/tmeehan/snap/snapd-desktop-integration/315/Repos/mc-multiplayer-data/episode-manager-plugin/../plugins" overwrite="true" />
     <exec executable="bash">
       <arg value="-lc" />
-      <arg value="for d in ../data*/plugins; do if [ -d &quot;$d&quot; ]; then cp -f '${plugin.jar}' &quot;$d/&quot;; fi; done" />
+      <arg value="for d in ../data*/plugins; do if [ -d &quot;$d&quot; ]; then rm -f &quot;$d/${plugin.filename}&quot; &amp;&amp; cp '${plugin.jar}' &quot;$d/&quot;; fi; done" />
     </exec>
   </target>
 </project>

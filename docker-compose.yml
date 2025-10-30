@@ -5,15 +5,19 @@ services:
       - sh
       - -c
       - |
-        mkdir -p /data /plugins /data/plugins &&
-        chmod 777 /data /plugins /data/plugins &&
-        if [ -n "$(ls -A /plugins 2>/dev/null)" ]; then
-          cp -rf /plugins/. /data/plugins/;
+        mkdir -p /data /data/plugins /data/skins &&
+        chmod 777 /data /data/plugins /data/skins &&
+        if [ -d /source_plugins ] && [ -n "$(ls -A /source_plugins 2>/dev/null)" ]; then
+          cp -r /source_plugins/. /data/plugins/;
         fi;
-        chmod -R 777 /data/plugins
+        if [ -d /source_skins ] && [ -n "$(ls -A /source_skins 2>/dev/null)" ]; then
+          cp -r /source_skins/. /data/skins/;
+        fi;
+        chmod -R 777 /data/plugins /data/skins
     volumes:
       - ./data53:/data
-      - ./plugins:/plugins
+      - ./plugins:/source_plugins:ro
+      - ./skins:/source_skins:ro
     restart: "no"
 
   mc:
@@ -217,6 +221,8 @@ services:
       BOT_NAME: "Alpha"
       CAMERA_NAME: "CameraAlpha"
       RETRIES: "60"
+      REQUIRED_PLAYERS: "Alpha,CameraAlpha,Bravo,CameraBravo"
+      EPISODE_ARGS: "1_technoblade.png 2_test.png"
     volumes:
       - ./camera/spectator.js:/app/spectator.js:ro
       - ./camera/package.json:/app/package.json:ro
