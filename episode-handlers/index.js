@@ -37,7 +37,7 @@ const episodeClassMap = {
   pvp: PvpEpisode,
   pve: PveEpisode,
   buildStructure: BuildStructureEpisode,
-  // buildTower: BuildTowerEpisode,
+  buildTower: BuildTowerEpisode,
   mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
 };
@@ -54,7 +54,7 @@ const episodeTypes = [
   "pvp",
   "pve",
   "buildStructure",
-  // "buildTower",
+  "buildTower",
   "mine",
   "towerBridge",
 ];
@@ -94,11 +94,12 @@ async function saveEpisodeInfo({
     instance_id: instanceId,
     encountered_error: Boolean(episodeInstance?._encounteredError),
     peer_encountered_error: Boolean(episodeInstance?._peerError),
+    bot_died: Boolean(episodeInstance?._botDied),
   };
 
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2));
   console.log(
-    `[${bot.username}] Saved episode info to ${filePath} (encountered_error=${payload.encountered_error}, peer_encountered_error=${payload.peer_encountered_error})`
+    `[${bot.username}] Saved episode info to ${filePath} (encountered_error=${payload.encountered_error}, peer_encountered_error=${payload.peer_encountered_error}, bot_died=${payload.bot_died})`
   );
 }
 /**
@@ -121,6 +122,8 @@ async function runSingleEpisode(
   args
 ) {
   console.log(`[${bot.username}] Starting episode ${episodeNum}`);
+
+  episodeInstance._botDied = false;
 
   return new Promise((resolve) => {
     // Reset episode stopping guard at the start of each episode
@@ -148,16 +151,27 @@ async function runSingleEpisode(
         err
       );
     };
+    const handleBotDeath = () => {
+      console.warn(
+        `[${bot.username}] Episode ${episodeNum} detected bot death`
+      );
+      episodeInstance._botDied = true;
+    };
     const cleanupErrorHandlers = () => {
       process.removeListener("unhandledRejection", handleAnyError);
       process.removeListener("uncaughtException", handleAnyError);
     };
+    const cleanupEpisodeScopedHandlers = () => {
+      cleanupErrorHandlers();
+      bot.removeListener("death", handleBotDeath);
+    };
     process.on("unhandledRejection", handleAnyError);
     process.on("uncaughtException", handleAnyError);
+    bot.once("death", handleBotDeath);
 
     // Ensure we clean up episode-scoped handlers when the episode resolves
     bot._currentEpisodeResolve = () => {
-      cleanupErrorHandlers();
+      cleanupEpisodeScopedHandlers();
       resolve(undefined);
     };
 
@@ -268,6 +282,10 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       `effect give ${bot.username} minecraft:resistance 999999 255 true`
     );
     console.log(`[${bot.username}] resistEffectRes=${resistEffectRes}`);
+    const difficultyRes = await rcon.send("difficulty peaceful"); // or hard
+    console.log(
+      `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`
+    );
     // Wait for both connections to be established
     console.log("Setting up coordinator connections...");
     await coordinator.setupConnections();
@@ -492,6 +510,19 @@ function getOnTeleportPhaseFn(
       DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
     );
     console.log(`[${bot.username}] setting up episode ${episodeNum}`);
+    try {
+      const saturationEffectRes = await rcon.send(
+        `effect give ${bot.username} minecraft:saturation 999999 255 true`
+      );
+      console.log(
+        `[${bot.username}] saturationEffectRes=${saturationEffectRes}`
+      );
+    } catch (error) {
+      console.error(
+        `[${bot.username}] Failed to apply saturation effect:`,
+        error
+      );
+    }
     await episodeInstance.setupEpisode(
       bot,
       rcon,

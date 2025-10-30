@@ -16,81 +16,12 @@ const { BaseEpisode } = require("./base-episode");
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const FINAL_EYE_CONTACT_MS = 1500; // Final look duration
 const MIN_TOWER_HEIGHT = 8; // Minimum tower height
-const MAX_TOWER_HEIGHT = 8; // Maximum tower height
+const MAX_TOWER_HEIGHT = 12; // Maximum tower height
 const TOWER_BLOCK_TYPE = "oak_planks"; // Block type for towers
 const JUMP_DURATION_MS = 50; // How long to hold jump
 const PLACE_RETRY_DELAY_MS = 20; // Delay between place attempts
 const MAX_PLACE_ATTEMPTS = 10; // Max attempts to place a block
 const SETTLE_DELAY_MS = 200; // Delay to settle after placing
-
-/**
- * Place a block directly underneath the bot at specific coordinates
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Vec3} targetPos - Exact position to place block
- * @param {string} blockType - Type of block to place
- * @returns {Promise<boolean>} True if successfully placed
- */
-async function placeBlockAtPosition(bot, targetPos, blockType) {
-  console.log(
-    `[${bot.username}] 🎯 Attempting to place ${blockType} at ${targetPos}`
-  );
-
-  // Look straight down (negative pitch looks down in mineflayer)
-  await bot.look(bot.entity.yaw, -1.45, true); // -1.45 radians is almost straight down
-  await sleep(50);
-
-  // Try to place the block
-  try {
-    const targetBlock = bot.blockAt(targetPos);
-
-    // If block already exists, we're done
-    if (
-      targetBlock &&
-      targetBlock.name !== "air" &&
-      targetBlock.name !== "cave_air"
-    ) {
-      console.log(
-        `[${bot.username}] ✅ Block already exists at ${targetPos}: ${targetBlock.name}`
-      );
-      return true;
-    }
-
-    // Find a reference block to place against (the block below target)
-    const belowPos = targetPos.offset(0, -1, 0);
-    const referenceBlock = bot.blockAt(belowPos);
-
-    if (!referenceBlock || referenceBlock.name === "air") {
-      console.log(`[${bot.username}] ❌ No reference block at ${belowPos}`);
-      return false;
-    }
-
-    console.log(
-      `[${bot.username}] 📦 Placing on top of ${referenceBlock.name} at ${belowPos}`
-    );
-
-    // Place block on top face of reference block
-    const faceVector = new Vec3(0, 1, 0); // Top face
-    await bot.placeBlock(referenceBlock, faceVector);
-
-    // Verify placement
-    await sleep(100);
-    const placedBlock = bot.blockAt(targetPos);
-    if (placedBlock && placedBlock.name === blockType) {
-      console.log(
-        `[${bot.username}] ✅ Successfully placed ${blockType} at ${targetPos}`
-      );
-      return true;
-    } else {
-      console.log(
-        `[${bot.username}] ⚠️ Placement verification failed at ${targetPos}`
-      );
-      return false;
-    }
-  } catch (error) {
-    console.log(`[${bot.username}] ❌ Error placing block: ${error.message}`);
-    return false;
-  }
-}
 
 /**
  * Get the phase function for tower building episodes
@@ -229,6 +160,7 @@ function generateTowerPositions(basePos, height) {
 class BuildTowerEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 8;
   static INIT_MAX_BOTS_DISTANCE = 15;
+  static WORKS_IN_NON_FLAT_WORLD = true;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     // Give tower building blocks via RCON
