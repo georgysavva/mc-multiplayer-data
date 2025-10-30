@@ -7,8 +7,10 @@ const {
 } = require("../utils/movement");
 const { placeAt, placeMultiple } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
+const { pickRandom } = require("../utils/coordination");
 
 // Constants for building behavior
+const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const BUILD_BLOCK_TYPES = ["stone", "cobblestone", "oak_planks", "bricks"];
 
@@ -261,10 +263,11 @@ function getOnBuildPhaseFn(
 class BuildStructureEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 8;
   static INIT_MAX_BOTS_DISTANCE = 15;
+  static WORKS_IN_NON_FLAT_WORLD = true;
 
-  constructor({ structureType = "wall" } = {}) {
+  constructor(sharedBotRng) {
     super();
-    this.structureType = structureType;
+    this.structureType = pickRandom(ALL_STRUCTURE_TYPES, sharedBotRng);
   }
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
