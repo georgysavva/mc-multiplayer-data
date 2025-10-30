@@ -142,7 +142,7 @@ services:
       NAME: Alpha
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
-      VIEWER_RENDERING_DISABLED: 0
+      VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -156,7 +156,7 @@ services:
       NAME: Bravo
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
-      VIEWER_RENDERING_DISABLED: 0
+      VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
