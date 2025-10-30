@@ -82,6 +82,11 @@ async function rconTp(rcon, name, x, y, z, chunkRadius = 1) {
     }
   }
   
+  // Wait for chunks to fully load and sync to clients
+  console.log(`[RCON] Waiting 2 seconds for chunks to sync to clients...`);
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  console.log(`[RCON] Chunk sync complete, proceeding with teleport`);
+  
   // Chunks are loaded, now teleport
   try {
     const res = await rcon.send(`tp ${name} ${x} ${y} ${z}`);
