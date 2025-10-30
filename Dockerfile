@@ -29,17 +29,18 @@ ENV PATH="/opt/venv/bin:${PATH}"
 WORKDIR /usr/src/app
 
 # Install dependencies first to leverage Docker layer caching
-COPY requirements.txt ./
+COPY requirements-docker.txt ./
 RUN python -m pip install --upgrade pip setuptools wheel && \
-    python -m pip install --no-cache-dir -r requirements.txt
+    python -m pip install --no-cache-dir -r requirements-docker.txt
 COPY package.json ./
 RUN npm install 
 RUN npm i rcon-client
 # These echo numbers are needed to trigger a rebuild of this image in the case a downstream dependency has changed.
 RUN echo "42" && npm install github:georgysavva/mineflayer
 RUN echo "47" && npm install github:PrismarineJS/mineflayer-pathfinder
-RUN echo "41" && npm install github:georgysavva/prismarine-viewer-colalab
-RUN echo "48" && npm install minecraft-data
+RUN echo "42" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "50" && npm install minecraft-data
+RUN npm install --save mineflayer-pvp
 RUN set -eux; \
   PKG_DIR="node_modules/prismarine-viewer-colalab"; \
   mkdir -p "$PKG_DIR/public/textures/1.16.4/entity"; \

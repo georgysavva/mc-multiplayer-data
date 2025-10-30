@@ -31,9 +31,11 @@ services:
       EULA: "TRUE"
       VERSION: 1.20.4
       TYPE: PAPER
-      MODE: creative
+      MODE: survival
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
+      SERVER_PORT: ${MC_SERVER_PORT:-25565}
+      RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       BROADCAST_RCON_TO_OPS: true
       OPS: timwm,Pengulu
@@ -53,16 +55,23 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ./data53:/data
+      - ${MC_DATA_DIR:-./data}:/data
       - ./plugins:/data/plugins
     healthcheck:
-      test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
+      test:
+        [
+          "CMD-SHELL",
+          "mc-monitor status --host localhost --port ${MC_SERVER_PORT:-25565}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 12
 
   sender_alpha:
     image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     depends_on:
       mc:
         condition: service_healthy
@@ -81,27 +90,31 @@ services:
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
       EPISODES_NUM: 1
-      EPISODE_CATEGORY: look_away
       MC_HOST: host.docker.internal
-      MC_PORT: 25565
+      MC_PORT: ${MC_SERVER_PORT:-25565}
       RCON_HOST: host.docker.internal
-      RCON_PORT: 25575
+      RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
-      COLOR: red
-      BOOTSTRAP_WAIT_TIME: 20
+      WALK_TIMEOUT: 5
+      TELEPORT: 1
+      BOOTSTRAP_WAIT_TIME: 1
       ENABLE_CAMERA_WAIT: 1
-      MIN_RUN_ACTIONS: 1
-      MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
-      CAMERA_READY_RETRIES: 30
+      CAMERA_READY_RETRIES: 300
       CAMERA_READY_CHECK_INTERVAL: 2000
+      VIEWER_RENDERING_DISABLED: 0
+      VIEWER_RECORDING_INTERVAL: 30 # should be 50 when rendering is disabled to have 20 FPS
+      SMOKE_TEST: 1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
 
   sender_bravo:
     image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     depends_on:
       mc:
         condition: service_healthy
@@ -121,22 +134,23 @@ services:
       OTHER_COORD_HOST: sender_alpha
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
-      EPISODE_CATEGORY: look_away
       EPISODES_NUM: 1
       MC_HOST: host.docker.internal
-      MC_PORT: 25565
+      MC_PORT: ${MC_SERVER_PORT:-25565}
       RCON_HOST: host.docker.internal
-      RCON_PORT: 25575
+      RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
-      COLOR: blue
-      BOOTSTRAP_WAIT_TIME: 20
+      WALK_TIMEOUT: 5
+      TELEPORT: 1
+      BOOTSTRAP_WAIT_TIME: 1
       ENABLE_CAMERA_WAIT: 1
-      MIN_RUN_ACTIONS: 1
-      MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
-      CAMERA_READY_RETRIES: 30
+      CAMERA_READY_RETRIES: 300
       CAMERA_READY_CHECK_INTERVAL: 2000
+      VIEWER_RENDERING_DISABLED: 0
+      VIEWER_RECORDING_INTERVAL: 30
+      SMOKE_TEST: 1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -148,6 +162,7 @@ services:
       NAME: Alpha
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
+      VIEWER_RENDERING_DISABLED: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -161,6 +176,7 @@ services:
       NAME: Bravo
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
+      VIEWER_RENDERING_DISABLED: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -178,7 +194,6 @@ services:
 
   camera_alpha:
     image: ojmichel/mineflayer-spectator-client:latest
-    container_name: mc_camera_alpha
     restart: unless-stopped
     network_mode: host
     depends_on:
@@ -187,15 +202,15 @@ services:
     environment:
       MC_VERSION: "1.20.4"
       MC_HOST: "127.0.0.1"
-      MC_PORT: "25565"
+      MC_PORT: "${MC_SERVER_PORT:-25565}"
       CAMERA_NAME: "CameraAlpha"
-      DISPLAY: ":99"
-      VNC_PORT: "5901"
-      NOVNC_PORT: "6901"
+      DISPLAY: "${CAMERA_ALPHA_DISPLAY:-:99}"
+      VNC_PORT: "${CAMERA_ALPHA_VNC_PORT:-5901}"
+      NOVNC_PORT: "${CAMERA_ALPHA_NOVNC_PORT:-6901}"
       WIDTH: "1280"
       HEIGHT: "720"
       FPS: "20"
-      VNC_PASSWORD: "research"
+      VNC_PASSWORD: "${VNC_PASSWORD:-research}"
       ENABLE_RECORDING: "1"
       RECORDING_PATH: "/output/camera_alpha.mp4"
     volumes:
@@ -203,10 +218,15 @@ services:
       - ./camera/output_alpha:/output
       - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
       - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
+    extra_hosts:
+      - "sessionserver.mojang.com:127.0.0.1"
+      - "api.minecraftservices.com:127.0.0.1"
+      - "authserver.mojang.com:127.0.0.1"
+      - "textures.minecraft.net:127.0.0.1"
+      - "pc.realms.minecraft.net:127.0.0.1"
 
   episode_starter:
     image: node:20
-    container_name: mc_episode_starter
     network_mode: host
     depends_on:
       mc:
@@ -216,7 +236,7 @@ services:
     working_dir: /app
     environment:
       RCON_HOST: "127.0.0.1"
-      RCON_PORT: "25575"
+      RCON_PORT: "${MC_RCON_PORT:-25575}"
       RCON_PASSWORD: "research"
       EPISODE_START_RETRIES: "60"
       EPISODE_REQUIRED_PLAYERS: "Alpha,CameraAlpha,Bravo,CameraBravo"
@@ -228,7 +248,6 @@ services:
 
   camera_bravo:
     image: ojmichel/mineflayer-spectator-client:latest
-    container_name: mc_camera_bravo
     restart: unless-stopped
     network_mode: host
     depends_on:
@@ -237,15 +256,15 @@ services:
     environment:
       MC_VERSION: "1.20.4"
       MC_HOST: "127.0.0.1"
-      MC_PORT: "25565"
+      MC_PORT: "${MC_SERVER_PORT:-25565}"
       CAMERA_NAME: "CameraBravo"
-      DISPLAY: ":100"
-      VNC_PORT: "5902"
-      NOVNC_PORT: "6902"
+      DISPLAY: "${CAMERA_BRAVO_DISPLAY:-:100}"
+      VNC_PORT: "${CAMERA_BRAVO_VNC_PORT:-5902}"
+      NOVNC_PORT: "${CAMERA_BRAVO_NOVNC_PORT:-6902}"
       WIDTH: "1280"
       HEIGHT: "720"
       FPS: "20"
-      VNC_PASSWORD: "research"
+      VNC_PASSWORD: "${VNC_PASSWORD:-research}"
       ENABLE_RECORDING: "1"
       RECORDING_PATH: "/output/camera_bravo.mp4"
     volumes:
@@ -253,3 +272,9 @@ services:
       - ./camera/output_bravo:/output
       - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
       - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
+    extra_hosts:
+      - "sessionserver.mojang.com:127.0.0.1"
+      - "api.minecraftservices.com:127.0.0.1"
+      - "authserver.mojang.com:127.0.0.1"
+      - "textures.minecraft.net:127.0.0.1"
+      - "pc.realms.minecraft.net:127.0.0.1"

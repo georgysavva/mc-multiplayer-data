@@ -2,23 +2,24 @@ const { Rcon } = require("rcon-client");
 const net = require("net");
 const EventEmitter = require("events");
 
+function decidePrimaryBot(bot, sharedBotRng, args) {
+  // Build a sorted array of both bot names
+  const bots = [bot.username, args.other_bot_name].sort();
+  // Draw a random index (0 or 1)
+  const chosenIndex = Math.floor(sharedBotRng() * bots.length);
+  // Return true if this bot's name matches the chosen index's name
+  return bot.username === bots[chosenIndex];
+}
 /**
  * RCON teleportation function
  * @param {string} name - Player name
  * @param {number} x - X coordinate
  * @param {number} y - Y coordinate
  * @param {number} z - Z coordinate
- * @param {Object} args - Configuration arguments with rcon settings
  * @returns {Promise<string>} RCON response
  */
-async function rconTp(name, x, y, z, args) {
-  const rcon = await Rcon.connect({
-    host: args.rcon_host,
-    port: args.rcon_port,
-    password: args.rcon_password,
-  });
+async function rconTp(rcon, name, x, y, z) {
   const res = await rcon.send(`tp ${name} ${x} ${y} ${z}`);
-  await rcon.end();
   return res;
 }
 
@@ -34,6 +35,8 @@ class BotCoordinator extends EventEmitter {
     this.otherCoordPort = otherCoordPort;
     this.clientConnection = null;
     this.server = null;
+    this.executingEvents = new Map(); // Track currently executing event handlers
+    this.eventCounter = 0; // Auto-incrementing counter for unique event tracking
   }
 
   async setupConnections() {
@@ -142,7 +145,8 @@ class BotCoordinator extends EventEmitter {
     });
   }
 
-  sendToOtherBot(eventName, eventParams, location) {
+  sendToOtherBot(eventName, eventParams, episodeNum, location) {
+    eventName = getEventName(eventName, episodeNum);
     if (this.clientConnection) {
       const message = JSON.stringify({ eventName, eventParams });
       console.log(
@@ -156,12 +160,75 @@ class BotCoordinator extends EventEmitter {
     }
   }
 
-  onceEvent(eventName, handler) {
-    this.once(eventName, handler);
+  onceEvent(eventName, episodeNum, handler) {
+    const fullEventName = getEventName(eventName, episodeNum);
+    const eventId = this.eventCounter++;
+    const uniqueKey = `${fullEventName}_${eventId}`;
+
+    const wrappedHandler = async (...args) => {
+      // Mark event as executing with unique key
+      this.executingEvents.set(uniqueKey, true);
+
+      try {
+        // Execute the handler (supports both sync and async handlers)
+        await handler(...args);
+      } finally {
+        // Remove event from executing map when done
+        this.executingEvents.delete(uniqueKey);
+      }
+    };
+
+    this.once(fullEventName, wrappedHandler);
   }
+
+  async waitForAllPhasesToFinish() {
+    const startTime = Date.now();
+    const timeoutMs = 60000; // 1 minute timeout
+
+    while (this.executingEvents.size > 0) {
+      const elapsedMs = Date.now() - startTime;
+
+      if (elapsedMs >= timeoutMs) {
+        console.log(
+          `[${
+            this.botName
+          }] Timeout after 1 minute waiting for events. Still executing: ${[
+            ...this.executingEvents.keys(),
+          ].join(", ")}`
+        );
+        return;
+      }
+
+      console.log(
+        `[${this.botName}] Waiting for ${
+          this.executingEvents.size
+        } event(s) to finish: ${[...this.executingEvents.keys()].join(", ")}`
+      );
+      // Wait a bit before checking again
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    console.log(`[${this.botName}] All event handlers finished`);
+  }
+
+  async syncBots(episodeNum) {
+    return new Promise((resolve) => {
+      this.onceEvent("syncBots", episodeNum, () => {
+        this.sendToOtherBot("syncBots", {}, episodeNum, `syncBots beginning`);
+        console.log(`[${this.botName}] Syncing bots...`);
+        resolve();
+      });
+      this.sendToOtherBot("syncBots", {}, episodeNum, `syncBots outer`);
+    });
+  }
+}
+
+
+function getEventName(eventName, episodeNum) {
+  return `episode_${episodeNum}_${eventName}`;
 }
 
 module.exports = {
   rconTp,
   BotCoordinator,
+  decidePrimaryBot,
 };

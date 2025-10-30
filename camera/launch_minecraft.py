@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
+import hashlib
 import json
 import os
 import subprocess
 import sys
-from pathlib import Path
-
-import hashlib
 import uuid
+from pathlib import Path
 
 import minecraft_launcher_lib
 
@@ -29,9 +28,7 @@ def ensure_version(version: str, minecraft_dir: Path) -> None:
             flush=True,
         )
         return
-    minecraft_launcher_lib.install.install_minecraft_version(
-        version, minecraft_dir
-    )
+    minecraft_launcher_lib.install.install_minecraft_version(version, minecraft_dir)
 
 
 def ensure_option(minecraft_dir: Path, key: str, value: str) -> None:
@@ -90,6 +87,7 @@ def build_launch_command(version: str, minecraft_dir: Path) -> list[str]:
         "username": login["name"],
         "uuid": login["uuid"],
         "token": login["token"],
+        "userType": "legacy",
         "launcherName": "mc-multiplayer-camera",
         "launcherVersion": "0.1",
         "gameDirectory": str(minecraft_dir),
@@ -105,6 +103,8 @@ def build_launch_command(version: str, minecraft_dir: Path) -> list[str]:
             "-XX:G1ReservePercent=20",
             "-XX:MaxGCPauseMillis=50",
             "-XX:G1HeapRegionSize=32M",
+            "-Dsun.net.client.defaultConnectTimeout=2000",
+            "-Dsun.net.client.defaultReadTimeout=2000",
         ],
         "javaExecutable": os.environ.get("JAVA_BIN", "/usr/bin/java"),
     }
@@ -132,7 +132,9 @@ def main() -> int:
     ensure_version(version, minecraft_dir)
 
     command = build_launch_command(version, minecraft_dir)
-    print(f"[launcher] starting Minecraft with command: {' '.join(command)}", flush=True)
+    print(
+        f"[launcher] starting Minecraft with command: {' '.join(command)}", flush=True
+    )
 
     env = os.environ.copy()
     process = subprocess.Popen(command, env=env)

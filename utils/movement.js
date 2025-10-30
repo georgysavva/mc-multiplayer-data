@@ -7,7 +7,13 @@ const Vec3 = require("vec3").Vec3;
  */
 
 // Import pathfinder components correctly according to official README
-const { Movements, GoalNear, GoalNearXZ, GoalBlock, GoalFollow } = require('./bot-factory');
+const {
+  Movements,
+  GoalNear,
+  GoalNearXZ,
+  GoalBlock,
+  GoalFollow,
+} = require("./bot-factory");
 
 // ============================================================================
 // BASIC CONTROL FUNCTIONS
@@ -19,14 +25,14 @@ const { Movements, GoalNear, GoalNearXZ, GoalBlock, GoalFollow } = require('./bo
  */
 function stopAll(bot) {
   // Stop pathfinder if available
-  if (bot.pathfinder && typeof bot.pathfinder.stop === 'function') {
+  if (bot.pathfinder && typeof bot.pathfinder.stop === "function") {
     bot.pathfinder.stop();
   }
-  
+
   // Stop all manual controls
   for (const control of [
     "forward",
-    "back", 
+    "back",
     "left",
     "right",
     "jump",
@@ -75,7 +81,7 @@ function disableSprint(bot) {
  */
 function initializePathfinder(bot, options = {}) {
   const movements = new Movements(bot);
-  
+
   // Configure movement settings
   movements.allowSprinting = options.allowSprinting !== false; // Default: true
   movements.allowParkour = options.allowParkour !== false; // Default: true
@@ -83,17 +89,17 @@ function initializePathfinder(bot, options = {}) {
   movements.canPlaceOn = options.canPlaceOn || false; // Default: false (don't place blocks)
   movements.allowFreeMotion = options.allowFreeMotion || false; // Default: false
   movements.allowEntityDetection = options.allowEntityDetection !== false; // Default: true
-  
+
   // Set pathfinder movements
   bot.pathfinder.setMovements(movements);
-  
+
   console.log(`[${bot.username}] Pathfinder initialized with settings:`, {
     sprint: movements.allowSprinting,
     parkour: movements.allowParkour,
     dig: movements.canDig,
-    entityDetection: movements.allowEntityDetection
+    entityDetection: movements.allowEntityDetection,
   });
-  
+
   return movements;
 }
 
@@ -138,16 +144,16 @@ function moveToward(bot, targetPosition, sprint = false, threshold = 0.5) {
   const dx = targetPosition.x - currentPos.x;
   const dz = targetPosition.z - currentPos.z;
   const distance = Math.sqrt(dx * dx + dz * dz);
-  
+
   // If we're close enough, stop moving
   if (distance <= threshold) {
     stopAll(bot);
     return "stopped";
   }
-  
+
   // Clear all movement first
   stopAll(bot);
-  
+
   // Determine primary movement direction
   let primaryDirection;
   if (Math.abs(dz) > Math.abs(dx)) {
@@ -160,7 +166,7 @@ function moveToward(bot, targetPosition, sprint = false, threshold = 0.5) {
       primaryDirection = "back";
     }
   } else {
-    // Primarily east/west movement  
+    // Primarily east/west movement
     if (dx > 0) {
       bot.setControlState("right", true); // Move east (positive X)
       primaryDirection = "right";
@@ -169,12 +175,12 @@ function moveToward(bot, targetPosition, sprint = false, threshold = 0.5) {
       primaryDirection = "left";
     }
   }
-  
+
   // Enable sprinting if requested
   if (sprint) {
     bot.setControlState("sprint", true);
   }
-  
+
   return primaryDirection;
 }
 
@@ -189,14 +195,14 @@ function moveAway(bot, avoidPosition, sprint = false) {
   const currentPos = bot.entity.position;
   const dx = currentPos.x - avoidPosition.x; // Reversed for moving away
   const dz = currentPos.z - avoidPosition.z; // Reversed for moving away
-  
+
   // Create a target position that's away from the avoid position
   const escapeTarget = new Vec3(
     currentPos.x + (dx > 0 ? 5 : -5), // Move 5 blocks in escape direction
     currentPos.y,
     currentPos.z + (dz > 0 ? 5 : -5)
   );
-  
+
   return moveToward(bot, escapeTarget, sprint);
 }
 
@@ -225,6 +231,20 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90) {
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
   const targetPitch = -Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
 
+  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, {
+    logTarget: `[${bot.username}] Looking at (${targetPosition.x.toFixed(
+      2
+    )}, ${targetPosition.y.toFixed(2)}, ${targetPosition.z.toFixed(2)})`,
+  });
+}
+
+async function lookSmooth(
+  bot,
+  targetYaw,
+  targetPitch,
+  degreesPerSecond,
+  opts = {}
+) {
   const startYaw = bot.entity.yaw;
   const startPitch = bot.entity.pitch;
 
@@ -247,13 +267,21 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90) {
   // Calculate total time needed
   const totalTimeMs = (totalAngleDistance / radiansPerSecond) * 1000;
 
-  console.log(
-    `[${bot.username}] Looking at (${targetPosition.x.toFixed(
-      2
-    )}, ${targetPosition.y.toFixed(2)}, ${targetPosition.z.toFixed(
-      2
-    )}) at ${degreesPerSecond}°/s over ${(totalTimeMs / 1000).toFixed(2)}s`
-  );
+  if (opts.logTarget) {
+    console.log(
+      `${opts.logTarget} at ${degreesPerSecond}°/s over ${(
+        totalTimeMs / 1000
+      ).toFixed(2)}s`
+    );
+  } else {
+    console.log(
+      `[${bot.username}] Looking at yaw=${targetYaw.toFixed(
+        2
+      )}, pitch=${targetPitch.toFixed(2)} at ${degreesPerSecond}°/s over ${(
+        totalTimeMs / 1000
+      ).toFixed(2)}s`
+    );
+  }
 
   const startTime = Date.now();
   const endTime = startTime + totalTimeMs;
@@ -291,7 +319,9 @@ async function lookAtBot(bot, targetBotName, degreesPerSecond = 90) {
   if (targetBot && targetBot.entity) {
     await lookAtSmooth(bot, targetBot.entity.position, degreesPerSecond);
   } else {
-    console.log(`[${bot.username}] Cannot find bot ${targetBotName} to look at`);
+    console.log(
+      `[${bot.username}] Cannot find bot ${targetBotName} to look at`
+    );
   }
 }
 
@@ -347,7 +377,7 @@ function land_pos(bot, x, z) {
  * @returns {Promise} Promise that resolves after the specified time
  */
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -385,15 +415,15 @@ function getDirectionTo(fromPos, toPos) {
   const dx = toPos.x - fromPos.x;
   const dz = toPos.z - fromPos.z;
   const distance = Math.sqrt(dx * dx + dz * dz);
-  
+
   if (distance === 0) {
     return { x: 0, z: 0, distance: 0 };
   }
-  
+
   return {
     x: dx / distance,
     z: dz / distance,
-    distance: distance
+    distance: distance,
   };
 }
 
@@ -418,9 +448,29 @@ function isNearPosition(bot, targetPosition, threshold = 1.0) {
 function isNearBot(bot, targetBotName, threshold = 1.0) {
   const targetBot = bot.players[targetBotName];
   if (targetBot && targetBot.entity) {
-    return horizontalDistanceTo(bot.entity.position, targetBot.entity.position) <= threshold;
+    return (
+      horizontalDistanceTo(bot.entity.position, targetBot.entity.position) <=
+      threshold
+    );
   }
   return false;
+}
+/**
+ * Make bot jump for specified duration
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} durationMs - Duration in milliseconds
+ */
+async function jump(bot, durationMs) {
+  console.log(
+    `[${bot.username}] Jumping for ${(durationMs / 1000).toFixed(1)}s`
+  );
+  const end = Date.now() + durationMs;
+  while (Date.now() < end) {
+    bot.setControlState("jump", true);
+    await sleep(250);
+    bot.setControlState("jump", false);
+    await sleep(250);
+  }
 }
 
 // ============================================================================
@@ -433,21 +483,22 @@ module.exports = {
   setControls,
   enableSprint,
   disableSprint,
-  
+
   // Pathfinder setup and configuration
   initializePathfinder,
   stopPathfinder,
-  
+
   // Directional movement
   moveDirection,
   moveToward,
   moveAway,
-  
+
   // Camera and looking
   lookAtSmooth,
+  lookSmooth,
   lookAtBot,
   lookDirection,
-  
+
   // Utilities
   sleep,
   distanceTo,
@@ -455,5 +506,6 @@ module.exports = {
   getDirectionTo,
   isNearPosition,
   isNearBot,
-  land_pos
+  land_pos,
+  jump,
 };

@@ -23,17 +23,20 @@ function parseArgs() {
       episodes_num: 1,
       start_episode_id: 0,
       run_id: 1,
-      color: "red", // default color name
       bootstrap_wait_time: 0,
       enable_camera_wait: 1,
-      teleport_center_x: 0,
-      teleport_center_z: 0,
-      teleport_radius: 500,
+      teleport_center_x: 11,
+      teleport_center_z: 11,
+      teleport_radius: 5,
       walk_timeout: 5, // walk timeout in seconds
       mc_version: process.env.MC_VERSION || "1.20.4",
       camera_ready_retries: 30,
       camera_ready_check_interval: 2000, // milliseconds
       rcon_password: "research",
+      teleport: 1,
+      viewer_rendering_disabled: 0,
+      viewer_recording_interval: 50,
+      smoke_test: 0,
     },
   });
 }
