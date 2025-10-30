@@ -10,17 +10,88 @@ function decidePrimaryBot(bot, sharedBotRng, args) {
   // Return true if this bot's name matches the chosen index's name
   return bot.username === bots[chosenIndex];
 }
+
 /**
- * RCON teleportation function
+ * Forceload chunks in a radius around target coordinates
+ * @param {Rcon} rcon - RCON connection instance
+ * @param {number} x - Target X coordinate (block)
+ * @param {number} z - Target Z coordinate (block)
+ * @param {number} radius - Chunk radius (default 1 = 3x3 chunks)
+ * @returns {Promise<{success: boolean, chunks: Array}>} Result with loaded chunks
+ */
+async function rconForceloadChunks(rcon, x, z, radius = 1) {
+  // Calculate center chunk coordinates (divide by 16 and floor)
+  const centerChunkX = Math.floor(x / 16);
+  const centerChunkZ = Math.floor(z / 16);
+  
+  const loadedChunks = [];
+  const failedChunks = [];
+  
+  console.log(`[RCON] Forceloading chunks around block (${x}, ${z}) = chunk (${centerChunkX}, ${centerChunkZ}) with radius ${radius}`);
+  
+  // Forceload chunks in a square radius
+  for (let dx = -radius; dx <= radius; dx++) {
+    for (let dz = -radius; dz <= radius; dz++) {
+      const chunkX = centerChunkX + dx;
+      const chunkZ = centerChunkZ + dz;
+      
+      try {
+        const res = await rcon.send(`forceload add ${chunkX * 16} ${chunkZ * 16}`);
+        console.log(`[RCON] Forceload chunk (${chunkX}, ${chunkZ}): ${res}`);
+        loadedChunks.push({ chunkX, chunkZ });
+      } catch (error) {
+        console.error(`[RCON] Failed to forceload chunk (${chunkX}, ${chunkZ}):`, error.message);
+        failedChunks.push({ chunkX, chunkZ, error: error.message });
+      }
+    }
+  }
+  
+  const success = failedChunks.length === 0;
+  console.log(`[RCON] Forceload complete: ${loadedChunks.length} chunks loaded, ${failedChunks.length} failed`);
+  
+  return { success, loadedChunks, failedChunks };
+}
+
+/**
+ * RCON teleportation function with chunk forceloading
+ * @param {Rcon} rcon - RCON connection instance
  * @param {string} name - Player name
  * @param {number} x - X coordinate
  * @param {number} y - Y coordinate
  * @param {number} z - Z coordinate
- * @returns {Promise<string>} RCON response
+ * @param {number} chunkRadius - Chunk radius to forceload (default 1 = 3x3 chunks)
+ * @returns {Promise<{success: boolean, message: string}>} Result object
  */
-async function rconTp(rcon, name, x, y, z) {
-  const res = await rcon.send(`tp ${name} ${x} ${y} ${z}`);
-  return res;
+async function rconTp(rcon, name, x, y, z, chunkRadius = 1) {
+  console.log(`[RCON] Attempting to teleport ${name} to (${x}, ${y}, ${z})`);
+  
+  // First attempt: forceload and teleport
+  let forceloadResult = await rconForceloadChunks(rcon, x, z, chunkRadius);
+  
+  if (!forceloadResult.success) {
+    console.warn(`[RCON] First forceload attempt had failures, retrying once...`);
+    // Wait a bit before retry
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Retry forceload
+    forceloadResult = await rconForceloadChunks(rcon, x, z, chunkRadius);
+    
+    if (!forceloadResult.success) {
+      const errorMsg = `Failed to forceload chunks after retry. ${forceloadResult.failedChunks.length} chunks failed.`;
+      console.error(`[RCON] ${errorMsg}`);
+      return { success: false, message: errorMsg, forceloadResult };
+    }
+  }
+  
+  // Chunks are loaded, now teleport
+  try {
+    const res = await rcon.send(`tp ${name} ${x} ${y} ${z}`);
+    console.log(`[RCON] Teleport ${name} result: ${res}`);
+    return { success: true, message: res, forceloadResult };
+  } catch (error) {
+    const errorMsg = `Teleport command failed: ${error.message}`;
+    console.error(`[RCON] ${errorMsg}`);
+    return { success: false, message: errorMsg, error: error.message, forceloadResult };
+  }
 }
 
 /**
@@ -222,13 +293,13 @@ class BotCoordinator extends EventEmitter {
   }
 }
 
-
 function getEventName(eventName, episodeNum) {
   return `episode_${episodeNum}_${eventName}`;
 }
 
 module.exports = {
   rconTp,
+  rconForceloadChunks,
   BotCoordinator,
   decidePrimaryBot,
 };

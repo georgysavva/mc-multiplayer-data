@@ -546,23 +546,36 @@ async function teleport(
 
   // Teleport using rcon
   try {
-    await rconTp(
+    const tpResult = await rconTp(
       rcon,
       bot.username,
       Math.floor(newX),
       Math.floor(newY),
       Math.floor(newZ)
     );
-    // await sleep(1000);
+    
+    if (!tpResult.success) {
+      console.error(
+        `[${bot.username}] Teleport failed: ${tpResult.message}. Skipping teleportation for this episode.`
+      );
+      // Return current position if teleport fails
+      return bot.entity.position.clone();
+    }
+    
+    console.log(
+      `[${bot.username}] Teleport completed successfully. Forceloaded ${tpResult.forceloadResult.loadedChunks.length} chunks.`
+    );
     console.log(
       `[${
         bot.username
-      }] teleport completed. New local position: (${newX.toFixed(
+      }] New local position: (${newX.toFixed(2)}, ${newY.toFixed(
         2
-      )}, ${newY.toFixed(2)}, ${newZ.toFixed(2)})`
+      )}, ${newZ.toFixed(2)})`
     );
   } catch (error) {
-    console.error(`[${bot.username}] teleport failed:`, error);
+    console.error(`[${bot.username}] Teleport error:`, error);
+    // Return current position if teleport fails
+    return bot.entity.position.clone();
   }
   return computedOtherBotPosition;
 }

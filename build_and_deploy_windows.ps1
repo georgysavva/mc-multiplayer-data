@@ -1,6 +1,6 @@
 # Windows Build and Deploy Script for MC Multiplayer Data Collection
 # PowerShell version of build_and_push.sh specifically for Windows Docker Desktop
-
+# dos2unix -v   ./camera/entrypoint.sh   ./camera/launch_minecraft.py   ./camera/spectator.js   ./entrypoint_receiver.sh   ./entrypoint_senders.sh   ./receiver.py   ./senders.js
 param(
     [string]$ImageName = "ojmichel/mc-multiplayer-base",
     [string]$Tag = "latest",
