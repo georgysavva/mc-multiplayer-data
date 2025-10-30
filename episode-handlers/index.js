@@ -1,3 +1,5 @@
+const fs = require("fs/promises");
+const path = require("path");
 const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const Vec3 = require("vec3").Vec3;
 const { sleep } = require("../utils/helpers");
@@ -35,8 +37,8 @@ const episodeClassMap = {
   pvp: PvpEpisode,
   pve: PveEpisode,
   buildStructure: BuildStructureEpisode,
-  buildTower: BuildTowerEpisode,
-  // mine: MineEpisode,
+  // buildTower: BuildTowerEpisode,
+  mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
 };
 
@@ -52,10 +54,53 @@ const episodeTypes = [
   "pvp",
   "pve",
   "buildStructure",
-  "buildTower",
-  // "mine",
+  // "buildTower",
+  "mine",
   "towerBridge",
 ];
+
+function formatDateForFilename(date) {
+  const pad = (value, length = 2) => String(value).padStart(length, "0");
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(
+    date.getDate()
+  )}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+}
+
+async function saveEpisodeInfo({
+  args,
+  bot,
+  episodeInstance,
+  episodeNum,
+  episodeType,
+}) {
+  const now = new Date();
+  const formattedTimestamp = formatDateForFilename(now);
+  const episodeNumStr = String(episodeNum).padStart(6, "0");
+  const instanceId = args.instance_id ?? 0;
+  const instanceIdStr = String(instanceId).padStart(3, "0");
+  const botName = args.bot_name;
+  const outputDir = args.output_dir;
+
+  await fs.mkdir(outputDir, { recursive: true });
+
+  const baseFileName = `${formattedTimestamp}_${episodeNumStr}_${botName}_instance_${instanceIdStr}_episode_info`;
+  const filePath = path.join(outputDir, `${baseFileName}.json`);
+
+  const payload = {
+    timestamp: now.toISOString(),
+    bot_name: botName,
+    episode_number: episodeNum,
+    episode_type: episodeType,
+    instance_id: instanceId,
+    encountered_error: Boolean(episodeInstance?._encounteredError),
+    peer_encountered_error: Boolean(episodeInstance?._peerError),
+  };
+
+  await fs.writeFile(filePath, JSON.stringify(payload, null, 2));
+  console.log(
+    `[${bot.username}] Saved episode info to ${filePath} (encountered_error=${payload.encountered_error}, peer_encountered_error=${payload.peer_encountered_error})`
+  );
+}
 /**
  * Run a single episode
  * @param {Bot} bot - Mineflayer bot instance
@@ -91,6 +136,7 @@ async function runSingleEpisode(
         return;
       }
       episodeErrorHandled = true;
+      episodeInstance._encounteredError = true;
       await notifyPeerErrorAndStop(
         bot,
         rcon,
@@ -336,7 +382,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       }
 
       // Create an instance of the episode class
-      const episodeInstance = new EpisodeClass({});
+      const episodeInstance = new EpisodeClass(sharedBotRng);
 
       console.log(
         `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
@@ -382,6 +428,13 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
         );
       }
       console.log(`[${bot.username}] Episode ${episodeNum} completed`);
+      await saveEpisodeInfo({
+        args,
+        bot,
+        episodeInstance,
+        episodeNum,
+        episodeType: selectedEpisodeType,
+      });
       console.log(`[${bot.username}] Syncing bots for episode ${episodeNum}`);
       await coordinator.syncBots(episodeNum);
     }
@@ -596,6 +649,7 @@ function getOnPeerErrorPhaseFn(
       `[${bot.username}] Received peerErrorPhase_${episodeNum} from peer, stopping.`,
       phaseDataOther["reason"]
     );
+    episodeInstance._peerError = true;
     coordinator.onceEvent(
       "stopPhase",
       episodeNum,

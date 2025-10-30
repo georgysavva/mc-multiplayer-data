@@ -30,7 +30,7 @@ echo "[entrypoint] GLX sanity check:"
 glxinfo -B || true  # don't hard-fail; just print if available
 
 echo "[entrypoint] Launching app..."
-echo "[entrypoint] Bot config: ${BOT_NAME:-Alpha} <-> ${OTHER_BOT_NAME:-Bravo}, Ports: ${COORD_PORT:-8093}/${OTHER_COORD_PORT:-8094}"
+echo "[entrypoint] Bot config: ${BOT_NAME:-Alpha} <-> ${OTHER_BOT_NAME:-Bravo}, Ports: ${COORD_PORT:-8093}/${OTHER_COORD_PORT:-8094}, Instance: ${INSTANCE_ID:-0}"
 # exec node senders_simple.js 
 exec node senders.js \
   --bot_name "${BOT_NAME:-Alpha}" \
@@ -58,4 +58,6 @@ exec node senders.js \
   --viewer_rendering_disabled "${VIEWER_RENDERING_DISABLED:-0}" \
   --viewer_recording_interval "${VIEWER_RECORDING_INTERVAL:-50}" \
   --smoke_test "${SMOKE_TEST:-0}" \
-  --world_type "${WORLD_TYPE:-flat}"
+  --world_type "${WORLD_TYPE:-flat}" \
+  --instance_id "${INSTANCE_ID:-0}" \
+  --output_dir "${OUTPUT_DIR:-/output}"

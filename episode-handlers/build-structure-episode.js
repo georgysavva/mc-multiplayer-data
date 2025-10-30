@@ -164,8 +164,9 @@ function getOnBuildPhaseFn(
     }
 
     // STEP 3: Determine build positions based on bot role
-    console.log(`[${bot.username}] 📐 STEP 3: Planning structure...`);
-
+    console.log(
+      `[${bot.username}] 📐 STEP 3: Planning structure ${structureType}...`
+    );
     const botPos = bot.entity.position.floored();
     let positions = [];
     let blockType =
