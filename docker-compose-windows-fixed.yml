@@ -76,6 +76,10 @@ services:
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
       SMOKE_TEST: 0
+      TELEPORT: 1
+      TELEPORT_CENTER_X: 0
+      TELEPORT_CENTER_Z: 0
+      TELEPORT_RADIUS: 500
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -117,6 +121,10 @@ services:
       CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
       SMOKE_TEST: 0
+      TELEPORT: 1
+      TELEPORT_CENTER_X: 0
+      TELEPORT_CENTER_Z: 0
+      TELEPORT_RADIUS: 500
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh

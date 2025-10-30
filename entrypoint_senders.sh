@@ -54,6 +54,9 @@ exec node senders.js \
   --camera_ready_check_interval "${CAMERA_READY_CHECK_INTERVAL:-2000}" \
   --walk_timeout "${WALK_TIMEOUT:-5}" \
   --teleport "${TELEPORT:-0}" \
+  --teleport_center_x "${TELEPORT_CENTER_X:-0}" \
+  --teleport_center_z "${TELEPORT_CENTER_Z:-0}" \
+  --teleport_radius "${TELEPORT_RADIUS:-500}" \
   --mc_version "${MC_VERSION:-1.20.4}" \
   --viewer_rendering_disabled "${VIEWER_RENDERING_DISABLED:-0}" \
   --viewer_recording_interval "${VIEWER_RECORDING_INTERVAL:-50}" \
