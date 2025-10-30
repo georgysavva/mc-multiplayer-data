@@ -4,6 +4,7 @@ const {
   sleep,
   land_pos,
   horizontalDistanceTo,
+  gotoWithTimeout,
 } = require("../utils/movement");
 
 const { GoalNear, Movements } = require("../utils/bot-factory");
@@ -246,7 +247,7 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
   let reached = false;
   for (let attempt = 0; attempt < 2 && !reached; attempt++) {
     try {
-      await bot.pathfinder.goto(goal);
+      await gotoWithTimeout(bot, goal, { timeoutMs: 30000 });
       reached = true;
     } catch (err) {
       const msg = String(err?.message || err || "");
