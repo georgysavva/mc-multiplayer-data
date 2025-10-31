@@ -13,6 +13,50 @@ from pathlib import Path
 import yaml
 
 
+def absdir(path: str) -> str:
+    """Validate path is absolute and return it.
+
+    Raises AssertionError if not absolute to avoid ambiguous mounts.
+    """
+    assert os.path.isabs(path), f"expected absolute path, got: {path}"
+    return path
+
+
+def camera_paths(
+    instance_id: int,
+    alpha_base: str,
+    bravo_base: str,
+    data_alpha_base: str,
+    data_bravo_base: str,
+) -> dict:
+    return {
+        "alpha_output_host": os.path.join(alpha_base, str(instance_id)),
+        "bravo_output_host": os.path.join(bravo_base, str(instance_id)),
+        "alpha_data_host": os.path.join(data_alpha_base, str(instance_id)),
+        "bravo_data_host": os.path.join(data_bravo_base, str(instance_id)),
+    }
+
+
+def camera_ports(
+    instance_id: int,
+    alpha_vnc_base: int,
+    alpha_novnc_base: int,
+    bravo_vnc_base: int,
+    bravo_novnc_base: int,
+    display_base: int,
+    vnc_step: int,
+    display_step: int,
+) -> dict:
+    return {
+        "alpha_vnc": alpha_vnc_base + vnc_step * instance_id,
+        "alpha_novnc": alpha_novnc_base + vnc_step * instance_id,
+        "bravo_vnc": bravo_vnc_base + vnc_step * instance_id,
+        "bravo_novnc": bravo_novnc_base + vnc_step * instance_id,
+        "alpha_display": f":{display_base + display_step * instance_id}",
+        "bravo_display": f":{display_base + display_step * instance_id + 1}",
+    }
+
+
 def generate_terrain_settings(biome, surface_block):
     """Generate terrain settings JSON for flat world generation."""
     terrain_settings = {
@@ -42,6 +86,18 @@ def generate_compose_config(
     max_run_actions,
     episode_category,
     iterations_num_per_episode,
+    # camera specific
+    camera_output_alpha_base,
+    camera_output_bravo_base,
+    camera_data_alpha_base,
+    camera_data_bravo_base,
+    camera_alpha_vnc_base,
+    camera_alpha_novnc_base,
+    camera_bravo_vnc_base,
+    camera_bravo_novnc_base,
+    display_base,
+    vnc_step,
+    display_step,
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -52,6 +108,31 @@ def generate_compose_config(
     # Directories - each instance gets its own data subdirectory
     data_dir = f"{data_dir_base}/{instance_id}"
 
+    cam_paths = camera_paths(
+        instance_id,
+        camera_output_alpha_base,
+        camera_output_bravo_base,
+        camera_data_alpha_base,
+        camera_data_bravo_base,
+    )
+    cam_ports = camera_ports(
+        instance_id,
+        camera_alpha_vnc_base,
+        camera_alpha_novnc_base,
+        camera_bravo_vnc_base,
+        camera_bravo_novnc_base,
+        display_base,
+        vnc_step,
+        display_step,
+    )
+
+    project_root = str(Path(__file__).resolve().parent)
+
+    entrypoint_host = os.path.join(project_root, "camera", "entrypoint.sh")
+    launch_host = os.path.join(project_root, "camera", "launch_minecraft.py")
+    spectator_js_host = os.path.join(project_root, "camera", "spectator.js")
+    camera_package_json_host = os.path.join(project_root, "camera", "package.json")
+
     config = {
         "networks": {f"mc_network_{instance_id}": {"driver": "bridge"}},
         "services": {
@@ -61,25 +142,35 @@ def generate_compose_config(
                 "network_mode": "host",
                 "environment": {
                     "EULA": "TRUE",
-                    "VERSION": "1.21",
+                    "VERSION": "1.20.4",
                     "TYPE": "PAPER",
-                    "MODE": "creative",
+                    "MODE": "survival",
                     "RCON_PORT": rcon_port,
                     "SERVER_PORT": mc_port,
                     "ONLINE_MODE": False,
                     "ENFORCE_SECURE_PROFILE": False,
-                    "RCON_PASSWORD": "change-me",
+                    "RCON_PASSWORD": "research",
+                    "BROADCAST_RCON_TO_OPS": True,
                     "LEVEL_TYPE": "minecraft:flat",
                     "GENERATOR_SETTINGS": "TERRAIN_SETTINGS_PLACEHOLDER",
                 },
                 "volumes": [f"{data_dir}:/data"],
+                "healthcheck": {
+                    "test": [
+                        "CMD-SHELL",
+                        f"mc-monitor status --host localhost --port {mc_port}",
+                    ],
+                    "interval": "10s",
+                    "timeout": "5s",
+                    "retries": 12,
+                },
             },
             f"sender_alpha_instance_{instance_id}": {
-                "image": "mc-multiplayer:latest",
-                "depends_on": [
-                    f"mc_instance_{instance_id}",
-                    f"receiver_alpha_instance_{instance_id}",
-                ],
+                "image": "ojmichel/mc-multiplayer-base:latest",
+                "depends_on": {
+                    f"mc_instance_{instance_id}": {"condition": "service_healthy"},
+                    f"receiver_alpha_instance_{instance_id}": {"condition": "service_started"},
+                },
                 "volumes": [f"{output_dir}:/output"],
                 "environment": {
                     "BOT_NAME": "Alpha",
@@ -90,7 +181,7 @@ def generate_compose_config(
                     "OTHER_COORD_HOST": f"sender_bravo_instance_{instance_id}",
                     "OTHER_COORD_PORT": coord_port,
                     "BOT_RNG_SEED": str(12345 + instance_id),
-                    "EPISODES_NUM": num_episodes,
+                    "EPISODES_NUM": 1,
                     "EPISODE_START_ID": episode_start_id,
                     "EPISODE_CATEGORY": episode_category,
                     "MC_HOST": "host.docker.internal",
@@ -98,24 +189,31 @@ def generate_compose_config(
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
                     "RCON_PASSWORD": "research",
-                    "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
-                    "CAMERA_READY_RETRIES": 30,
+                    "BOOTSTRAP_WAIT_TIME": 1,
+                    "ENABLE_CAMERA_WAIT": 1,
+                    "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
                     "MIN_RUN_ACTIONS": min_run_actions,
                     "MAX_RUN_ACTIONS": max_run_actions,
-                    "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
+                    "ITERATIONS_NUM_PER_EPISODE": 5,
+                    "MC_VERSION": "1.20.4",
+                    "VIEWER_RENDERING_DISABLED": 0,
+                    "VIEWER_RECORDING_INTERVAL": 30,
+                    "WALK_TIMEOUT": 5,
+                    "TELEPORT": 1,
+                    "SMOKE_TEST": 1,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
                 "command": "./entrypoint_senders.sh",
             },
             f"sender_bravo_instance_{instance_id}": {
-                "image": "mc-multiplayer:latest",
-                "depends_on": [
-                    f"mc_instance_{instance_id}",
-                    f"receiver_bravo_instance_{instance_id}",
-                    f"sender_alpha_instance_{instance_id}",
-                ],
+                "image": "ojmichel/mc-multiplayer-base:latest",
+                "depends_on": {
+                    f"mc_instance_{instance_id}": {"condition": "service_healthy"},
+                    f"receiver_bravo_instance_{instance_id}": {"condition": "service_started"},
+                    f"sender_alpha_instance_{instance_id}": {"condition": "service_started"},
+                },
                 "volumes": [f"{output_dir}:/output"],
                 "environment": {
                     "BOT_NAME": "Bravo",
@@ -126,7 +224,7 @@ def generate_compose_config(
                     "OTHER_COORD_HOST": f"sender_alpha_instance_{instance_id}",
                     "OTHER_COORD_PORT": coord_port,
                     "BOT_RNG_SEED": str(12345 + instance_id),
-                    "EPISODES_NUM": num_episodes,
+                    "EPISODES_NUM": 1,
                     "EPISODE_START_ID": episode_start_id,
                     "EPISODE_CATEGORY": episode_category,
                     "MC_HOST": "host.docker.internal",
@@ -134,24 +232,32 @@ def generate_compose_config(
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
                     "RCON_PASSWORD": "research",
-                    "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
-                    "CAMERA_READY_RETRIES": 30,
+                    "BOOTSTRAP_WAIT_TIME": 1,
+                    "ENABLE_CAMERA_WAIT": 1,
+                    "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
                     "MIN_RUN_ACTIONS": min_run_actions,
                     "MAX_RUN_ACTIONS": max_run_actions,
-                    "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
+                    "ITERATIONS_NUM_PER_EPISODE": 5,
+                    "MC_VERSION": "1.20.4",
+                    "VIEWER_RENDERING_DISABLED": 0,
+                    "VIEWER_RECORDING_INTERVAL": 30,
+                    "WALK_TIMEOUT": 5,
+                    "TELEPORT": 1,
+                    "SMOKE_TEST": 1,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
                 "command": "./entrypoint_senders.sh",
             },
             f"receiver_alpha_instance_{instance_id}": {
-                "image": "mc-multiplayer:latest",
+                "image": "ojmichel/mc-multiplayer-base:latest",
                 "environment": {
                     "PORT": receiver_port,
                     "NAME": "Alpha",
                     "INSTANCE_ID": instance_id,
                     "EPISODE_START_ID": episode_start_id,
+                    "VIEWER_RENDERING_DISABLED": 0,
                 },
                 "tty": True,
                 "volumes": [f"{output_dir}:/output"],
@@ -159,17 +265,146 @@ def generate_compose_config(
                 "command": "./entrypoint_receiver.sh",
             },
             f"receiver_bravo_instance_{instance_id}": {
-                "image": "mc-multiplayer:latest",
+                "image": "ojmichel/mc-multiplayer-base:latest",
                 "environment": {
                     "PORT": receiver_port,
                     "NAME": "Bravo",
                     "INSTANCE_ID": instance_id,
                     "EPISODE_START_ID": episode_start_id,
+                    "VIEWER_RENDERING_DISABLED": 0,
                 },
                 "tty": True,
                 "volumes": [f"{output_dir}:/output"],
                 "networks": [f"mc_network_{instance_id}"],
                 "command": "./entrypoint_receiver.sh",
+            },
+            # Camera alpha: recording client
+            f"camera_alpha_instance_{instance_id}": {
+                "image": "ojmichel/mineflayer-spectator-client:latest",
+                "restart": "unless-stopped",
+                "network_mode": "host",
+                "depends_on": {
+                    f"mc_instance_{instance_id}": {"condition": "service_healthy"}
+                },
+                "environment": {
+                    "MC_VERSION": "1.20.4",
+                    "MC_HOST": "127.0.0.1",
+                    "MC_PORT": mc_port,
+                    "CAMERA_NAME": "CameraAlpha",
+                    "DISPLAY": cam_ports["alpha_display"],
+                    "VNC_PORT": str(cam_ports["alpha_vnc"]),
+                    "NOVNC_PORT": str(cam_ports["alpha_novnc"]),
+                    "WIDTH": "1280",
+                    "HEIGHT": "720",
+                    "FPS": "20",
+                    "VNC_PASSWORD": "research",
+                    "ENABLE_RECORDING": "1",
+                    "RECORDING_PATH": "/output/camera_alpha.mp4",
+                },
+                "volumes": [
+                    f"{cam_paths['alpha_data_host']}:/root",
+                    f"{cam_paths['alpha_output_host']}:/output",
+                    f"{entrypoint_host}:/app/entrypoint.sh:ro",
+                    f"{launch_host}:/app/launch_minecraft.py:ro",
+                ],
+                "extra_hosts": [
+                    "sessionserver.mojang.com:127.0.0.1",
+                    "api.minecraftservices.com:127.0.0.1",
+                    "authserver.mojang.com:127.0.0.1",
+                    "textures.minecraft.net:127.0.0.1",
+                    "pc.realms.minecraft.net:127.0.0.1",
+                ],
+            },
+            # Alpha follow: set spectator + follow target via RCON
+            f"camera_alpha_follow_instance_{instance_id}": {
+                "image": "node:20",
+                "network_mode": "host",
+                "depends_on": {
+                    f"mc_instance_{instance_id}": {"condition": "service_healthy"},
+                    f"camera_alpha_instance_{instance_id}": {"condition": "service_started"}
+                },
+                "working_dir": "/app",
+                "environment": {
+                    "RCON_HOST": "127.0.0.1",
+                    "RCON_PORT": rcon_port,
+                    "RCON_PASSWORD": "research",
+                    "BOT_NAME": "Alpha",
+                    "CAMERA_NAME": "CameraAlpha",
+                    "RETRIES": "60",
+                },
+                "volumes": [
+                    f"{spectator_js_host}:/app/spectator.js:ro",
+                    f"{camera_package_json_host}:/app/package.json:ro",
+                ],
+                "command": [
+                    "sh",
+                    "-c",
+                    "npm install --omit=dev --no-progress && node spectator.js",
+                ],
+            },
+            # Camera bravo: recording client
+            f"camera_bravo_instance_{instance_id}": {
+                "image": "ojmichel/mineflayer-spectator-client:latest",
+                "restart": "unless-stopped",
+                "network_mode": "host",
+                "depends_on": {
+                    f"mc_instance_{instance_id}": {"condition": "service_healthy"}
+                },
+                "environment": {
+                    "MC_VERSION": "1.20.4",
+                    "MC_HOST": "127.0.0.1",
+                    "MC_PORT": mc_port,
+                    "CAMERA_NAME": "CameraBravo",
+                    "DISPLAY": cam_ports["bravo_display"],
+                    "VNC_PORT": str(cam_ports["bravo_vnc"]),
+                    "NOVNC_PORT": str(cam_ports["bravo_novnc"]),
+                    "WIDTH": "1280",
+                    "HEIGHT": "720",
+                    "FPS": "20",
+                    "VNC_PASSWORD": "research",
+                    "ENABLE_RECORDING": "1",
+                    "RECORDING_PATH": "/output/camera_bravo.mp4",
+                },
+                "volumes": [
+                    f"{cam_paths['bravo_data_host']}:/root",
+                    f"{cam_paths['bravo_output_host']}:/output",
+                    f"{entrypoint_host}:/app/entrypoint.sh:ro",
+                    f"{launch_host}:/app/launch_minecraft.py:ro",
+                ],
+                "extra_hosts": [
+                    "sessionserver.mojang.com:127.0.0.1",
+                    "api.minecraftservices.com:127.0.0.1",
+                    "authserver.mojang.com:127.0.0.1",
+                    "textures.minecraft.net:127.0.0.1",
+                    "pc.realms.minecraft.net:127.0.0.1",
+                ],
+            },
+            # Bravo follow
+            f"camera_bravo_follow_instance_{instance_id}": {
+                "image": "node:20",
+                "network_mode": "host",
+                "depends_on": {
+                    f"mc_instance_{instance_id}": {"condition": "service_healthy"},
+                    f"camera_bravo_instance_{instance_id}": {"condition": "service_started"}
+                },
+                "working_dir": "/app",
+                "environment": {
+                    "RCON_HOST": "127.0.0.1",
+                    "RCON_PORT": rcon_port,
+                    "RCON_PASSWORD": "research",
+                    "BOT_NAME": "Bravo",
+                    "CAMERA_NAME": "CameraBravo",
+                    "RETRIES": "60",
+                },
+                "volumes": [
+                    f"{spectator_js_host}:/app/spectator.js:ro",
+                    f"{camera_package_json_host}:/app/package.json:ro",
+                ],
+                "command": [
+                    "sh",
+                    "-c",
+                    "npm install --omit=dev --no-progress && node spectator.js",
+                ],
             },
         },
     }
@@ -228,6 +463,34 @@ def main():
         required=True,
         help="Shared output directory for all instances (default: ./output)",
     )
+    # Camera-specific bases (absolute paths)
+    parser.add_argument(
+        "--camera_output_alpha_base",
+        required=True,
+        help="Absolute base dir for per-instance Camera Alpha outputs (e.g., /abs/.../camera/output_alpha)",
+    )
+    parser.add_argument(
+        "--camera_output_bravo_base",
+        required=True,
+        help="Absolute base dir for per-instance Camera Bravo outputs (e.g., /abs/.../camera/output_bravo)",
+    )
+    parser.add_argument(
+        "--camera_data_alpha_base",
+        default=None,
+        help="Absolute base dir for per-instance Camera Alpha data (default: <project>/camera/data_alpha)",
+    )
+    parser.add_argument(
+        "--camera_data_bravo_base",
+        default=None,
+        help="Absolute base dir for per-instance Camera Bravo data (default: <project>/camera/data_bravo)",
+    )
+    parser.add_argument("--camera_alpha_vnc_base", type=int, default=5901)
+    parser.add_argument("--camera_alpha_novnc_base", type=int, default=6901)
+    parser.add_argument("--camera_bravo_vnc_base", type=int, default=5902)
+    parser.add_argument("--camera_bravo_novnc_base", type=int, default=6902)
+    parser.add_argument("--display_base", type=int, default=99)
+    parser.add_argument("--vnc_step", type=int, default=4)
+    parser.add_argument("--display_step", type=int, default=2)
     parser.add_argument(
         "--num_episodes",
         type=int,
@@ -271,13 +534,22 @@ def main():
     )
 
     args = parser.parse_args()
-    # Ensure output-dir and data-dir are absolute paths
-    assert os.path.isabs(
-        args.output_dir
-    ), f"--output-dir must be an absolute path, got: {args.output_dir}"
-    assert os.path.isabs(
-        args.data_dir
-    ), f"--data-dir must be an absolute path, got: {args.data_dir}"
+    # Ensure required dirs are absolute
+    args.output_dir = absdir(args.output_dir)
+    args.data_dir = absdir(args.data_dir)
+    args.camera_output_alpha_base = absdir(args.camera_output_alpha_base)
+    args.camera_output_bravo_base = absdir(args.camera_output_bravo_base)
+
+    # Defaults for camera data bases
+    project_root = str(Path(__file__).resolve().parent)
+    if args.camera_data_alpha_base is None:
+        args.camera_data_alpha_base = absdir(os.path.join(project_root, "camera", "data_alpha"))
+    else:
+        args.camera_data_alpha_base = absdir(args.camera_data_alpha_base)
+    if args.camera_data_bravo_base is None:
+        args.camera_data_bravo_base = absdir(os.path.join(project_root, "camera", "data_bravo"))
+    else:
+        args.camera_data_bravo_base = absdir(args.camera_data_bravo_base)
 
     # Create compose directory
     compose_dir = Path(args.compose_dir)
@@ -301,6 +573,18 @@ def main():
             args.max_run_actions,
             args.episode_category,
             args.iterations_num_per_episode,
+            # camera args
+            args.camera_output_alpha_base,
+            args.camera_output_bravo_base,
+            args.camera_data_alpha_base,
+            args.camera_data_bravo_base,
+            args.camera_alpha_vnc_base,
+            args.camera_alpha_novnc_base,
+            args.camera_bravo_vnc_base,
+            args.camera_bravo_novnc_base,
+            args.display_base,
+            args.vnc_step,
+            args.display_step,
         )
 
         # Write compose file
@@ -353,6 +637,18 @@ def main():
 
         # Create necessary directories
         os.makedirs(f"{args.data_dir}/{i}", exist_ok=True)
+        # Camera output/data per-instance dirs
+        cp = camera_paths(
+            i,
+            args.camera_output_alpha_base,
+            args.camera_output_bravo_base,
+            args.camera_data_alpha_base,
+            args.camera_data_bravo_base,
+        )
+        os.makedirs(cp["alpha_output_host"], exist_ok=True)
+        os.makedirs(cp["bravo_output_host"], exist_ok=True)
+        os.makedirs(cp["alpha_data_host"], exist_ok=True)
+        os.makedirs(cp["bravo_data_host"], exist_ok=True)
 
         print(f"Generated: {compose_file}")
 
@@ -360,16 +656,29 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     print(f"\nGenerated {args.instances} configurations in {compose_dir}/")
-    print(f"Published port ranges (host network):")
+    print("Published port ranges (host network):")
     print(
         f"  Minecraft servers: {args.base_port}-{args.base_port + args.instances - 1}"
     )
     print(
         f"  RCON ports: {args.base_rcon_port}-{args.base_rcon_port + args.instances - 1}"
     )
+    # Collision validation for camera ports
+    alpha_vncs = {args.camera_alpha_vnc_base + args.vnc_step * i for i in range(args.instances)}
+    alpha_novncs = {args.camera_alpha_novnc_base + args.vnc_step * i for i in range(args.instances)}
+    bravo_vncs = {args.camera_bravo_vnc_base + args.vnc_step * i for i in range(args.instances)}
+    bravo_novncs = {args.camera_bravo_novnc_base + args.vnc_step * i for i in range(args.instances)}
+    assert len(alpha_vncs) == args.instances, "alpha VNC port collisions detected"
+    assert len(alpha_novncs) == args.instances, "alpha noVNC port collisions detected"
+    assert len(bravo_vncs) == args.instances, "bravo VNC port collisions detected"
+    assert len(bravo_novncs) == args.instances, "bravo noVNC port collisions detected"
     print(
-        f"Bridge network services (receivers, senders) use internal communication only."
+        f"  Camera Alpha noVNC: {args.camera_alpha_novnc_base}..{args.camera_alpha_novnc_base + args.vnc_step * (args.instances - 1)}"
     )
+    print(
+        f"  Camera Bravo noVNC: {args.camera_bravo_novnc_base}..{args.camera_bravo_novnc_base + args.vnc_step * (args.instances - 1)}"
+    )
+    print("Bridge network services (receivers, senders) use internal communication only.")
 
 
 if __name__ == "__main__":
