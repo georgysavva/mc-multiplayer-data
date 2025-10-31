@@ -355,7 +355,7 @@ function land_pos(bot, x, z) {
     return null;
   }
   
-  // Define unsafe blocks (water, lava, air, etc.)
+  // Define unsafe blocks (water, lava, air, leaves, etc.)
   const unsafeBlocks = new Set([
     bot.registry.blocksByName.air?.id,
     bot.registry.blocksByName.water?.id,
@@ -364,6 +364,17 @@ function land_pos(bot, x, z) {
     bot.registry.blocksByName.flowing_lava?.id,
     bot.registry.blocksByName.cave_air?.id,
     bot.registry.blocksByName.void_air?.id,
+    // Tree leaves - all variants
+    bot.registry.blocksByName.oak_leaves?.id,
+    bot.registry.blocksByName.spruce_leaves?.id,
+    bot.registry.blocksByName.birch_leaves?.id,
+    bot.registry.blocksByName.jungle_leaves?.id,
+    bot.registry.blocksByName.acacia_leaves?.id,
+    bot.registry.blocksByName.dark_oak_leaves?.id,
+    bot.registry.blocksByName.mangrove_leaves?.id,
+    bot.registry.blocksByName.cherry_leaves?.id,
+    bot.registry.blocksByName.azalea_leaves?.id,
+    bot.registry.blocksByName.flowering_azalea_leaves?.id,
   ].filter(id => id !== undefined));
   
   let dy = 0;
