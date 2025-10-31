@@ -9,12 +9,18 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 
 import net.skinsrestorer.api.SkinsRestorer;
 import net.skinsrestorer.api.SkinsRestorerProvider;
@@ -34,13 +40,11 @@ import java.util.UUID;
 
 public class EpisodeManager extends JavaPlugin implements Listener {
 
-    private final Map<String, String> controllerToCamera = Map.of(
-            "Alpha", "CameraAlpha",
-            "Bravo", "CameraBravo"
-    );
+    private final Map<String, String> controllerToCamera = new LinkedHashMap<>();
 
     private final Map<Player, Player> activePairs = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> activeCameraControllers = new ConcurrentHashMap<>();
+    private final Map<String, File> activeSkinSelections = new ConcurrentHashMap<>();
     private BukkitTask followTask;
     private boolean testRunning = false;
 
@@ -96,6 +100,24 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             if (isCamera) {
                 UUID controllerId = activeCameraControllers.get(player.getUniqueId());
                 Player controller = controllerId != null ? Bukkit.getPlayer(controllerId) : null;
+                if (controller == null) {
+                    controller = controllerToCamera.entrySet().stream()
+                            .filter(entry -> entry.getValue().equalsIgnoreCase(player.getName()))
+                            .map(entry -> Bukkit.getPlayerExact(entry.getKey()))
+                            .filter(Objects::nonNull)
+                            .findFirst()
+                            .orElse(null);
+                    if (controller != null) {
+                        activeCameraControllers.put(player.getUniqueId(), controller.getUniqueId());
+                        activePairs.put(controller, player);
+                        File skinFile = activeSkinSelections.get(player.getName());
+                        if (skinFile != null) {
+                            applySharedSkin(controller, player, skinFile);
+                        }
+                    }
+                } else {
+                    activePairs.put(controller, player);
+                }
                 for (Player other : Bukkit.getOnlinePlayers()) {
                     if (other.equals(player)) {
                         continue;
@@ -146,6 +168,31 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         }
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onCameraTargeted(EntityTargetLivingEntityEvent event) {
+        if (!(event.getTarget() instanceof Player target)) {
+            return;
+        }
+        if (!isCamera(target)) {
+            return;
+        }
+        event.setCancelled(true);
+        event.setTarget(null);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onCameraDamaged(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player target)) {
+            return;
+        }
+        if (!isCamera(target)) {
+            return;
+        }
+        event.setCancelled(true);
+        event.setDamage(0);
+        target.setFireTicks(0);
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
@@ -164,18 +211,19 @@ public class EpisodeManager extends JavaPlugin implements Listener {
     }
 
     private void sendUsage(CommandSender sender) {
-        sender.sendMessage(ChatColor.YELLOW + "Usage: /episode <start|stop>");
+        sender.sendMessage(ChatColor.YELLOW + "Usage:");
+        sender.sendMessage(ChatColor.YELLOW + "/episode start <controller> <camera> <skin> [<controller> <camera> <skin> ...]");
+        sender.sendMessage(ChatColor.YELLOW + "/episode stop");
     }
 
-    private void startEpisode(CommandSender starter, String[] requestedSkins) {
+    private void startEpisode(CommandSender starter, String[] args) {
         if (testRunning) {
             starter.sendMessage(ChatColor.RED + "Episode already running!");
             return;
         }
 
-        int pairCount = controllerToCamera.size();
-        if (pairCount == 0) {
-            starter.sendMessage(ChatColor.RED + "No controller/camera pairs configured.");
+        if (args.length == 0 || args.length % 3 != 0) {
+            starter.sendMessage(ChatColor.RED + "You must supply controller, camera, and skin triples.");
             return;
         }
 
@@ -186,32 +234,56 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             return;
         }
 
-        if (requestedSkins.length != pairCount) {
-            starter.sendMessage(ChatColor.RED + "You must provide " + pairCount + " skin names for this episode.");
+        Map<String, String> proposedPairs = new LinkedHashMap<>();
+        List<EpisodeStartConfig> startConfigs = new ArrayList<>();
+
+        for (int i = 0; i < args.length; i += 3) {
+            String controllerName = args[i];
+            String cameraName = args[i + 1];
+            String requestedSkin = args[i + 2];
+
+            if (proposedPairs.containsKey(controllerName)) {
+                starter.sendMessage(ChatColor.RED + "Controller '" + controllerName + "' is duplicated.");
+                return;
+            }
+
+            if (proposedPairs.containsValue(cameraName)) {
+                starter.sendMessage(ChatColor.RED + "Camera '" + cameraName + "' is duplicated.");
+                return;
+            }
+
+            File skinFile = resolveSkinFile(requestedSkin, availableSkins);
+            if (skinFile == null) {
+                starter.sendMessage(ChatColor.RED + "Skin '" + requestedSkin + "' not found.");
+                starter.sendMessage(ChatColor.YELLOW + "Available skins: " + String.join(", ", availableSkins.keySet()));
+                return;
+            }
+
+            startConfigs.add(new EpisodeStartConfig(controllerName, cameraName, skinFile));
+            proposedPairs.put(controllerName, cameraName);
+        }
+
+        if (startConfigs.isEmpty()) {
+            starter.sendMessage(ChatColor.RED + "No valid controller/camera pairs supplied.");
             return;
         }
 
         testRunning = true;
+        controllerToCamera.clear();
+        controllerToCamera.putAll(proposedPairs);
         activePairs.clear();
         activeCameraControllers.clear();
+        activeSkinSelections.clear();
 
-        int index = 0;
-        for (var entry : controllerToCamera.entrySet()) {
-            String requested = requestedSkins[index++];
-            File skinFile = resolveSkinFile(requested, availableSkins);
-            if (skinFile == null) {
-                starter.sendMessage(ChatColor.RED + "Skin '" + requested + "' not found.");
-                starter.sendMessage(ChatColor.YELLOW + "Available skins: " + String.join(", ", availableSkins.keySet()));
-                testRunning = false;
-                activePairs.clear();
-                return;
-            }
+        for (EpisodeStartConfig config : startConfigs) {
+            activeSkinSelections.put(config.controller(), config.skinFile());
+            activeSkinSelections.put(config.camera(), config.skinFile());
 
-            Player controller = Bukkit.getPlayerExact(entry.getKey());
-            Player camera = Bukkit.getPlayerExact(entry.getValue());
+            Player controller = Bukkit.getPlayerExact(config.controller());
+            Player camera = Bukkit.getPlayerExact(config.camera());
 
             if (controller == null || camera == null) {
-                getLogger().warning("Missing player for pair: " + entry);
+                getLogger().warning("Missing player for pair: " + config.controller() + " -> " + config.camera());
                 continue;
             }
 
@@ -221,7 +293,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             activePairs.put(controller, camera);
             activeCameraControllers.put(camera.getUniqueId(), controller.getUniqueId());
 
-            applySharedSkin(controller, camera, skinFile);
+            applySharedSkin(controller, camera, config.skinFile());
         }
 
         // Ensure a clean visibility baseline so spectators can watch
@@ -277,6 +349,9 @@ public class EpisodeManager extends JavaPlugin implements Listener {
 
                 if (!controller.isOnline() || !camera.isOnline()) continue;
 
+                mirrorInventory(controller, camera);
+                mirrorStatus(controller, camera);
+
                 Location target = controller.getLocation();
                 Location current = camera.getLocation();
 
@@ -295,6 +370,85 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         Bukkit.broadcastMessage(ChatColor.GREEN + "[Episode] Episode started!");
     }
 
+    private boolean isCamera(Player player) {
+        return activeCameraControllers.containsKey(player.getUniqueId())
+                || (testRunning && controllerToCamera.containsValue(player.getName()));
+    }
+
+    private void mirrorInventory(Player controller, Player camera) {
+        PlayerInventory controllerInv = controller.getInventory();
+        PlayerInventory cameraInv = camera.getInventory();
+
+        ItemStack[] controllerStorage = controllerInv.getStorageContents();
+        ItemStack[] cameraStorage = cameraInv.getStorageContents();
+        if (!Arrays.equals(controllerStorage, cameraStorage)) {
+            cameraInv.setStorageContents(cloneItemStackArray(controllerStorage));
+        }
+
+        ItemStack[] controllerArmor = controllerInv.getArmorContents();
+        ItemStack[] cameraArmor = cameraInv.getArmorContents();
+        if (!Arrays.equals(controllerArmor, cameraArmor)) {
+            cameraInv.setArmorContents(cloneItemStackArray(controllerArmor));
+        }
+
+        ItemStack controllerOffHand = controllerInv.getItemInOffHand();
+        ItemStack cameraOffHand = cameraInv.getItemInOffHand();
+        if (!Objects.equals(controllerOffHand, cameraOffHand)) {
+            cameraInv.setItemInOffHand(cloneItem(controllerOffHand));
+        }
+
+        int controllerSlot = controllerInv.getHeldItemSlot();
+        if (cameraInv.getHeldItemSlot() != controllerSlot) {
+            cameraInv.setHeldItemSlot(controllerSlot);
+        }
+    }
+
+    private void mirrorStatus(Player controller, Player camera) {
+        AttributeInstance cameraMaxHealthAttr = camera.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        double cameraMaxHealth = cameraMaxHealthAttr != null ? cameraMaxHealthAttr.getValue() : camera.getHealth();
+        double targetHealth = Math.min(controller.getHealth(), cameraMaxHealth);
+        targetHealth = Math.max(0.0D, targetHealth);
+        if (Math.abs(camera.getHealth() - targetHealth) > 0.01D) {
+            camera.setHealth(targetHealth);
+        }
+
+        if (camera.getFoodLevel() != controller.getFoodLevel()) {
+            camera.setFoodLevel(controller.getFoodLevel());
+        }
+        if (Math.abs(camera.getSaturation() - controller.getSaturation()) > 0.01F) {
+            camera.setSaturation(controller.getSaturation());
+        }
+        if (Math.abs(camera.getExhaustion() - controller.getExhaustion()) > 0.01F) {
+            camera.setExhaustion(controller.getExhaustion());
+        }
+
+        if (camera.getRemainingAir() != controller.getRemainingAir()) {
+            camera.setRemainingAir(controller.getRemainingAir());
+        }
+        if (camera.getMaximumAir() != controller.getMaximumAir()) {
+            camera.setMaximumAir(controller.getMaximumAir());
+        }
+
+        if (camera.isSneaking() != controller.isSneaking()) {
+            camera.setSneaking(controller.isSneaking());
+        }
+    }
+
+    private ItemStack[] cloneItemStackArray(ItemStack[] source) {
+        if (source == null) {
+            return new ItemStack[0];
+        }
+        ItemStack[] clone = new ItemStack[source.length];
+        for (int i = 0; i < source.length; i++) {
+            clone[i] = cloneItem(source[i]);
+        }
+        return clone;
+    }
+
+    private ItemStack cloneItem(ItemStack item) {
+        return item == null ? null : item.clone();
+    }
+
     private void stopEpisode(CommandSender caller) {
         cleanupEpisode();
         Bukkit.broadcastMessage(ChatColor.RED + "[Episode] Episode stopped. All visibility and skins reset.");
@@ -306,6 +460,8 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             followTask = null;
         }
 
+        controllerToCamera.clear();
+        activeSkinSelections.clear();
         activePairs.clear();
         testRunning = false;
         activeCameraControllers.clear();
@@ -397,6 +553,30 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                 e.printStackTrace();
             }
         });
+    }
+
+    private static final class EpisodeStartConfig {
+        private final String controller;
+        private final String camera;
+        private final File skinFile;
+
+        private EpisodeStartConfig(String controller, String camera, File skinFile) {
+            this.controller = controller;
+            this.camera = camera;
+            this.skinFile = skinFile;
+        }
+
+        private String controller() {
+            return controller;
+        }
+
+        private String camera() {
+            return camera;
+        }
+
+        private File skinFile() {
+            return skinFile;
+        }
     }
 
     private Map<String, File> loadAvailableSkinsByKey() {
