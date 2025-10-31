@@ -18,17 +18,20 @@ services:
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
-      LEVEL_TYPE: minecraft:flat
-      GENERATOR_SETTINGS: >-
-        {
-          "layers": [
-            { "block": "minecraft:bedrock", "height": 1 },
-            { "block": "minecraft:stone",   "height": 124 },
-            { "block": "minecraft:dirt",    "height": 2 },
-            { "block": "minecraft:grass_block", "height": 1 }
-          ],
-          "biome": "minecraft:plains"
-        }
+      # Changed from minecraft:flat to minecraft:normal for standard world generation
+      LEVEL_TYPE: minecraft:normal
+      # GENERATOR_SETTINGS removed - not needed for normal world generation
+      # LEVEL_TYPE: minecraft:flat
+      # GENERATOR_SETTINGS: >-
+      #   {
+      #     "layers": [
+      #       { "block": "minecraft:bedrock", "height": 1 },
+      #       { "block": "minecraft:stone",   "height": 124 },
+      #       { "block": "minecraft:dirt",    "height": 2 },
+      #       { "block": "minecraft:grass_block", "height": 1 }
+      #     ],
+      #     "biome": "minecraft:plains"
+      #   }
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./data53:/data
@@ -79,7 +82,8 @@ services:
       TELEPORT: 1
       TELEPORT_CENTER_X: 0
       TELEPORT_CENTER_Z: 0
-      TELEPORT_RADIUS: 500
+      TELEPORT_RADIUS: 3000
+      TELEPORT_MIN_DISTANCE: 1000
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -124,7 +128,8 @@ services:
       TELEPORT: 1
       TELEPORT_CENTER_X: 0
       TELEPORT_CENTER_Z: 0
-      TELEPORT_RADIUS: 500
+      TELEPORT_RADIUS: 3000
+      TELEPORT_MIN_DISTANCE: 1000
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh

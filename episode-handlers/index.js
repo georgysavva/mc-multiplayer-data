@@ -468,21 +468,50 @@ async function teleport(
   console.log(
     `[${bot.username}] desired distance: ${desiredDistance.toFixed(2)}`
   );
-  // Pick a random point in the world within the specified radius from center
-  const randomAngle = sharedBotRng() * 2 * Math.PI;
-  const randomDistance = sharedBotRng() * args.teleport_radius;
+  
+  // Calculate current average position of both bots
+  const currentPos = bot.entity.position.clone();
+  const avgX = (currentPos.x + otherBotPosition.x) / 2;
+  const avgZ = (currentPos.z + otherBotPosition.z) / 2;
+  
+  console.log(
+    `[${bot.username}] current average position: (${avgX.toFixed(2)}, ${avgZ.toFixed(2)})`
+  );
+  
+  // Use rejection sampling to find a point that's at least min_distance away
+  let randomPointX, randomPointZ, distanceFromCurrent;
+  let attempts = 0;
+  const maxAttempts = 100;
+  
+  do {
+    // Pick a random point in the world within the specified radius from center
+    const randomAngle = sharedBotRng() * 2 * Math.PI;
+    const randomDistance = sharedBotRng() * args.teleport_radius;
 
-  const randomPointX =
-    args.teleport_center_x + randomDistance * Math.cos(randomAngle);
-  const randomPointZ =
-    args.teleport_center_z + randomDistance * Math.sin(randomAngle);
+    randomPointX = args.teleport_center_x + randomDistance * Math.cos(randomAngle);
+    randomPointZ = args.teleport_center_z + randomDistance * Math.sin(randomAngle);
+    
+    // Calculate distance from current average position
+    const dx = randomPointX - avgX;
+    const dz = randomPointZ - avgZ;
+    distanceFromCurrent = Math.sqrt(dx * dx + dz * dz);
+    
+    attempts++;
+    
+    if (attempts >= maxAttempts) {
+      console.warn(
+        `[${bot.username}] Could not find point ${args.teleport_min_distance} blocks away after ${maxAttempts} attempts. Using best attempt with distance ${distanceFromCurrent.toFixed(2)}`
+      );
+      break;
+    }
+  } while (distanceFromCurrent < args.teleport_min_distance);
 
   console.log(
     `[${bot.username}] picked random point at (${randomPointX.toFixed(
       2
     )}, ${randomPointZ.toFixed(
       2
-    )}) with desired bot distance: ${desiredDistance.toFixed(2)}`
+    )}) - ${distanceFromCurrent.toFixed(2)} blocks from current avg position (attempts: ${attempts}), desired bot distance: ${desiredDistance.toFixed(2)}`
   );
 
   // Generate a random angle to position bots on opposite sides of the random point
@@ -506,9 +535,21 @@ async function teleport(
 
   // Use land_pos to determine proper Y coordinate
   const landPosition = await land_pos(bot, newX, newZ);
-  const currentPos = bot.entity.position.clone();
-  const newY = landPosition ? landPosition.y + 1 : currentPos.y;
-
+  
+  // If land_pos returns null (water, lava, or unloaded chunk), use a fallback Y level
+  let newY;
+  if (!landPosition) {
+    console.warn(
+      `[${bot.username}] Could not find safe landing position at (${newX.toFixed(2)}, ${newZ.toFixed(2)}). Using fallback Y=70.`
+    );
+    newY = 70; // Fallback to a reasonable Y level instead of skipping teleport
+  } else {
+    newY = landPosition.y + 1;
+    console.log(
+      `[${bot.username}] Found safe landing at Y=${newY.toFixed(2)}`
+    );
+  }
+  
   // Compute the other bot's new position (opposite side of the random point)
   let otherBotNewX, otherBotNewZ;
   if (bot.username < args.other_bot_name) {

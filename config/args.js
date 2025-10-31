@@ -28,6 +28,7 @@ function parseArgs() {
       teleport_center_x: 11,
       teleport_center_z: 11,
       teleport_radius: 5,
+      teleport_min_distance: 1000, // Minimum distance from current average position
       walk_timeout: 5, // walk timeout in seconds
       mc_version: process.env.MC_VERSION || "1.20.4",
       camera_ready_retries: 30,
