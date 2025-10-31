@@ -1,5 +1,29 @@
 services:
+  prep_data:
+    image: busybox:latest
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /data /data/plugins /data/skins &&
+        chmod 777 /data /data/plugins /data/skins &&
+        if [ -d /source_plugins ] && [ -n "$(ls -A /source_plugins 2>/dev/null)" ]; then
+          cp -r /source_plugins/. /data/plugins/;
+        fi;
+        if [ -d /source_skins ] && [ -n "$(ls -A /source_skins 2>/dev/null)" ]; then
+          cp -r /source_skins/. /data/skins/;
+        fi;
+        chmod -R 777 /data/plugins /data/skins
+    volumes:
+      - ./data:/data
+      - ./plugins:/source_plugins:ro
+      - ./skins:/source_skins:ro
+    restart: "no"
+
   mc:
+    depends_on:
+      prep_data:
+        condition: service_completed_successfully
     image: itzg/minecraft-server
     tty: true
     network_mode: host # this is needed because otherwise it cannot download the server zip file on certain machines
@@ -14,23 +38,26 @@ services:
       RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       BROADCAST_RCON_TO_OPS: true
+      OPS: timwm,Pengulu
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
-      LEVEL_TYPE: minecraft:flat
-      GENERATOR_SETTINGS: >-
-        {
-          "layers": [
-            { "block": "minecraft:bedrock", "height": 1 },
-            { "block": "minecraft:stone",   "height": 124 },
-            { "block": "minecraft:dirt",    "height": 2 },
-            { "block": "minecraft:grass_block", "height": 1 }
-          ],
-          "biome": "minecraft:plains"
-        }
+      # LEVEL_TYPE: minecraft:flat
+      # GENERATOR_SETTINGS: >-
+      #   {
+      #     "layers": [
+      #       { "block": "minecraft:bedrock", "height": 1 },
+      #       { "block": "minecraft:stone",   "height": 124 },
+      #       { "block": "minecraft:dirt",    "height": 2 },
+      #       { "block": "minecraft:grass_block", "height": 1 }
+      #     ],
+      #     "biome": "minecraft:plains"
+      #   }
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ${MC_DATA_DIR:-./data}:/data
+      - ./plugins:/data/plugins
+      - ./skins:/data/skins
     healthcheck:
       test:
         [
@@ -52,7 +79,7 @@ services:
       receiver_alpha:
         condition: service_started
     volumes:
-      # attach the relative directory 'data' to the container's /data path
+      # share the output directory with the host
       - ./output:/output
     environment:
       BOT_NAME: Alpha
@@ -62,7 +89,7 @@ services:
       COORD_PORT: 8100
       OTHER_COORD_HOST: sender_bravo
       OTHER_COORD_PORT: 8100
-      BOT_RNG_SEED: "12345"
+      BOT_RNG_SEED: "123456"
       EPISODES_NUM: 1
       MC_HOST: host.docker.internal
       MC_PORT: ${MC_SERVER_PORT:-25565}
@@ -77,9 +104,12 @@ services:
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 300
       CAMERA_READY_CHECK_INTERVAL: 2000
-      VIEWER_RENDERING_DISABLED: 0
-      VIEWER_RECORDING_INTERVAL: 30 # should be 50 when rendering is disabled to have 20 FPS
+      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RECORDING_INTERVAL: 50 # should be 50 when rendering is disabled to have 20 FPS
+      WORLD_TYPE: normal # flat or normal
       SMOKE_TEST: 1
+      INSTANCE_ID: 0
+      OUTPUT_DIR: /output
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -97,7 +127,7 @@ services:
       sender_alpha:
         condition: service_started
     volumes:
-      # attach the relative directory 'data' to the container's /data path
+      # share the output directory with the host
       - ./output:/output
     environment:
       BOT_NAME: Bravo
@@ -107,7 +137,7 @@ services:
       COORD_PORT: 8100
       OTHER_COORD_HOST: sender_alpha
       OTHER_COORD_PORT: 8100
-      BOT_RNG_SEED: "12345"
+      BOT_RNG_SEED: "123456"
       EPISODES_NUM: 1
       MC_HOST: host.docker.internal
       MC_PORT: ${MC_SERVER_PORT:-25565}
@@ -122,9 +152,12 @@ services:
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 300
       CAMERA_READY_CHECK_INTERVAL: 2000
-      VIEWER_RENDERING_DISABLED: 0
-      VIEWER_RECORDING_INTERVAL: 30
+      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RECORDING_INTERVAL: 50
       SMOKE_TEST: 1
+      WORLD_TYPE: normal # flat or normal
+      INSTANCE_ID: 1
+      OUTPUT_DIR: /output
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -136,7 +169,7 @@ services:
       NAME: Alpha
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
-      VIEWER_RENDERING_DISABLED: 0
+      VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -150,7 +183,7 @@ services:
       NAME: Bravo
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
-      VIEWER_RENDERING_DISABLED: 0
+      VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -200,7 +233,7 @@ services:
       - "textures.minecraft.net:127.0.0.1"
       - "pc.realms.minecraft.net:127.0.0.1"
 
-  camera_alpha_follow:
+  episode_starter:
     image: node:20
     network_mode: host
     depends_on:
@@ -213,14 +246,13 @@ services:
       RCON_HOST: "127.0.0.1"
       RCON_PORT: "${MC_RCON_PORT:-25575}"
       RCON_PASSWORD: "research"
-      BOT_NAME: "Alpha"
-      CAMERA_NAME: "CameraAlpha"
-      RETRIES: "60"
+      EPISODE_START_RETRIES: "60"
+      EPISODE_REQUIRED_PLAYERS: "Alpha,CameraAlpha,Bravo,CameraBravo"
+      EPISODE_START_COMMAND: "episode start technoblade.png technoblade.png"
     volumes:
-      - ./camera/spectator.js:/app/spectator.js:ro
+      - ./camera/episode_starter.js:/app/episode_starter.js:ro
       - ./camera/package.json:/app/package.json:ro
-    command:
-      ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
+    command: ["sh", "-c", "npm install --omit=dev --no-progress && node episode_starter.js"]
 
   camera_bravo:
     image: ojmichel/mineflayer-spectator-client:latest
@@ -255,25 +287,3 @@ services:
       - "authserver.mojang.com:127.0.0.1"
       - "textures.minecraft.net:127.0.0.1"
       - "pc.realms.minecraft.net:127.0.0.1"
-
-  camera_bravo_follow:
-    image: node:20
-    network_mode: host
-    depends_on:
-      mc:
-        condition: service_healthy
-      camera_bravo:
-        condition: service_started
-    working_dir: /app
-    environment:
-      RCON_HOST: "127.0.0.1"
-      RCON_PORT: "${MC_RCON_PORT:-25575}"
-      RCON_PASSWORD: "research"
-      BOT_NAME: "Bravo"
-      CAMERA_NAME: "CameraBravo"
-      RETRIES: "60"
-    volumes:
-      - ./camera/spectator.js:/app/spectator.js:ro
-      - ./camera/package.json:/app/package.json:ro
-    command:
-      ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]

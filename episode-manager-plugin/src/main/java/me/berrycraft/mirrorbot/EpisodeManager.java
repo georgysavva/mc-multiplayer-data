@@ -1,0 +1,483 @@
+package me.berrycraft.mirrorbot;
+
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.GameMode;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.potion.PotionEffectType;
+
+import net.skinsrestorer.api.SkinsRestorer;
+import net.skinsrestorer.api.SkinsRestorerProvider;
+import net.skinsrestorer.api.exception.DataRequestException;
+import net.skinsrestorer.api.exception.MineSkinException;
+import net.skinsrestorer.api.property.InputDataResult;
+import net.skinsrestorer.api.property.SkinIdentifier;
+import net.skinsrestorer.api.property.SkinVariant;
+import net.skinsrestorer.api.storage.PlayerStorage;
+import net.skinsrestorer.api.storage.SkinStorage;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.UUID;
+
+public class EpisodeManager extends JavaPlugin implements Listener {
+
+    private final Map<String, String> controllerToCamera = Map.of(
+            "Alpha", "CameraAlpha",
+            "Bravo", "CameraBravo"
+    );
+
+    private final Map<Player, Player> activePairs = new ConcurrentHashMap<>();
+    private final Map<UUID, UUID> activeCameraControllers = new ConcurrentHashMap<>();
+    private BukkitTask followTask;
+    private boolean testRunning = false;
+
+    private SkinsRestorer skinsRestorer;
+    private File skinsDirectory;
+
+    @Override
+    public void onEnable() {
+        Bukkit.getPluginManager().registerEvents(this, this);
+
+        if (Bukkit.getPluginManager().getPlugin("SkinsRestorer") != null) {
+            skinsRestorer = SkinsRestorerProvider.get();
+            getLogger().info("Hooked into SkinsRestorer!");
+        } else {
+            getLogger().warning("SkinsRestorer not found! Skins will not be randomized.");
+        }
+
+        skinsDirectory = resolveSkinsDirectory();
+        if (skinsDirectory == null) {
+            getLogger().warning("Unable to resolve skins directory. Skin overrides will be unavailable.");
+        } else if (!skinsDirectory.exists()) {
+            if (skinsDirectory.mkdirs()) {
+                getLogger().info("Created skins directory at " + skinsDirectory.getAbsolutePath());
+            } else {
+                getLogger().warning("Failed to create skins directory at " + skinsDirectory.getAbsolutePath());
+            }
+        }
+
+        getLogger().info("EpisodeManager enabled.");
+    }
+
+    @Override
+    public void onDisable() {
+        cleanupEpisode();
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        Player player = e.getPlayer();
+        player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        player.setInvisible(false);
+        player.setGameMode(GameMode.SURVIVAL);
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            player.showPlayer(this, p);
+            p.showPlayer(this, player);
+        }
+
+        if (testRunning) {
+            boolean isController = controllerToCamera.containsKey(player.getName());
+            boolean isCamera = controllerToCamera.containsValue(player.getName());
+
+            if (isCamera) {
+                UUID controllerId = activeCameraControllers.get(player.getUniqueId());
+                Player controller = controllerId != null ? Bukkit.getPlayer(controllerId) : null;
+                for (Player other : Bukkit.getOnlinePlayers()) {
+                    if (other.equals(player)) {
+                        continue;
+                    }
+                    boolean otherIsCamera = activeCameraControllers.containsKey(other.getUniqueId());
+                    boolean shouldHide = (controller != null && other.equals(controller)) || otherIsCamera;
+                    if (shouldHide) {
+                        player.hidePlayer(this, other);
+                    } else {
+                        player.showPlayer(this, other);
+                    }
+                }
+            } else if (!isController) {
+                for (UUID cameraId : activeCameraControllers.keySet()) {
+                    Player camera = Bukkit.getPlayer(cameraId);
+                    if (camera != null && !player.equals(camera)) {
+                        player.hidePlayer(this, camera);
+                    }
+                }
+            }
+        }
+
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent e) {
+        Player leaving = e.getPlayer();
+
+        // Remove pair if either player leaves
+        Optional<Player> partner = activePairs.entrySet().stream()
+                .filter(entry -> entry.getKey().equals(leaving) || entry.getValue().equals(leaving))
+                .map(entry -> entry.getKey().equals(leaving) ? entry.getValue() : entry.getKey())
+                .findFirst();
+
+        partner.ifPresent(other -> {
+            other.kickPlayer(ChatColor.RED + "Your partner left. Episode stopped for your pair.");
+            activePairs.remove(leaving);
+            activePairs.remove(other);
+        });
+    }
+
+    @EventHandler
+    public void onSwing(PlayerAnimationEvent e) {
+        Player controller = e.getPlayer();
+        Player camera = activePairs.get(controller);
+        if (camera != null) {
+            camera.swingMainHand();
+        }
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+
+        if (args.length == 0) {
+            sendUsage(sender);
+            return true;
+        }
+
+        switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "start" -> startEpisode(sender, Arrays.copyOfRange(args, 1, args.length));
+            case "stop" -> stopEpisode(sender);
+            default -> sendUsage(sender);
+        }
+
+        return true;
+    }
+
+    private void sendUsage(CommandSender sender) {
+        sender.sendMessage(ChatColor.YELLOW + "Usage: /episode <start|stop>");
+    }
+
+    private void startEpisode(CommandSender starter, String[] requestedSkins) {
+        if (testRunning) {
+            starter.sendMessage(ChatColor.RED + "Episode already running!");
+            return;
+        }
+
+        int pairCount = controllerToCamera.size();
+        if (pairCount == 0) {
+            starter.sendMessage(ChatColor.RED + "No controller/camera pairs configured.");
+            return;
+        }
+
+        Map<String, File> availableSkins = loadAvailableSkinsByKey();
+        if (availableSkins.isEmpty()) {
+            starter.sendMessage(ChatColor.RED + "No skin PNGs found. Expected directory: " +
+                    (skinsDirectory != null ? skinsDirectory.getAbsolutePath() : "unavailable"));
+            return;
+        }
+
+        if (requestedSkins.length != pairCount) {
+            starter.sendMessage(ChatColor.RED + "You must provide " + pairCount + " skin names for this episode.");
+            return;
+        }
+
+        testRunning = true;
+        activePairs.clear();
+        activeCameraControllers.clear();
+
+        int index = 0;
+        for (var entry : controllerToCamera.entrySet()) {
+            String requested = requestedSkins[index++];
+            File skinFile = resolveSkinFile(requested, availableSkins);
+            if (skinFile == null) {
+                starter.sendMessage(ChatColor.RED + "Skin '" + requested + "' not found.");
+                starter.sendMessage(ChatColor.YELLOW + "Available skins: " + String.join(", ", availableSkins.keySet()));
+                testRunning = false;
+                activePairs.clear();
+                return;
+            }
+
+            Player controller = Bukkit.getPlayerExact(entry.getKey());
+            Player camera = Bukkit.getPlayerExact(entry.getValue());
+
+            if (controller == null || camera == null) {
+                getLogger().warning("Missing player for pair: " + entry);
+                continue;
+            }
+
+            controller.setGameMode(GameMode.SURVIVAL);
+            camera.setGameMode(GameMode.SURVIVAL);
+
+            activePairs.put(controller, camera);
+            activeCameraControllers.put(camera.getUniqueId(), controller.getUniqueId());
+
+            applySharedSkin(controller, camera, skinFile);
+        }
+
+        // Ensure a clean visibility baseline so spectators can watch
+        for (Player p1 : Bukkit.getOnlinePlayers()) {
+            for (Player p2 : Bukkit.getOnlinePlayers()) {
+                if (!p1.equals(p2)) {
+                    p1.showPlayer(this, p2);
+                }
+            }
+        }
+
+        // Camera bots should only hide their controller and other cameras
+        for (var entry : activeCameraControllers.entrySet()) {
+            Player camera = Bukkit.getPlayer(entry.getKey());
+            Player controller = Bukkit.getPlayer(entry.getValue());
+            if (camera == null) {
+                continue;
+            }
+            for (Player other : Bukkit.getOnlinePlayers()) {
+                if (other.equals(camera)) {
+                    continue;
+                }
+                boolean otherIsCamera = activeCameraControllers.containsKey(other.getUniqueId());
+                boolean shouldHide = (controller != null && other.equals(controller)) || otherIsCamera;
+                if (shouldHide) {
+                    camera.hidePlayer(this, other);
+                } else {
+                    camera.showPlayer(this, other);
+                }
+            }
+        }
+
+        // Hide cameras from non-participants so spectators do not see them
+        for (Player spectator : Bukkit.getOnlinePlayers()) {
+            boolean isParticipant = controllerToCamera.containsKey(spectator.getName())
+                    || controllerToCamera.containsValue(spectator.getName());
+            if (isParticipant) {
+                continue;
+            }
+            for (UUID cameraId : activeCameraControllers.keySet()) {
+                Player camera = Bukkit.getPlayer(cameraId);
+                if (camera != null && !spectator.equals(camera)) {
+                    spectator.hidePlayer(this, camera);
+                }
+            }
+        }
+
+        // Camera follow logic
+        followTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            for (var entry : activePairs.entrySet()) {
+                Player controller = entry.getKey();
+                Player camera = entry.getValue();
+
+                if (!controller.isOnline() || !camera.isOnline()) continue;
+
+                Location target = controller.getLocation();
+                Location current = camera.getLocation();
+
+                boolean worldChanged = current.getWorld() != target.getWorld();
+                double distanceSquared = worldChanged ? Double.MAX_VALUE : current.distanceSquared(target);
+                boolean rotationChanged = Math.abs(current.getYaw() - target.getYaw()) > 1.0f
+                        || Math.abs(current.getPitch() - target.getPitch()) > 1.0f;
+
+                if (worldChanged || distanceSquared > 0.0025D || rotationChanged) { // ~5 cm threshold
+                    Location destination = target.clone();
+                    camera.teleportAsync(destination);
+                }
+            }
+        }, 0L, 1L);
+
+        Bukkit.broadcastMessage(ChatColor.GREEN + "[Episode] Episode started!");
+    }
+
+    private void stopEpisode(CommandSender caller) {
+        cleanupEpisode();
+        Bukkit.broadcastMessage(ChatColor.RED + "[Episode] Episode stopped. All visibility and skins reset.");
+    }
+
+    private void cleanupEpisode() {
+        if (followTask != null) {
+            followTask.cancel();
+            followTask = null;
+        }
+
+        activePairs.clear();
+        testRunning = false;
+        activeCameraControllers.clear();
+
+        // Restore visibility and remove invisibility
+        for (Player p1 : Bukkit.getOnlinePlayers()) {
+            p1.removePotionEffect(PotionEffectType.INVISIBILITY);
+            p1.setInvisible(false);
+            for (Player p2 : Bukkit.getOnlinePlayers()) {
+                if (!p1.equals(p2)) {
+                    p1.showPlayer(this, p2);
+                    p2.showPlayer(this, p1);
+                }
+            }
+        }
+
+        // Reset skins
+        if (skinsRestorer != null) {
+            Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    try {
+                        PlayerStorage ps = skinsRestorer.getPlayerStorage();
+                        ps.removeSkinIdOfPlayer(player.getUniqueId());
+                        Bukkit.getScheduler().runTask(this, () -> {
+                            try {
+                                skinsRestorer.getSkinApplier(Player.class).applySkin(player);
+                            } catch (DataRequestException e) {
+                                e.printStackTrace();
+                            }
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+
+        getLogger().info("Episode cleaned up: players detached, visibility restored, skins reset.");
+    }
+
+    private void applySharedSkin(Player controller, Player camera, File skinFile) {
+        if (skinsRestorer == null) return;
+
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+            try {
+                SkinStorage skinStorage = skinsRestorer.getSkinStorage();
+                if (skinStorage == null) {
+                    getLogger().warning("SkinStorage not available from SkinsRestorer.");
+                    return;
+                }
+
+                String storageKey = buildStorageKey(skinFile);
+                Optional<InputDataResult> cached = skinStorage.findSkinData(storageKey);
+                SkinIdentifier skinId;
+
+                if (cached.isPresent()) {
+                    skinId = cached.get().getIdentifier();
+                } else {
+                    var mineSkinApi = skinsRestorer.getMineSkinAPI();
+                    if (mineSkinApi == null) {
+                        getLogger().warning("MineSkin API unavailable; cannot process skin file " + skinFile.getName());
+                        return;
+                    }
+
+                    var response = mineSkinApi.genSkin(skinFile.toPath(), SkinVariant.CLASSIC);
+                    skinStorage.setCustomSkinData(storageKey, response.getProperty());
+
+                    Optional<InputDataResult> stored = skinStorage.findSkinData(storageKey);
+                    if (stored.isEmpty()) {
+                        getLogger().warning("Failed to persist skin data for file " + skinFile.getName());
+                        return;
+                    }
+                    skinId = stored.get().getIdentifier();
+                }
+
+                PlayerStorage playerStorage = skinsRestorer.getPlayerStorage();
+                playerStorage.setSkinIdOfPlayer(controller.getUniqueId(), skinId);
+                playerStorage.setSkinIdOfPlayer(camera.getUniqueId(), skinId);
+
+                Bukkit.getScheduler().runTask(this, () -> {
+                    try {
+                        skinsRestorer.getSkinApplier(Player.class).applySkin(controller);
+                        skinsRestorer.getSkinApplier(Player.class).applySkin(camera);
+                    } catch (DataRequestException e) {
+                        e.printStackTrace();
+                    }
+                });
+            } catch (DataRequestException | MineSkinException | IOException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private Map<String, File> loadAvailableSkinsByKey() {
+        if (skinsDirectory == null || !skinsDirectory.isDirectory()) {
+            return Collections.emptyMap();
+        }
+
+        File[] files = skinsDirectory.listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".png"));
+        if (files == null || files.length == 0) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, File> result = new TreeMap<>();
+        Arrays.stream(files)
+                .sorted(Comparator
+                        .comparingInt(this::extractIndex)
+                        .thenComparing(File::getName, String.CASE_INSENSITIVE_ORDER))
+                .forEach(file -> result.put(normalizeSkinKey(file.getName()), file));
+        return result;
+    }
+
+    private int extractIndex(File file) {
+        String name = file.getName();
+        int underscore = name.indexOf('_');
+        if (underscore > 0) {
+            String prefix = name.substring(0, underscore);
+            try {
+                return Integer.parseInt(prefix);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return Integer.MAX_VALUE;
+    }
+
+    private String buildStorageKey(File skinFile) {
+        return "file:" + skinFile.getName().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeSkinKey(String input) {
+        String cleaned = input.toLowerCase(Locale.ROOT);
+        if (cleaned.endsWith(".png")) {
+            cleaned = cleaned.substring(0, cleaned.length() - 4);
+        }
+
+        int underscoreIndex = cleaned.indexOf('_');
+        if (underscoreIndex >= 0) {
+            String prefix = cleaned.substring(0, underscoreIndex);
+            if (prefix.chars().allMatch(Character::isDigit)) {
+                cleaned = cleaned.substring(underscoreIndex + 1);
+            }
+        }
+
+        return cleaned.trim();
+    }
+
+    private File resolveSkinFile(String requested, Map<String, File> availableSkins) {
+        String key = normalizeSkinKey(requested);
+        return availableSkins.get(key);
+    }
+
+    private File resolveSkinsDirectory() {
+        try {
+            File pluginData = getDataFolder().getCanonicalFile();
+            File pluginsDir = pluginData.getParentFile();
+            if (pluginsDir == null) {
+                return new File(pluginData, "skins");
+            }
+
+            File dataDir = pluginsDir.getParentFile();
+            if (dataDir != null) {
+                return new File(dataDir, "skins");
+            }
+
+            return new File(pluginsDir, "skins");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public boolean isTestRunning() {
+        return testRunning;
+    }
+}

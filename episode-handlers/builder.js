@@ -67,15 +67,26 @@ async function ensureItemInHand(bot, itemName, args = null) {
       await rcon.end();
 
       // Wait for item to arrive
-      await new Promise((resolve) => {
+      await new Promise((resolve, reject) => {
+        const maxAttempts = 50;
+        let attempts = 0;
         const checkItem = () => {
+          attempts += 1;
           const found = bot.inventory.items().find((i) => i.type === id);
           if (found) {
             item = found;
             resolve();
-          } else {
-            setTimeout(checkItem, 100);
+            return;
           }
+          if (attempts >= maxAttempts) {
+            reject(
+              new Error(
+                `Item ${itemName} not received after ${maxAttempts} attempts`
+              )
+            );
+            return;
+          }
+          setTimeout(checkItem, 200);
         };
         checkItem();
       });

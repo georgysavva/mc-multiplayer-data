@@ -8,6 +8,11 @@ const { sleep } = require("../utils/helpers");
 class BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = MIN_BOTS_DISTANCE;
   static INIT_MAX_BOTS_DISTANCE = MAX_BOTS_DISTANCE;
+  static WORKS_IN_NON_FLAT_WORLD = false;
+
+  constructor(sharedBotRng) {
+    // This constructor intentionally does nothing with sharedBotRng
+  }
 
   /**
    * Optional setup hook. No-op by default.
@@ -85,7 +90,6 @@ class BaseEpisode {
       });
       console.log(`[${bot.username}] episode ended, connection closed`);
       await sleep(1000);
-
 
       coordinator.onceEvent(
         "stoppedPhase",

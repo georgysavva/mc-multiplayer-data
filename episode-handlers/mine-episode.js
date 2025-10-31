@@ -114,6 +114,7 @@ async function mineTunnelTowards(bot, targetPos, maxBlocks = 20) {
 
   let blocksMined = 0;
   const startPos = bot.entity.position.clone();
+  const miningStartTime = Date.now();
 
   // Calculate direction to target
   const currentPos = bot.entity.position.clone();
@@ -149,6 +150,17 @@ async function mineTunnelTowards(bot, targetPos, maxBlocks = 20) {
     distanceTraveled < horizontalDistance - 1.5 &&
     blocksMined < maxBlocks
   ) {
+    // Timeout guard to prevent infinite mining loop
+    if (Date.now() - miningStartTime > 60000) {
+      throw new Error(
+        `Mining loop timed out after 60 seconds (distanceTraveled=${distanceTraveled.toFixed(
+          2
+        )}, ` +
+          `horizontalDistance=${horizontalDistance.toFixed(
+            2
+          )}, blocksMined=${blocksMined}/${maxBlocks})`
+      );
+    }
     const myPos = bot.entity.position.clone();
 
     console.log(
