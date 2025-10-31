@@ -4,6 +4,7 @@ const {
   sleep,
   land_pos,
   horizontalDistanceTo,
+  gotoWithTimeout,
 } = require("../utils/movement");
 
 const { GoalNear, Movements } = require("../utils/bot-factory");
@@ -246,7 +247,7 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
   let reached = false;
   for (let attempt = 0; attempt < 2 && !reached; attempt++) {
     try {
-      await bot.pathfinder.goto(goal);
+      await gotoWithTimeout(bot, goal, { timeoutMs: 30000 });
       reached = true;
     } catch (err) {
       const msg = String(err?.message || err || "");
@@ -406,6 +407,7 @@ function getOnPVEPhaseFn(
 class PveEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 15;
   static INIT_MAX_BOTS_DISTANCE = 25;
+  static WORKS_IN_NON_FLAT_WORLD = true;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     const difficultyRes = await rcon.send("difficulty easy"); // or hard

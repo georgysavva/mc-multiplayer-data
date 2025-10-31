@@ -17,17 +17,17 @@ services:
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
-      LEVEL_TYPE: minecraft:flat
-      GENERATOR_SETTINGS: >-
-        {
-          "layers": [
-            { "block": "minecraft:bedrock", "height": 1 },
-            { "block": "minecraft:stone",   "height": 124 },
-            { "block": "minecraft:dirt",    "height": 2 },
-            { "block": "minecraft:grass_block", "height": 1 }
-          ],
-          "biome": "minecraft:plains"
-        }
+      # LEVEL_TYPE: minecraft:flat
+      # GENERATOR_SETTINGS: >-
+      #   {
+      #     "layers": [
+      #       { "block": "minecraft:bedrock", "height": 1 },
+      #       { "block": "minecraft:stone",   "height": 124 },
+      #       { "block": "minecraft:dirt",    "height": 2 },
+      #       { "block": "minecraft:grass_block", "height": 1 }
+      #     ],
+      #     "biome": "minecraft:plains"
+      #   }
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ${MC_DATA_DIR:-./data}:/data
@@ -52,7 +52,7 @@ services:
       receiver_alpha:
         condition: service_started
     volumes:
-      # attach the relative directory 'data' to the container's /data path
+      # share the output directory with the host
       - ./output:/output
     environment:
       BOT_NAME: Alpha
@@ -62,7 +62,7 @@ services:
       COORD_PORT: 8100
       OTHER_COORD_HOST: sender_bravo
       OTHER_COORD_PORT: 8100
-      BOT_RNG_SEED: "12345"
+      BOT_RNG_SEED: "123456"
       EPISODES_NUM: 1
       MC_HOST: host.docker.internal
       MC_PORT: ${MC_SERVER_PORT:-25565}
@@ -77,9 +77,12 @@ services:
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 300
       CAMERA_READY_CHECK_INTERVAL: 2000
-      VIEWER_RENDERING_DISABLED: 0
-      VIEWER_RECORDING_INTERVAL: 30 # should be 50 when rendering is disabled to have 20 FPS
+      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RECORDING_INTERVAL: 50 # should be 50 when rendering is disabled to have 20 FPS
+      WORLD_TYPE: normal # flat or normal
       SMOKE_TEST: 1
+      INSTANCE_ID: 0
+      OUTPUT_DIR: /output
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -97,7 +100,7 @@ services:
       sender_alpha:
         condition: service_started
     volumes:
-      # attach the relative directory 'data' to the container's /data path
+      # share the output directory with the host
       - ./output:/output
     environment:
       BOT_NAME: Bravo
@@ -107,7 +110,7 @@ services:
       COORD_PORT: 8100
       OTHER_COORD_HOST: sender_alpha
       OTHER_COORD_PORT: 8100
-      BOT_RNG_SEED: "12345"
+      BOT_RNG_SEED: "123456"
       EPISODES_NUM: 1
       MC_HOST: host.docker.internal
       MC_PORT: ${MC_SERVER_PORT:-25565}
@@ -122,9 +125,12 @@ services:
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 300
       CAMERA_READY_CHECK_INTERVAL: 2000
-      VIEWER_RENDERING_DISABLED: 0
-      VIEWER_RECORDING_INTERVAL: 30
+      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RECORDING_INTERVAL: 50
       SMOKE_TEST: 1
+      WORLD_TYPE: normal # flat or normal
+      INSTANCE_ID: 1
+      OUTPUT_DIR: /output
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -136,7 +142,7 @@ services:
       NAME: Alpha
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
-      VIEWER_RENDERING_DISABLED: 0
+      VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -150,7 +156,7 @@ services:
       NAME: Bravo
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
-      VIEWER_RENDERING_DISABLED: 0
+      VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path

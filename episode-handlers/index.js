@@ -1,3 +1,5 @@
+const fs = require("fs/promises");
+const path = require("path");
 const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const Vec3 = require("vec3").Vec3;
 const { sleep } = require("../utils/helpers");
@@ -36,7 +38,7 @@ const episodeClassMap = {
   pve: PveEpisode,
   buildStructure: BuildStructureEpisode,
   buildTower: BuildTowerEpisode,
-  // mine: MineEpisode,
+  mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
 };
 
@@ -53,9 +55,53 @@ const episodeTypes = [
   "pve",
   "buildStructure",
   "buildTower",
-  // "mine",
+  "mine",
   "towerBridge",
 ];
+
+function formatDateForFilename(date) {
+  const pad = (value, length = 2) => String(value).padStart(length, "0");
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(
+    date.getDate()
+  )}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+}
+
+async function saveEpisodeInfo({
+  args,
+  bot,
+  episodeInstance,
+  episodeNum,
+  episodeType,
+}) {
+  const now = new Date();
+  const formattedTimestamp = formatDateForFilename(now);
+  const episodeNumStr = String(episodeNum).padStart(6, "0");
+  const instanceId = args.instance_id ?? 0;
+  const instanceIdStr = String(instanceId).padStart(3, "0");
+  const botName = args.bot_name;
+  const outputDir = args.output_dir;
+
+  await fs.mkdir(outputDir, { recursive: true });
+
+  const baseFileName = `${formattedTimestamp}_${episodeNumStr}_${botName}_instance_${instanceIdStr}_episode_info`;
+  const filePath = path.join(outputDir, `${baseFileName}.json`);
+
+  const payload = {
+    timestamp: now.toISOString(),
+    bot_name: botName,
+    episode_number: episodeNum,
+    episode_type: episodeType,
+    instance_id: instanceId,
+    encountered_error: Boolean(episodeInstance?._encounteredError),
+    peer_encountered_error: Boolean(episodeInstance?._peerError),
+    bot_died: Boolean(episodeInstance?._botDied),
+  };
+
+  await fs.writeFile(filePath, JSON.stringify(payload, null, 2));
+  console.log(
+    `[${bot.username}] Saved episode info to ${filePath} (encountered_error=${payload.encountered_error}, peer_encountered_error=${payload.peer_encountered_error}, bot_died=${payload.bot_died})`
+  );
+}
 /**
  * Run a single episode
  * @param {Bot} bot - Mineflayer bot instance
@@ -77,6 +123,8 @@ async function runSingleEpisode(
 ) {
   console.log(`[${bot.username}] Starting episode ${episodeNum}`);
 
+  episodeInstance._botDied = false;
+
   return new Promise((resolve) => {
     // Reset episode stopping guard at the start of each episode
     bot._episodeStopping = false;
@@ -91,6 +139,7 @@ async function runSingleEpisode(
         return;
       }
       episodeErrorHandled = true;
+      episodeInstance._encounteredError = true;
       await notifyPeerErrorAndStop(
         bot,
         rcon,
@@ -102,16 +151,27 @@ async function runSingleEpisode(
         err
       );
     };
+    const handleBotDeath = () => {
+      console.warn(
+        `[${bot.username}] Episode ${episodeNum} detected bot death`
+      );
+      episodeInstance._botDied = true;
+    };
     const cleanupErrorHandlers = () => {
       process.removeListener("unhandledRejection", handleAnyError);
       process.removeListener("uncaughtException", handleAnyError);
     };
+    const cleanupEpisodeScopedHandlers = () => {
+      cleanupErrorHandlers();
+      bot.removeListener("death", handleBotDeath);
+    };
     process.on("unhandledRejection", handleAnyError);
     process.on("uncaughtException", handleAnyError);
+    bot.once("death", handleBotDeath);
 
     // Ensure we clean up episode-scoped handlers when the episode resolves
     bot._currentEpisodeResolve = () => {
-      cleanupErrorHandlers();
+      cleanupEpisodeScopedHandlers();
       resolve(undefined);
     };
 
@@ -222,6 +282,10 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       `effect give ${bot.username} minecraft:resistance 999999 255 true`
     );
     console.log(`[${bot.username}] resistEffectRes=${resistEffectRes}`);
+    const difficultyRes = await rcon.send("difficulty peaceful"); // or hard
+    console.log(
+      `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`
+    );
     // Wait for both connections to be established
     console.log("Setting up coordinator connections...");
     await coordinator.setupConnections();
@@ -270,20 +334,35 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       interval: 50,
     });
     // Run multiple episodes
-    // In smoke test mode, iterate over all episode types in alphabetical order
+    // Respect world type for eligible episode filtering
+    const worldType = (args.world_type || "flat").toLowerCase();
+    const isFlatWorld = worldType === "flat";
+    const allEpisodeTypes = Object.keys(episodeClassMap);
+    const eligibleEpisodeTypesForWorld = isFlatWorld
+      ? allEpisodeTypes
+      : allEpisodeTypes.filter(
+          (type) => episodeClassMap[type].WORKS_IN_NON_FLAT_WORLD === true
+        );
+
+    if (!isFlatWorld && eligibleEpisodeTypesForWorld.length === 0) {
+      throw new Error(
+        "No episodes are eligible for normal world. Mark episode classes with WORKS_IN_NON_FLAT_WORLD = true."
+      );
+    }
+    const sortedEligible = eligibleEpisodeTypesForWorld.slice().sort();
+
+    // In smoke test mode, iterate over all eligible episode types in alphabetical order
     let episodesToRun = [];
     if (args.smoke_test === 1) {
-      // Get all episode types and sort alphabetically
-      const allEpisodeTypes = Object.keys(episodeClassMap).sort();
-      episodesToRun = allEpisodeTypes.map((episodeType, index) => ({
+      episodesToRun = sortedEligible.map((episodeType, index) => ({
         episodeNum: args.start_episode_id + index,
         episodeType: episodeType,
       }));
       console.log(
-        `[${bot.username}] SMOKE TEST MODE: Running all ${episodesToRun.length} episode types in alphabetical order`
+        `[${bot.username}] SMOKE TEST MODE: Running ${episodesToRun.length} eligible episode types (world_type=${worldType}) in alphabetical order`
       );
     } else {
-      // Normal mode: use the configured episode types and episodes_num
+      // Normal mode: use the configured episodes_num, episode type picked at random from eligible
       for (let i = 0; i < args.episodes_num; i++) {
         episodesToRun.push({
           episodeNum: args.start_episode_id + i,
@@ -303,7 +382,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       const selectedEpisodeType =
         args.smoke_test === 1
           ? episodeConfig.episodeType
-          : episodeTypes[Math.floor(sharedBotRng() * episodeTypes.length)];
+          : sortedEligible[Math.floor(sharedBotRng() * sortedEligible.length)];
 
       console.log(
         `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
@@ -314,14 +393,14 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
 
       if (!EpisodeClass) {
         throw new Error(
-          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${episodeTypes.join(
+          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${sortedEligible.join(
             ", "
           )}`
         );
       }
 
       // Create an instance of the episode class
-      const episodeInstance = new EpisodeClass({});
+      const episodeInstance = new EpisodeClass(sharedBotRng);
 
       console.log(
         `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
@@ -367,6 +446,13 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
         );
       }
       console.log(`[${bot.username}] Episode ${episodeNum} completed`);
+      await saveEpisodeInfo({
+        args,
+        bot,
+        episodeInstance,
+        episodeNum,
+        episodeType: selectedEpisodeType,
+      });
       console.log(`[${bot.username}] Syncing bots for episode ${episodeNum}`);
       await coordinator.syncBots(episodeNum);
     }
@@ -424,6 +510,19 @@ function getOnTeleportPhaseFn(
       DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
     );
     console.log(`[${bot.username}] setting up episode ${episodeNum}`);
+    try {
+      const saturationEffectRes = await rcon.send(
+        `effect give ${bot.username} minecraft:saturation 999999 255 true`
+      );
+      console.log(
+        `[${bot.username}] saturationEffectRes=${saturationEffectRes}`
+      );
+    } catch (error) {
+      console.error(
+        `[${bot.username}] Failed to apply saturation effect:`,
+        error
+      );
+    }
     await episodeInstance.setupEpisode(
       bot,
       rcon,
@@ -581,6 +680,7 @@ function getOnPeerErrorPhaseFn(
       `[${bot.username}] Received peerErrorPhase_${episodeNum} from peer, stopping.`,
       phaseDataOther["reason"]
     );
+    episodeInstance._peerError = true;
     coordinator.onceEvent(
       "stopPhase",
       episodeNum,

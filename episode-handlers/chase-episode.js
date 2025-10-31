@@ -11,9 +11,11 @@ const {
   stopPathfinder,
 } = require("../utils/movement");
 const { BaseEpisode } = require("./base-episode");
+const { decidePrimaryBot } = require("../utils/coordination");
 
 // Constants for chase behavior
-const CHASE_DURATION_MS = 10000; // 10 seconds of chase
+const CHASE_DURATION_MS_MIN = 5000; // 5 seconds of chase
+const CHASE_DURATION_MS_MAX = 15000; // 15 seconds of chase
 const POSITION_UPDATE_INTERVAL_MS = 500; // Update positions every 500ms
 const MIN_CHASE_DISTANCE = 3.0; // Minimum distance to maintain chase
 const ESCAPE_DISTANCE = 8.0; // Distance at which runner changes direction
@@ -176,11 +178,11 @@ async function runFromChaser(
   const currentPos = bot.entity.position; // A (Alpha's position)
 
   // Use Bravo's position as B, or fallback to current position
-  const bravoPos = chaserPos || currentPos; // B (Bravo's position)
+  const chaseOrCurrentPos = chaserPos || currentPos;
 
   // Compute direction d = normalize(A - B) to get direction away from Bravo
-  const dx = currentPos.x - bravoPos.x; // A.x - B.x
-  const dz = currentPos.z - bravoPos.z; // A.z - B.z (horizontal only, ignore Y)
+  const dx = currentPos.x - chaseOrCurrentPos.x; // A.x - B.x
+  const dz = currentPos.z - chaseOrCurrentPos.z; // A.z - B.z (horizontal only, ignore Y)
 
   // Calculate horizontal distance for normalization
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
@@ -278,15 +280,17 @@ function getOnChasePhaseFn(
       `[${bot.username}] 🎬 Starting pathfinder-enhanced chase phase ${iterationID}`
     );
 
-    // Fixed roles: Alpha runs away, Bravo chases (sharedBotRng available but not used for decisions)
-    const isChaser = bot.username === "Bravo";
+    const isChaser = decidePrimaryBot(bot, sharedBotRng, args);
 
     console.log(
-      `[${bot.username}] 🎭 Fixed roles: Alpha runs, Bravo chases - I am the ${
-        isChaser ? "🏃 CHASER" : "🏃‍♂️ RUNNER"
-      }`
+      `[${bot.username}] 🎭 I am the ${isChaser ? "🏃 CHASER" : "🏃‍♂️ RUNNER"}`
     );
 
+    const chaseDurationMs =
+      CHASE_DURATION_MS_MIN +
+      Math.floor(
+        sharedBotRng() * (CHASE_DURATION_MS_MAX - CHASE_DURATION_MS_MIN + 1)
+      );
     // Execute appropriate behavior using pathfinder-enhanced functions
     if (isChaser) {
       await chaseRunner(
@@ -294,7 +298,7 @@ function getOnChasePhaseFn(
         coordinator,
         otherBotName,
         episodeNum,
-        CHASE_DURATION_MS
+        chaseDurationMs
       );
     } else {
       await runFromChaser(
@@ -302,7 +306,7 @@ function getOnChasePhaseFn(
         coordinator,
         otherBotName,
         episodeNum,
-        CHASE_DURATION_MS
+        chaseDurationMs
       );
     }
 
@@ -330,6 +334,7 @@ function getOnChasePhaseFn(
 }
 
 class ChaseEpisode extends BaseEpisode {
+  static WORKS_IN_NON_FLAT_WORLD = true;
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     // optional setup
   }
