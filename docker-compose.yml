@@ -90,6 +90,7 @@ services:
       OTHER_COORD_HOST: sender_bravo
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "123456"
+      EPISODE_TYPES: ${EPISODE_TYPES:-all}
       EPISODES_NUM: 1
       MC_HOST: host.docker.internal
       MC_PORT: ${MC_SERVER_PORT:-25565}
@@ -139,6 +140,7 @@ services:
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "123456"
       EPISODES_NUM: 1
+      EPISODE_TYPES: ${EPISODE_TYPES:-all}
       MC_HOST: host.docker.internal
       MC_PORT: ${MC_SERVER_PORT:-25565}
       RCON_HOST: host.docker.internal

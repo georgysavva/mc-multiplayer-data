@@ -45,7 +45,8 @@ const episodeClassMap = {
 // Import episode-specific handlers
 
 // Add episode type selection - Enable multiple types for diverse data collection
-const episodeTypes = [
+// Default episode types list
+const defaultEpisodeTypes = [
   "straightLineWalk",
   "chase",
   "orbit",
@@ -58,6 +59,12 @@ const episodeTypes = [
   "mine",
   "towerBridge",
 ];
+
+// Load episode types from environment variable or use default
+const episodeTypes =
+  process.env.EPISODE_TYPES && process.env.EPISODE_TYPES !== "all"
+    ? process.env.EPISODE_TYPES.split(",").map((type) => type.trim())
+    : defaultEpisodeTypes;
 
 function formatDateForFilename(date) {
   const pad = (value, length = 2) => String(value).padStart(length, "0");
@@ -345,7 +352,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
     // Respect world type for eligible episode filtering
     const worldType = (args.world_type || "flat").toLowerCase();
     const isFlatWorld = worldType === "flat";
-    const allEpisodeTypes = Object.keys(episodeClassMap);
+    const allEpisodeTypes = episodeTypes;
     const eligibleEpisodeTypesForWorld = isFlatWorld
       ? allEpisodeTypes
       : allEpisodeTypes.filter(
