@@ -1,0 +1,14 @@
+{
+    "name": "mc-pov-proxy",
+    "version": "0.1.0",
+    "private": true,
+    "main": "index.js",
+    "license": "MIT",
+    "scripts": {
+      "start": "node index.js"
+    },
+    "dependencies": {
+      "minecraft-protocol": "^1.44.0"
+    }
+  }
+  

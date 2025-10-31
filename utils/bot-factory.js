@@ -24,6 +24,20 @@ function makeBot({ username, host, port, version = "1.20.4" }) {
     version,
     checkTimeoutInterval: 10 * 60 * 1000,
   });
+  const client = bot._client;
+
+  client.on("packet", (data, meta) => {
+    if (meta.state !== "play") {
+      console.log(`S->C`, meta, data);
+    } else {
+      console.log(`S->C play`, meta);
+    }
+  });
+  const write = bot._client.write.bind(bot._client);
+  bot._client.write = (name, params) => {
+    console.log(`C->S`, name, params);
+    return write(name, params);
+  };
 
   // Load pathfinder plugin
   bot.loadPlugin(pathfinder);

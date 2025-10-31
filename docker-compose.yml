@@ -51,6 +51,8 @@ services:
         condition: service_healthy
       receiver_alpha:
         condition: service_started
+      pov_proxy_alpha:
+        condition: service_started
     volumes:
       # share the output directory with the host
       - ./output:/output
@@ -65,14 +67,14 @@ services:
       BOT_RNG_SEED: "123456"
       EPISODES_NUM: 1
       MC_HOST: host.docker.internal
-      MC_PORT: ${MC_SERVER_PORT:-25565}
+      MC_PORT: ${MC_PROXY_ALPHA_PORT:-25571}
       RCON_HOST: host.docker.internal
       RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       WALK_TIMEOUT: 5
       TELEPORT: 1
       BOOTSTRAP_WAIT_TIME: 1
-      ENABLE_CAMERA_WAIT: 1
+      ENABLE_CAMERA_WAIT: 0
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 300
@@ -99,6 +101,8 @@ services:
         condition: service_started
       sender_alpha:
         condition: service_started
+      pov_proxy_bravo:
+        condition: service_started
     volumes:
       # share the output directory with the host
       - ./output:/output
@@ -113,14 +117,14 @@ services:
       BOT_RNG_SEED: "123456"
       EPISODES_NUM: 1
       MC_HOST: host.docker.internal
-      MC_PORT: ${MC_SERVER_PORT:-25565}
+      MC_PORT: ${MC_PROXY_BRAVO_PORT:-25573}
       RCON_HOST: host.docker.internal
       RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       WALK_TIMEOUT: 5
       TELEPORT: 1
       BOOTSTRAP_WAIT_TIME: 1
-      ENABLE_CAMERA_WAIT: 1
+      ENABLE_CAMERA_WAIT: 0
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
       CAMERA_READY_RETRIES: 300
@@ -179,11 +183,14 @@ services:
     depends_on:
       mc:
         condition: service_healthy
+      pov_proxy_alpha:
+        condition: service_started
     environment:
       MC_VERSION: "1.20.4"
+      UUID: d4f0704a-3a4c-3f30-80e5-695c1cf28fe2
       MC_HOST: "127.0.0.1"
-      MC_PORT: "${MC_SERVER_PORT:-25565}"
-      CAMERA_NAME: "CameraAlpha"
+      MC_PORT: "${MC_PROXY_ALPHA_VIEWER_PORT:-25570}"
+      CAMERA_NAME: "Alpha"
       DISPLAY: "${CAMERA_ALPHA_DISPLAY:-:99}"
       VNC_PORT: "${CAMERA_ALPHA_VNC_PORT:-5901}"
       NOVNC_PORT: "${CAMERA_ALPHA_NOVNC_PORT:-6901}"
@@ -205,27 +212,27 @@ services:
       - "textures.minecraft.net:127.0.0.1"
       - "pc.realms.minecraft.net:127.0.0.1"
 
-  camera_alpha_follow:
-    image: node:20
-    network_mode: host
-    depends_on:
-      mc:
-        condition: service_healthy
-      camera_alpha:
-        condition: service_started
-    working_dir: /app
-    environment:
-      RCON_HOST: "127.0.0.1"
-      RCON_PORT: "${MC_RCON_PORT:-25575}"
-      RCON_PASSWORD: "research"
-      BOT_NAME: "Alpha"
-      CAMERA_NAME: "CameraAlpha"
-      RETRIES: "60"
-    volumes:
-      - ./camera/spectator.js:/app/spectator.js:ro
-      - ./camera/package.json:/app/package.json:ro
-    command:
-      ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
+  # camera_alpha_follow:
+  #   image: node:20
+  #   network_mode: host
+  #   depends_on:
+  #     mc:
+  #       condition: service_healthy
+  #     camera_alpha:
+  #       condition: service_started
+  #   working_dir: /app
+  #   environment:
+  #     RCON_HOST: "127.0.0.1"
+  #     RCON_PORT: "${MC_RCON_PORT:-25575}"
+  #     RCON_PASSWORD: "research"
+  #     BOT_NAME: "Alpha"
+  #     CAMERA_NAME: "CameraAlpha"
+  #     RETRIES: "60"
+  #   volumes:
+  #     - ./camera/spectator.js:/app/spectator.js:ro
+  #     - ./camera/package.json:/app/package.json:ro
+  #   command:
+  #     ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
 
   camera_bravo:
     image: ojmichel/mineflayer-spectator-client:latest
@@ -234,11 +241,14 @@ services:
     depends_on:
       mc:
         condition: service_healthy
+      pov_proxy_bravo:
+        condition: service_started
     environment:
       MC_VERSION: "1.20.4"
       MC_HOST: "127.0.0.1"
-      MC_PORT: "${MC_SERVER_PORT:-25565}"
-      CAMERA_NAME: "CameraBravo"
+      UUID: 2c529f98-76bc-3d80-aef8-9634b44aee4b
+      MC_PORT: "${MC_PROXY_BRAVO_VIEWER_PORT:-25572}"
+      CAMERA_NAME: "Bravo"
       DISPLAY: "${CAMERA_BRAVO_DISPLAY:-:100}"
       VNC_PORT: "${CAMERA_BRAVO_VNC_PORT:-5902}"
       NOVNC_PORT: "${CAMERA_BRAVO_NOVNC_PORT:-6902}"
@@ -260,24 +270,52 @@ services:
       - "textures.minecraft.net:127.0.0.1"
       - "pc.realms.minecraft.net:127.0.0.1"
 
-  camera_bravo_follow:
-    image: node:20
+  # camera_bravo_follow:
+  #   image: node:20
+  #   network_mode: host
+  #   depends_on:
+  #     mc:
+  #       condition: service_healthy
+  #     camera_bravo:
+  #       condition: service_started
+  #   working_dir: /app
+  #   environment:
+  #     RCON_HOST: "127.0.0.1"
+  #     RCON_PORT: "${MC_RCON_PORT:-25575}"
+  #     RCON_PASSWORD: "research"
+  #     BOT_NAME: "Bravo"
+  #     CAMERA_NAME: "CameraBravo"
+  #     RETRIES: "60"
+  #   volumes:
+  #     - ./camera/spectator.js:/app/spectator.js:ro
+  #     - ./camera/package.json:/app/package.json:ro
+  #   command:
+  #     ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
+
+  pov_proxy_alpha:
+    build: ./pov-proxy
+    image: mc-pov-proxy:latest
     network_mode: host
-    depends_on:
-      mc:
-        condition: service_healthy
-      camera_bravo:
-        condition: service_started
-    working_dir: /app
     environment:
-      RCON_HOST: "127.0.0.1"
-      RCON_PORT: "${MC_RCON_PORT:-25575}"
-      RCON_PASSWORD: "research"
+      VIEWER_PROXY_PORT: ${MC_PROXY_ALPHA_PORT:-25570}
+      BOT_PROXY_PORT: ${MC_PROXY_ALPHA_PORT:-25571}
+      UPSTREAM_HOST: "127.0.0.1"
+      UPSTREAM_PORT: "${MC_SERVER_PORT:-25565}"
+      MC_VERSION: "1.20.4"
+      BOT_NAME: "Alpha"
+      CAMERA_NAME: "Alpha"
+      REQUIRE_VIEWER: "1" # wait for camera before connecting upstream
+
+  pov_proxy_bravo:
+    build: ./pov-proxy
+    image: mc-pov-proxy:latest
+    network_mode: host
+    environment:
+      VIEWER_PROXY_PORT: ${MC_PROXY_BRAVO_PORT:-25572}
+      BOT_PROXY_PORT: ${MC_PROXY_BRAVO_PORT:-25573}
+      UPSTREAM_HOST: "127.0.0.1"
+      UPSTREAM_PORT: "${MC_SERVER_PORT:-25565}"
+      MC_VERSION: "1.20.4"
       BOT_NAME: "Bravo"
-      CAMERA_NAME: "CameraBravo"
-      RETRIES: "60"
-    volumes:
-      - ./camera/spectator.js:/app/spectator.js:ro
-      - ./camera/package.json:/app/package.json:ro
-    command:
-      ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
+      CAMERA_NAME: "Bravo"
+      REQUIRE_VIEWER: "1"

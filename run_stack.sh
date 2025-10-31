@@ -22,9 +22,11 @@ LOG_SERVICES=(
   receiver_alpha
   receiver_bravo
   camera_alpha
-  camera_alpha_follow
+  # camera_alpha_follow
   camera_bravo
-  camera_bravo_follow
+  pov_proxy_alpha
+  pov_proxy_bravo
+  # camera_bravo_follow
 )
 
 COMPOSE_BIN=()

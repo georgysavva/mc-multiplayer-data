@@ -29,34 +29,34 @@ const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
-  straightLineWalk: StraightLineEpisode,
-  chase: ChaseEpisode,
-  orbit: OrbitEpisode,
-  walkLook: WalkLookEpisode,
-  walkLookAway: WalkLookAwayEpisode,
-  pvp: PvpEpisode,
+  // straightLineWalk: StraightLineEpisode,
+  // chase: ChaseEpisode,
+  // orbit: OrbitEpisode,
+  // walkLook: WalkLookEpisode,
+  // walkLookAway: WalkLookAwayEpisode,
+  // pvp: PvpEpisode,
   pve: PveEpisode,
-  buildStructure: BuildStructureEpisode,
-  buildTower: BuildTowerEpisode,
-  mine: MineEpisode,
-  towerBridge: TowerBridgeEpisode,
+  // buildStructure: BuildStructureEpisode,
+  // buildTower: BuildTowerEpisode,
+  // mine: MineEpisode,
+  // towerBridge: TowerBridgeEpisode,
 };
 
 // Import episode-specific handlers
 
 // Add episode type selection - Enable multiple types for diverse data collection
 const episodeTypes = [
-  "straightLineWalk",
-  "chase",
-  "orbit",
-  "walkLook",
-  "walkLookAway",
-  "pvp",
+  // "straightLineWalk",
+  // "chase",
+  // "orbit",
+  // "walkLook",
+  // "walkLookAway",
+  // "pvp",
   "pve",
-  "buildStructure",
-  "buildTower",
-  "mine",
-  "towerBridge",
+  // "buildStructure",
+  // "buildTower",
+  // "mine",
+  // "towerBridge",
 ];
 
 function formatDateForFilename(date) {

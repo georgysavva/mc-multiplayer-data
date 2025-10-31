@@ -54,7 +54,8 @@ def ensure_option(minecraft_dir: Path, key: str, value: str) -> None:
 
 def offline_login(username: str) -> dict[str, str]:
     data = ("OfflinePlayer:" + username).encode("utf-8")
-    offline_uuid = uuid.UUID(hashlib.md5(data).hexdigest())
+    offline_uuid = os.environ.get("UUID", uuid.UUID(hashlib.md5(data).hexdigest()))
+    print(f"[launcher] offline_uuid: {offline_uuid}")
     return {
         "name": username,
         "uuid": str(offline_uuid),
