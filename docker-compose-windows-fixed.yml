@@ -57,6 +57,7 @@ services:
       # attach the relative directory 'data' to the container's /data path
       - ./data53:/data
       - ./plugins:/data/plugins
+      - ./skins:/data/skins
     healthcheck:
       test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
       interval: 10s

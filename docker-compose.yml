@@ -15,7 +15,7 @@ services:
         fi;
         chmod -R 777 /data/plugins /data/skins
     volumes:
-      - ./data53:/data
+      - ./data:/data
       - ./plugins:/source_plugins:ro
       - ./skins:/source_skins:ro
     restart: "no"
@@ -57,6 +57,7 @@ services:
       # attach the relative directory 'data' to the container's /data path
       - ${MC_DATA_DIR:-./data}:/data
       - ./plugins:/data/plugins
+      - ./skins:/data/skins
     healthcheck:
       test:
         [
