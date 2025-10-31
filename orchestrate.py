@@ -146,14 +146,14 @@ class InstanceManager:
                 )
                 # Print VNC/noVNC URLs
                 self._print_vnc_urls(compose_file, instance_name)
-                return True, instance_name
+                return True, instance_name, compose_file
             else:
                 print(f"❌ Failed to start {instance_name}: {result.stderr}")
-                return False, instance_name
+                return False, instance_name, None
 
         except Exception as e:
             print(f"❌ Error starting {instance_name}: {e}")
-            return False, instance_name
+            return False, instance_name, None
 
     def stop_instance(self, compose_file):
         """Stop a single Docker Compose instance."""
@@ -187,8 +187,41 @@ class InstanceManager:
             print(f"❌ Error stopping {instance_name}: {e}")
             return False, instance_name
 
+    def wait_for_senders(self, instance_name, compose_file):
+        """Wait for sender services to complete for a single instance."""
+        idx = self._instance_index_from_stem(instance_name)
+        sender_alpha = f"sender_alpha_instance_{idx}"
+        sender_bravo = f"sender_bravo_instance_{idx}"
+        
+        print(f"[{instance_name}] Waiting for senders to complete...")
+        
+        try:
+            cmd = [
+                *self.compose_bin,
+                "-p",
+                instance_name,
+                "-f",
+                str(compose_file),
+                "wait",
+                sender_alpha,
+                sender_bravo,
+            ]
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=self.compose_dir.parent
+            )
+            
+            if result.returncode == 0:
+                print(f"[{instance_name}] ✅ Senders completed successfully")
+                return True
+            else:
+                print(f"[{instance_name}] ⚠️ Sender wait failed: {result.stderr}")
+                return False
+        except Exception as e:
+            print(f"[{instance_name}] ❌ Error waiting for senders: {e}")
+            return False
+
     def start_all(self):
-        """Start all instances in parallel."""
+        """Start all instances in parallel, wait for completion, then stop."""
         compose_files = self.get_compose_files()
         total_instances = len(compose_files)
 
@@ -199,19 +232,41 @@ class InstanceManager:
         print(f"Starting {total_instances} instances in parallel...")
 
         # Start all instances simultaneously
+        started_instances = {}
         with ThreadPoolExecutor(max_workers=total_instances) as executor:
             futures = {
                 executor.submit(self.start_instance, cf): cf for cf in compose_files
             }
 
             for future in as_completed(futures):
-                success, instance_name = future.result()
+                success, instance_name, compose_file = future.result()
                 if success:
                     self.running_instances[instance_name] = futures[future]
+                    started_instances[instance_name] = compose_file
 
         print(
             f"\n🎉 Started {len(self.running_instances)}/{total_instances} instances successfully"
         )
+        
+        # Wait for all sender services to complete
+        print(f"\n⏳ Waiting for all sender services to complete...")
+        
+        with ThreadPoolExecutor(max_workers=total_instances) as executor:
+            wait_futures = {
+                executor.submit(self.wait_for_senders, inst_name, cf): inst_name
+                for inst_name, cf in started_instances.items()
+            }
+            
+            completed_count = 0
+            for future in as_completed(wait_futures):
+                if future.result():
+                    completed_count += 1
+        
+        print(f"\n✅ {completed_count}/{len(started_instances)} instances completed successfully")
+        
+        # Stop all instances
+        print(f"\n🛑 Shutting down all instances...")
+        self.stop_all()
 
     def stop_all(self):
         """Stop all instances."""

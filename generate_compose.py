@@ -86,6 +86,7 @@ def generate_compose_config(
     max_run_actions,
     episode_category,
     iterations_num_per_episode,
+    smoke_test,
     # camera specific
     camera_output_alpha_base,
     camera_output_bravo_base,
@@ -189,19 +190,19 @@ def generate_compose_config(
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
                     "RCON_PASSWORD": "research",
-                    "BOOTSTRAP_WAIT_TIME": 1,
+                    "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
                     "ENABLE_CAMERA_WAIT": 1,
                     "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
                     "MIN_RUN_ACTIONS": min_run_actions,
                     "MAX_RUN_ACTIONS": max_run_actions,
-                    "ITERATIONS_NUM_PER_EPISODE": 5,
+                    "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                     "MC_VERSION": "1.20.4",
                     "VIEWER_RENDERING_DISABLED": 0,
                     "VIEWER_RECORDING_INTERVAL": 30,
                     "WALK_TIMEOUT": 5,
                     "TELEPORT": 1,
-                    "SMOKE_TEST": 1,
+                    "SMOKE_TEST": smoke_test,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -232,19 +233,19 @@ def generate_compose_config(
                     "RCON_HOST": "host.docker.internal",
                     "RCON_PORT": rcon_port,
                     "RCON_PASSWORD": "research",
-                    "BOOTSTRAP_WAIT_TIME": 1,
+                    "BOOTSTRAP_WAIT_TIME": bootstrap_wait_time,
                     "ENABLE_CAMERA_WAIT": 1,
                     "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
                     "MIN_RUN_ACTIONS": min_run_actions,
                     "MAX_RUN_ACTIONS": max_run_actions,
-                    "ITERATIONS_NUM_PER_EPISODE": 5,
+                    "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                     "MC_VERSION": "1.20.4",
                     "VIEWER_RENDERING_DISABLED": 0,
                     "VIEWER_RECORDING_INTERVAL": 30,
                     "WALK_TIMEOUT": 5,
                     "TELEPORT": 1,
-                    "SMOKE_TEST": 1,
+                    "SMOKE_TEST": smoke_test,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -489,7 +490,7 @@ def main():
     parser.add_argument("--camera_bravo_vnc_base", type=int, default=5902)
     parser.add_argument("--camera_bravo_novnc_base", type=int, default=6902)
     parser.add_argument("--display_base", type=int, default=99)
-    parser.add_argument("--vnc_step", type=int, default=4)
+    parser.add_argument("--vnc_step", type=int, default=2)
     parser.add_argument("--display_step", type=int, default=2)
     parser.add_argument(
         "--num_episodes",
@@ -532,6 +533,13 @@ def main():
         default=3,
         help="Number of iterations per episode (default: 3)",
     )
+    parser.add_argument(
+        "--smoke_test",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Enable smoke test mode to run all episode types (default: 0)",
+    )
 
     args = parser.parse_args()
     # Ensure required dirs are absolute
@@ -573,6 +581,7 @@ def main():
             args.max_run_actions,
             args.episode_category,
             args.iterations_num_per_episode,
+            args.smoke_test,
             # camera args
             args.camera_output_alpha_base,
             args.camera_output_bravo_base,
