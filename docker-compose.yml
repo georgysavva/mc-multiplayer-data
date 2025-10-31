@@ -42,17 +42,18 @@ services:
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
-      # LEVEL_TYPE: minecraft:flat
-      # GENERATOR_SETTINGS: >-
-      #   {
-      #     "layers": [
-      #       { "block": "minecraft:bedrock", "height": 1 },
-      #       { "block": "minecraft:stone",   "height": 124 },
-      #       { "block": "minecraft:dirt",    "height": 2 },
-      #       { "block": "minecraft:grass_block", "height": 1 }
-      #     ],
-      #     "biome": "minecraft:plains"
-      #   }
+      LEVEL_TYPE: ${LEVEL_TYPE:-minecraft:flat}
+      # below should be irrelevant if LEVEL_TYPE is not minecraft:flat
+      GENERATOR_SETTINGS: >-
+        {
+          "layers": [
+            { "block": "minecraft:bedrock", "height": 1 },
+            { "block": "minecraft:stone",   "height": 124 },
+            { "block": "minecraft:dirt",    "height": 2 },
+            { "block": "minecraft:grass_block", "height": 1 }
+          ],
+          "biome": "minecraft:plains"
+        }
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ${MC_DATA_DIR:-./data}:/data
@@ -90,6 +91,7 @@ services:
       BOT_RNG_SEED: "123456"
       EPISODE_TYPES: ${EPISODE_TYPES:-all}
       EPISODES_NUM: 1
+      EPISODE_START_ID: ${EPISODE_START_ID:-0}
       MC_HOST: host.docker.internal
       MC_PORT: ${MC_SERVER_PORT:-25565}
       RCON_HOST: host.docker.internal
@@ -138,6 +140,7 @@ services:
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "123456"
       EPISODES_NUM: 1
+      EPISODE_START_ID: ${EPISODE_START_ID:-0}
       EPISODE_TYPES: ${EPISODE_TYPES:-all}
       MC_HOST: host.docker.internal
       MC_PORT: ${MC_SERVER_PORT:-25565}
@@ -168,7 +171,7 @@ services:
       PORT: 8090
       NAME: Alpha
       INSTANCE_ID: 0
-      EPISODE_START_ID: 0
+      EPISODE_START_ID: ${EPISODE_START_ID:-0}
       VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
@@ -182,7 +185,7 @@ services:
       PORT: 8090
       NAME: Bravo
       INSTANCE_ID: 0
-      EPISODE_START_ID: 0
+      EPISODE_START_ID: ${EPISODE_START_ID:-0}
       VIEWER_RENDERING_DISABLED: 1
     tty: true
     volumes:
