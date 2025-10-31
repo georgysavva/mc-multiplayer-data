@@ -24,6 +24,7 @@ LOG_SERVICES=(
   camera_alpha
   episode_starter
   camera_bravo
+  prep_data
 )
 
 COMPOSE_BIN=()
