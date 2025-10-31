@@ -317,6 +317,14 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
         );
         process.exit(1);
       }
+      // Give resistance to the camera bot paired with this bot, e.g., if Alpha then AlphaCamera
+      const cameraUsername = `${bot.username}Camera`;
+      const resistEffectResCamera = await rcon.send(
+        `effect give ${cameraUsername} minecraft:resistance 999999 255 true`
+      );
+      console.log(
+        `[${cameraUsername}] resistEffectRes=${resistEffectResCamera}`
+      );
 
       console.log(
         `[${bot.username}] Cameras detected, waiting ${args.bootstrap_wait_time}s for popups to clear...`
@@ -517,6 +525,12 @@ function getOnTeleportPhaseFn(
       console.log(
         `[${bot.username}] saturationEffectRes=${saturationEffectRes}`
       );
+      if (args.enable_camera_wait) {
+        const camRes = await rcon.send(
+          `effect give ${bot.username}Camera minecraft:saturation 999999 255 true`
+        );
+        console.log(`[${bot.username}] Camera saturationEffectRes=${camRes}`);
+      }
     } catch (error) {
       console.error(
         `[${bot.username}] Failed to apply saturation effect:`,
