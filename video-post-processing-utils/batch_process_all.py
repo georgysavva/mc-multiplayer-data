@@ -221,8 +221,12 @@ def find_episode_pairs(output_dir: str) -> List[Dict[str, str]]:
     # Parse video files
     for video_path in video_files:
         filename = os.path.basename(video_path)
-        # Updated regex to handle timestamp prefix: YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id.mp4
-        match = re.match(r'(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})\.mp4$', filename)
+        # Updated regex to handle timestamp prefix and optional _camera suffix:
+        # YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id[_camera].mp4
+        match = re.match(
+            r"(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})(?:_camera)?\.mp4$",
+            filename,
+        )
         if match:
             timestamp, episode_id, bot_name, instance_id = match.groups()
 
