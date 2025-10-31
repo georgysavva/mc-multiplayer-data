@@ -168,6 +168,10 @@ def generate_compose_config(
             },
             f"sender_alpha_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
+                "build": {
+                    "context": project_root,
+                    "dockerfile": "Dockerfile",
+                },
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"},
                     f"receiver_alpha_instance_{instance_id}": {"condition": "service_started"},
@@ -210,6 +214,10 @@ def generate_compose_config(
             },
             f"sender_bravo_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
+                "build": {
+                    "context": project_root,
+                    "dockerfile": "Dockerfile",
+                },
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"},
                     f"receiver_bravo_instance_{instance_id}": {"condition": "service_started"},
@@ -282,6 +290,10 @@ def generate_compose_config(
             # Camera alpha: recording client
             f"camera_alpha_instance_{instance_id}": {
                 "image": "ojmichel/mineflayer-spectator-client:latest",
+                "build": {
+                    "context": os.path.join(project_root, "camera"),
+                    "dockerfile": "Dockerfile",
+                },
                 "restart": "unless-stopped",
                 "network_mode": "host",
                 "depends_on": {
@@ -305,8 +317,6 @@ def generate_compose_config(
                 "volumes": [
                     f"{cam_paths['alpha_data_host']}:/root",
                     f"{cam_paths['alpha_output_host']}:/output",
-                    f"{entrypoint_host}:/app/entrypoint.sh:ro",
-                    f"{launch_host}:/app/launch_minecraft.py:ro",
                 ],
                 "extra_hosts": [
                     "sessionserver.mojang.com:127.0.0.1",
@@ -346,6 +356,10 @@ def generate_compose_config(
             # Camera bravo: recording client
             f"camera_bravo_instance_{instance_id}": {
                 "image": "ojmichel/mineflayer-spectator-client:latest",
+                "build": {
+                    "context": os.path.join(project_root, "camera"),
+                    "dockerfile": "Dockerfile",
+                },
                 "restart": "unless-stopped",
                 "network_mode": "host",
                 "depends_on": {
@@ -369,8 +383,6 @@ def generate_compose_config(
                 "volumes": [
                     f"{cam_paths['bravo_data_host']}:/root",
                     f"{cam_paths['bravo_output_host']}:/output",
-                    f"{entrypoint_host}:/app/entrypoint.sh:ro",
-                    f"{launch_host}:/app/launch_minecraft.py:ro",
                 ],
                 "extra_hosts": [
                     "sessionserver.mojang.com:127.0.0.1",
