@@ -355,18 +355,28 @@ function land_pos(bot, x, z) {
     return null;
   }
   
-  const airId = bot.registry.blocksByName.air.id;
+  // Define unsafe blocks (water, lava, air, etc.)
+  const unsafeBlocks = new Set([
+    bot.registry.blocksByName.air?.id,
+    bot.registry.blocksByName.water?.id,
+    bot.registry.blocksByName.lava?.id,
+    bot.registry.blocksByName.flowing_water?.id,
+    bot.registry.blocksByName.flowing_lava?.id,
+    bot.registry.blocksByName.cave_air?.id,
+    bot.registry.blocksByName.void_air?.id,
+  ].filter(id => id !== undefined));
+  
   let dy = 0;
   
-  // If starting position is inside a solid block, move up to find air
-  while (block && block.type !== airId) {
+  // If starting position is inside a block, move up to find air
+  while (block && !unsafeBlocks.has(block.type) && block.type !== bot.registry.blocksByName.air.id) {
     dy++;
     if (dy > 100) return null; // Safety limit
     block = bot.blockAt(pos.offset(0, dy, 0));
-    if (block && block.type === airId) {
-      // Found air above, check if block below is solid ground (not air)
+    if (block && block.type === bot.registry.blocksByName.air.id) {
+      // Found air above, check if block below is safe
       const blockBelow = bot.blockAt(pos.offset(0, dy - 1, 0));
-      if (blockBelow && blockBelow.type !== airId) {
+      if (blockBelow && !unsafeBlocks.has(blockBelow.type)) {
         return pos.offset(0, dy - 1, 0);
       }
     }
@@ -375,19 +385,19 @@ function land_pos(bot, x, z) {
   // Move down to find solid ground
   dy = 0;
   block = bot.blockAt(pos);
-  while (block && block.type === airId) {
+  while (block && (unsafeBlocks.has(block.type) || block.type === bot.registry.blocksByName.air.id)) {
     dy--;
     if (dy < -100) return null; // Safety limit (don't go below Y=-36 in 1.20.4)
     block = bot.blockAt(pos.offset(0, dy, 0));
-    if (block && block.type !== airId) {
-      // Found solid ground, check if there's 2 blocks of air above for bot to stand
+    if (block && !unsafeBlocks.has(block.type) && block.type !== bot.registry.blocksByName.air.id) {
+      // Found solid ground, check if there's air above it for the bot to stand
       const blockAbove = bot.blockAt(pos.offset(0, dy + 1, 0));
       const blockAbove2 = bot.blockAt(pos.offset(0, dy + 2, 0));
       
-      // Ensure 2 blocks of air above for bot to stand
+      // Ensure 2 blocks of air above for bot to stand (NOT water or lava)
       if (blockAbove && blockAbove2 && 
-          blockAbove.type === airId &&
-          blockAbove2.type === airId) {
+          blockAbove.type === bot.registry.blocksByName.air.id &&
+          blockAbove2.type === bot.registry.blocksByName.air.id) {
         return pos.offset(0, dy, 0);
       }
     }
