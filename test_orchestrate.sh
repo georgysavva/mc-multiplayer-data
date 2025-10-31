@@ -18,3 +18,4 @@ python3 /home/oscar/mc-multiplayer-data/orchestrate.py status
 python3 /home/oscar/mc-multiplayer-data/orchestrate.py logs --tail 20
 python3 /home/oscar/mc-multiplayer-data/orchestrate.py recordings
 python3 /home/oscar/mc-multiplayer-data/orchestrate.py stop
+python3 orchestrate.py postprocess --workers 16 --comparison-video

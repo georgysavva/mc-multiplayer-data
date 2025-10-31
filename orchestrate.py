@@ -492,6 +492,154 @@ class InstanceManager:
         else:
             print("  (none)")
 
+    def _process_single_recording(self, job, comparison_video):
+        """Process a single episode recording."""
+        script_path = Path(__file__).parent / "postprocess" / "process_recordings.py"
+        
+        cmd = [
+            sys.executable,
+            str(script_path),
+            "--bot", job['bot'],
+            "--actions-dir", str(job['output_dir']),
+            "--camera-prefix", str(job['camera_prefix']),
+            "--episode-file", str(job['episode_file']),
+        ]
+        
+        if comparison_video:
+            cmd.append("--comparison-video")
+        
+        try:
+            result = subprocess.run(
+                cmd, 
+                capture_output=True, 
+                text=True, 
+                timeout=600  # 10 minute timeout per episode
+            )
+            if result.returncode != 0:
+                # Print stderr to help debug
+                if result.stderr:
+                    print(f"  ERROR: {result.stderr.strip()}")
+                if result.stdout:
+                    print(f"  OUTPUT: {result.stdout.strip()}")
+            return result.returncode == 0
+        except subprocess.TimeoutExpired:
+            print(f"  Timeout processing {job['episode_file'].name}")
+            return False
+        except Exception as e:
+            print(f"  Error processing {job['episode_file'].name}: {e}")
+            return False
+
+    def postprocess_recordings(self, workers=4, comparison_video=False, debug=False):
+        """Process camera recordings for all instances in parallel."""
+        print(f"Discovering episodes from orchestrated instances...")
+        
+        compose_files = self.get_compose_files()
+        if not compose_files:
+            print("No compose files found.")
+            return
+        
+        # Build list of all episode processing jobs
+        jobs = []
+        project_root = Path.cwd()
+        
+        if debug:
+            print(f"[DEBUG] Project root: {project_root}")
+        
+        for compose_file in compose_files:
+            instance_id = self._instance_index_from_stem(compose_file.stem)
+            
+            # Parse compose file to get directories
+            with open(compose_file) as f:
+                config = yaml.safe_load(f)
+            
+            # Extract output directory from sender service
+            sender_service = config['services'].get(f'sender_alpha_instance_{instance_id}')
+            if not sender_service:
+                continue
+            
+            # Parse volume mount: /host/path:/output
+            output_dir = None
+            for vol in sender_service.get('volumes', []):
+                if ':/output' in vol:
+                    output_dir = Path(vol.split(':')[0])
+                    break
+            
+            if not output_dir:
+                continue
+            
+            # Find all episode JSON files in output directory
+            for json_path in sorted(output_dir.glob("*.json")):
+                if json_path.name.endswith("_meta.json") or json_path.name.endswith("_episode_info.json"):
+                    continue
+                
+                # Determine bot from filename
+                if "_Alpha_" in json_path.name:
+                    bot = "Alpha"
+                    # Pass full path: camera/output_alpha/{instance_id}
+                    camera_prefix = project_root / "camera" / "output_alpha" / str(instance_id)
+                elif "_Bravo_" in json_path.name:
+                    bot = "Bravo"
+                    # Pass full path: camera/output_bravo/{instance_id}
+                    camera_prefix = project_root / "camera" / "output_bravo" / str(instance_id)
+                else:
+                    continue
+                
+                if debug:
+                    print(f"[DEBUG] Episode: {json_path.name}")
+                    print(f"[DEBUG]   Bot: {bot}, Instance: {instance_id}")
+                    print(f"[DEBUG]   Camera prefix: {camera_prefix}")
+                    print(f"[DEBUG]   Output dir: {output_dir}")
+                
+                jobs.append({
+                    'episode_file': json_path,
+                    'bot': bot,
+                    'instance_id': instance_id,
+                    'output_dir': output_dir,
+                    'camera_prefix': camera_prefix,
+                })
+        
+        if not jobs:
+            print("No episodes found to process.")
+            return
+        
+        print(f"Found {len(jobs)} episodes to process across {len(compose_files)} instances")
+        print(f"Processing with {workers} parallel workers...\n")
+        
+        # Process jobs in parallel
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {
+                executor.submit(
+                    self._process_single_recording, 
+                    job, 
+                    comparison_video
+                ): job
+                for job in jobs
+            }
+            
+            completed = 0
+            failed = 0
+            
+            for future in as_completed(futures):
+                job = futures[future]
+                try:
+                    success = future.result()
+                    completed += 1
+                    status = "✅" if success else "❌"
+                    episode_name = job['episode_file'].stem
+                    print(f"[{completed}/{len(jobs)}] {status} {job['bot']} instance {job['instance_id']}: {episode_name}")
+                    if not success:
+                        failed += 1
+                except Exception as e:
+                    failed += 1
+                    print(f"[{completed+failed}/{len(jobs)}] ❌ Error: {e}")
+        
+        print(f"\n{'='*60}")
+        print(f"Postprocessing Summary:")
+        print(f"  Total episodes: {len(jobs)}")
+        print(f"  Successful: {completed - failed}")
+        print(f"  Failed: {failed}")
+        print(f"{'='*60}")
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -499,7 +647,7 @@ def main():
     )
     parser.add_argument(
         "command",
-        choices=["start", "stop", "status", "logs", "recordings"],
+        choices=["start", "stop", "status", "logs", "recordings", "postprocess"],
         help="Command to execute",
     )
     parser.add_argument(
@@ -525,6 +673,22 @@ def main():
         action="store_true",
         help="Build images before starting (default: pull from Docker Hub)",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="Number of parallel workers for postprocess (default: 4)",
+    )
+    parser.add_argument(
+        "--comparison-video",
+        action="store_true",
+        help="Generate side-by-side comparison videos for postprocess (slower)",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug output for postprocess command",
+    )
 
     args = parser.parse_args()
 
@@ -540,6 +704,8 @@ def main():
         manager.logs(args.instance, args.follow, args.tail)
     elif args.command == "recordings":
         manager.recordings()
+    elif args.command == "postprocess":
+        manager.postprocess_recordings(args.workers, args.comparison_video, args.debug)
 
 
 if __name__ == "__main__":

@@ -56,27 +56,47 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         action="store_true",
         help="Generate side-by-side comparison video (slower, default: skip)",
     )
+    parser.add_argument(
+        "--episode-file",
+        type=Path,
+        default=None,
+        help="Process single episode file (overrides directory processing)",
+    )
     return parser.parse_args(list(argv))
 
 
 def build_bot_config(actions_dir: Path, camera_prefix: Path, bot: str, output_base: Optional[Path]) -> Dict[str, BotConfig]:
+    # Smart path construction: if camera_prefix already contains output_alpha/bravo, use it directly
+    # Otherwise, append output_alpha/bravo to maintain backward compatibility
     if bot == "Alpha":
         output_dir = (output_base or Path.cwd() / "aligned") / "alpha"
+        # Check if path already contains output_alpha (for orchestrated instances)
+        if "output_alpha" in str(camera_prefix):
+            camera_meta = camera_prefix / "camera_alpha_meta.json"
+        else:
+            camera_meta = camera_prefix / "output_alpha" / "camera_alpha_meta.json"
+        
         return {
             "Alpha": BotConfig(
                 name="Alpha",
                 actions_suffix="_Alpha_",
-                camera_meta=camera_prefix / "output_alpha" / "camera_alpha_meta.json",
+                camera_meta=camera_meta,
                 output_dir=output_dir,
             )
         }
     else:
         output_dir = (output_base or Path.cwd() / "aligned") / "bravo"
+        # Check if path already contains output_bravo (for orchestrated instances)
+        if "output_bravo" in str(camera_prefix):
+            camera_meta = camera_prefix / "camera_bravo_meta.json"
+        else:
+            camera_meta = camera_prefix / "output_bravo" / "camera_bravo_meta.json"
+        
         return {
             "Bravo": BotConfig(
                 name="Bravo",
                 actions_suffix="_Bravo_",
-                camera_meta=camera_prefix / "output_bravo" / "camera_bravo_meta.json",
+                camera_meta=camera_meta,
                 output_dir=output_dir,
             )
         }
@@ -234,6 +254,65 @@ def process_actions(actions_dir: Path, configs: Dict[str, BotConfig], generate_c
     return actions_processed
 
 
+def process_single_episode(episode_path: Path, configs: Dict[str, BotConfig], 
+                          generate_comparison: bool = False) -> bool:
+    """Process a single episode file. Returns True if successful."""
+    if episode_path.name.endswith("_meta.json"):
+        return False
+    
+    config = bot_for_actions(episode_path, configs)
+    if config is None:
+        return False
+
+    try:
+        ensure_metadata(config.camera_meta)
+        config.output_dir.mkdir(parents=True, exist_ok=True)
+
+        output_video = config.output_dir / f"{episode_path.stem}_camera.mp4"
+        output_meta = config.output_dir / f"{episode_path.stem}_camera_meta.json"
+
+        alignment_input = AlignmentInput(
+            actions_path=episode_path,
+            camera_meta_path=config.camera_meta,
+            output_video_path=output_video,
+            output_metadata_path=output_meta,
+            ffmpeg_path="ffmpeg",
+            margin_start=0.0,
+            margin_end=0.0,
+        )
+
+        align_start = time.time()
+        metadata = align_recording(alignment_input)
+        align_time = time.time() - align_start
+
+        metadata["comparison_video_path"] = None
+        
+        if generate_comparison and expected_prismarine_video(episode_path).exists():
+            comparison_path = config.output_dir / f"{episode_path.stem}_comparison.mp4"
+            compare_start = time.time()
+            frames_written, left_fps, right_fps = build_side_by_side(
+                expected_prismarine_video(episode_path),
+                Path(metadata["aligned_video_path"]),
+                comparison_path,
+            )
+            compare_time = time.time() - compare_start
+            metadata["comparison_video_path"] = str(comparison_path)
+            print(
+                f"[compare] wrote {comparison_path} ({frames_written} frames, "
+                f"prismarine_fps={left_fps:.2f}, aligned_fps={right_fps:.2f}, time={compare_time:.1f}s)",
+            )
+
+        with output_meta.open("w", encoding="utf-8") as fh:
+            json.dump(metadata, fh)
+
+        print(f"[align] wrote {metadata['aligned_video_path']} (total: {align_time:.1f}s)")
+        return True
+        
+    except Exception as exc:
+        print(f"[align] failed for {episode_path}: {exc}", file=sys.stderr)
+        return False
+
+
 def main(argv: Iterable[str]) -> int:
     args = parse_args(argv)
     actions_dir = resolve_actions_dir(args.actions_dir.resolve())
@@ -244,6 +323,18 @@ def main(argv: Iterable[str]) -> int:
         output_base=args.output_dir.resolve() if args.output_dir else None,
     )
 
+    # NEW: Single episode mode
+    if args.episode_file:
+        episode_path = args.episode_file.resolve()
+        if not episode_path.exists():
+            print(f"[align] episode file not found: {episode_path}", file=sys.stderr)
+            return 1
+        
+        # Process just this one episode
+        processed = process_single_episode(episode_path, configs, args.comparison_video)
+        return 0 if processed else 1
+    
+    # Original: Process all episodes in directory
     processed = process_actions(actions_dir, configs, generate_comparison=args.comparison_video)
     if processed == 0:
         print("[align] no action traces found; nothing to do")
