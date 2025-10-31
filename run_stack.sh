@@ -22,9 +22,8 @@ LOG_SERVICES=(
   receiver_alpha
   receiver_bravo
   camera_alpha
-  camera_alpha_follow
+  episode_starter
   camera_bravo
-  camera_bravo_follow
 )
 
 COMPOSE_BIN=()

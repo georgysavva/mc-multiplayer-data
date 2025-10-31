@@ -1,5 +1,29 @@
 services:
+  prep_data:
+    image: busybox:latest
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /data /data/plugins /data/skins &&
+        chmod 777 /data /data/plugins /data/skins &&
+        if [ -d /source_plugins ] && [ -n "$(ls -A /source_plugins 2>/dev/null)" ]; then
+          cp -r /source_plugins/. /data/plugins/;
+        fi;
+        if [ -d /source_skins ] && [ -n "$(ls -A /source_skins 2>/dev/null)" ]; then
+          cp -r /source_skins/. /data/skins/;
+        fi;
+        chmod -R 777 /data/plugins /data/skins
+    volumes:
+      - ./data:/data
+      - ./plugins:/source_plugins:ro
+      - ./skins:/source_skins:ro
+    restart: "no"
+
   mc:
+    depends_on:
+      prep_data:
+        condition: service_completed_successfully
     image: itzg/minecraft-server
     tty: true
     network_mode: host # this is needed because otherwise it cannot download the server zip file on certain machines
@@ -14,6 +38,7 @@ services:
       RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       BROADCAST_RCON_TO_OPS: true
+      OPS: timwm,Pengulu
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
@@ -31,6 +56,8 @@ services:
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ${MC_DATA_DIR:-./data}:/data
+      - ./plugins:/data/plugins
+      - ./skins:/data/skins
     healthcheck:
       test:
         [
@@ -205,7 +232,7 @@ services:
       - "textures.minecraft.net:127.0.0.1"
       - "pc.realms.minecraft.net:127.0.0.1"
 
-  camera_alpha_follow:
+  episode_starter:
     image: node:20
     network_mode: host
     depends_on:
@@ -218,14 +245,13 @@ services:
       RCON_HOST: "127.0.0.1"
       RCON_PORT: "${MC_RCON_PORT:-25575}"
       RCON_PASSWORD: "research"
-      BOT_NAME: "Alpha"
-      CAMERA_NAME: "CameraAlpha"
-      RETRIES: "60"
+      EPISODE_START_RETRIES: "60"
+      EPISODE_REQUIRED_PLAYERS: "Alpha,CameraAlpha,Bravo,CameraBravo"
+      EPISODE_START_COMMAND: "episode start technoblade.png technoblade.png"
     volumes:
-      - ./camera/spectator.js:/app/spectator.js:ro
+      - ./camera/episode_starter.js:/app/episode_starter.js:ro
       - ./camera/package.json:/app/package.json:ro
-    command:
-      ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
+    command: ["sh", "-c", "npm install --omit=dev --no-progress && node episode_starter.js"]
 
   camera_bravo:
     image: ojmichel/mineflayer-spectator-client:latest
@@ -259,25 +285,3 @@ services:
       - "authserver.mojang.com:127.0.0.1"
       - "textures.minecraft.net:127.0.0.1"
       - "pc.realms.minecraft.net:127.0.0.1"
-
-  camera_bravo_follow:
-    image: node:20
-    network_mode: host
-    depends_on:
-      mc:
-        condition: service_healthy
-      camera_bravo:
-        condition: service_started
-    working_dir: /app
-    environment:
-      RCON_HOST: "127.0.0.1"
-      RCON_PORT: "${MC_RCON_PORT:-25575}"
-      RCON_PASSWORD: "research"
-      BOT_NAME: "Bravo"
-      CAMERA_NAME: "CameraBravo"
-      RETRIES: "60"
-    volumes:
-      - ./camera/spectator.js:/app/spectator.js:ro
-      - ./camera/package.json:/app/package.json:ro
-    command:
-      ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
