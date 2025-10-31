@@ -15,7 +15,7 @@ services:
         fi;
         chmod -R 777 /data/plugins /data/skins
     volumes:
-      - ./data:/data
+      - ${MC_DATA_DIR:-./data}:/data
       - ./plugins:/source_plugins:ro
       - ./skins:/source_skins:ro
     restart: "no"
@@ -156,7 +156,7 @@ services:
       VIEWER_RECORDING_INTERVAL: 50
       SMOKE_TEST: 1
       WORLD_TYPE: normal # flat or normal
-      INSTANCE_ID: 1
+      INSTANCE_ID: 0
       OUTPUT_DIR: /output
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -247,11 +247,16 @@ services:
       RCON_PASSWORD: "research"
       EPISODE_START_RETRIES: "60"
       EPISODE_REQUIRED_PLAYERS: "Alpha,CameraAlpha,Bravo,CameraBravo"
-      EPISODE_START_COMMAND: "episode start technoblade.png technoblade.png"
+      EPISODE_START_COMMAND: "episode start technoblade.png test.png"
     volumes:
       - ./camera/episode_starter.js:/app/episode_starter.js:ro
       - ./camera/package.json:/app/package.json:ro
-    command: ["sh", "-c", "npm install --omit=dev --no-progress && node episode_starter.js"]
+    command:
+      [
+        "sh",
+        "-c",
+        "npm install --omit=dev --no-progress && node episode_starter.js",
+      ]
 
   camera_bravo:
     image: ojmichel/mineflayer-spectator-client:latest
