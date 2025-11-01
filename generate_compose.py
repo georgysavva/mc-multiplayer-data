@@ -2,10 +2,16 @@
 """
 Generate multiple Docker Compose configurations for parallel Minecraft data collection.
 Each instance will have its own ports and output directories to avoid conflicts.
+
+Enhancements:
+- Support generating a mix of flatland and normal worlds via
+  `--num_flatland_world` and `--num_normal_world`.
+- Add `--viewer_rendering_disabled` (default: 1) applied to senders/receivers.
+- Keep `--bootstrap_wait_time` unchanged as an argument.
+- Set default `--iterations_num_per_episode` to 5.
 """
 
 import argparse
-import json
 import os
 import re
 from pathlib import Path
@@ -87,6 +93,8 @@ def generate_compose_config(
     episode_category,
     iterations_num_per_episode,
     smoke_test,
+    viewer_rendering_disabled,
+    world_type,
     # camera specific
     camera_output_alpha_base,
     camera_output_bravo_base,
@@ -165,7 +173,8 @@ def generate_compose_config(
                 "image": "itzg/minecraft-server",
                 "tty": True,
                 "network_mode": "host",
-                "environment": {
+                "environment": (lambda: {
+                    # Base server env, common to both normal and flat worlds
                     "EULA": "TRUE",
                     "VERSION": "1.20.4",
                     "TYPE": "PAPER",
@@ -177,9 +186,11 @@ def generate_compose_config(
                     "RCON_PASSWORD": "research",
                     "BROADCAST_RCON_TO_OPS": True,
                     "OPS": "timwm,Pengulu",
-                    "LEVEL_TYPE": "minecraft:flat",
-                    "GENERATOR_SETTINGS": "TERRAIN_SETTINGS_PLACEHOLDER",
-                },
+                    **(
+                        {"LEVEL_TYPE": "minecraft:flat", "GENERATOR_SETTINGS": "TERRAIN_SETTINGS_PLACEHOLDER"}
+                        if str(world_type).lower() == "flat" else {}
+                    ),
+                })(),
                 "volumes": [
                     f"{data_dir}:/data",
                     f"{project_root}/plugins:/data/plugins",
@@ -231,11 +242,11 @@ def generate_compose_config(
                     "MAX_RUN_ACTIONS": max_run_actions,
                     "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                     "MC_VERSION": "1.20.4",
-                    "VIEWER_RENDERING_DISABLED": 0,
+                    "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                     "VIEWER_RECORDING_INTERVAL": 50,
                     "WALK_TIMEOUT": 5,
                     "TELEPORT": 1,
-                    "WORLD_TYPE": "normal",
+                    "WORLD_TYPE": str(world_type).lower(),
                     "SMOKE_TEST": smoke_test,
                     "INSTANCE_ID": instance_id,
                     "OUTPUT_DIR": "/output",
@@ -281,11 +292,11 @@ def generate_compose_config(
                     "MAX_RUN_ACTIONS": max_run_actions,
                     "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                     "MC_VERSION": "1.20.4",
-                    "VIEWER_RENDERING_DISABLED": 0,
+                    "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                     "VIEWER_RECORDING_INTERVAL": 50,
                     "WALK_TIMEOUT": 5,
                     "TELEPORT": 1,
-                    "WORLD_TYPE": "normal",
+                    "WORLD_TYPE": str(world_type).lower(),
                     "SMOKE_TEST": smoke_test,
                     "INSTANCE_ID": instance_id,
                     "OUTPUT_DIR": "/output",
@@ -301,7 +312,7 @@ def generate_compose_config(
                     "NAME": "Alpha",
                     "INSTANCE_ID": instance_id,
                     "EPISODE_START_ID": episode_start_id,
-                    "VIEWER_RENDERING_DISABLED": 0,
+                    "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                 },
                 "tty": True,
                 "volumes": [f"{output_dir}:/output"],
@@ -315,7 +326,7 @@ def generate_compose_config(
                     "NAME": "Bravo",
                     "INSTANCE_ID": instance_id,
                     "EPISODE_START_ID": episode_start_id,
-                    "VIEWER_RENDERING_DISABLED": 0,
+                    "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                 },
                 "tty": True,
                 "volumes": [f"{output_dir}:/output"],
@@ -444,6 +455,19 @@ def main():
         default=15,
         help="Number of instances to generate (default: 32)",
     )
+    # World-split counts: if provided (>0), overrides --instances
+    parser.add_argument(
+        "--num_flatland_world",
+        type=int,
+        default=0,
+        help="Number of flatland-world instances to generate (default: 0)",
+    )
+    parser.add_argument(
+        "--num_normal_world",
+        type=int,
+        default=0,
+        help="Number of normal-world instances to generate (default: 0)",
+    )
     parser.add_argument(
         "--compose_dir",
         default="compose_configs",
@@ -550,8 +574,15 @@ def main():
     parser.add_argument(
         "--iterations_num_per_episode",
         type=int,
-        default=3,
-        help="Number of iterations per episode (default: 3)",
+        default=5,
+        help="Number of iterations per episode (default: 5)",
+    )
+    parser.add_argument(
+        "--viewer_rendering_disabled",
+        type=int,
+        choices=[0, 1],
+        default=1,
+        help="Disable viewer rendering for senders/receivers (default: 1)",
     )
     parser.add_argument(
         "--smoke_test",
@@ -583,9 +614,19 @@ def main():
     compose_dir = Path(args.compose_dir)
     compose_dir.mkdir(exist_ok=True)
 
-    print(f"Generating {args.instances} Docker Compose configurations...")
+    # Determine number of instances and world plan
+    use_split = (args.num_flatland_world > 0) or (args.num_normal_world > 0)
+    if use_split:
+        total_instances = args.num_flatland_world + args.num_normal_world
+        world_plan = ["flat"] * args.num_flatland_world + ["normal"] * args.num_normal_world
+    else:
+        total_instances = args.instances
+        world_plan = ["normal"] * total_instances
 
-    for i in range(args.instances):
+    print(f"Generating {total_instances} Docker Compose configurations...")
+
+    for i in range(total_instances):
+        world_type = world_plan[i]
         config = generate_compose_config(
             i,
             args.base_port,
@@ -602,6 +643,8 @@ def main():
             args.episode_category,
             args.iterations_num_per_episode,
             args.smoke_test,
+            args.viewer_rendering_disabled,
+            world_type,
             # camera args
             args.camera_output_alpha_base,
             args.camera_output_bravo_base,
@@ -621,48 +664,39 @@ def main():
         with open(compose_file, "w") as f:
             yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
-        # Generate terrain settings for this instance
-        terrain_options = [
-            ("plains", "grass_block"),
-            ("windswept_hills", "grass_block"),
-            ("snowy_plains", "snow"),
-            ("desert", "sand"),
-            ("desert", "red_sand"),
-        ]
-        selected_terrain = terrain_options[i % len(terrain_options)]
-        biome, surface_block = selected_terrain
-        terrain_settings = generate_terrain_settings(biome, surface_block)
+        # For flat worlds, inject generator settings into the compose file
+        if world_type == "flat":
+            terrain_options = [
+                ("plains", "grass_block"),
+                ("windswept_hills", "grass_block"),
+                ("snowy_plains", "snow"),
+                ("desert", "sand"),
+                ("desert", "red_sand"),
+            ]
+            biome, surface_block = terrain_options[i % len(terrain_options)]
+            terrain_settings = generate_terrain_settings(biome, surface_block)
 
-        # Format terrain settings as compact JSON multiline string
-        layers_json = []
-        for layer in terrain_settings["layers"]:
-            layer_str = (
-                f'{{ "block": "{layer["block"]}", "height": {layer["height"]} }}'
+            layers_json = []
+            for layer in terrain_settings["layers"]:
+                layer_str = f'{{ "block": "{layer["block"]}", "height": {layer["height"]} }}'
+                layers_json.append(layer_str)
+            layers_str = ",\n    ".join(layers_json)
+            biome_val = terrain_settings["biome"]
+            terrain_json = (
+                f'{{\n  "layers": [\n    {layers_str}\n  ],\n  "biome": "{biome_val}"\n}}'
             )
-            layers_json.append(layer_str)
+            newline = "\n"
+            terrain_multiline = f">-\n        {terrain_json.replace(newline, newline + '        ')}"
 
-        layers_str = ",\n    ".join(layers_json)
-        biome = terrain_settings["biome"]
-        terrain_json = (
-            f'{{\n  "layers": [\n    {layers_str}\n  ],\n  "biome": "{biome}"\n}}'
-        )
-        newline = "\n"
-        terrain_multiline = (
-            f">-\n        {terrain_json.replace(newline, newline + '        ')}"
-        )
-
-        # Replace placeholder with actual terrain settings
-        with open(compose_file, "r") as f:
-            content = f.read()
-
-        content = re.sub(
-            r"GENERATOR_SETTINGS: TERRAIN_SETTINGS_PLACEHOLDER",
-            f"GENERATOR_SETTINGS: {terrain_multiline}",
-            content,
-        )
-
-        with open(compose_file, "w") as f:
-            f.write(content)
+            with open(compose_file, "r") as f:
+                content = f.read()
+            content = re.sub(
+                r"GENERATOR_SETTINGS: TERRAIN_SETTINGS_PLACEHOLDER",
+                f"GENERATOR_SETTINGS: {terrain_multiline}",
+                content,
+            )
+            with open(compose_file, "w") as f:
+                f.write(content)
 
         # Create necessary directories
         os.makedirs(f"{args.data_dir}/{i}", exist_ok=True)
@@ -684,29 +718,21 @@ def main():
     # Create shared output directory
     os.makedirs(args.output_dir, exist_ok=True)
 
-    print(f"\nGenerated {args.instances} configurations in {compose_dir}/")
+    print(f"\nGenerated {total_instances} configurations in {compose_dir}/")
     print("Published port ranges (host network):")
-    print(
-        f"  Minecraft servers: {args.base_port}-{args.base_port + args.instances - 1}"
-    )
-    print(
-        f"  RCON ports: {args.base_rcon_port}-{args.base_rcon_port + args.instances - 1}"
-    )
+    print(f"  Minecraft servers: {args.base_port}-{args.base_port + total_instances - 1}")
+    print(f"  RCON ports: {args.base_rcon_port}-{args.base_rcon_port + total_instances - 1}")
     # Collision validation for camera ports
-    alpha_vncs = {args.camera_alpha_vnc_base + args.vnc_step * i for i in range(args.instances)}
-    alpha_novncs = {args.camera_alpha_novnc_base + args.vnc_step * i for i in range(args.instances)}
-    bravo_vncs = {args.camera_bravo_vnc_base + args.vnc_step * i for i in range(args.instances)}
-    bravo_novncs = {args.camera_bravo_novnc_base + args.vnc_step * i for i in range(args.instances)}
-    assert len(alpha_vncs) == args.instances, "alpha VNC port collisions detected"
-    assert len(alpha_novncs) == args.instances, "alpha noVNC port collisions detected"
-    assert len(bravo_vncs) == args.instances, "bravo VNC port collisions detected"
-    assert len(bravo_novncs) == args.instances, "bravo noVNC port collisions detected"
-    print(
-        f"  Camera Alpha noVNC: {args.camera_alpha_novnc_base}..{args.camera_alpha_novnc_base + args.vnc_step * (args.instances - 1)}"
-    )
-    print(
-        f"  Camera Bravo noVNC: {args.camera_bravo_novnc_base}..{args.camera_bravo_novnc_base + args.vnc_step * (args.instances - 1)}"
-    )
+    alpha_vncs = {args.camera_alpha_vnc_base + args.vnc_step * i for i in range(total_instances)}
+    alpha_novncs = {args.camera_alpha_novnc_base + args.vnc_step * i for i in range(total_instances)}
+    bravo_vncs = {args.camera_bravo_vnc_base + args.vnc_step * i for i in range(total_instances)}
+    bravo_novncs = {args.camera_bravo_novnc_base + args.vnc_step * i for i in range(total_instances)}
+    assert len(alpha_vncs) == total_instances, "alpha VNC port collisions detected"
+    assert len(alpha_novncs) == total_instances, "alpha noVNC port collisions detected"
+    assert len(bravo_vncs) == total_instances, "bravo VNC port collisions detected"
+    assert len(bravo_novncs) == total_instances, "bravo noVNC port collisions detected"
+    print(f"  Camera Alpha noVNC: {args.camera_alpha_novnc_base}..{args.camera_alpha_novnc_base + args.vnc_step * (total_instances - 1)}")
+    print(f"  Camera Bravo noVNC: {args.camera_bravo_novnc_base}..{args.camera_bravo_novnc_base + args.vnc_step * (total_instances - 1)}")
     print("Bridge network services (receivers, senders) use internal communication only.")
 
 
