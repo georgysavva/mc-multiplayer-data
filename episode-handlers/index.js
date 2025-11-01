@@ -533,22 +533,13 @@ async function teleport(
     newZ = randomPointZ - halfDistance * Math.sin(botAngle);
   }
 
-  // Use land_pos to determine proper Y coordinate
-  const landPosition = await land_pos(bot, newX, newZ);
+  // Spawn at Y=128 and let bots fall to the ground
+  // This ensures we never spawn inside blocks or in invalid locations
+  const newY = 128;
   
-  // If land_pos returns null (water, lava, or unloaded chunk), use a fallback Y level
-  let newY;
-  if (!landPosition) {
-    console.warn(
-      `[${bot.username}] Could not find safe landing position at (${newX.toFixed(2)}, ${newZ.toFixed(2)}). Using fallback Y=70.`
-    );
-    newY = 70; // Fallback to a reasonable Y level instead of skipping teleport
-  } else {
-    newY = landPosition.y + 1;
-    console.log(
-      `[${bot.username}] Found safe landing at Y=${newY.toFixed(2)}`
-    );
-  }
+  console.log(
+    `[${bot.username}] Will spawn at Y=128 and fall to ground at (${newX.toFixed(2)}, ${newZ.toFixed(2)})`
+  );
   
   // Compute the other bot's new position (opposite side of the random point)
   let otherBotNewX, otherBotNewZ;
@@ -562,11 +553,8 @@ async function teleport(
     otherBotNewZ = randomPointZ + halfDistance * Math.sin(botAngle);
   }
 
-  // Estimate other bot's Y coordinate
-  const otherBotLandPosition = await land_pos(bot, otherBotNewX, otherBotNewZ);
-  const otherBotNewY = otherBotLandPosition
-    ? otherBotLandPosition.y + 1
-    : otherBotPosition.y;
+  // Other bot also spawns at Y=128
+  const otherBotNewY = 128;
 
   const computedOtherBotPosition = new Vec3(
     otherBotNewX,
@@ -613,6 +601,11 @@ async function teleport(
         2
       )}, ${newZ.toFixed(2)})`
     );
+    
+    // Wait for bot to fall and land on the ground
+    console.log(`[${bot.username}] Waiting for bot to fall and land...`);
+    await sleep(3000); // 3 seconds should be enough for falling from Y=128
+    console.log(`[${bot.username}] Bot landed at Y=${bot.entity.position.y.toFixed(2)}`);
   } catch (error) {
     console.error(`[${bot.username}] Teleport error:`, error);
     // Return current position if teleport fails
@@ -620,7 +613,6 @@ async function teleport(
   }
   return computedOtherBotPosition;
 }
-
 function getOnPeerErrorPhaseFn(
   bot,
   rcon,

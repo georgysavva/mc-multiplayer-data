@@ -63,7 +63,7 @@ services:
       OTHER_COORD_HOST: sender_bravo
       OTHER_COORD_PORT: 8101
       BOT_RNG_SEED: "12345"
-      EPISODES_NUM: 4
+      EPISODES_NUM: 8
       EPISODE_CATEGORY: look_away
       MC_HOST: mc
       MC_PORT: 25565
@@ -110,7 +110,7 @@ services:
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "12345"
       EPISODE_CATEGORY: look_away
-      EPISODES_NUM: 4
+      EPISODES_NUM: 8
       MC_HOST: mc
       MC_PORT: 25565
       RCON_HOST: mc
@@ -142,7 +142,7 @@ services:
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
       VIEWER_RENDERING_DISABLED: 0
-      EPISODES_NUM: 4
+      EPISODES_NUM: 8
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -157,7 +157,7 @@ services:
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
       VIEWER_RENDERING_DISABLED: 0
-      EPISODES_NUM: 4
+      EPISODES_NUM: 8
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
