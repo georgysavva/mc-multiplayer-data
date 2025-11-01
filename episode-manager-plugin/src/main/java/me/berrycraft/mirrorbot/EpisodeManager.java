@@ -11,6 +11,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -21,6 +22,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.util.Vector;
 
 import net.skinsrestorer.api.SkinsRestorer;
 import net.skinsrestorer.api.SkinsRestorerProvider;
@@ -37,6 +39,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.UUID;
+import java.lang.reflect.InvocationTargetException;
 
 public class EpisodeManager extends JavaPlugin implements Listener {
 
@@ -98,6 +101,8 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             boolean isCamera = controllerToCamera.containsValue(player.getName());
 
             if (isCamera) {
+                disableCollisions(player);
+                applyCameraPhysicsOverrides(player);
                 UUID controllerId = activeCameraControllers.get(player.getUniqueId());
                 Player controller = controllerId != null ? Bukkit.getPlayer(controllerId) : null;
                 if (controller == null) {
@@ -130,6 +135,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                         player.showPlayer(this, other);
                     }
                 }
+                hideCameraFromControllers(player);
             } else if (!isController) {
                 for (UUID cameraId : activeCameraControllers.keySet()) {
                     Player camera = Bukkit.getPlayer(cameraId);
@@ -137,6 +143,8 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                         player.hidePlayer(this, camera);
                     }
                 }
+            } else {
+                hideAllCamerasFromPlayer(player);
             }
         }
 
@@ -191,6 +199,17 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         event.setCancelled(true);
         event.setDamage(0);
         target.setFireTicks(0);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onCameraPickup(EntityPickupItemEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        if (!isCamera(player)) {
+            return;
+        }
+        event.setCancelled(true);
     }
 
     @Override
@@ -292,6 +311,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
 
             activePairs.put(controller, camera);
             activeCameraControllers.put(camera.getUniqueId(), controller.getUniqueId());
+            disableCollisions(camera);
 
             applySharedSkin(controller, camera, config.skinFile());
         }
@@ -324,6 +344,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                     camera.showPlayer(this, other);
                 }
             }
+            hideCameraFromControllers(camera);
         }
 
         // Hide cameras from non-participants so spectators do not see them
@@ -339,6 +360,14 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                     spectator.hidePlayer(this, camera);
                 }
             }
+        }
+
+        // Controllers should not see any cameras
+        for (Player controller : activePairs.keySet()) {
+            if (controller == null) {
+                continue;
+            }
+            hideAllCamerasFromPlayer(controller);
         }
 
         // Camera follow logic
@@ -361,8 +390,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                         || Math.abs(current.getPitch() - target.getPitch()) > 1.0f;
 
                 if (worldChanged || distanceSquared > 0.0025D || rotationChanged) { // ~5 cm threshold
-                    Location destination = target.clone();
-                    camera.teleportAsync(destination);
+                    camera.teleportAsync(target.clone());
                 }
             }
         }, 0L, 1L);
@@ -373,6 +401,91 @@ public class EpisodeManager extends JavaPlugin implements Listener {
     private boolean isCamera(Player player) {
         return activeCameraControllers.containsKey(player.getUniqueId())
                 || (testRunning && controllerToCamera.containsValue(player.getName()));
+    }
+
+    private boolean isController(Player player) {
+        return player != null && controllerToCamera.containsKey(player.getName());
+    }
+
+    private void hideCameraFromControllers(Player camera) {
+        if (camera == null) {
+            return;
+        }
+        for (String controllerName : controllerToCamera.keySet()) {
+            Player controller = Bukkit.getPlayerExact(controllerName);
+            if (controller != null && !controller.equals(camera)) {
+                controller.hidePlayer(this, camera);
+            }
+        }
+    }
+
+    private void hideAllCamerasFromPlayer(Player player) {
+        if (player == null) {
+            return;
+        }
+        for (UUID cameraId : activeCameraControllers.keySet()) {
+            Player activeCamera = Bukkit.getPlayer(cameraId);
+            if (activeCamera != null && !player.equals(activeCamera)) {
+                player.hidePlayer(this, activeCamera);
+            }
+        }
+        for (String cameraName : controllerToCamera.values()) {
+            Player configuredCamera = Bukkit.getPlayerExact(cameraName);
+            if (configuredCamera != null && !player.equals(configuredCamera)) {
+                player.hidePlayer(this, configuredCamera);
+            }
+        }
+    }
+
+    private void applyCameraPhysicsOverrides(Player camera) {
+        if (camera == null) {
+            return;
+        }
+        camera.setGravity(false);
+        camera.setFallDistance(0.0F);
+        camera.setVelocity(new Vector(0, 0, 0));
+        camera.setAllowFlight(true);
+        if (!camera.isFlying()) {
+            camera.setFlying(true);
+        }
+    }
+
+    private void resetCameraPhysics(Player player) {
+        if (player == null) {
+            return;
+        }
+        player.setGravity(true);
+        GameMode mode = player.getGameMode();
+        if (mode != GameMode.CREATIVE && mode != GameMode.SPECTATOR) {
+            player.setAllowFlight(false);
+            if (player.isFlying()) {
+                player.setFlying(false);
+            }
+        }
+    }
+
+    private void disableCollisions(Player player) {
+        setCollidable(player, false);
+    }
+
+    private void enableCollisions(Player player) {
+        setCollidable(player, true);
+    }
+
+    private void setCollidable(Player player, boolean collidable) {
+        if (player == null) {
+            return;
+        }
+        try {
+            player.setCollidable(collidable);
+        } catch (NoSuchMethodError ignored) {
+        }
+        try {
+            Object spigot = player.spigot();
+            var method = spigot.getClass().getMethod("setCollidesWithEntities", boolean.class);
+            method.invoke(spigot, collidable);
+        } catch (UnsupportedOperationException | NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+        }
     }
 
     private void mirrorInventory(Player controller, Player camera) {
@@ -429,9 +542,6 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             camera.setMaximumAir(controller.getMaximumAir());
         }
 
-        if (camera.isSneaking() != controller.isSneaking()) {
-            camera.setSneaking(controller.isSneaking());
-        }
     }
 
     private ItemStack[] cloneItemStackArray(ItemStack[] source) {
@@ -466,10 +576,12 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         testRunning = false;
         activeCameraControllers.clear();
 
-        // Restore visibility and remove invisibility
+        // Restore visibility, remove invisibility, and re-enable collisions
         for (Player p1 : Bukkit.getOnlinePlayers()) {
             p1.removePotionEffect(PotionEffectType.INVISIBILITY);
             p1.setInvisible(false);
+            enableCollisions(p1);
+            resetCameraPhysics(p1);
             for (Player p2 : Bukkit.getOnlinePlayers()) {
                 if (!p1.equals(p2)) {
                     p1.showPlayer(this, p2);
