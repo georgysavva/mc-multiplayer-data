@@ -45,7 +45,8 @@ const episodeClassMap = {
 // Import episode-specific handlers
 
 // Add episode type selection - Enable multiple types for diverse data collection
-const episodeTypes = [
+// Default episode types list
+const defaultEpisodeTypes = [
   "straightLineWalk",
   "chase",
   "orbit",
@@ -58,6 +59,12 @@ const episodeTypes = [
   "mine",
   "towerBridge",
 ];
+
+// Load episode types from environment variable or use default
+const episodeTypes =
+  process.env.EPISODE_TYPES && process.env.EPISODE_TYPES !== "all"
+    ? process.env.EPISODE_TYPES.split(",").map((type) => type.trim())
+    : defaultEpisodeTypes;
 
 function formatDateForFilename(date) {
   const pad = (value, length = 2) => String(value).padStart(length, "0");
@@ -282,9 +289,39 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       `effect give ${bot.username} minecraft:resistance 999999 255 true`
     );
     console.log(`[${bot.username}] resistEffectRes=${resistEffectRes}`);
+    const waterBreathingEffectRes = await rcon.send(
+      `effect give ${bot.username} minecraft:water_breathing 999999 0 true`
+    );
+    console.log(
+      `[${bot.username}] waterBreathingEffectRes=${waterBreathingEffectRes}`
+    );
+    const fallDamageRes = await rcon.send(
+      `attribute ${bot.username} minecraft:fall_damage_multiplier base set 0`
+    );
+    console.log(`[${bot.username}] fallDamageRes=${fallDamageRes}`);
     const difficultyRes = await rcon.send("difficulty peaceful"); // or hard
     console.log(
       `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`
+    );
+    const fallDamageGameruleRes = await rcon.send("gamerule fallDamage false");
+    console.log(
+      `[${bot.username}] set fallDamage gamerule to false, fallDamageGameruleRes=${fallDamageGameruleRes}`
+    );
+    const doImmediateRespawnRes = await rcon.send(
+      "gamerule doImmediateRespawn true"
+    );
+    console.log(
+      `[${bot.username}] set doImmediateRespawn gamerule to true, doImmediateRespawnRes=${doImmediateRespawnRes}`
+    );
+    const keepInventoryRes = await rcon.send("gamerule keepInventory true");
+    console.log(
+      `[${bot.username}] set keepInventory gamerule to true, keepInventoryRes=${keepInventoryRes}`
+    );
+    const showDeathMessagesRes = await rcon.send(
+      "gamerule showDeathMessages false"
+    );
+    console.log(
+      `[${bot.username}] set showDeathMessages gamerule to false, showDeathMessagesRes=${showDeathMessagesRes}`
     );
     // Wait for both connections to be established
     console.log("Setting up coordinator connections...");
@@ -317,6 +354,24 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
         );
         process.exit(1);
       }
+      // Give resistance to the camera bot paired with this bot, e.g., if Alpha then AlphaCamera
+      const cameraUsername = `Camera${bot.username}`;
+      const resistEffectResCamera = await rcon.send(
+        `effect give ${cameraUsername} minecraft:resistance 999999 255 true`
+      );
+      console.log(
+        `[${cameraUsername}] resistEffectRes=${resistEffectResCamera}`
+      );
+      const waterBreathingEffectResCamera = await rcon.send(
+        `effect give ${cameraUsername} minecraft:water_breathing 999999 0 true`
+      );
+      console.log(
+        `[${cameraUsername}] waterBreathingEffectRes=${waterBreathingEffectResCamera}`
+      );
+      const fallDamageResCamera = await rcon.send(
+        `attribute ${cameraUsername} minecraft:fall_damage_multiplier base set 0`
+      );
+      console.log(`[${cameraUsername}] fallDamageRes=${fallDamageResCamera}`);
 
       console.log(
         `[${bot.username}] Cameras detected, waiting ${args.bootstrap_wait_time}s for popups to clear...`
@@ -337,7 +392,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
     // Respect world type for eligible episode filtering
     const worldType = (args.world_type || "flat").toLowerCase();
     const isFlatWorld = worldType === "flat";
-    const allEpisodeTypes = Object.keys(episodeClassMap);
+    const allEpisodeTypes = episodeTypes;
     const eligibleEpisodeTypesForWorld = isFlatWorld
       ? allEpisodeTypes
       : allEpisodeTypes.filter(
@@ -517,6 +572,12 @@ function getOnTeleportPhaseFn(
       console.log(
         `[${bot.username}] saturationEffectRes=${saturationEffectRes}`
       );
+      if (args.enable_camera_wait) {
+        const camRes = await rcon.send(
+          `effect give Camera${bot.username} minecraft:saturation 999999 255 true`
+        );
+        console.log(`[${bot.username}] Camera saturationEffectRes=${camRes}`);
+      }
     } catch (error) {
       console.error(
         `[${bot.username}] Failed to apply saturation effect:`,

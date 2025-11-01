@@ -4,9 +4,9 @@ const { BaseEpisode } = require("./base-episode");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 
-const ITERATIONS_NUM_PER_EPISODE = 5;
-const MIN_RUN_ACTIONS = 3;
-const MAX_RUN_ACTIONS = 5;
+const ITERATIONS_NUM_PER_EPISODE = 3;
+const MIN_RUN_ACTIONS = 2;
+const MAX_RUN_ACTIONS = 4;
 function getOnWalkLookPhaseFn(
   bot,
   rcon,

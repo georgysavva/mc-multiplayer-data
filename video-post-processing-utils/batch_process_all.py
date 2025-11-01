@@ -212,43 +212,47 @@ def find_episode_pairs(output_dir: str) -> List[Dict[str, str]]:
         List of dictionaries containing file paths for each episode
     """
     episodes = {}
-    
+
     # Find all MP4 and JSON files in the main output directory (not subdirectories)
-    video_files = glob.glob(os.path.join(output_dir, "*.mp4"))
+    video_files = glob.glob(os.path.join(output_dir, "*_camera.mp4"))
     json_files = glob.glob(os.path.join(output_dir, "*.json"))
     meta_files = glob.glob(os.path.join(output_dir, "*_meta.json"))
-    
+
     # Parse video files
     for video_path in video_files:
         filename = os.path.basename(video_path)
-        # Updated regex to handle timestamp prefix: YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id.mp4
-        match = re.match(r'(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})\.mp4$', filename)
+        # Updated regex to handle timestamp prefix and optional _camera suffix:
+        # YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id[_camera].mp4
+        match = re.match(
+            r"(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})(?:_camera)?\.mp4$",
+            filename,
+        )
         if match:
             timestamp, episode_id, bot_name, instance_id = match.groups()
-            
+
             if episode_id not in episodes:
                 episodes[episode_id] = {}
-            
+
             key = f"{bot_name.lower()}_video"
             episodes[episode_id][key] = video_path
-    
+
     # Parse JSON files (excluding meta files)
     for json_path in json_files:
         filename = os.path.basename(json_path)
         # Skip meta files - they'll be handled separately
-        if filename.endswith('_meta.json'):
+        if filename.endswith("_meta.json") or filename.endswith("_episode_info.json"):
             continue
         # Updated regex to handle timestamp prefix: YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id.json
         match = re.match(r'(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})\.json$', filename)
         if match:
             timestamp, episode_id, bot_name, instance_id = match.groups()
-            
+
             if episode_id not in episodes:
                 episodes[episode_id] = {}
-            
+
             key = f"{bot_name.lower()}_json"
             episodes[episode_id][key] = json_path
-    
+
     # Parse meta JSON files
     for meta_path in meta_files:
         filename = os.path.basename(meta_path)
@@ -256,25 +260,25 @@ def find_episode_pairs(output_dir: str) -> List[Dict[str, str]]:
         match = re.match(r'(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})_meta\.json$', filename)
         if match:
             timestamp, episode_id, bot_name, instance_id = match.groups()
-            
+
             if episode_id not in episodes:
                 episodes[episode_id] = {}
-            
+
             key = f"{bot_name.lower()}_meta"
             episodes[episode_id][key] = meta_path
-    
+
     # Filter for complete episodes (must have all 6 files)
     complete_episodes = []
     required_keys = ['alpha_video', 'alpha_json', 'alpha_meta', 'bravo_video', 'bravo_json', 'bravo_meta']
-    
+
     for episode_id, files in episodes.items():
         if all(key in files for key in required_keys):
             files['episode_id'] = episode_id
             complete_episodes.append(files)
-    
+
     # Sort by episode ID
     complete_episodes.sort(key=lambda x: x['episode_id'])
-    
+
     return complete_episodes
 
 
@@ -319,7 +323,7 @@ Examples:
   python batch_process_all.py --output-dir ../output --annotation-only
         """
     )
-    
+
     parser.add_argument(
         "--output-dir",
         required=True,
@@ -340,49 +344,50 @@ Examples:
         action="store_true", 
         help="Reprocess episodes even if already processed"
     )
-    
+
     args = parser.parse_args()
-    
+
     # Resolve paths
     output_dir = os.path.abspath(args.output_dir)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    
+
     print(f"Processing episodes in: {output_dir}")
     print(f"Using scripts from: {script_dir}")
-    
+
     # Create directories
     done_dir = os.path.join(output_dir, "done")
     aligned_dir = os.path.join(output_dir, "aligned-annotated")
     os.makedirs(done_dir, exist_ok=True)
     os.makedirs(aligned_dir, exist_ok=True)
-    
+
     # Find episodes to process
     episodes = find_episode_pairs(output_dir)
-    
+
     if not episodes:
         print("\nNo unprocessed episodes found in output directory.")
         print("All episodes may have already been moved to done/")
         return
-    
+
     print(f"\nFound {len(episodes)} unprocessed episodes:")
     for episode in episodes:
         print(f"  Episode {episode['episode_id']}")
-    
+
     # Process each episode
     annotation_success = 0
     alignment_success = 0
-    
+
     for i, episode_files in enumerate(episodes, 1):
         episode_id = episode_files['episode_id']
-        
+
         print(f"\n{'='*60}")
         print(f"Processing Episode {episode_id} ({i}/{len(episodes)})")
+        print(f"  Episode files: {episode_files}")
         print(f"{'='*60}")
-        
+
         # Step 1: Annotation (unless alignment-only mode)
         if not args.alignment_only:
             print("Step 1: Annotating videos...")
-            
+
             # Annotate Alpha video
             print(f"  Annotating Alpha video for episode {episode_id}")
             alpha_success = annotate_video(
@@ -391,8 +396,8 @@ Examples:
                 output_dir,
                 script_dir
             )
-            
-            # Annotate Bravo video  
+
+            # Annotate Bravo video
             print(f"  Annotating Bravo video for episode {episode_id}")
             bravo_success = annotate_video(
                 episode_files['bravo_video'],
@@ -400,18 +405,18 @@ Examples:
                 output_dir,
                 script_dir
             )
-            
+
             if alpha_success and bravo_success:
                 print(f"  * Annotation completed for episode {episode_id}")
-                
+
                 # Move annotated videos to done/ (in case they ended up in wrong location)
                 print(f"  Moving annotated videos to done/...")
                 move_annotated_videos_to_done(episode_files, output_dir)
-                
+
                 # Move raw files to done/
                 print(f"  Moving raw files to done/...")
                 move_success = move_raw_files_to_done(episode_files, output_dir)
-                
+
                 if move_success:
                     annotation_success += 1
                     print(f"  * Raw files moved to done/ for episode {episode_id}")
@@ -421,19 +426,19 @@ Examples:
             else:
                 print(f"  X Annotation failed for episode {episode_id}")
                 continue
-        
+
         # Step 2: Alignment (unless annotation-only mode)
         if not args.annotation_only:
             print("Step 2: Aligning annotated videos...")
-            
+
             # Get paths to annotated videos in done/
             alpha_annotated = get_annotated_path(episode_files['alpha_video'], done_dir)
             bravo_annotated = get_annotated_path(episode_files['bravo_video'], done_dir)
-            
+
             # Get paths to JSON files in done/
             alpha_json_done = os.path.join(done_dir, os.path.basename(episode_files['alpha_json']))
             bravo_json_done = os.path.join(done_dir, os.path.basename(episode_files['bravo_json']))
-            
+
             # Check if annotated videos exist
             if os.path.exists(alpha_annotated) and os.path.exists(bravo_annotated):
                 print(f"  Aligning episode {episode_id}")
@@ -442,7 +447,7 @@ Examples:
                     bravo_annotated, bravo_json_done,
                     output_dir, script_dir
                 )
-                
+
                 if alignment_result:
                     print(f"  * Alignment completed for episode {episode_id}")
                     alignment_success += 1
@@ -451,35 +456,35 @@ Examples:
             else:
                 print(f"  X Annotated videos not found for episode {episode_id}")
                 print(f"    Looking for: {os.path.basename(alpha_annotated)}, {os.path.basename(bravo_annotated)}")
-    
+
     # Summary
     print(f"\n{'='*60}")
     print("BATCH PROCESSING SUMMARY")
     print(f"{'='*60}")
     print(f"Total episodes processed: {len(episodes)}")
-    
+
     if not args.alignment_only:
         print(f"Annotation successes: {annotation_success}")
-    
+
     if not args.annotation_only:
         print(f"Alignment successes: {alignment_success}")
-    
+
     # List final output files
     print(f"\nFinal directory structure in {output_dir}:")
-    
+
     # Count remaining unprocessed files
     remaining_videos = glob.glob(os.path.join(output_dir, "*.mp4"))
     remaining_jsons = glob.glob(os.path.join(output_dir, "*.json"))
     print(f"  Unprocessed files: {len(remaining_videos)} videos, {len(remaining_jsons)} JSONs")
-    
+
     # Count files in done/
     done_files = glob.glob(os.path.join(done_dir, "*"))
     print(f"  done/: {len(done_files)} files")
-    
+
     # Count files in aligned-annotated/
     aligned_files = glob.glob(os.path.join(aligned_dir, "*.mp4"))
     print(f"  aligned-annotated/: {len(aligned_files)} final videos")
-    
+
     if aligned_files:
         print(f"\nFinal products in aligned-annotated/:")
         for f in sorted(aligned_files):
