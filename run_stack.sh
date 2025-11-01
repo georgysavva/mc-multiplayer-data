@@ -25,6 +25,7 @@ LOG_SERVICES=(
   camera_alpha
   episode_starter
   camera_bravo
+  prep_data
 )
 
 COMPOSE_BIN=()
@@ -133,6 +134,7 @@ cmd_up() {
       --bot Alpha \
       --actions-dir "${PROJECT_DIR}/output" \
       --camera-prefix "${PROJECT_DIR}/camera" \
+      --output-dir "${PROJECT_DIR}/output" \
       ${comparison_flag}; then
       echo "[run] Alpha processing completed successfully"
     else
@@ -143,6 +145,7 @@ cmd_up() {
       --bot Bravo \
       --actions-dir "${PROJECT_DIR}/output" \
       --camera-prefix "${PROJECT_DIR}/camera" \
+      --output-dir "${PROJECT_DIR}/output" \
       ${comparison_flag}; then
       echo "[run] Bravo processing completed successfully"
     else

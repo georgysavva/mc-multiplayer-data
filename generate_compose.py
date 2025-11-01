@@ -91,6 +91,7 @@ def generate_compose_config(
     min_run_actions,
     max_run_actions,
     episode_category,
+    episode_types,
     iterations_num_per_episode,
     smoke_test,
     viewer_rendering_disabled,
@@ -228,7 +229,7 @@ def generate_compose_config(
                     "BOT_RNG_SEED": str(12345 + instance_id),
                     "EPISODES_NUM": 1,
                     "EPISODE_START_ID": episode_start_id,
-                    "EPISODE_CATEGORY": episode_category,
+                    "EPISODE_TYPES": episode_types,
                     "MC_HOST": "host.docker.internal",
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
@@ -278,7 +279,7 @@ def generate_compose_config(
                     "BOT_RNG_SEED": str(12345 + instance_id),
                     "EPISODES_NUM": 1,
                     "EPISODE_START_ID": episode_start_id,
-                    "EPISODE_CATEGORY": episode_category,
+                    "EPISODE_TYPES": episode_types,
                     "MC_HOST": "host.docker.internal",
                     "MC_PORT": mc_port,
                     "RCON_HOST": "host.docker.internal",
@@ -572,6 +573,11 @@ def main():
         help="Episode category (default: look)",
     )
     parser.add_argument(
+        "--episode_types",
+        default="all",
+        help="Comma-separated episode types to run (default: all)",
+    )
+    parser.add_argument(
         "--iterations_num_per_episode",
         type=int,
         default=5,
@@ -641,6 +647,7 @@ def main():
             args.min_run_actions,
             args.max_run_actions,
             args.episode_category,
+            args.episode_types,
             args.iterations_num_per_episode,
             args.smoke_test,
             args.viewer_rendering_disabled,
