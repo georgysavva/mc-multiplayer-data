@@ -179,7 +179,7 @@ bot.once('spawn', () => {
         if (!bot.world.getBlock(blockPos)) continue
         
         try {
-          await bot.lookAt(blockPos.offset(faceVector.x, faceVector.y, faceVector.z))
+          // await bot.lookAt(blockPos.offset(faceVector.x, faceVector.y, faceVector.z))
           await bot.waitForTicks(2)
           await bot.placeBlock(block, faceVector)
           await bot.waitForTicks(2)
