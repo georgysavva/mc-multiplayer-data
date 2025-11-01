@@ -223,7 +223,6 @@ async function run(bot, actionCount, lookAway, args) {
 }
 
 module.exports = {
-  random_pos,
   walk,
   run,
 };
