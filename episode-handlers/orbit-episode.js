@@ -57,8 +57,8 @@ async function orbitAroundSharedMidpoint(
   // Initialize pathfinder with optimal settings for orbiting
   initializePathfinder(bot, {
     allowSprinting: false,
-    allowParkour: false,
-    canDig: false,
+    allowParkour: true,
+    canDig: true,
     allowEntityDetection: true,
   });
 

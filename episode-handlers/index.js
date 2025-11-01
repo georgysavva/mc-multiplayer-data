@@ -284,6 +284,9 @@ async function notifyPeerErrorAndStop(
  */
 function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
   return async () => {
+    bot.pathfinder.thinkTimeout = 7500; // max total planning time per path (ms)
+    bot.pathfinder.tickTimeout = 15; // max CPU per tick spent "thinking" (ms)
+    bot.pathfinder.searchRadius = 96; // don’t search beyond ~6 chunks from the bot
     const rcon = await Rcon.connect({
       host: args.rcon_host,
       port: args.rcon_port,

@@ -80,7 +80,8 @@ function disableSprint(bot) {
  * @param {Object} options - Pathfinder configuration options
  */
 function initializePathfinder(bot, options = {}) {
-  const movements = new Movements(bot);
+  const mcData = require("minecraft-data")(bot.version);
+  const movements = new Movements(bot, mcData);
 
   // Configure movement settings
   movements.allowSprinting = options.allowSprinting !== false; // Default: true

@@ -190,8 +190,8 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
   // Initialize pathfinder for combat
   initializePathfinder(bot, {
     allowSprinting: true, // Sprint to close distance
-    allowParkour: false, // Stable movement
-    canDig: false, // No terrain modification
+    allowParkour: true, // Stable movement
+    canDig: true, // No terrain modification
     allowEntityDetection: true,
   });
 
