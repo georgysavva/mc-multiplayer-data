@@ -533,6 +533,37 @@ async function teleport(
     newZ = randomPointZ - halfDistance * Math.sin(botAngle);
   }
 
+  // Verify landing position is safe (not water/lava/leaves)
+  // Try up to 5 times to find a safe landing spot
+  let landPosition = await land_pos(bot, newX, newZ);
+  let safetyAttempts = 0;
+  const maxSafetyAttempts = 5;
+  
+  while (!landPosition && safetyAttempts < maxSafetyAttempts) {
+    safetyAttempts++;
+    console.log(
+      `[${bot.username}] Unsafe landing at (${newX.toFixed(2)}, ${newZ.toFixed(2)}), attempt ${safetyAttempts}/${maxSafetyAttempts} to find safe spot`
+    );
+    
+    // Try a new random position nearby (within 50 blocks)
+    const offsetAngle = sharedBotRng() * 2 * Math.PI;
+    const offsetDistance = 20 + sharedBotRng() * 30; // 20-50 blocks away
+    newX = newX + offsetDistance * Math.cos(offsetAngle);
+    newZ = newZ + offsetDistance * Math.sin(offsetAngle);
+    
+    landPosition = await land_pos(bot, newX, newZ);
+  }
+  
+  if (!landPosition) {
+    console.warn(
+      `[${bot.username}] Could not find safe landing after ${maxSafetyAttempts} attempts. Using Y=128 anyway and hoping for the best.`
+    );
+  } else {
+    console.log(
+      `[${bot.username}] Found safe landing at Y=${landPosition.y.toFixed(2)} (ground level)`
+    );
+  }
+
   // Spawn at Y=128 and let bots fall to the ground
   // This ensures we never spawn inside blocks or in invalid locations
   const newY = 128;
@@ -551,6 +582,35 @@ async function teleport(
     // This bot goes in opposite direction, other bot goes in initial direction
     otherBotNewX = randomPointX + halfDistance * Math.cos(botAngle);
     otherBotNewZ = randomPointZ + halfDistance * Math.sin(botAngle);
+  }
+
+  // Verify other bot's landing position is safe too
+  let otherBotLandPosition = await land_pos(bot, otherBotNewX, otherBotNewZ);
+  let otherBotSafetyAttempts = 0;
+  
+  while (!otherBotLandPosition && otherBotSafetyAttempts < maxSafetyAttempts) {
+    otherBotSafetyAttempts++;
+    console.log(
+      `[${bot.username}] Other bot unsafe landing at (${otherBotNewX.toFixed(2)}, ${otherBotNewZ.toFixed(2)}), attempt ${otherBotSafetyAttempts}/${maxSafetyAttempts}`
+    );
+    
+    // Try a new random position nearby
+    const offsetAngle = sharedBotRng() * 2 * Math.PI;
+    const offsetDistance = 20 + sharedBotRng() * 30;
+    otherBotNewX = otherBotNewX + offsetDistance * Math.cos(offsetAngle);
+    otherBotNewZ = otherBotNewZ + offsetDistance * Math.sin(offsetAngle);
+    
+    otherBotLandPosition = await land_pos(bot, otherBotNewX, otherBotNewZ);
+  }
+  
+  if (!otherBotLandPosition) {
+    console.warn(
+      `[${bot.username}] Could not find safe landing for other bot after ${maxSafetyAttempts} attempts.`
+    );
+  } else {
+    console.log(
+      `[${bot.username}] Other bot safe landing at Y=${otherBotLandPosition.y.toFixed(2)}`
+    );
   }
 
   // Other bot also spawns at Y=128

@@ -404,11 +404,13 @@ function land_pos(bot, x, z) {
       // Found solid ground, check if there's air above it for the bot to stand
       const blockAbove = bot.blockAt(pos.offset(0, dy + 1, 0));
       const blockAbove2 = bot.blockAt(pos.offset(0, dy + 2, 0));
+      const blockAbove3 = bot.blockAt(pos.offset(0, dy + 3, 0));
       
-      // Ensure 2 blocks of air above for bot to stand (NOT water or lava)
-      if (blockAbove && blockAbove2 && 
+      // Ensure 3 blocks of air above for bot to stand (NOT water, lava, or leaves)
+      if (blockAbove && blockAbove2 && blockAbove3 &&
           blockAbove.type === bot.registry.blocksByName.air.id &&
-          blockAbove2.type === bot.registry.blocksByName.air.id) {
+          blockAbove2.type === bot.registry.blocksByName.air.id &&
+          blockAbove3.type === bot.registry.blocksByName.air.id) {
         return pos.offset(0, dy, 0);
       }
     }
