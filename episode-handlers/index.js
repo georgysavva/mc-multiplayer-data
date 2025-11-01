@@ -97,6 +97,7 @@ async function saveEpisodeInfo({
   const payload = {
     timestamp: now.toISOString(),
     bot_name: botName,
+    world_type: args.world_type,
     episode_number: episodeNum,
     episode_type: episodeType,
     instance_id: instanceId,
