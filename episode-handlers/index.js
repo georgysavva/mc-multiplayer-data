@@ -102,6 +102,9 @@ async function saveEpisodeInfo({
     encountered_error: Boolean(episodeInstance?._encounteredError),
     peer_encountered_error: Boolean(episodeInstance?._peerError),
     bot_died: Boolean(episodeInstance?._botDied),
+    episode_recording_started: Boolean(
+      episodeInstance?._episodeRecordingStarted
+    ),
   };
 
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2));
@@ -131,6 +134,7 @@ async function runSingleEpisode(
   console.log(`[${bot.username}] Starting episode ${episodeNum}`);
 
   episodeInstance._botDied = false;
+  episodeInstance._episodeRecordingStarted = false;
 
   return new Promise((resolve) => {
     // Reset episode stopping guard at the start of each episode
@@ -510,6 +514,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       });
       console.log(`[${bot.username}] Syncing bots for episode ${episodeNum}`);
       await coordinator.syncBots(episodeNum);
+      console.log(`[${bot.username}] Synced bots for episode ${episodeNum}`);
     }
     await rcon.end();
 
@@ -594,7 +599,8 @@ function getOnTeleportPhaseFn(
     );
 
     console.log(`[${bot.username}] starting episode recording`);
-    bot.emit("startepisode", 0);
+    bot.emit("startepisode", episodeNum);
+    episodeInstance._episodeRecordingStarted = true;
     await sleep(1000);
     // await sleep(episodeNum === 0 ? 6000 : 1000);
 

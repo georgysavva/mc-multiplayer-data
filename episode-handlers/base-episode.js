@@ -80,16 +80,26 @@ class BaseEpisode {
         episodeNum,
         "stopPhase beginning"
       );
-      console.log(`[${bot.username}] stops recording`);
-      bot.emit("endepisode");
+      if (this._episodeRecordingStarted) {
+        console.log(`[${bot.username}] stops recording`);
+        bot.emit("endepisode");
+        console.log(
+          `[${bot.username}] waiting for episode recording to end...`
+        );
+        await new Promise((resolve) => {
+          bot.once("episodeended", resolve);
+        });
+        console.log(
+          `[${bot.username}] episode recording ended, connection closed`
+        );
+        await sleep(1000);
+      } else {
+        console.log(
+          `[${bot.username}] episode not started, skipping recording.`
+        );
+      }
 
       // Wait for the connection to actually close
-      console.log(`[${bot.username}] waiting for episode to end...`);
-      await new Promise((resolve) => {
-        bot.once("episodeended", resolve);
-      });
-      console.log(`[${bot.username}] episode ended, connection closed`);
-      await sleep(1000);
 
       coordinator.onceEvent(
         "stoppedPhase",

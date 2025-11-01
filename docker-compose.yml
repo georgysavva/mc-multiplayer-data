@@ -90,7 +90,7 @@ services:
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "123456"
       EPISODE_TYPES: ${EPISODE_TYPES:-all}
-      EPISODES_NUM: 1
+      EPISODES_NUM: ${EPISODES_NUM:-1}
       EPISODE_START_ID: ${EPISODE_START_ID:-0}
       MC_HOST: host.docker.internal
       MC_PORT: ${MC_SERVER_PORT:-25565}
@@ -108,7 +108,7 @@ services:
       VIEWER_RENDERING_DISABLED: 1
       VIEWER_RECORDING_INTERVAL: 50 # should be 50 when rendering is disabled to have 20 FPS
       WORLD_TYPE: normal # flat or normal
-      SMOKE_TEST: 1
+      SMOKE_TEST: ${SMOKE_TEST:-0}
       INSTANCE_ID: 0
       OUTPUT_DIR: /output
     extra_hosts:
@@ -139,7 +139,7 @@ services:
       OTHER_COORD_HOST: sender_alpha
       OTHER_COORD_PORT: 8100
       BOT_RNG_SEED: "123456"
-      EPISODES_NUM: 1
+      EPISODES_NUM: ${EPISODES_NUM:-1}
       EPISODE_START_ID: ${EPISODE_START_ID:-0}
       EPISODE_TYPES: ${EPISODE_TYPES:-all}
       MC_HOST: host.docker.internal
@@ -157,7 +157,7 @@ services:
       CAMERA_READY_CHECK_INTERVAL: 2000
       VIEWER_RENDERING_DISABLED: 1
       VIEWER_RECORDING_INTERVAL: 50
-      SMOKE_TEST: 1
+      SMOKE_TEST: ${SMOKE_TEST:-0}
       WORLD_TYPE: normal # flat or normal
       INSTANCE_ID: 0
       OUTPUT_DIR: /output
