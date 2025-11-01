@@ -397,21 +397,67 @@ function land_pos(bot, x, z) {
     // unloaded chunk
     return null;
   }
+  
+  // Define unsafe blocks (water, lava, air, leaves, etc.)
+  const unsafeBlocks = new Set([
+    bot.registry.blocksByName.air?.id,
+    bot.registry.blocksByName.water?.id,
+    bot.registry.blocksByName.lava?.id,
+    bot.registry.blocksByName.flowing_water?.id,
+    bot.registry.blocksByName.flowing_lava?.id,
+    bot.registry.blocksByName.cave_air?.id,
+    bot.registry.blocksByName.void_air?.id,
+    // Tree leaves - all variants
+    bot.registry.blocksByName.oak_leaves?.id,
+    bot.registry.blocksByName.spruce_leaves?.id,
+    bot.registry.blocksByName.birch_leaves?.id,
+    bot.registry.blocksByName.jungle_leaves?.id,
+    bot.registry.blocksByName.acacia_leaves?.id,
+    bot.registry.blocksByName.dark_oak_leaves?.id,
+    bot.registry.blocksByName.mangrove_leaves?.id,
+    bot.registry.blocksByName.cherry_leaves?.id,
+    bot.registry.blocksByName.azalea_leaves?.id,
+    bot.registry.blocksByName.flowering_azalea_leaves?.id,
+  ].filter(id => id !== undefined));
+  
   let dy = 0;
-  while (block.type !== bot.registry.blocksByName.air.id) {
+  
+  // If starting position is inside a block, move up to find air
+  while (block && !unsafeBlocks.has(block.type) && block.type !== bot.registry.blocksByName.air.id) {
     dy++;
+    if (dy > 100) return null; // Safety limit
     block = bot.blockAt(pos.offset(0, dy, 0));
-    if (block.type === bot.registry.blocksByName.air.id) {
-      return pos.offset(0, dy - 1, 0);
+    if (block && block.type === bot.registry.blocksByName.air.id) {
+      // Found air above, check if block below is safe
+      const blockBelow = bot.blockAt(pos.offset(0, dy - 1, 0));
+      if (blockBelow && !unsafeBlocks.has(blockBelow.type)) {
+        return pos.offset(0, dy - 1, 0);
+      }
     }
   }
-  while (block.type === bot.registry.blocksByName.air.id) {
+  
+  // Move down to find solid ground
+  dy = 0;
+  block = bot.blockAt(pos);
+  while (block && (unsafeBlocks.has(block.type) || block.type === bot.registry.blocksByName.air.id)) {
     dy--;
+    if (dy < -100) return null; // Safety limit (don't go below Y=-36 in 1.20.4)
     block = bot.blockAt(pos.offset(0, dy, 0));
-    if (block.type !== bot.registry.blocksByName.air.id) {
-      return pos.offset(0, dy, 0);
+    if (block && !unsafeBlocks.has(block.type) && block.type !== bot.registry.blocksByName.air.id) {
+      // Found solid ground, check if there's air above it for the bot to stand
+      const blockAbove = bot.blockAt(pos.offset(0, dy + 1, 0));
+      const blockAbove2 = bot.blockAt(pos.offset(0, dy + 2, 0));
+      
+      // Ensure 2 blocks of air above for bot to stand (NOT water or lava)
+      if (blockAbove && blockAbove2 && 
+          blockAbove.type === bot.registry.blocksByName.air.id &&
+          blockAbove2.type === bot.registry.blocksByName.air.id) {
+        return pos.offset(0, dy, 0);
+      }
     }
   }
+  
+  return null;
 }
 
 /**
@@ -498,6 +544,7 @@ function isNearBot(bot, targetBotName, threshold = 1.0) {
   }
   return false;
 }
+
 /**
  * Make bot jump for specified duration
  * @param {Bot} bot - Mineflayer bot instance

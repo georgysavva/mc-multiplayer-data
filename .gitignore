@@ -6,3 +6,4 @@ logs/
 aligned/
 __pycache__/
 .env
+node_modules
