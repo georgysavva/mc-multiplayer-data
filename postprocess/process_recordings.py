@@ -12,7 +12,6 @@ from typing import Dict, Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
-
 from align_camera_video import AlignmentInput, align_recording
 
 
@@ -59,9 +58,11 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     return parser.parse_args(list(argv))
 
 
-def build_bot_config(actions_dir: Path, camera_prefix: Path, bot: str, output_base: Optional[Path]) -> Dict[str, BotConfig]:
+def build_bot_config(
+    actions_dir: Path, camera_prefix: Path, bot: str, output_base: Optional[Path]
+) -> Dict[str, BotConfig]:
     if bot == "Alpha":
-        output_dir = (output_base or Path.cwd() / "aligned") / "alpha"
+        output_dir = output_base or Path.cwd() / "aligned"
         return {
             "Alpha": BotConfig(
                 name="Alpha",
@@ -71,7 +72,7 @@ def build_bot_config(actions_dir: Path, camera_prefix: Path, bot: str, output_ba
             )
         }
     else:
-        output_dir = (output_base or Path.cwd() / "aligned") / "bravo"
+        output_dir = output_base or Path.cwd() / "aligned"
         return {
             "Bravo": BotConfig(
                 name="Bravo",
@@ -115,7 +116,9 @@ def _resize_to_height(frame: np.ndarray, target_height: int) -> np.ndarray:
     return cv2.resize(frame, (new_width, target_height), interpolation=cv2.INTER_AREA)
 
 
-def build_side_by_side(prismarine: Path, aligned: Path, output_path: Path) -> Tuple[int, float, float]:
+def build_side_by_side(
+    prismarine: Path, aligned: Path, output_path: Path
+) -> Tuple[int, float, float]:
     left = cv2.VideoCapture(str(prismarine))
     if not left.isOpened():
         raise RuntimeError(f"Failed to open prismarine video {prismarine}")
@@ -144,7 +147,7 @@ def build_side_by_side(prismarine: Path, aligned: Path, output_path: Path) -> Tu
         left_ok, left_frame = left.read()
         right_ok, right_frame = right.read()
         if not left_ok or not right_ok:
-            mismatched_length = (left_ok != right_ok)
+            mismatched_length = left_ok != right_ok
             break
 
         left_frame = _resize_to_height(left_frame, target_height)
@@ -168,10 +171,16 @@ def build_side_by_side(prismarine: Path, aligned: Path, output_path: Path) -> Tu
         output_path.unlink(missing_ok=True)
         raise RuntimeError("No overlapping frames to build comparison video")
 
-    return frames_written, left_fps, right_fps if not mismatched_length else -abs(right_fps)
+    return (
+        frames_written,
+        left_fps,
+        right_fps if not mismatched_length else -abs(right_fps),
+    )
 
 
-def process_actions(actions_dir: Path, configs: Dict[str, BotConfig], generate_comparison: bool = False) -> int:
+def process_actions(
+    actions_dir: Path, configs: Dict[str, BotConfig], generate_comparison: bool = False
+) -> int:
     actions_processed = 0
     for actions_path in sorted(actions_dir.glob("*.json")):
         if actions_path.name.endswith("_meta.json"):
@@ -205,7 +214,7 @@ def process_actions(actions_dir: Path, configs: Dict[str, BotConfig], generate_c
         align_time = time.time() - align_start
 
         metadata["comparison_video_path"] = None
-        
+
         if generate_comparison and expected_prismarine_video(actions_path).exists():
             comparison_path = config.output_dir / f"{actions_path.stem}_comparison.mp4"
             compare_start = time.time()
@@ -221,14 +230,16 @@ def process_actions(actions_dir: Path, configs: Dict[str, BotConfig], generate_c
                     f"[compare] wrote {comparison_path} ({frames_written} frames, "
                     f"prismarine_fps={left_fps:.2f}, aligned_fps={right_fps:.2f}, time={compare_time:.1f}s)",
                 )
-            except Exception as exc:  
+            except Exception as exc:
                 print(f"[compare] failed: {exc}", file=sys.stderr)
                 comparison_path.unlink(missing_ok=True)
 
         with output_meta.open("w", encoding="utf-8") as fh:
             json.dump(metadata, fh)
 
-        print(f"[align] wrote {metadata['aligned_video_path']} (total: {align_time:.1f}s)")
+        print(
+            f"[align] wrote {metadata['aligned_video_path']} (total: {align_time:.1f}s)"
+        )
         actions_processed += 1
 
     return actions_processed
@@ -244,7 +255,9 @@ def main(argv: Iterable[str]) -> int:
         output_base=args.output_dir.resolve() if args.output_dir else None,
     )
 
-    processed = process_actions(actions_dir, configs, generate_comparison=args.comparison_video)
+    processed = process_actions(
+        actions_dir, configs, generate_comparison=args.comparison_video
+    )
     if processed == 0:
         print("[align] no action traces found; nothing to do")
     return 0

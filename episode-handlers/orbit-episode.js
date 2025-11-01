@@ -7,6 +7,7 @@ const {
   sleep,
   initializePathfinder,
   stopPathfinder,
+  land_pos,
 } = require("../utils/movement");
 const { tickMVC, createMVC } = require("../utils/mvc");
 const { BaseEpisode } = require("./base-episode");
@@ -56,8 +57,8 @@ async function orbitAroundSharedMidpoint(
   // Initialize pathfinder with optimal settings for orbiting
   initializePathfinder(bot, {
     allowSprinting: false,
-    allowParkour: false,
-    canDig: false,
+    allowParkour: true,
+    canDig: true,
     allowEntityDetection: true,
   });
 
@@ -98,7 +99,8 @@ async function orbitAroundSharedMidpoint(
       // Calculate target position on the circle around shared midpoint
       const targetX = sharedMidpoint.x + ORBIT_RADIUS * Math.cos(angle);
       const targetZ = sharedMidpoint.z + ORBIT_RADIUS * Math.sin(angle);
-      const targetPos = new Vec3(targetX, sharedMidpoint.y, targetZ);
+      let targetPos = new Vec3(targetX, sharedMidpoint.y, targetZ);
+      targetPos = land_pos(bot, targetPos.x, targetPos.z) || targetPos;
 
       // Use pathfinder to move to orbit position
       bot.pathfinder.setGoal(
@@ -291,6 +293,7 @@ function getOnOrbitPhaseFn(
 }
 
 class OrbitEpisode extends BaseEpisode {
+  static WORKS_IN_NON_FLAT_WORLD = true;
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     // optional setup
   }

@@ -4,6 +4,8 @@ const {
   sleep,
   land_pos,
   horizontalDistanceTo,
+  gotoWithTimeout,
+  initializePathfinder,
 } = require("../utils/movement");
 
 const { GoalNear, Movements } = require("../utils/bot-factory");
@@ -176,6 +178,12 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
   // Ensure we're not currently pathfinding/combat from a previous step
   await bot.pvp.stop();
   bot.pathfinder.setGoal(null);
+  initializePathfinder(bot, {
+    allowSprinting: false,
+    allowParkour: true,
+    canDig: true,
+    allowEntityDetection: true,
+  });
 
   // Wait for a hostile mob to come within melee distance
   let target;
@@ -241,12 +249,10 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
     guardPosition.z,
     1
   );
-  const mcData = require("minecraft-data")(bot.version);
-  bot.pathfinder.setMovements(new Movements(bot, mcData));
   let reached = false;
   for (let attempt = 0; attempt < 2 && !reached; attempt++) {
     try {
-      await bot.pathfinder.goto(goal);
+      await gotoWithTimeout(bot, goal, { timeoutMs: 30000 });
       reached = true;
     } catch (err) {
       const msg = String(err?.message || err || "");
@@ -406,6 +412,7 @@ function getOnPVEPhaseFn(
 class PveEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 15;
   static INIT_MAX_BOTS_DISTANCE = 25;
+  static WORKS_IN_NON_FLAT_WORLD = true;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     const difficultyRes = await rcon.send("difficulty easy"); // or hard

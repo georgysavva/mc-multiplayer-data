@@ -114,6 +114,7 @@ async function mineTunnelTowards(bot, targetPos, maxBlocks = 20) {
 
   let blocksMined = 0;
   const startPos = bot.entity.position.clone();
+  const miningStartTime = Date.now();
 
   // Calculate direction to target
   const currentPos = bot.entity.position.clone();
@@ -149,6 +150,17 @@ async function mineTunnelTowards(bot, targetPos, maxBlocks = 20) {
     distanceTraveled < horizontalDistance - 1.5 &&
     blocksMined < maxBlocks
   ) {
+    // Timeout guard to prevent infinite mining loop
+    if (Date.now() - miningStartTime > 60000) {
+      throw new Error(
+        `Mining loop timed out after 60 seconds (distanceTraveled=${distanceTraveled.toFixed(
+          2
+        )}, ` +
+          `horizontalDistance=${horizontalDistance.toFixed(
+            2
+          )}, blocksMined=${blocksMined}/${maxBlocks})`
+      );
+    }
     const myPos = bot.entity.position.clone();
 
     console.log(
@@ -332,26 +344,7 @@ function getOnMinePhaseFn(
     if (!digSuccess) {
       console.log(`[${bot.username}] ❌ Failed to dig down, aborting episode`);
       // Transition to stop phase
-      coordinator.onceEvent(
-        "stopPhase",
-        episodeNum,
-        episodeInstance.getOnStopPhaseFn(
-          bot,
-          rcon,
-          sharedBotRng,
-          coordinator,
-          args.other_bot_name,
-          episodeNum,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        "stopPhase",
-        bot.entity.position.clone(),
-        episodeNum,
-        `minePhase_${iterationID} end (failed)`
-      );
-      return;
+      throw new Error("Failed to dig down, aborting episode...");
     }
 
     // Wait a moment to ensure both bots are down
@@ -488,6 +481,7 @@ function getOnMinePhaseFn(
 class MineEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 10;
   static INIT_MAX_BOTS_DISTANCE = 20;
+  static WORKS_IN_NON_FLAT_WORLD = true;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
 

@@ -8,6 +8,11 @@ const { sleep } = require("../utils/helpers");
 class BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = MIN_BOTS_DISTANCE;
   static INIT_MAX_BOTS_DISTANCE = MAX_BOTS_DISTANCE;
+  static WORKS_IN_NON_FLAT_WORLD = false;
+
+  constructor(sharedBotRng) {
+    // This constructor intentionally does nothing with sharedBotRng
+  }
 
   /**
    * Optional setup hook. No-op by default.
@@ -75,17 +80,26 @@ class BaseEpisode {
         episodeNum,
         "stopPhase beginning"
       );
-      console.log(`[${bot.username}] stops recording`);
-      bot.emit("endepisode");
+      if (this._episodeRecordingStarted) {
+        console.log(`[${bot.username}] stops recording`);
+        bot.emit("endepisode");
+        console.log(
+          `[${bot.username}] waiting for episode recording to end...`
+        );
+        await new Promise((resolve) => {
+          bot.once("episodeended", resolve);
+        });
+        console.log(
+          `[${bot.username}] episode recording ended, connection closed`
+        );
+        await sleep(1000);
+      } else {
+        console.log(
+          `[${bot.username}] episode not started, skipping recording.`
+        );
+      }
 
       // Wait for the connection to actually close
-      console.log(`[${bot.username}] waiting for episode to end...`);
-      await new Promise((resolve) => {
-        bot.once("episodeended", resolve);
-      });
-      console.log(`[${bot.username}] episode ended, connection closed`);
-      await sleep(1000);
-
 
       coordinator.onceEvent(
         "stoppedPhase",

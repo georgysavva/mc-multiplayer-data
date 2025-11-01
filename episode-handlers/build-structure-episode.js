@@ -7,8 +7,10 @@ const {
 } = require("../utils/movement");
 const { placeAt, placeMultiple } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
+const { pickRandom } = require("../utils/coordination");
 
 // Constants for building behavior
+const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const BUILD_BLOCK_TYPES = ["stone", "cobblestone", "oak_planks", "bricks"];
 
@@ -81,8 +83,8 @@ async function buildStructure(bot, positions, blockType, args) {
   // Initialize pathfinder for movement
   initializePathfinder(bot, {
     allowSprinting: false,
-    allowParkour: false,
-    canDig: false,
+    allowParkour: true,
+    canDig: true,
     allowEntityDetection: true,
   });
 
@@ -162,12 +164,14 @@ function getOnBuildPhaseFn(
     }
 
     // STEP 3: Determine build positions based on bot role
-    console.log(`[${bot.username}] 📐 STEP 3: Planning structure...`);
-
+    console.log(
+      `[${bot.username}] 📐 STEP 3: Planning structure ${structureType}...`
+    );
     const botPos = bot.entity.position.floored();
     let positions = [];
     let blockType =
       BUILD_BLOCK_TYPES[Math.floor(sharedBotRng() * BUILD_BLOCK_TYPES.length)];
+    const botNameSmaller = bot.username < args.other_bot_name;
 
     if (structureType === "wall") {
       // Alpha builds left side, Bravo builds right side
@@ -175,7 +179,7 @@ function getOnBuildPhaseFn(
       const length = 5;
       const height = 3;
 
-      if (bot.username === "Alpha") {
+      if (botNameSmaller) {
         positions = generateWallPositions(startPos, length, height, "x");
       } else {
         positions = generateWallPositions(
@@ -187,7 +191,7 @@ function getOnBuildPhaseFn(
       }
     } else if (structureType === "tower") {
       // Each bot builds their own tower
-      const startPos = botPos.offset(3, 0, bot.username === "Alpha" ? 0 : 3);
+      const startPos = botPos.offset(3, 0, botNameSmaller ? 0 : 3);
       const height = 5;
       positions = generateTowerPositions(startPos, height);
     } else if (structureType === "platform") {
@@ -199,10 +203,9 @@ function getOnBuildPhaseFn(
       // Split platform: Alpha does first half, Bravo does second half
       const allPositions = generatePlatformPositions(startPos, width, depth);
       const half = Math.floor(allPositions.length / 2);
-      positions =
-        bot.username === "Alpha"
-          ? allPositions.slice(0, half)
-          : allPositions.slice(half);
+      positions = botNameSmaller
+        ? allPositions.slice(0, half)
+        : allPositions.slice(half);
     }
 
     console.log(
@@ -261,10 +264,11 @@ function getOnBuildPhaseFn(
 class BuildStructureEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 8;
   static INIT_MAX_BOTS_DISTANCE = 15;
+  static WORKS_IN_NON_FLAT_WORLD = true;
 
-  constructor({ structureType = "wall" } = {}) {
+  constructor(sharedBotRng) {
     super();
-    this.structureType = structureType;
+    this.structureType = pickRandom(ALL_STRUCTURE_TYPES, sharedBotRng);
   }
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
