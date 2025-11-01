@@ -93,6 +93,9 @@ GAME_PID=$!
 PIDS="$PIDS $GAME_PID"
 
 if [ "$ENABLE_RECORDING" = "1" ]; then
+  # Small delay so the Minecraft window stabilizes before capturing.
+  # Keep metadata in sync with the actual recording start time.
+  sleep "${RECORDING_DELAY:-5}"
   RECORDING_META_PATH=${RECORDING_META_PATH:-${RECORDING_PATH%.*}_meta.json}
   RECORDING_START_TS=$(date +%s.%N)
   RECORDING_START_ISO=$(date -u +"%Y-%m-%dT%H:%M:%S.%NZ")

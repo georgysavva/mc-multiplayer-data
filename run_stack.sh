@@ -16,6 +16,7 @@ fi
 
 # Services whose logs we want to capture for later analysis
 LOG_SERVICES=(
+  prep_data
   mc
   sender_alpha
   sender_bravo

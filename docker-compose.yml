@@ -204,6 +204,9 @@ services:
 
   camera_alpha:
     image: ojmichel/mineflayer-spectator-client:latest
+    build:
+      context: ./camera
+      dockerfile: Dockerfile
     restart: unless-stopped
     network_mode: host
     depends_on:
@@ -226,8 +229,6 @@ services:
     volumes:
       - ./camera/data_alpha:/root
       - ./camera/output_alpha:/output
-      - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
-      - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
     extra_hosts:
       - "sessionserver.mojang.com:127.0.0.1"
       - "api.minecraftservices.com:127.0.0.1"
@@ -263,6 +264,9 @@ services:
 
   camera_bravo:
     image: ojmichel/mineflayer-spectator-client:latest
+    build:
+      context: ./camera
+      dockerfile: Dockerfile
     restart: unless-stopped
     network_mode: host
     depends_on:
@@ -285,8 +289,6 @@ services:
     volumes:
       - ./camera/data_bravo:/root
       - ./camera/output_bravo:/output
-      - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
-      - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
     extra_hosts:
       - "sessionserver.mojang.com:127.0.0.1"
       - "api.minecraftservices.com:127.0.0.1"
