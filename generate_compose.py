@@ -131,13 +131,37 @@ def generate_compose_config(
 
     entrypoint_host = os.path.join(project_root, "camera", "entrypoint.sh")
     launch_host = os.path.join(project_root, "camera", "launch_minecraft.py")
-    spectator_js_host = os.path.join(project_root, "camera", "spectator.js")
     camera_package_json_host = os.path.join(project_root, "camera", "package.json")
 
     config = {
         "networks": {f"mc_network_{instance_id}": {"driver": "bridge"}},
         "services": {
+            f"prep_data_instance_{instance_id}": {
+                "image": "busybox:latest",
+                "command": [
+                    "sh",
+                    "-c",
+                    "mkdir -p /data /data/plugins /data/skins && "
+                    "chmod 777 /data /data/plugins /data/skins && "
+                    "if [ -d /source_plugins ] && [ -n \"$(ls -A /source_plugins 2>/dev/null)\" ]; then "
+                    "  cp -r /source_plugins/. /data/plugins/; "
+                    "fi; "
+                    "if [ -d /source_skins ] && [ -n \"$(ls -A /source_skins 2>/dev/null)\" ]; then "
+                    "  cp -r /source_skins/. /data/skins/; "
+                    "fi; "
+                    "chmod -R 777 /data/plugins /data/skins",
+                ],
+                "volumes": [
+                    f"{data_dir}:/data",
+                    f"{project_root}/plugins:/source_plugins:ro",
+                    f"{project_root}/skins:/source_skins:ro",
+                ],
+                "restart": "no",
+            },
             f"mc_instance_{instance_id}": {
+                "depends_on": {
+                    f"prep_data_instance_{instance_id}": {"condition": "service_completed_successfully"}
+                },
                 "image": "itzg/minecraft-server",
                 "tty": True,
                 "network_mode": "host",
@@ -152,10 +176,15 @@ def generate_compose_config(
                     "ENFORCE_SECURE_PROFILE": False,
                     "RCON_PASSWORD": "research",
                     "BROADCAST_RCON_TO_OPS": True,
+                    "OPS": "timwm,Pengulu",
                     "LEVEL_TYPE": "minecraft:flat",
                     "GENERATOR_SETTINGS": "TERRAIN_SETTINGS_PLACEHOLDER",
                 },
-                "volumes": [f"{data_dir}:/data"],
+                "volumes": [
+                    f"{data_dir}:/data",
+                    f"{project_root}/plugins:/data/plugins",
+                    f"{project_root}/skins:/data/skins",
+                ],
                 "healthcheck": {
                     "test": [
                         "CMD-SHELL",
@@ -203,10 +232,13 @@ def generate_compose_config(
                     "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                     "MC_VERSION": "1.20.4",
                     "VIEWER_RENDERING_DISABLED": 0,
-                    "VIEWER_RECORDING_INTERVAL": 30,
+                    "VIEWER_RECORDING_INTERVAL": 50,
                     "WALK_TIMEOUT": 5,
                     "TELEPORT": 1,
+                    "WORLD_TYPE": "normal",
                     "SMOKE_TEST": smoke_test,
+                    "INSTANCE_ID": instance_id,
+                    "OUTPUT_DIR": "/output",
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -250,10 +282,13 @@ def generate_compose_config(
                     "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                     "MC_VERSION": "1.20.4",
                     "VIEWER_RENDERING_DISABLED": 0,
-                    "VIEWER_RECORDING_INTERVAL": 30,
+                    "VIEWER_RECORDING_INTERVAL": 50,
                     "WALK_TIMEOUT": 5,
                     "TELEPORT": 1,
+                    "WORLD_TYPE": "normal",
                     "SMOKE_TEST": smoke_test,
+                    "INSTANCE_ID": instance_id,
+                    "OUTPUT_DIR": "/output",
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -326,8 +361,8 @@ def generate_compose_config(
                     "pc.realms.minecraft.net:127.0.0.1",
                 ],
             },
-            # Alpha follow: set spectator + follow target via RCON
-            f"camera_alpha_follow_instance_{instance_id}": {
+            # Episode starter: waits for all players then triggers episode start
+            f"episode_starter_instance_{instance_id}": {
                 "image": "node:20",
                 "network_mode": "host",
                 "depends_on": {
@@ -339,18 +374,18 @@ def generate_compose_config(
                     "RCON_HOST": "127.0.0.1",
                     "RCON_PORT": rcon_port,
                     "RCON_PASSWORD": "research",
-                    "BOT_NAME": "Alpha",
-                    "CAMERA_NAME": "CameraAlpha",
-                    "RETRIES": "60",
+                    "EPISODE_START_RETRIES": "60",
+                    "EPISODE_REQUIRED_PLAYERS": "Alpha,CameraAlpha,Bravo,CameraBravo",
+                    "EPISODE_START_COMMAND": "episode start technoblade.png technoblade.png",
                 },
                 "volumes": [
-                    f"{spectator_js_host}:/app/spectator.js:ro",
+                    f"{os.path.join(project_root, 'camera', 'episode_starter.js')}:/app/episode_starter.js:ro",
                     f"{camera_package_json_host}:/app/package.json:ro",
                 ],
                 "command": [
                     "sh",
                     "-c",
-                    "npm install --omit=dev --no-progress && node spectator.js",
+                    "npm install --omit=dev --no-progress && node episode_starter.js",
                 ],
             },
             # Camera bravo: recording client
@@ -390,33 +425,6 @@ def generate_compose_config(
                     "authserver.mojang.com:127.0.0.1",
                     "textures.minecraft.net:127.0.0.1",
                     "pc.realms.minecraft.net:127.0.0.1",
-                ],
-            },
-            # Bravo follow
-            f"camera_bravo_follow_instance_{instance_id}": {
-                "image": "node:20",
-                "network_mode": "host",
-                "depends_on": {
-                    f"mc_instance_{instance_id}": {"condition": "service_healthy"},
-                    f"camera_bravo_instance_{instance_id}": {"condition": "service_started"}
-                },
-                "working_dir": "/app",
-                "environment": {
-                    "RCON_HOST": "127.0.0.1",
-                    "RCON_PORT": rcon_port,
-                    "RCON_PASSWORD": "research",
-                    "BOT_NAME": "Bravo",
-                    "CAMERA_NAME": "CameraBravo",
-                    "RETRIES": "60",
-                },
-                "volumes": [
-                    f"{spectator_js_host}:/app/spectator.js:ro",
-                    f"{camera_package_json_host}:/app/package.json:ro",
-                ],
-                "command": [
-                    "sh",
-                    "-c",
-                    "npm install --omit=dev --no-progress && node spectator.js",
                 ],
             },
         },
