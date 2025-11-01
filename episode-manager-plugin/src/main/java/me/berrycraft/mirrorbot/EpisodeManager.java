@@ -122,7 +122,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                     if (other.equals(player)) {
                         continue;
                     }
-                    boolean otherIsCamera = activeCameraControllers.containsKey(other.getUniqueId());
+                    boolean otherIsCamera = isCamera(other);
                     boolean shouldHide = (controller != null && other.equals(controller)) || otherIsCamera;
                     if (shouldHide) {
                         player.hidePlayer(this, other);
@@ -316,7 +316,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                 if (other.equals(camera)) {
                     continue;
                 }
-                boolean otherIsCamera = activeCameraControllers.containsKey(other.getUniqueId());
+                boolean otherIsCamera = isCamera(other);
                 boolean shouldHide = (controller != null && other.equals(controller)) || otherIsCamera;
                 if (shouldHide) {
                     camera.hidePlayer(this, other);
