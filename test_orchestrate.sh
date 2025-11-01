@@ -10,12 +10,14 @@ python3 /home/oscar/mc-multiplayer-data/generate_compose.py --instances 2 \
  --camera_output_bravo_base /home/oscar/mc-multiplayer-data/camera/output_bravo \
  --camera_data_alpha_base /home/oscar/mc-multiplayer-data/camera/data_alpha \
  --camera_data_bravo_base /home/oscar/mc-multiplayer-data/camera/data_bravo \
- --smoke_test 1
-
+ --smoke_test 1 \
+ --num_flatland_world 1 \
+ --num_normal_world 1
+ 
 # Start instances - add --build to build images locally instead of pulling from Docker Hub
 python3 /home/oscar/mc-multiplayer-data/orchestrate.py start --build
 python3 /home/oscar/mc-multiplayer-data/orchestrate.py status
 python3 /home/oscar/mc-multiplayer-data/orchestrate.py logs --tail 20
 python3 /home/oscar/mc-multiplayer-data/orchestrate.py recordings
 python3 /home/oscar/mc-multiplayer-data/orchestrate.py stop
-python3 orchestrate.py postprocess --workers 16 --comparison-video
+python3 /home/oscar/mc-multiplayer-data/orchestrate.py postprocess --workers 16 --comparison-video

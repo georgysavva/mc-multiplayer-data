@@ -88,8 +88,6 @@ def generate_compose_config(
     num_episodes,
     episode_start_id,
     bootstrap_wait_time,
-    min_run_actions,
-    max_run_actions,
     episode_category,
     episode_types,
     iterations_num_per_episode,
@@ -239,8 +237,6 @@ def generate_compose_config(
                     "ENABLE_CAMERA_WAIT": 1,
                     "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
-                    "MIN_RUN_ACTIONS": min_run_actions,
-                    "MAX_RUN_ACTIONS": max_run_actions,
                     "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                     "MC_VERSION": "1.20.4",
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
@@ -289,8 +285,6 @@ def generate_compose_config(
                     "ENABLE_CAMERA_WAIT": 1,
                     "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
-                    "MIN_RUN_ACTIONS": min_run_actions,
-                    "MAX_RUN_ACTIONS": max_run_actions,
                     "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                     "MC_VERSION": "1.20.4",
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
@@ -556,18 +550,6 @@ def main():
         help="Bootstrap wait time (default: 60)",
     )
     parser.add_argument(
-        "--min_run_actions",
-        type=int,
-        default=3,
-        help="Minimum number of run actions (default: 3)",
-    )
-    parser.add_argument(
-        "--max_run_actions",
-        type=int,
-        default=5,
-        help="Maximum number of run actions (default: 5)",
-    )
-    parser.add_argument(
         "--episode_category",
         default="look",
         help="Episode category (default: look)",
@@ -644,8 +626,6 @@ def main():
             args.num_episodes,
             args.episode_start_id,
             args.bootstrap_wait_time,
-            args.min_run_actions,
-            args.max_run_actions,
             args.episode_category,
             args.episode_types,
             args.iterations_num_per_episode,
