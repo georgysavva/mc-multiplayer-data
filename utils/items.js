@@ -2,6 +2,8 @@
  * items.js - Utilities for managing bot inventory and equipment
  */
 
+const { sleep } = require("./helpers");
+
 /**
  * Unequips an item from the bot's hand
  * @param {Bot} bot - Mineflayer bot instance
@@ -48,6 +50,48 @@ async function unequipHand(bot, itemType = null) {
   return true;
 }
 
+/**
+ * Ensure the bot has at least targetCount of the given item in inventory
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
+ * @param {string} itemName - Minecraft item name (e.g., 'stone')
+ * @param {number} targetCount - Desired count in inventory
+ */
+async function ensureBotHasEnough(
+  bot,
+  rcon,
+  itemName = "stone",
+  targetCount = 128
+) {
+  // @ts-ignore: module provides runtime data but no TS types in this project
+  const mcData = require("minecraft-data")(bot.version);
+  const item = mcData.itemsByName[itemName];
+  if (!item) {
+    throw new Error(`Unknown item: ${itemName} for version ${bot.version}`);
+  }
+
+  const have = bot.inventory.count(item.id, null);
+  const need = Math.max(0, targetCount - have);
+  console.log(
+    `[${bot.username}] inventory ${itemName}: have=${have}, target=${targetCount}, need=${need}`
+  );
+  if (need === 0) return;
+
+  const cmd = `give ${bot.username} minecraft:${itemName} ${need}`;
+  const res = await rcon.send(cmd);
+  console.log(
+    `[${bot.username}] ensureBotHasEnough: ${cmd} -> ${String(res).trim()}`
+  );
+
+  // brief wait for inventory to update, then verify
+  await sleep(800);
+  const after = bot.inventory.count(item.id, null);
+  console.log(
+    `[${bot.username}] inventory ${itemName}: now ${after}/${targetCount}`
+  );
+}
+
 module.exports = {
   unequipHand,
+  ensureBotHasEnough,
 };

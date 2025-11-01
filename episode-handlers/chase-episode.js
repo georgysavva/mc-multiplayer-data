@@ -151,7 +151,7 @@ async function runFromChaser(
   );
 
   // Initialize pathfinder with optimal settings for running
-  const movements = initializePathfinder(bot, {
+  initializePathfinder(bot, {
     allowSprinting: true,
     allowParkour: true,
     canDig: false,

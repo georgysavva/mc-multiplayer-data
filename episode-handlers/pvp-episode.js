@@ -409,7 +409,7 @@ function getOnPvpPhaseFn(
 
     if (!equippedSword) {
       console.log(`[${bot.username}] ❌ Failed to equip sword - aborting PVP`);
-      return;
+      throw new Error("Failed to equip sword, aborting PVP episode...");
     }
 
     await sleep(500); // Brief pause after equipping
