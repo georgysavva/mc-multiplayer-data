@@ -18,7 +18,7 @@ HOST = ""
 PORT = 8089
 
 
-def process_frame_worker(frame_queue, output_path, viewer_rendering_disabled):
+def process_frame_worker(frame_queue, output_path, viewer_rendering_disabled, episode_id):
     action_data = []
     frames = []
     out = None
@@ -54,6 +54,7 @@ def process_frame_worker(frame_queue, output_path, viewer_rendering_disabled):
 
             pos["relativeTimeMs"] = relative_ms
             pos["epochTime"] = epoch_time
+            pos["episode_id"] = episode_id
 
             pos["x"] = round(pos["x"], 3)
             pos["y"] = round(pos["y"], 3)
@@ -142,6 +143,7 @@ def process_frame_worker(frame_queue, output_path, viewer_rendering_disabled):
         "render_time_is_epoch": render_time_is_epoch,
         "frames": len(action_data),
         "video_fps": video_fps,
+        "episode_id": episode_id,
     }
     with open(output_path + "_meta.json", "w") as meta_f:
         json.dump(metadata, meta_f)
@@ -214,21 +216,7 @@ print("Socket bind complete")
 s.listen(10)
 print("Socket now listening")
 
-id = args.start_id
 while True:
-
-    frame_queue = Queue()
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = (
-        f"{args.output_path}/{timestamp}_{id:06d}_{args.name}_instance_{args.instance_id:03d}"
-    )
-
-    processor = Thread(
-        target=process_frame_worker,
-        args=(frame_queue, output_path, bool(args.viewer_rendering_disabled)),
-    )
-    processor.daemon = True
-    processor.start()
     try:
         conn, addr = s.accept()
     except socket.timeout:
@@ -238,7 +226,44 @@ while True:
 
     # conn.settimeout(10)
     conn.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1024 * 1024)  # 1MB
-    print(f"Socket connected {id}")
+    print("Socket connected")
+
+    # On a fresh connection, read the first message as the episode header
+    try:
+        header_len = recvint(conn)
+    except Exception:
+        header_len = 0
+    if header_len == 0:
+        print("No header received (length=0). Closing connection.")
+        conn.close()
+        continue
+    header_data = recvall(conn, header_len)
+    if header_data is None:
+        print("Error receiving episode header; closing connection")
+        conn.close()
+        continue
+    try:
+        header = json.loads(header_data.decode("utf-8"))
+        episode_id = int(header.get("episode", 0))
+    except Exception as e:
+        print(f"Failed to parse episode header: {e}")
+        conn.close()
+        continue
+
+    print(f"Episode ID: {episode_id}")
+    # Now that we have the episode id, start the processing thread
+    frame_queue = Queue()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = (
+        f"{args.output_path}/{timestamp}_{episode_id:06d}_{args.name}_instance_{args.instance_id:03d}"
+    )
+
+    processor = Thread(
+        target=process_frame_worker,
+        args=(frame_queue, output_path, bool(args.viewer_rendering_disabled), episode_id),
+    )
+    processor.daemon = True
+    processor.start()
 
     img_count = 0
     retcode = 0
@@ -250,7 +275,7 @@ while True:
             except Exception as e:
                 pos_length = 0
             if pos_length == 0:
-                print(f"recv 0 length, normal end. {id}")
+                print(f"recv 0 length, normal end. episode_id: {episode_id}")
                 retcode = 0
                 break
 
@@ -262,14 +287,7 @@ while True:
             print("pos data: ", pos_data.decode("utf-8"))
             pos = json.loads(pos_data.decode("utf-8"))
             pos["frame_count"] = img_count
-            # pos = {
-            #     "x": 0,
-            #     "y": 0,
-            #     "z": 0,
-            #     "yaw": 0,
-            #     "pitch": 0,
-            #     "frame_count": img_count,
-            # }
+            pos["episode_id"] = episode_id
             if args.viewer_rendering_disabled:
                 img = None
             else:
@@ -308,4 +326,3 @@ while True:
         frame_queue.put(None)
         processor.join()
         conn.close()
-        id += 1

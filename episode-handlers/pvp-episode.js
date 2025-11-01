@@ -190,8 +190,8 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
   // Initialize pathfinder for combat
   initializePathfinder(bot, {
     allowSprinting: true, // Sprint to close distance
-    allowParkour: false, // Stable movement
-    canDig: false, // No terrain modification
+    allowParkour: true, // Stable movement
+    canDig: true, // No terrain modification
     allowEntityDetection: true,
   });
 
@@ -409,7 +409,7 @@ function getOnPvpPhaseFn(
 
     if (!equippedSword) {
       console.log(`[${bot.username}] ❌ Failed to equip sword - aborting PVP`);
-      return;
+      throw new Error("Failed to equip sword, aborting PVP episode...");
     }
 
     await sleep(500); // Brief pause after equipping

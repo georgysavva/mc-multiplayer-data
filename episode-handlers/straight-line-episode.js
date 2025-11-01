@@ -69,7 +69,12 @@ async function walkStraightWhileLooking(
 
   // Randomize sprint usage via pathfinder movements
   const allowSprinting = Math.random() < 0.5;
-  initializePathfinder(bot, { allowSprinting });
+  initializePathfinder(bot, {
+    allowSprinting,
+    allowParkour: true,
+    canDig: true,
+    allowEntityDetection: true,
+  });
 
   // Navigate with a small radius around the landing position
   const goal = new GoalNear(landingPos.x, landingPos.y + 1, landingPos.z, 1);

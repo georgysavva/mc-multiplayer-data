@@ -44,13 +44,12 @@ async function chaseRunner(
     }s`
   );
 
-  // Set up pathfinder movements like the GPS example
-  const defaultMove = new Movements(bot);
-  defaultMove.allowSprinting = true;
-  defaultMove.allowParkour = true;
-  defaultMove.canDig = false;
-
-  bot.pathfinder.setMovements(defaultMove);
+  initializePathfinder(bot, {
+    allowSprinting: true,
+    allowParkour: true,
+    canDig: true,
+    allowEntityDetection: true,
+  });
   console.log(
     `[${bot.username}] ✅ Pure pathfinder movements configured for intelligent chase`
   );
@@ -152,7 +151,7 @@ async function runFromChaser(
   );
 
   // Initialize pathfinder with optimal settings for running
-  const movements = initializePathfinder(bot, {
+  initializePathfinder(bot, {
     allowSprinting: true,
     allowParkour: true,
     canDig: false,

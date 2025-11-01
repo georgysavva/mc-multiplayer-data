@@ -368,7 +368,7 @@ function getOnTowerBridgePhaseFn(
       console.log(
         `[${bot.username}] ⚠️ Tower build failed significantly, aborting episode...`
       );
-      return;
+      throw new Error("Tower build failed significantly, aborting episode...");
     }
 
     if (towerResult.failed > 0 || towerResult.heightGained < TOWER_HEIGHT - 1) {
@@ -552,6 +552,7 @@ function getOnTowerBridgePhaseFn(
 class TowerBridgeEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 12;
   static INIT_MAX_BOTS_DISTANCE = 20;
+  static WORKS_IN_NON_FLAT_WORLD = true;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
 

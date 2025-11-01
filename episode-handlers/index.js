@@ -13,6 +13,7 @@ const {
   MAX_BOTS_DISTANCE,
   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
 } = require("../utils/constants");
+const { ensureBotHasEnough } = require("../utils/items");
 
 // Import episode classes
 const { StraightLineEpisode } = require("./straight-line-episode");
@@ -102,6 +103,9 @@ async function saveEpisodeInfo({
     encountered_error: Boolean(episodeInstance?._encounteredError),
     peer_encountered_error: Boolean(episodeInstance?._peerError),
     bot_died: Boolean(episodeInstance?._botDied),
+    episode_recording_started: Boolean(
+      episodeInstance?._episodeRecordingStarted
+    ),
   };
 
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2));
@@ -131,6 +135,7 @@ async function runSingleEpisode(
   console.log(`[${bot.username}] Starting episode ${episodeNum}`);
 
   episodeInstance._botDied = false;
+  episodeInstance._episodeRecordingStarted = false;
 
   return new Promise((resolve) => {
     // Reset episode stopping guard at the start of each episode
@@ -269,6 +274,103 @@ async function notifyPeerErrorAndStop(
 }
 
 /**
+ * Setup bot protection effects and world rules (called once per bot)
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Rcon} rcon - RCON connection instance
+ */
+async function setupBotAndWorldOnce(bot, rcon) {
+  const resistEffectRes = await rcon.send(
+    `effect give ${bot.username} minecraft:resistance 999999 255 true`
+  );
+  console.log(`[${bot.username}] resistEffectRes=${resistEffectRes}`);
+  const waterBreathingEffectRes = await rcon.send(
+    `effect give ${bot.username} minecraft:water_breathing 999999 0 true`
+  );
+  console.log(
+    `[${bot.username}] waterBreathingEffectRes=${waterBreathingEffectRes}`
+  );
+  const fallDamageRes = await rcon.send(
+    `attribute ${bot.username} minecraft:fall_damage_multiplier base set 0`
+  );
+  console.log(`[${bot.username}] fallDamageRes=${fallDamageRes}`);
+  const difficultyRes = await rcon.send("difficulty peaceful"); // or hard
+  console.log(
+    `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`
+  );
+  const fallDamageGameruleRes = await rcon.send("gamerule fallDamage false");
+  console.log(
+    `[${bot.username}] set fallDamage gamerule to false, fallDamageGameruleRes=${fallDamageGameruleRes}`
+  );
+  const doImmediateRespawnRes = await rcon.send(
+    "gamerule doImmediateRespawn true"
+  );
+  console.log(
+    `[${bot.username}] set doImmediateRespawn gamerule to true, doImmediateRespawnRes=${doImmediateRespawnRes}`
+  );
+  const keepInventoryRes = await rcon.send("gamerule keepInventory true");
+  console.log(
+    `[${bot.username}] set keepInventory gamerule to true, keepInventoryRes=${keepInventoryRes}`
+  );
+  const showDeathMessagesRes = await rcon.send(
+    "gamerule showDeathMessages false"
+  );
+  console.log(
+    `[${bot.username}] set showDeathMessages gamerule to false, showDeathMessagesRes=${showDeathMessagesRes}`
+  );
+  const givePickaxeRes = await rcon.send(
+    `give ${bot.username} minecraft:diamond_pickaxe 1`
+  );
+  console.log(`[${bot.username}] givePickaxeRes=${givePickaxeRes}`);
+  const giveShovelRes = await rcon.send(
+    `give ${bot.username} minecraft:diamond_shovel 1`
+  );
+  console.log(`[${bot.username}] giveShovelRes=${giveShovelRes}`);
+}
+
+/**
+ * Setup camera player protection effects (called once per camera)
+ * @param {Bot} bot - Mineflayer bot instance (used to derive camera username)
+ * @param {Rcon} rcon - RCON connection instance
+ */
+async function setupCameraPlayerOnce(bot, rcon) {
+  const cameraUsername = `Camera${bot.username}`;
+  const resistEffectResCamera = await rcon.send(
+    `effect give ${cameraUsername} minecraft:resistance 999999 255 true`
+  );
+  console.log(`[${cameraUsername}] resistEffectRes=${resistEffectResCamera}`);
+  const waterBreathingEffectResCamera = await rcon.send(
+    `effect give ${cameraUsername} minecraft:water_breathing 999999 0 true`
+  );
+  console.log(
+    `[${cameraUsername}] waterBreathingEffectRes=${waterBreathingEffectResCamera}`
+  );
+  const fallDamageResCamera = await rcon.send(
+    `attribute ${cameraUsername} minecraft:fall_damage_multiplier base set 0`
+  );
+  console.log(`[${cameraUsername}] fallDamageRes=${fallDamageResCamera}`);
+}
+
+/**
+ * Setup bot and camera saturation effects for each episode
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Rcon} rcon - RCON connection instance
+ * @param {Object} args - Configuration arguments
+ */
+async function setupBotAndCameraForEpisode(bot, rcon, args) {
+  await ensureBotHasEnough(bot, rcon, "stone", 128);
+  const saturationEffectRes = await rcon.send(
+    `effect give ${bot.username} minecraft:saturation 999999 255 true`
+  );
+  console.log(`[${bot.username}] saturationEffectRes=${saturationEffectRes}`);
+  if (args.enable_camera_wait) {
+    const camRes = await rcon.send(
+      `effect give Camera${bot.username} minecraft:saturation 999999 255 true`
+    );
+    console.log(`[${bot.username}] Camera saturationEffectRes=${camRes}`);
+  }
+}
+
+/**
  * Get spawn phase handler function
  * @param {Bot} bot - Mineflayer bot instance
  * @param {string} host - Server host
@@ -280,49 +382,16 @@ async function notifyPeerErrorAndStop(
  */
 function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
   return async () => {
+    bot.pathfinder.thinkTimeout = 7500; // max total planning time per path (ms)
+    bot.pathfinder.tickTimeout = 15; // max CPU per tick spent "thinking" (ms)
+    bot.pathfinder.searchRadius = 96; // don’t search beyond ~6 chunks from the bot
     const rcon = await Rcon.connect({
       host: args.rcon_host,
       port: args.rcon_port,
       password: args.rcon_password,
     });
-    const resistEffectRes = await rcon.send(
-      `effect give ${bot.username} minecraft:resistance 999999 255 true`
-    );
-    console.log(`[${bot.username}] resistEffectRes=${resistEffectRes}`);
-    const waterBreathingEffectRes = await rcon.send(
-      `effect give ${bot.username} minecraft:water_breathing 999999 0 true`
-    );
-    console.log(
-      `[${bot.username}] waterBreathingEffectRes=${waterBreathingEffectRes}`
-    );
-    const fallDamageRes = await rcon.send(
-      `attribute ${bot.username} minecraft:fall_damage_multiplier base set 0`
-    );
-    console.log(`[${bot.username}] fallDamageRes=${fallDamageRes}`);
-    const difficultyRes = await rcon.send("difficulty peaceful"); // or hard
-    console.log(
-      `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`
-    );
-    const fallDamageGameruleRes = await rcon.send("gamerule fallDamage false");
-    console.log(
-      `[${bot.username}] set fallDamage gamerule to false, fallDamageGameruleRes=${fallDamageGameruleRes}`
-    );
-    const doImmediateRespawnRes = await rcon.send(
-      "gamerule doImmediateRespawn true"
-    );
-    console.log(
-      `[${bot.username}] set doImmediateRespawn gamerule to true, doImmediateRespawnRes=${doImmediateRespawnRes}`
-    );
-    const keepInventoryRes = await rcon.send("gamerule keepInventory true");
-    console.log(
-      `[${bot.username}] set keepInventory gamerule to true, keepInventoryRes=${keepInventoryRes}`
-    );
-    const showDeathMessagesRes = await rcon.send(
-      "gamerule showDeathMessages false"
-    );
-    console.log(
-      `[${bot.username}] set showDeathMessages gamerule to false, showDeathMessagesRes=${showDeathMessagesRes}`
-    );
+    await setupBotAndWorldOnce(bot, rcon);
+
     // Wait for both connections to be established
     console.log("Setting up coordinator connections...");
     await coordinator.setupConnections();
@@ -355,23 +424,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
         process.exit(1);
       }
       // Give resistance to the camera bot paired with this bot, e.g., if Alpha then AlphaCamera
-      const cameraUsername = `Camera${bot.username}`;
-      const resistEffectResCamera = await rcon.send(
-        `effect give ${cameraUsername} minecraft:resistance 999999 255 true`
-      );
-      console.log(
-        `[${cameraUsername}] resistEffectRes=${resistEffectResCamera}`
-      );
-      const waterBreathingEffectResCamera = await rcon.send(
-        `effect give ${cameraUsername} minecraft:water_breathing 999999 0 true`
-      );
-      console.log(
-        `[${cameraUsername}] waterBreathingEffectRes=${waterBreathingEffectResCamera}`
-      );
-      const fallDamageResCamera = await rcon.send(
-        `attribute ${cameraUsername} minecraft:fall_damage_multiplier base set 0`
-      );
-      console.log(`[${cameraUsername}] fallDamageRes=${fallDamageResCamera}`);
+      await setupCameraPlayerOnce(bot, rcon);
 
       console.log(
         `[${bot.username}] Cameras detected, waiting ${args.bootstrap_wait_time}s for popups to clear...`
@@ -510,6 +563,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       });
       console.log(`[${bot.username}] Syncing bots for episode ${episodeNum}`);
       await coordinator.syncBots(episodeNum);
+      console.log(`[${bot.username}] Synced bots for episode ${episodeNum}`);
     }
     await rcon.end();
 
@@ -566,21 +620,10 @@ function getOnTeleportPhaseFn(
     );
     console.log(`[${bot.username}] setting up episode ${episodeNum}`);
     try {
-      const saturationEffectRes = await rcon.send(
-        `effect give ${bot.username} minecraft:saturation 999999 255 true`
-      );
-      console.log(
-        `[${bot.username}] saturationEffectRes=${saturationEffectRes}`
-      );
-      if (args.enable_camera_wait) {
-        const camRes = await rcon.send(
-          `effect give Camera${bot.username} minecraft:saturation 999999 255 true`
-        );
-        console.log(`[${bot.username}] Camera saturationEffectRes=${camRes}`);
-      }
+      await setupBotAndCameraForEpisode(bot, rcon, args);
     } catch (error) {
       console.error(
-        `[${bot.username}] Failed to apply saturation effect:`,
+        `[${bot.username}] Failed to setup bot and camera for episode:`,
         error
       );
     }
@@ -594,7 +637,8 @@ function getOnTeleportPhaseFn(
     );
 
     console.log(`[${bot.username}] starting episode recording`);
-    bot.emit("startepisode", 0);
+    bot.emit("startepisode", episodeNum);
+    episodeInstance._episodeRecordingStarted = true;
     await sleep(1000);
     // await sleep(episodeNum === 0 ? 6000 : 1000);
 
@@ -768,4 +812,7 @@ module.exports = {
   runSingleEpisode,
   getOnSpawnFn,
   getOnTeleportPhaseFn,
+  setupBotAndWorldOnce,
+  setupCameraPlayerOnce,
+  setupBotAndCameraForEpisode,
 };

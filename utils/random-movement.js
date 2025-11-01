@@ -13,52 +13,6 @@ const {
 } = require("./constants");
 const { lookSmooth, stopAll, jump, land_pos } = require("./movement");
 
-/**
- * Generate random position within range around bot
- * @param {Bot} bot - Mineflayer bot instance
- * @param {number} range - Range to search within
- * @returns {Vec3} Random valid position
- */
-function random_pos(bot, range) {
-  const start_pos = bot.entity.position.clone();
-  while (true) {
-    const x = Math.floor(Math.random() * range * 2) - range;
-    const z = Math.floor(Math.random() * range * 2) - range;
-    let limit = (range * 4) / 5;
-    if (x * x + z * z < limit * limit) {
-      // ensure the distance is not to short
-      continue;
-    }
-    const pos = land_pos(bot, start_pos.x + x, start_pos.z + z);
-    if (pos == null || Math.abs(pos.y - start_pos.y) > 10) {
-      console.log(`[${bot.username}] rej null or y diff`);
-      continue;
-    }
-
-    const landable = new Set();
-    LANDABLE_BLOCKS.forEach((blockName) => {
-      if (bot.registry.blocksByName[blockName]) {
-        landable.add(bot.registry.blocksByName[blockName].id);
-      }
-    });
-
-    if (pos !== null) {
-      const block = bot.blockAt(pos);
-      const blockunder = bot.blockAt(pos.offset(0, -1, 0));
-      if (landable.has(block.type) && landable.has(blockunder.type)) {
-        pos.y = pos.y + 1;
-        return pos;
-      } else {
-        console.log(
-          `[${bot.username}] rej block type`,
-          block.type,
-          blockunder.type
-        );
-      }
-    }
-  }
-}
-
 async function walk(bot, distance, lookAway, flipCameraInReturn, args) {
   const startPos = bot.entity.position.clone();
   const dir = choice(["forward", "back", "left", "right"]);
