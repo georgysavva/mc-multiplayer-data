@@ -38,7 +38,8 @@ services:
       RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       BROADCAST_RCON_TO_OPS: true
-      OPS: timwm,Pengulu
+      SPAWN_PROTECTION: 0
+      SEED: ${WORLD_SEED:-1234567890}
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
@@ -98,8 +99,8 @@ services:
       RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       WALK_TIMEOUT: 5
-      TELEPORT: 1
-      BOOTSTRAP_WAIT_TIME: 1
+      TELEPORT: ${TELEPORT:-1}
+      BOOTSTRAP_WAIT_TIME: ${BOOTSTRAP_WAIT_TIME:-1}
       ENABLE_CAMERA_WAIT: 1
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
@@ -148,8 +149,8 @@ services:
       RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       WALK_TIMEOUT: 5
-      TELEPORT: 1
-      BOOTSTRAP_WAIT_TIME: 1
+      TELEPORT: ${TELEPORT:-1}
+      BOOTSTRAP_WAIT_TIME: ${BOOTSTRAP_WAIT_TIME:-1}
       ENABLE_CAMERA_WAIT: 1
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
