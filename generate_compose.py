@@ -61,7 +61,7 @@ def generate_compose_config(
                 "network_mode": "host",
                 "environment": {
                     "EULA": "TRUE",
-                    "VERSION": "1.21",
+                    "VERSION": "1.20.4",
                     "TYPE": "PAPER",
                     "MODE": "creative",
                     "RCON_PORT": rcon_port,

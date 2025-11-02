@@ -12,7 +12,8 @@ const Rcon = require("rcon-client").Rcon;
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for PVP behavior
-const PVP_DURATION_MS = 10000; // 10 seconds of combat
+const PVP_DURATION_MS_MIN = 10000; // 5 seconds of combat
+const PVP_DURATION_MS_MAX = 15000; // 15 seconds of combat
 const ATTACK_COOLDOWN_MS = 500; // 0.5s between attacks
 const MELEE_RANGE = 3; // Attack range in blocks
 const APPROACH_DISTANCE = 2; // Pathfinder target distance
@@ -408,14 +409,19 @@ function getOnPvpPhaseFn(
 
     if (!equippedSword) {
       console.log(`[${bot.username}] ❌ Failed to equip sword - aborting PVP`);
-      return;
+      throw new Error("Failed to equip sword, aborting PVP episode...");
     }
 
     await sleep(500); // Brief pause after equipping
 
     // STEP 5-7: Enter combat loop
     console.log(`[${bot.username}] ⚔️ STEP 5-7: Beginning PVP combat...`);
-    await pvpCombatLoop(bot, args.other_bot_name, PVP_DURATION_MS);
+    const pvpDurationMS =
+      PVP_DURATION_MS_MIN +
+      Math.floor(
+        sharedBotRng() * (PVP_DURATION_MS_MAX - PVP_DURATION_MS_MIN + 1)
+      );
+    await pvpCombatLoop(bot, args.other_bot_name, pvpDurationMS);
 
     // STEP 8: Episode ends
     console.log(`[${bot.username}] 🎬 STEP 8: PVP episode ending...`);
@@ -463,6 +469,7 @@ function getOnPvpPhaseFn(
 class PvpEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = MIN_SPAWN_DISTANCE;
   static INIT_MAX_BOTS_DISTANCE = MAX_SPAWN_DISTANCE;
+  static WORKS_IN_NON_FLAT_WORLD = true;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     // No setup needed - swords are equipped during the episode

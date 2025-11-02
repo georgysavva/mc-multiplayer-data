@@ -1,5 +1,29 @@
 services:
+  prep_data:
+    image: busybox:latest
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /data /data/plugins /data/skins &&
+        chmod 777 /data /data/plugins /data/skins &&
+        if [ -d /source_plugins ] && [ -n "$(ls -A /source_plugins 2>/dev/null)" ]; then
+          cp -r /source_plugins/. /data/plugins/;
+        fi;
+        if [ -d /source_skins ] && [ -n "$(ls -A /source_skins 2>/dev/null)" ]; then
+          cp -r /source_skins/. /data/skins/;
+        fi;
+        chmod -R 777 /data/plugins /data/skins
+    volumes:
+      - ./data:/data
+      - ./plugins:/source_plugins:ro
+      - ./skins:/source_skins:ro
+    restart: "no"
+
   mc:
+    depends_on:
+      prep_data:
+        condition: service_completed_successfully
     image: itzg/minecraft-server
     tty: true
     ports:
@@ -35,6 +59,8 @@ services:
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ./data53:/data
+      - ./plugins:/data/plugins
+      - ./skins:/data/skins
     healthcheck:
       test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
       interval: 10s

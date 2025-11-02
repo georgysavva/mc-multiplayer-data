@@ -23,6 +23,8 @@ function parseArgs() {
       episodes_num: 1,
       start_episode_id: 0,
       run_id: 1,
+      instance_id: 0,
+      output_dir: process.env.OUTPUT_DIR || "/output",
       bootstrap_wait_time: 0,
       enable_camera_wait: 1,
       teleport_center_x: 11,
@@ -38,6 +40,7 @@ function parseArgs() {
       viewer_rendering_disabled: 0,
       viewer_recording_interval: 50,
       smoke_test: 0,
+      world_type: "flat",
     },
   });
 }

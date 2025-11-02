@@ -2,13 +2,17 @@ const { Rcon } = require("rcon-client");
 const net = require("net");
 const EventEmitter = require("events");
 
+function pickRandom(array, sharedBotRng) {
+  const sortedArray = array.slice().sort();
+  return sortedArray[Math.floor(sharedBotRng() * sortedArray.length)];
+}
+
 function decidePrimaryBot(bot, sharedBotRng, args) {
-  // Build a sorted array of both bot names
-  const bots = [bot.username, args.other_bot_name].sort();
-  // Draw a random index (0 or 1)
-  const chosenIndex = Math.floor(sharedBotRng() * bots.length);
-  // Return true if this bot's name matches the chosen index's name
-  return bot.username === bots[chosenIndex];
+  const primaryBotName = pickRandom(
+    [bot.username, args.other_bot_name],
+    sharedBotRng
+  );
+  return bot.username === primaryBotName;
 }
 
 /**
@@ -284,4 +288,5 @@ module.exports = {
   rconForceloadChunks,
   BotCoordinator,
   decidePrimaryBot,
+  pickRandom,
 };

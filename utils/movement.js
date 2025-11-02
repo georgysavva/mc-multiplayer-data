@@ -80,7 +80,8 @@ function disableSprint(bot) {
  * @param {Object} options - Pathfinder configuration options
  */
 function initializePathfinder(bot, options = {}) {
-  const movements = new Movements(bot);
+  const mcData = require("minecraft-data")(bot.version);
+  const movements = new Movements(bot, mcData);
 
   // Configure movement settings - enable all features by default
   movements.allowSprinting = options.allowSprinting !== false; // Default: true
@@ -111,6 +112,48 @@ function initializePathfinder(bot, options = {}) {
 function stopPathfinder(bot) {
   if (bot.pathfinder) {
     bot.pathfinder.stop();
+  }
+}
+
+// ============================================================================
+// PATHFINDER NAVIGATION HELPERS
+// ============================================================================
+
+/**
+ * Go to a goal using pathfinder with a timeout.
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Object} goal - mineflayer-pathfinder Goal instance
+ * @param {Object} [options]
+ * @param {number} [options.timeoutMs=10000] - Maximum time to attempt navigation
+ * @param {boolean} [options.stopOnTimeout=true] - Stop pathfinder when timeout triggers
+ * @returns {Promise<void>} Resolves when reached; rejects on timeout/error
+ */
+async function gotoWithTimeout(bot, goal, options = {}) {
+  const { timeoutMs = 10000, stopOnTimeout = true } = options;
+
+  if (!bot.pathfinder || typeof bot.pathfinder.goto !== "function") {
+    throw new Error("Pathfinder plugin not loaded on bot");
+  }
+
+  let timeoutId;
+  const gotoPromise = bot.pathfinder.goto(goal);
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      if (
+        stopOnTimeout &&
+        bot.pathfinder &&
+        typeof bot.pathfinder.stop === "function"
+      ) {
+        bot.pathfinder.setGoal(null);
+      }
+      reject(new Error(`goto timed out after ${timeoutMs} ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    await Promise.race([gotoPromise, timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
 }
 
@@ -537,6 +580,7 @@ module.exports = {
   // Pathfinder setup and configuration
   initializePathfinder,
   stopPathfinder,
+  gotoWithTimeout,
 
   // Directional movement
   moveDirection,
