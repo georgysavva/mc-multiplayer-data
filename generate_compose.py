@@ -184,6 +184,7 @@ def generate_compose_config(
                         "MODE": "survival",
                         "RCON_PORT": rcon_port,
                         "SERVER_PORT": mc_port,
+                        "ALLOW_FLIGHT": True,
                         "ONLINE_MODE": False,
                         "SPAWN_PROTECTION": 0,
                         "SEED": seed,
