@@ -166,7 +166,7 @@ async function gotoWithTimeout(bot, goal, options = {}) {
  * @returns {Promise<void>} Resolves when dig completes; rejects on timeout/error
  */
 async function digWithTimeout(bot, block, options = {}) {
-  const { timeoutMs = 10000, stopOnTimeout = true } = options;
+  const { timeoutMs = 7000, stopOnTimeout = true } = options;
 
   let timeoutId;
   const digPromise = bot.dig(block);

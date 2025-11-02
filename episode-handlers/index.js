@@ -333,6 +333,10 @@ async function setupBotAndWorldOnce(bot, rcon) {
     `give ${bot.username} minecraft:diamond_shovel 1`
   );
   console.log(`[${bot.username}] giveShovelRes=${giveShovelRes}`);
+  const tagResult = await rcon.send(`tag ${bot.username} add minebot`);
+  console.log(
+    `[${bot.username}] tag ${bot.username} add minebot result: ${tagResult}`
+  );
 }
 
 /**
@@ -525,7 +529,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       console.log(
         `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
       );
-      await sleep(10000);
+      await sleep(1000);
       const episodeCleanup = await runSingleEpisode(
         bot,
         rcon,
@@ -652,7 +656,7 @@ function getOnTeleportPhaseFn(
     );
 
     if (args.teleport) {
-      otherBotPosition = await teleport(
+      await teleport(
         bot,
         rcon,
         sharedBotRng,
@@ -662,10 +666,95 @@ function getOnTeleportPhaseFn(
       );
     }
 
-    // Generate desired distance between bots using sharedBotRng
+    coordinator.onceEvent(
+      "postTeleportPhase",
+      episodeNum,
+      getOnPostTeleportPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        episodeInstance,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      "postTeleportPhase",
+      {},
+      episodeNum,
+      "teleportPhase end"
+    );
+  };
+}
+function getOnPostTeleportPhaseFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  episodeNum,
+  episodeInstance,
+  args
+) {
+  return async () => {
+    coordinator.sendToOtherBot(
+      "postTeleportPhase",
+      {},
+      episodeNum,
+      "postTeleportPhase beginning"
+    );
+    const phaseDataOur = {
+      position: bot.entity.position.clone(),
+    };
+    console.log(
+      `[${bot.username}] our position after teleport: ${JSON.stringify(
+        phaseDataOur
+      )}`
+    );
+
+    coordinator.onceEvent(
+      "beforeStartRecordingPhase",
+      episodeNum,
+      getOnBeforeStartRecordingFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        episodeInstance,
+        args,
+        phaseDataOur
+      )
+    );
+    coordinator.sendToOtherBot(
+      "beforeStartRecordingPhase",
+      phaseDataOur,
+      episodeNum,
+      "postTeleportPhase end"
+    );
+  };
+}
+function getOnBeforeStartRecordingFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  episodeNum,
+  episodeInstance,
+  args,
+  phaseDataOur
+) {
+  return async (phaseDataOther) => {
+    console.log(
+      `[${
+        bot.username
+      }] other position before start recording: ${JSON.stringify(
+        phaseDataOther
+      )}`
+    );
     await lookAtSmooth(
       bot,
-      otherBotPosition,
+      phaseDataOther.position,
       DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
     );
     console.log(`[${bot.username}] setting up episode ${episodeNum}`);
@@ -758,169 +847,53 @@ async function teleport(
   otherBotPosition,
   episodeInstance
 ) {
-  const desiredDistance =
-    episodeInstance.constructor.INIT_MIN_BOTS_DISTANCE +
-    sharedBotRng() *
-      (episodeInstance.constructor.INIT_MAX_BOTS_DISTANCE -
-        episodeInstance.constructor.INIT_MIN_BOTS_DISTANCE);
-
-  console.log(
-    `[${bot.username}] desired distance: ${desiredDistance.toFixed(2)}`
-  );
+  // Initialize teleport center once as the midpoint between this bot and the other bot
+  if (!bot._teleport_center) {
+    console.log(`[${bot.username}] initializing teleport center`);
+    const ourPos = bot.entity.position;
+    bot._teleport_center = {
+      x: (ourPos.x + otherBotPosition.x) / 2,
+      z: (ourPos.z + otherBotPosition.z) / 2,
+    };
+  }
+  const teleportCenter = bot._teleport_center;
   // Pick a random point in the world within the specified radius from center
   const randomAngle = sharedBotRng() * 2 * Math.PI;
   const randomDistance = sharedBotRng() * args.teleport_radius;
 
   const randomPointX =
-    args.teleport_center_x + randomDistance * Math.cos(randomAngle);
+    teleportCenter.x + randomDistance * Math.cos(randomAngle);
   const randomPointZ =
-    args.teleport_center_z + randomDistance * Math.sin(randomAngle);
+    teleportCenter.z + randomDistance * Math.sin(randomAngle);
+  console.log(`[${bot.username}] teleport radius: ${args.teleport_radius}`);
 
   console.log(
-    `[${bot.username}] picked random point at (${randomPointX.toFixed(
+    `[${bot.username}] picked random center at (${randomPointX.toFixed(
       2
-    )}, ${randomPointZ.toFixed(
-      2
-    )}) with desired bot distance: ${desiredDistance.toFixed(2)}`
+    )}, ${randomPointZ.toFixed(2)})`
   );
-
-  // Generate a random angle to position bots on opposite sides of the random point
-  const botAngle = sharedBotRng() * 2 * Math.PI;
-
-  // Calculate distance from random point to each bot (half the desired distance between bots)
-  const halfDistance = desiredDistance / 2;
-
-  let newX, newZ;
-
-  // Position bots on opposite sides of the random point
+  // Use spreadplayers to place both bots around the chosen center
+  const centerX = Math.floor(randomPointX);
+  const centerZ = Math.floor(randomPointZ);
+  const minDistance = episodeInstance.constructor.INIT_MIN_BOTS_DISTANCE;
+  const maxRange = Math.floor(
+    episodeInstance.constructor.INIT_MAX_BOTS_DISTANCE / 2
+  );
   if (bot.username < args.other_bot_name) {
-    // Bot A goes in one direction
-    newX = randomPointX + halfDistance * Math.cos(botAngle);
-    newZ = randomPointZ + halfDistance * Math.sin(botAngle);
-  } else {
-    // Bot B goes in opposite direction
-    newX = randomPointX - halfDistance * Math.cos(botAngle);
-    newZ = randomPointZ - halfDistance * Math.sin(botAngle);
-  }
-  console.log(
-    `[${bot.username}] deploying bot (in the air) to (${newX.toFixed(
-      2
-    )}, ${newZ.toFixed(2)})`
-  );
-  try {
-    // Apply slow falling to the current bot just before teleport
-    await rcon.send(
-      `effect give ${bot.username} minecraft:slow_falling 8 0 true`
-    );
-    await rconTp(
-      rcon,
-      bot.username,
-      Math.floor(newX),
-      Math.floor(Y_IN_AIR),
-      Math.floor(newZ)
-    );
-    await sleep(1000);
-    if (bot.username === "Alpha") {
-      console.log(
-        `[${bot.username}] deploying user (in the air) to (${newX.toFixed(
-          2
-        )}, ${Y_IN_AIR}, ${newZ.toFixed(2)})`
-      );
-      // Apply slow falling to Noodle_Ham just before teleporting them
-      await rcon.send(`effect give Noodle_Ham minecraft:slow_falling 8 0 true`);
-      await rconTp(
-        rcon,
-        "Noodle_Ham",
-        Math.floor(newX + 5),
-        Math.floor(Y_IN_AIR),
-        Math.floor(newZ + 5)
-      );
-      await sleep(1000);
-    }
-
-    // Use land_pos to determine proper Y coordinate, retry up to 5 times
-    let groundPosition = null;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      groundPosition = await land_pos(bot, newX, newZ);
-      if (groundPosition) break;
-      await sleep(1000);
-    }
-    if (!groundPosition) {
-      throw new Error(
-        `[${bot.username}] Failed to find ground position after 5 attempts`
-      );
-    }
+    const targets = `${bot.username} ${args.other_bot_name}`;
+    const cmd = `spreadplayers ${centerX} ${centerZ} ${minDistance} ${maxRange} false @a[tag=minebot]`;
     console.log(
-      `[${bot.username}] Expected ground position: ${groundPosition}`
+      `[${bot.username}] spreadplayers args: center=(${centerX}, ${centerZ}), min=${minDistance}, max=${maxRange}, targets=[${targets}]`
     );
-    if (!isSafeGroundPosition(bot, groundPosition)) {
+    const result = await rcon.send(cmd);
+    console.log(`[${bot.username}] spreadplayers result: ${result}`);
+    if (!result.startsWith("Spread 2 player")) {
       throw new Error(
-        `[${bot.username}] Ground position is unsafe: ${groundPosition}`
+        `[${bot.username}] Unexpected spreadplayers result: ${result}`
       );
     }
-    const landPosition = groundPosition.offset(0, 1, 0);
-    console.log(
-      `[${bot.username}] waiting to land at (${landPosition.x}, ${landPosition.y}, ${landPosition.z})`
-    );
-    const landTimeoutMs = 20000;
-    const landedOk = await waitForLanding(bot, landPosition, {
-      timeoutMs: landTimeoutMs,
-    });
-    if (!landedOk) {
-      throw new Error(
-        `[${bot.username}] Landed outside expected position or overshot below expected Y`
-      );
-    }
-  } finally {
-    await rcon.send(`effect clear ${bot.username} minecraft:slow_falling`);
-    if (bot.username === "Alpha") {
-      await rcon.send(`effect clear Noodle_Ham minecraft:slow_falling`);
-    }
-  }
-  const landedPos = bot.entity.position.clone();
-  console.log(
-    `[${bot.username}] landed at (${landedPos.x.toFixed(
-      2
-    )}, ${landedPos.y.toFixed(2)}, ${landedPos.z.toFixed(2)})`
-  );
-
-  // Compute the other bot's new position (opposite side of the random point)
-  let otherBotNewX, otherBotNewZ;
-  if (bot.username < args.other_bot_name) {
-    // This bot goes in one direction, other bot goes in opposite direction
-    otherBotNewX = randomPointX - halfDistance * Math.cos(botAngle);
-    otherBotNewZ = randomPointZ - halfDistance * Math.sin(botAngle);
-  } else {
-    // This bot goes in opposite direction, other bot goes in initial direction
-    otherBotNewX = randomPointX + halfDistance * Math.cos(botAngle);
-    otherBotNewZ = randomPointZ + halfDistance * Math.sin(botAngle);
-  }
-
-  // Estimate other bot's Y coordinate (try up to 5 times)
-  let otherBotGroundPosition = null;
-  for (let attempt = 0; attempt < 5; attempt++) {
-    otherBotGroundPosition = await land_pos(bot, otherBotNewX, otherBotNewZ);
-    if (otherBotGroundPosition) break;
     await sleep(1000);
   }
-  console.log(
-    `[${bot.username}] Other bot expected ground position: ${otherBotGroundPosition}`
-  );
-  if (!otherBotGroundPosition) {
-    throw new Error(
-      `[${bot.username}] Failed to find other bot ground position after 5 attempts`
-    );
-  }
-
-  const otherBotLandPosition = otherBotGroundPosition.offset(0, 1, 0);
-  console.log(
-    `[${bot.username}] other bot will be at (${otherBotLandPosition.x.toFixed(
-      2
-    )}, ${otherBotLandPosition.y.toFixed(2)}, ${otherBotLandPosition.z.toFixed(
-      2
-    )})`
-  );
-  return otherBotLandPosition;
 }
 
 function getOnPeerErrorPhaseFn(
