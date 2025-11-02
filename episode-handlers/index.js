@@ -5,7 +5,12 @@ const Vec3 = require("vec3").Vec3;
 const { sleep } = require("../utils/helpers");
 const { Rcon } = require("rcon-client");
 const seedrandom = require("seedrandom");
-const { land_pos, lookAtSmooth, stopAll } = require("../utils/movement");
+const {
+  land_pos,
+  lookAtSmooth,
+  stopAll,
+  Y_IN_AIR,
+} = require("../utils/movement");
 const { rconTp } = require("../utils/coordination");
 const { waitForCameras } = require("../utils/camera-ready");
 const {
@@ -173,12 +178,9 @@ async function runSingleEpisode(
       );
       episodeInstance._botDied = true;
     };
-    const cleanupErrorHandlers = () => {
+    const cleanupEpisodeScopedHandlers = () => {
       process.removeListener("unhandledRejection", handleAnyError);
       process.removeListener("uncaughtException", handleAnyError);
-    };
-    const cleanupEpisodeScopedHandlers = () => {
-      cleanupErrorHandlers();
       bot.removeListener("death", handleBotDeath);
     };
     process.on("unhandledRejection", handleAnyError);
@@ -186,9 +188,10 @@ async function runSingleEpisode(
     bot.once("death", handleBotDeath);
 
     // Ensure we clean up episode-scoped handlers when the episode resolves
+    // Return the cleanup function to the caller so it can be invoked
+    // after all pending phase handlers finish.
     bot._currentEpisodeResolve = () => {
-      cleanupEpisodeScopedHandlers();
-      resolve(undefined);
+      resolve(cleanupEpisodeScopedHandlers);
     };
 
     const { x, y, z } = bot.entity.position;
@@ -337,6 +340,10 @@ async function setupBotAndWorldOnce(bot, rcon) {
     `give ${bot.username} minecraft:diamond_shovel 1`
   );
   console.log(`[${bot.username}] giveShovelRes=${giveShovelRes}`);
+  const tagResult = await rcon.send(`tag ${bot.username} add minebot`);
+  console.log(
+    `[${bot.username}] tag ${bot.username} add minebot result: ${tagResult}`
+  );
 }
 
 /**
@@ -529,7 +536,8 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       console.log(
         `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
       );
-      await runSingleEpisode(
+      await sleep(1000);
+      const episodeCleanup = await runSingleEpisode(
         bot,
         rcon,
         sharedBotRng,
@@ -539,6 +547,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
         args
       );
       await coordinator.waitForAllPhasesToFinish();
+      episodeCleanup();
 
       // Force stop bot.pvp and pathfinder navigation
       if (bot.pvp) {
@@ -618,7 +627,7 @@ function getOnTeleportPhaseFn(
     );
 
     if (args.teleport) {
-      otherBotPosition = await teleport(
+      await teleport(
         bot,
         rcon,
         sharedBotRng,
@@ -628,10 +637,95 @@ function getOnTeleportPhaseFn(
       );
     }
 
-    // Generate desired distance between bots using sharedBotRng
+    coordinator.onceEvent(
+      "postTeleportPhase",
+      episodeNum,
+      getOnPostTeleportPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        episodeInstance,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      "postTeleportPhase",
+      {},
+      episodeNum,
+      "teleportPhase end"
+    );
+  };
+}
+function getOnPostTeleportPhaseFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  episodeNum,
+  episodeInstance,
+  args
+) {
+  return async () => {
+    coordinator.sendToOtherBot(
+      "postTeleportPhase",
+      {},
+      episodeNum,
+      "postTeleportPhase beginning"
+    );
+    const phaseDataOur = {
+      position: bot.entity.position.clone(),
+    };
+    console.log(
+      `[${bot.username}] our position after teleport: ${JSON.stringify(
+        phaseDataOur
+      )}`
+    );
+
+    coordinator.onceEvent(
+      "beforeStartRecordingPhase",
+      episodeNum,
+      getOnBeforeStartRecordingFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        episodeInstance,
+        args,
+        phaseDataOur
+      )
+    );
+    coordinator.sendToOtherBot(
+      "beforeStartRecordingPhase",
+      phaseDataOur,
+      episodeNum,
+      "postTeleportPhase end"
+    );
+  };
+}
+function getOnBeforeStartRecordingFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  episodeNum,
+  episodeInstance,
+  args,
+  phaseDataOur
+) {
+  return async (phaseDataOther) => {
+    console.log(
+      `[${
+        bot.username
+      }] other position before start recording: ${JSON.stringify(
+        phaseDataOther
+      )}`
+    );
     await lookAtSmooth(
       bot,
-      otherBotPosition,
+      phaseDataOther.position,
       DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
     );
     console.log(`[${bot.username}] setting up episode ${episodeNum}`);
@@ -653,13 +747,57 @@ function getOnTeleportPhaseFn(
     );
 
     await sleep(1000);
-    console.log(`[${bot.username}] starting episode recording`);
-    bot.emit("startepisode", episodeNum);
-    episodeInstance._episodeRecordingStarted = true;
-    await sleep(1000);
     // await sleep(episodeNum === 0 ? 6000 : 1000);
 
     // Call the entry point method
+    coordinator.onceEvent(
+      "startRecordingPhase",
+      episodeNum,
+      getOnStartRecordingFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        episodeInstance,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      "startRecordingPhase",
+      bot.entity.position.clone(),
+      episodeNum,
+      "teleportPhase end"
+    );
+  };
+}
+function getOnStartRecordingFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  episodeNum,
+  episodeInstance,
+  args
+) {
+  return async (otherBotPosition) => {
+    coordinator.sendToOtherBot(
+      "startRecordingPhase",
+      bot.entity.position.clone(),
+      episodeNum,
+      "startRecordingPhase end"
+    );
+    if (bot._episodeStopping) {
+      console.log(
+        `[${bot.username}] episode already stopping, skipping start recording`
+      );
+    } else {
+      console.log(`[${bot.username}] starting episode recording`);
+      bot.emit("startepisode", episodeNum);
+      episodeInstance._episodeRecordingStarted = true;
+      await sleep(1000);
+    }
+
     const iterationID = 0;
     episodeInstance.entryPoint(
       bot,
@@ -779,14 +917,16 @@ async function teleport(
   );
 
   console.log(
-    `[${bot.username}] teleporting to (${newX.toFixed(2)}, ${newY.toFixed(
+    `[${bot.username}] picked random center at (${randomPointX.toFixed(
       2
-    )}, ${newZ.toFixed(2)})`
+    )}, ${randomPointZ.toFixed(2)})`
   );
-  console.log(
-    `[${bot.username}] other bot will be at (${otherBotNewX.toFixed(
-      2
-    )}, ${otherBotNewY.toFixed(2)}, ${otherBotNewZ.toFixed(2)})`
+  // Use spreadplayers to place both bots around the chosen center
+  const centerX = Math.floor(randomPointX);
+  const centerZ = Math.floor(randomPointZ);
+  const minDistance = episodeInstance.constructor.INIT_MIN_BOTS_DISTANCE;
+  const maxRange = Math.floor(
+    episodeInstance.constructor.INIT_MAX_BOTS_DISTANCE / 2
   );
 
   // Teleport using rcon

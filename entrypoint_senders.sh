@@ -58,6 +58,7 @@ exec node senders.js \
   --teleport_center_z "${TELEPORT_CENTER_Z:-0}" \
   --teleport_radius "${TELEPORT_RADIUS:-500}" \
   --teleport_min_distance "${TELEPORT_MIN_DISTANCE:-1000}" \
+  --teleport_radius "${TELEPORT_RADIUS:-5}" \
   --mc_version "${MC_VERSION:-1.20.4}" \
   --viewer_rendering_disabled "${VIEWER_RENDERING_DISABLED:-0}" \
   --viewer_recording_interval "${VIEWER_RECORDING_INTERVAL:-50}" \
