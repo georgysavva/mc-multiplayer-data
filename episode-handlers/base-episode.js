@@ -78,14 +78,20 @@ class BaseEpisode {
       console.log(`[${bot.username}] stops recording`);
       bot.emit("endepisode");
 
-      // Wait for the connection to actually close
+      // Wait for the connection to actually close (with timeout)
       console.log(`[${bot.username}] waiting for episode to end...`);
-      await new Promise((resolve) => {
+      const episodeEndedPromise = new Promise((resolve) => {
         bot.once("episodeended", resolve);
       });
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          console.log(`[${bot.username}] episodeended timeout - episode may not have started recording`);
+          resolve();
+        }, 3000); // 3 second timeout
+      });
+      await Promise.race([episodeEndedPromise, timeoutPromise]);
       console.log(`[${bot.username}] episode ended, connection closed`);
       await sleep(1000);
-
 
       coordinator.onceEvent(
         "stoppedPhase",
