@@ -4,6 +4,7 @@ const {
   sleep,
   initializePathfinder,
   stopPathfinder,
+  digWithTimeout,
 } = require("../utils/movement");
 const { ensureItemInHand } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
@@ -40,7 +41,7 @@ async function digBlock(bot, blockPos) {
     await sleep(50);
 
     // Dig the block
-    await bot.dig(block);
+    await digWithTimeout(bot, block);
     console.log(`[${bot.username}] ✅ Successfully dug ${block.name}`);
 
     return true;
@@ -205,7 +206,7 @@ async function mineTunnelTowards(bot, targetPos, maxBlocks = 20) {
           await sleep(50);
 
           // Dig the block
-          await bot.dig(block);
+          await digWithTimeout(bot, block);
           blocksMined++;
           console.log(
             `[${bot.username}] ✅ Mined block ${blocksMined}: ${block.name}`
@@ -479,8 +480,6 @@ function getOnMinePhaseFn(
  * MineEpisode - Episode class for mining towards each other
  */
 class MineEpisode extends BaseEpisode {
-  static INIT_MIN_BOTS_DISTANCE = 10;
-  static INIT_MAX_BOTS_DISTANCE = 20;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}

@@ -5,7 +5,13 @@ const Vec3 = require("vec3").Vec3;
 const { sleep } = require("../utils/helpers");
 const { Rcon } = require("rcon-client");
 const seedrandom = require("seedrandom");
-const { land_pos, lookAtSmooth, stopAll } = require("../utils/movement");
+const {
+  land_pos,
+  lookAtSmooth,
+  stopAll,
+  waitForLanding,
+  Y_IN_AIR,
+} = require("../utils/movement");
 const { rconTp } = require("../utils/coordination");
 const { waitForCameras } = require("../utils/camera-ready");
 const {
@@ -173,12 +179,9 @@ async function runSingleEpisode(
       );
       episodeInstance._botDied = true;
     };
-    const cleanupErrorHandlers = () => {
+    const cleanupEpisodeScopedHandlers = () => {
       process.removeListener("unhandledRejection", handleAnyError);
       process.removeListener("uncaughtException", handleAnyError);
-    };
-    const cleanupEpisodeScopedHandlers = () => {
-      cleanupErrorHandlers();
       bot.removeListener("death", handleBotDeath);
     };
     process.on("unhandledRejection", handleAnyError);
@@ -186,9 +189,10 @@ async function runSingleEpisode(
     bot.once("death", handleBotDeath);
 
     // Ensure we clean up episode-scoped handlers when the episode resolves
+    // Return the cleanup function to the caller so it can be invoked
+    // after all pending phase handlers finish.
     bot._currentEpisodeResolve = () => {
-      cleanupEpisodeScopedHandlers();
-      resolve(undefined);
+      resolve(cleanupEpisodeScopedHandlers);
     };
 
     const { x, y, z } = bot.entity.position;
@@ -521,7 +525,8 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       console.log(
         `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
       );
-      await runSingleEpisode(
+      await sleep(1000);
+      const episodeCleanup = await runSingleEpisode(
         bot,
         rcon,
         sharedBotRng,
@@ -531,6 +536,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
         args
       );
       await coordinator.waitForAllPhasesToFinish();
+      episodeCleanup();
 
       // Force stop bot.pvp and pathfinder navigation
       if (bot.pvp) {
@@ -579,6 +585,42 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
     console.log(`[${bot.username}] All ${totalEpisodesRun} episodes completed`);
     process.exit(0);
   };
+}
+
+function isSafeGroundPosition(bot, pos) {
+  const unsafeBlocks = new Set(
+    [
+      bot.registry.blocksByName.water?.id,
+      bot.registry.blocksByName.lava?.id,
+      bot.registry.blocksByName.flowing_water?.id,
+      bot.registry.blocksByName.flowing_lava?.id,
+      bot.registry.blocksByName.cave_air?.id,
+      bot.registry.blocksByName.void_air?.id,
+      // Tree leaves - all variants
+      // bot.registry.blocksByName.oak_leaves?.id,
+      // bot.registry.blocksByName.spruce_leaves?.id,
+      // bot.registry.blocksByName.birch_leaves?.id,
+      // bot.registry.blocksByName.jungle_leaves?.id,
+      // bot.registry.blocksByName.acacia_leaves?.id,
+      // bot.registry.blocksByName.dark_oak_leaves?.id,
+      // bot.registry.blocksByName.mangrove_leaves?.id,
+      // bot.registry.blocksByName.cherry_leaves?.id,
+      // bot.registry.blocksByName.azalea_leaves?.id,
+      // bot.registry.blocksByName.flowering_azalea_leaves?.id,
+    ].filter((id) => id !== undefined)
+  );
+  const block = bot.blockAt(pos);
+  if (!block) {
+    console.log(`[${bot.username}] no block at ${pos}`);
+    return false;
+  }
+  if (unsafeBlocks.has(block.type)) {
+    console.log(
+      `[${bot.username}] unsafe block at ${pos}: ${block.displayName}`
+    );
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -645,13 +687,57 @@ function getOnTeleportPhaseFn(
     );
 
     await sleep(1000);
-    console.log(`[${bot.username}] starting episode recording`);
-    bot.emit("startepisode", episodeNum);
-    episodeInstance._episodeRecordingStarted = true;
-    await sleep(1000);
     // await sleep(episodeNum === 0 ? 6000 : 1000);
 
     // Call the entry point method
+    coordinator.onceEvent(
+      "startRecordingPhase",
+      episodeNum,
+      getOnStartRecordingFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        episodeInstance,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      "startRecordingPhase",
+      bot.entity.position.clone(),
+      episodeNum,
+      "teleportPhase end"
+    );
+  };
+}
+function getOnStartRecordingFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  episodeNum,
+  episodeInstance,
+  args
+) {
+  return async (otherBotPosition) => {
+    coordinator.sendToOtherBot(
+      "startRecordingPhase",
+      bot.entity.position.clone(),
+      episodeNum,
+      "startRecordingPhase end"
+    );
+    if (bot._episodeStopping) {
+      console.log(
+        `[${bot.username}] episode already stopping, skipping start recording`
+      );
+    } else {
+      console.log(`[${bot.username}] starting episode recording`);
+      bot.emit("startepisode", episodeNum);
+      episodeInstance._episodeRecordingStarted = true;
+      await sleep(1000);
+    }
+
     const iterationID = 0;
     episodeInstance.entryPoint(
       bot,
@@ -716,11 +802,87 @@ async function teleport(
     newX = randomPointX - halfDistance * Math.cos(botAngle);
     newZ = randomPointZ - halfDistance * Math.sin(botAngle);
   }
+  console.log(
+    `[${bot.username}] deploying bot (in the air) to (${newX.toFixed(
+      2
+    )}, ${newZ.toFixed(2)})`
+  );
+  try {
+    // Apply slow falling to the current bot just before teleport
+    await rcon.send(
+      `effect give ${bot.username} minecraft:slow_falling 8 0 true`
+    );
+    await rconTp(
+      rcon,
+      bot.username,
+      Math.floor(newX),
+      Math.floor(Y_IN_AIR),
+      Math.floor(newZ)
+    );
+    await sleep(1000);
+    if (bot.username === "Alpha") {
+      console.log(
+        `[${bot.username}] deploying user (in the air) to (${newX.toFixed(
+          2
+        )}, ${Y_IN_AIR}, ${newZ.toFixed(2)})`
+      );
+      // Apply slow falling to Noodle_Ham just before teleporting them
+      await rcon.send(`effect give Noodle_Ham minecraft:slow_falling 8 0 true`);
+      await rconTp(
+        rcon,
+        "Noodle_Ham",
+        Math.floor(newX + 5),
+        Math.floor(Y_IN_AIR),
+        Math.floor(newZ + 5)
+      );
+      await sleep(1000);
+    }
 
-  // Use land_pos to determine proper Y coordinate
-  const landPosition = await land_pos(bot, newX, newZ);
-  const currentPos = bot.entity.position.clone();
-  const newY = landPosition ? landPosition.y + 1 : currentPos.y;
+    // Use land_pos to determine proper Y coordinate, retry up to 5 times
+    let groundPosition = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      groundPosition = await land_pos(bot, newX, newZ);
+      if (groundPosition) break;
+      await sleep(1000);
+    }
+    if (!groundPosition) {
+      throw new Error(
+        `[${bot.username}] Failed to find ground position after 5 attempts`
+      );
+    }
+    console.log(
+      `[${bot.username}] Expected ground position: ${groundPosition}`
+    );
+    if (!isSafeGroundPosition(bot, groundPosition)) {
+      throw new Error(
+        `[${bot.username}] Ground position is unsafe: ${groundPosition}`
+      );
+    }
+    const landPosition = groundPosition.offset(0, 1, 0);
+    console.log(
+      `[${bot.username}] waiting to land at (${landPosition.x}, ${landPosition.y}, ${landPosition.z})`
+    );
+    const landTimeoutMs = 20000;
+    const landedOk = await waitForLanding(bot, landPosition, {
+      timeoutMs: landTimeoutMs,
+    });
+    if (!landedOk) {
+      throw new Error(
+        `[${bot.username}] Landed outside expected position or overshot below expected Y`
+      );
+    }
+  } finally {
+    await rcon.send(`effect clear ${bot.username} minecraft:slow_falling`);
+    if (bot.username === "Alpha") {
+      await rcon.send(`effect clear Noodle_Ham minecraft:slow_falling`);
+    }
+  }
+  const landedPos = bot.entity.position.clone();
+  console.log(
+    `[${bot.username}] landed at (${landedPos.x.toFixed(
+      2
+    )}, ${landedPos.y.toFixed(2)}, ${landedPos.z.toFixed(2)})`
+  );
 
   // Compute the other bot's new position (opposite side of the random point)
   let otherBotNewX, otherBotNewZ;
@@ -734,50 +896,31 @@ async function teleport(
     otherBotNewZ = randomPointZ + halfDistance * Math.sin(botAngle);
   }
 
-  // Estimate other bot's Y coordinate
-  const otherBotLandPosition = await land_pos(bot, otherBotNewX, otherBotNewZ);
-  const otherBotNewY = otherBotLandPosition
-    ? otherBotLandPosition.y + 1
-    : otherBotPosition.y;
-
-  const computedOtherBotPosition = new Vec3(
-    otherBotNewX,
-    otherBotNewY,
-    otherBotNewZ
-  );
-
-  console.log(
-    `[${bot.username}] teleporting to (${newX.toFixed(2)}, ${newY.toFixed(
-      2
-    )}, ${newZ.toFixed(2)})`
-  );
-  console.log(
-    `[${bot.username}] other bot will be at (${otherBotNewX.toFixed(
-      2
-    )}, ${otherBotNewY.toFixed(2)}, ${otherBotNewZ.toFixed(2)})`
-  );
-
-  // Teleport using rcon
-  try {
-    await rconTp(
-      rcon,
-      bot.username,
-      Math.floor(newX),
-      Math.floor(newY),
-      Math.floor(newZ)
-    );
-    // await sleep(1000);
-    console.log(
-      `[${
-        bot.username
-      }] teleport completed. New local position: (${newX.toFixed(
-        2
-      )}, ${newY.toFixed(2)}, ${newZ.toFixed(2)})`
-    );
-  } catch (error) {
-    console.error(`[${bot.username}] teleport failed:`, error);
+  // Estimate other bot's Y coordinate (try up to 5 times)
+  let otherBotGroundPosition = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    otherBotGroundPosition = await land_pos(bot, otherBotNewX, otherBotNewZ);
+    if (otherBotGroundPosition) break;
+    await sleep(1000);
   }
-  return computedOtherBotPosition;
+  console.log(
+    `[${bot.username}] Other bot expected ground position: ${otherBotGroundPosition}`
+  );
+  if (!otherBotGroundPosition) {
+    throw new Error(
+      `[${bot.username}] Failed to find other bot ground position after 5 attempts`
+    );
+  }
+
+  const otherBotLandPosition = otherBotGroundPosition.offset(0, 1, 0);
+  console.log(
+    `[${bot.username}] other bot will be at (${otherBotLandPosition.x.toFixed(
+      2
+    )}, ${otherBotLandPosition.y.toFixed(2)}, ${otherBotLandPosition.z.toFixed(
+      2
+    )})`
+  );
+  return otherBotLandPosition;
 }
 
 function getOnPeerErrorPhaseFn(
