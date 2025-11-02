@@ -13,7 +13,7 @@ const {
   MAX_BOTS_DISTANCE,
   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
 } = require("../utils/constants");
-const { ensureBotHasEnough } = require("../utils/items");
+const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 
 // Import episode classes
 const { StraightLineEpisode } = require("./straight-line-episode");
@@ -27,7 +27,7 @@ const { BuildTowerEpisode } = require("./build-tower-episode");
 const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
-const { CollectorEpisode } = require("./collector-episode");
+// const { CollectorEpisode } = require("./collector-episode");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -42,7 +42,7 @@ const episodeClassMap = {
   buildTower: BuildTowerEpisode,
   mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
-  collector: CollectorEpisode,
+  // collector: CollectorEpisode,
 };
 
 // Import episode-specific handlers
@@ -61,7 +61,7 @@ const defaultEpisodeTypes = [
   "buildTower",
   "mine",
   "towerBridge",
-  "collector",
+  // "collector",
 ];
 
 // Load episode types from environment variable or use default
@@ -380,6 +380,9 @@ async function setupBotAndCameraForEpisode(bot, rcon, args) {
     );
     console.log(`[${bot.username}] Camera saturationEffectRes=${camRes}`);
   }
+  await sleep(1000);
+  console.log(`[${bot.username}] unequipping hand before episode`);
+  await unequipHand(bot);
 }
 
 /**
@@ -397,6 +400,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
     bot.pathfinder.thinkTimeout = 7500; // max total planning time per path (ms)
     bot.pathfinder.tickTimeout = 15; // max CPU per tick spent "thinking" (ms)
     bot.pathfinder.searchRadius = 96; // don’t search beyond ~6 chunks from the bot
+    bot.pathfinder.maxDropDown = 15;
     const rcon = await Rcon.connect({
       host: args.rcon_host,
       port: args.rcon_port,
@@ -648,6 +652,7 @@ function getOnTeleportPhaseFn(
       args
     );
 
+    await sleep(1000);
     console.log(`[${bot.username}] starting episode recording`);
     bot.emit("startepisode", episodeNum);
     episodeInstance._episodeRecordingStarted = true;

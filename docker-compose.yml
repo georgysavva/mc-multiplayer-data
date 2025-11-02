@@ -38,7 +38,8 @@ services:
       RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
       BROADCAST_RCON_TO_OPS: true
-      OPS: timwm,Pengulu
+      SPAWN_PROTECTION: 0
+      SEED: ${WORLD_SEED:-1234567890}
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
@@ -104,6 +105,8 @@ services:
       TELEPORT_RADIUS: 3000
       TELEPORT_MIN_DISTANCE: 1000
       BOOTSTRAP_WAIT_TIME: 1
+      TELEPORT: ${TELEPORT:-1}
+      BOOTSTRAP_WAIT_TIME: ${BOOTSTRAP_WAIT_TIME:-1}
       ENABLE_CAMERA_WAIT: 1
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
@@ -158,6 +161,8 @@ services:
       TELEPORT_RADIUS: 3000
       TELEPORT_MIN_DISTANCE: 1000
       BOOTSTRAP_WAIT_TIME: 1
+      TELEPORT: ${TELEPORT:-1}
+      BOOTSTRAP_WAIT_TIME: ${BOOTSTRAP_WAIT_TIME:-1}
       ENABLE_CAMERA_WAIT: 1
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
@@ -212,6 +217,9 @@ services:
 
   camera_alpha:
     image: ojmichel/mineflayer-spectator-client:latest
+    build:
+      context: ./camera
+      dockerfile: Dockerfile
     restart: unless-stopped
     network_mode: host
     depends_on:
@@ -234,8 +242,6 @@ services:
     volumes:
       - ./camera/data_alpha:/root
       - ./camera/output_alpha:/output
-      - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
-      - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
     extra_hosts:
       - "sessionserver.mojang.com:127.0.0.1"
       - "api.minecraftservices.com:127.0.0.1"
@@ -258,7 +264,7 @@ services:
       RCON_PASSWORD: "research"
       EPISODE_START_RETRIES: "60"
       EPISODE_REQUIRED_PLAYERS: "Alpha,CameraAlpha,Bravo,CameraBravo"
-      EPISODE_START_COMMAND: "episode start technoblade.png test.png"
+      EPISODE_START_COMMAND: "episode start Alpha CameraAlpha technoblade.png Bravo CameraBravo test.png"
     volumes:
       - ./camera/episode_starter.js:/app/episode_starter.js:ro
       - ./camera/package.json:/app/package.json:ro
@@ -271,6 +277,9 @@ services:
 
   camera_bravo:
     image: ojmichel/mineflayer-spectator-client:latest
+    build:
+      context: ./camera
+      dockerfile: Dockerfile
     restart: unless-stopped
     network_mode: host
     depends_on:
@@ -293,8 +302,6 @@ services:
     volumes:
       - ./camera/data_bravo:/root
       - ./camera/output_bravo:/output
-      - ./camera/entrypoint.sh:/app/entrypoint.sh:ro
-      - ./camera/launch_minecraft.py:/app/launch_minecraft.py:ro
     extra_hosts:
       - "sessionserver.mojang.com:127.0.0.1"
       - "api.minecraftservices.com:127.0.0.1"

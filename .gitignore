@@ -3,7 +3,14 @@ output*/
 videos/
 .vscode/
 logs/
-aligned/
+aligned/*
+aligned/alpha/
+aligned/beta/
 __pycache__/
 .env
 node_modules
+plugins/SkinsRestorer/cache/*
+plugins/SkinsRestorer/players/*
+plugins/SkinsRestorer/skins/*.playerskin
+plugins/SkinsRestorer/recommendations.json
+postprocess/__pycache__/
