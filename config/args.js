@@ -27,8 +27,8 @@ function parseArgs() {
       output_dir: process.env.OUTPUT_DIR || "/output",
       bootstrap_wait_time: 0,
       enable_camera_wait: 1,
-      teleport_center_x: 11,
-      teleport_center_z: 11,
+      teleport_center_x: 0,
+      teleport_center_z: 0,
       teleport_radius: 5,
       walk_timeout: 5, // walk timeout in seconds
       mc_version: process.env.MC_VERSION || "1.20.4",
