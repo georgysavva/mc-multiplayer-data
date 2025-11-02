@@ -73,8 +73,8 @@ def build_bot_config(
     - camera_prefix may already be an output_{alpha|bravo}/<instance> directory
       (as in orchestration); handle both prefixed and non-prefixed forms.
     """
+    output_dir = (output_base or Path.cwd() / "aligned")
     if bot == "Alpha":
-        output_dir = (output_base or Path.cwd() / "aligned") / "alpha"
         # If camera_prefix already points into output_alpha, use it directly
         if "output_alpha" in str(camera_prefix):
             camera_meta = camera_prefix / "camera_alpha_meta.json"
@@ -89,7 +89,6 @@ def build_bot_config(
             )
         }
     else:
-        output_dir = (output_base or Path.cwd() / "aligned") / "bravo"
         # If camera_prefix already points into output_bravo, use it directly
         if "output_bravo" in str(camera_prefix):
             camera_meta = camera_prefix / "camera_bravo_meta.json"

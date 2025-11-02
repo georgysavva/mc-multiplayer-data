@@ -191,9 +191,7 @@ def generate_compose_config(
                     ),
                 })(),
                 "volumes": [
-                    f"{data_dir}:/data",
-                    f"{project_root}/plugins:/data/plugins",
-                    f"{project_root}/skins:/data/skins",
+                    f"{data_dir}:/data"
                 ],
                 "healthcheck": {
                     "test": [
@@ -225,7 +223,7 @@ def generate_compose_config(
                     "OTHER_COORD_HOST": f"sender_bravo_instance_{instance_id}",
                     "OTHER_COORD_PORT": coord_port,
                     "BOT_RNG_SEED": str(12345 + instance_id),
-                    "EPISODES_NUM": 1,
+                    "EPISODES_NUM": num_episodes,
                     "EPISODE_START_ID": episode_start_id,
                     "EPISODE_TYPES": episode_types,
                     "MC_HOST": "host.docker.internal",
@@ -273,7 +271,7 @@ def generate_compose_config(
                     "OTHER_COORD_HOST": f"sender_alpha_instance_{instance_id}",
                     "OTHER_COORD_PORT": coord_port,
                     "BOT_RNG_SEED": str(12345 + instance_id),
-                    "EPISODES_NUM": 1,
+                    "EPISODES_NUM": num_episodes,
                     "EPISODE_START_ID": episode_start_id,
                     "EPISODE_TYPES": episode_types,
                     "MC_HOST": "host.docker.internal",
