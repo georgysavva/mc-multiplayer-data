@@ -27,7 +27,7 @@ const { BuildTowerEpisode } = require("./build-tower-episode");
 const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
-// const { CollectorEpisode } = require("./collector-episode");
+const { CollectorEpisode } = require("./collector-episode");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -42,7 +42,7 @@ const episodeClassMap = {
   buildTower: BuildTowerEpisode,
   mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
-  // collector: CollectorEpisode,
+  collector: CollectorEpisode,
 };
 
 // Import episode-specific handlers
@@ -61,7 +61,7 @@ const defaultEpisodeTypes = [
   "buildTower",
   "mine",
   "towerBridge",
-  // "collector",
+  "collector",
 ];
 
 // Load episode types from environment variable or use default
