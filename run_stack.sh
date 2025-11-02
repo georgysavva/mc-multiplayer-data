@@ -83,8 +83,38 @@ check_port_available() {
   return 0
 }
 
+check_display_available() {
+  local display=$1
+  local display_num=${display#:}  # Remove leading colon
+  
+  # Check for X11 lock file
+  if [[ -f "/tmp/.X${display_num}-lock" ]]; then
+    # Lock file exists, check if the process is still running
+    local pid
+    pid=$(cat "/tmp/.X${display_num}-lock" 2>/dev/null | tr -d ' ')
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      return 1  # Display is in use
+    fi
+  fi
+  
+  # Check for X11 socket
+  if [[ -S "/tmp/.X11-unix/X${display_num}" ]]; then
+    return 1  # Socket exists, display is likely in use
+  fi
+  
+  # Check if any Xvfb process is using this display
+  if command -v pgrep >/dev/null 2>&1; then
+    if pgrep -f "Xvfb ${display}" >/dev/null 2>&1; then
+      return 1  # Xvfb is running on this display
+    fi
+  fi
+  
+  return 0  # Display is available
+}
+
 check_required_ports() {
   local ports_in_use=()
+  local displays_in_use=()
   
   # Define ports to check with their names
   local -A ports_to_check=(
@@ -96,8 +126,15 @@ check_required_ports() {
     ["${CAMERA_BRAVO_NOVNC_PORT:-6902}"]="CAMERA_BRAVO_NOVNC_PORT"
   )
   
-  echo "[run] checking if required ports are available"
+  # Define X11 displays to check
+  local -A displays_to_check=(
+    ["${CAMERA_ALPHA_DISPLAY:-:99}"]="CAMERA_ALPHA_DISPLAY"
+    ["${CAMERA_BRAVO_DISPLAY:-:100}"]="CAMERA_BRAVO_DISPLAY"
+  )
   
+  echo "[run] checking if required ports and displays are available"
+  
+  # Check ports
   for port in "${!ports_to_check[@]}"; do
     local port_name="${ports_to_check[$port]}"
     if ! check_port_available "${port}" "${port_name}"; then
@@ -105,16 +142,38 @@ check_required_ports() {
     fi
   done
   
+  # Check displays
+  for display in "${!displays_to_check[@]}"; do
+    local display_name="${displays_to_check[$display]}"
+    if ! check_display_available "${display}"; then
+      displays_in_use+=("${display} (${display_name})")
+    fi
+  done
+  
+  local has_errors=0
+  
   if [[ ${#ports_in_use[@]} -gt 0 ]]; then
     echo "[run] ERROR: The following ports are already in use:" >&2
     for port_info in "${ports_in_use[@]}"; do
       echo "  - ${port_info}" >&2
     done
-    echo "[run] Please stop the services using these ports or change the port configuration in .env" >&2
+    has_errors=1
+  fi
+  
+  if [[ ${#displays_in_use[@]} -gt 0 ]]; then
+    echo "[run] ERROR: The following X11 displays are already in use:" >&2
+    for display_info in "${displays_in_use[@]}"; do
+      echo "  - ${display_info}" >&2
+    done
+    has_errors=1
+  fi
+  
+  if [[ ${has_errors} -eq 1 ]]; then
+    echo "[run] Please stop the services using these resources or change the configuration in .env" >&2
     return 1
   fi
   
-  echo "[run] all required ports are available"
+  echo "[run] all required ports and displays are available"
   return 0
 }
 
