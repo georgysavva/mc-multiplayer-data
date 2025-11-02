@@ -9,7 +9,6 @@ const {
   land_pos,
   lookAtSmooth,
   stopAll,
-  waitForLanding,
   Y_IN_AIR,
 } = require("../utils/movement");
 const { rconTp } = require("../utils/coordination");
@@ -589,42 +588,6 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
     console.log(`[${bot.username}] All ${totalEpisodesRun} episodes completed`);
     process.exit(0);
   };
-}
-
-function isSafeGroundPosition(bot, pos) {
-  const unsafeBlocks = new Set(
-    [
-      bot.registry.blocksByName.water?.id,
-      bot.registry.blocksByName.lava?.id,
-      bot.registry.blocksByName.flowing_water?.id,
-      bot.registry.blocksByName.flowing_lava?.id,
-      bot.registry.blocksByName.cave_air?.id,
-      bot.registry.blocksByName.void_air?.id,
-      // Tree leaves - all variants
-      // bot.registry.blocksByName.oak_leaves?.id,
-      // bot.registry.blocksByName.spruce_leaves?.id,
-      // bot.registry.blocksByName.birch_leaves?.id,
-      // bot.registry.blocksByName.jungle_leaves?.id,
-      // bot.registry.blocksByName.acacia_leaves?.id,
-      // bot.registry.blocksByName.dark_oak_leaves?.id,
-      // bot.registry.blocksByName.mangrove_leaves?.id,
-      // bot.registry.blocksByName.cherry_leaves?.id,
-      // bot.registry.blocksByName.azalea_leaves?.id,
-      // bot.registry.blocksByName.flowering_azalea_leaves?.id,
-    ].filter((id) => id !== undefined)
-  );
-  const block = bot.blockAt(pos);
-  if (!block) {
-    console.log(`[${bot.username}] no block at ${pos}`);
-    return false;
-  }
-  if (unsafeBlocks.has(block.type)) {
-    console.log(
-      `[${bot.username}] unsafe block at ${pos}: ${block.displayName}`
-    );
-    return false;
-  }
-  return true;
 }
 
 /**

@@ -448,64 +448,6 @@ function land_pos(bot, x, z) {
 }
 
 /**
- * Wait in a loop until Y stops changing or timeout, then report closeness to land.
- * Early exit false if current Y drops below expected landing Y.
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Vec3} landPosition - Solid block position returned by land_pos
- * @param {Object} [options]
- * @param {number} [options.timeoutMs=20000] - Overall timeout in ms
- * @returns {Promise<boolean>} true if close to expected land position, else false
- */
-async function waitForLanding(bot, landPosition, options = {}) {
-  const timeoutMs = options.timeoutMs ?? 20000;
-  const expectedY = landPosition.y;
-  const start = Date.now();
-  const epsilon = 2;
-  let prevY = null;
-
-  while (Date.now() - start < timeoutMs) {
-    const pos = bot.entity.position;
-    const currY = pos.y;
-
-    if (currY - expectedY < -5) {
-      console.log(
-        `[${bot.username}] current Y (${currY}) is below expected Y (${expectedY})`
-      );
-      return false;
-    }
-
-    if (prevY !== null) {
-      const dy = Math.abs(currY - prevY);
-      if (dy < epsilon) {
-        const finalPos = bot.entity.position;
-        const closeToLand =
-          Math.abs(finalPos.x - landPosition.x) < epsilon &&
-          Math.abs(finalPos.z - landPosition.z) < epsilon &&
-          Math.abs(finalPos.y - expectedY) < epsilon;
-        console.log(`[${bot.username}] close to land: ${closeToLand}`);
-        console.log(`[${bot.username}] finalPos: ${finalPos}`);
-        console.log(`[${bot.username}] landPosition: ${landPosition}`);
-        return closeToLand;
-      }
-    }
-
-    prevY = currY;
-    await sleep(250);
-  }
-  console.log(
-    `[${
-      bot.username
-    }] timed out waiting for landing. Current pos: ${bot.entity.position.x.toFixed(
-      2
-    )}, ${bot.entity.position.y.toFixed(2)}, ${bot.entity.position.z.toFixed(
-      2
-    )}`
-  );
-
-  return false;
-}
-
-/**
  * Sleep for a specified duration
  * @param {number} ms - Milliseconds to sleep
  * @returns {Promise} Promise that resolves after the specified time
@@ -643,7 +585,6 @@ module.exports = {
   isNearPosition,
   isNearBot,
   land_pos,
-  waitForLanding,
   jump,
   Y_IN_AIR,
 };
