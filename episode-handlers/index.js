@@ -4,7 +4,7 @@ const { sleep } = require("../utils/helpers");
 const { Rcon } = require("rcon-client");
 const seedrandom = require("seedrandom");
 const { land_pos, lookAtSmooth, stopAll } = require("../utils/movement");
-const { rconTp, rconForceloadChunks } = require("../utils/coordination");
+const { rconTp } = require("../utils/coordination");
 const { waitForCameras } = require("../utils/camera-ready");
 const {
   MIN_BOTS_DISTANCE,
@@ -520,7 +520,7 @@ async function teleport(
   // Calculate distance from random point to each bot (half the desired distance between bots)
   const halfDistance = desiredDistance / 2;
 
-  let newX, newZ;
+  let newX, newZ, newY;
 
   // Position bots on opposite sides of the random point
   if (bot.username < args.other_bot_name) {
@@ -533,68 +533,8 @@ async function teleport(
     newZ = randomPointZ - halfDistance * Math.sin(botAngle);
   }
 
-  // Verify landing position is safe (not water/lava/leaves)
-  // IMPORTANT: Must forceload chunks BEFORE checking with land_pos()
-  let landPosition = null;
-  let safetyAttempts = 0;
-  const maxSafetyAttempts = 5;
-  
-  while (!landPosition && safetyAttempts < maxSafetyAttempts) {
-    safetyAttempts++;
-    
-    console.log(
-      `[${bot.username}] Checking landing safety at (${newX.toFixed(2)}, ${newZ.toFixed(2)}), attempt ${safetyAttempts}/${maxSafetyAttempts}`
-    );
-    
-    // Forceload chunks at this location so land_pos() can check them
-    const tempForceloadResult = await rconForceloadChunks(rcon, Math.floor(newX), Math.floor(newZ), 1);
-    
-    if (!tempForceloadResult.success) {
-      console.warn(`[${bot.username}] Failed to forceload chunks for safety check, skipping this location`);
-      // Try a new random position nearby (within 50 blocks)
-      const offsetAngle = sharedBotRng() * 2 * Math.PI;
-      const offsetDistance = 20 + sharedBotRng() * 30;
-      newX = newX + offsetDistance * Math.cos(offsetAngle);
-      newZ = newZ + offsetDistance * Math.sin(offsetAngle);
-      continue;
-    }
-    
-    // Wait for chunks to sync to bot client
-    await sleep(1000);
-    
-    // Now check if landing is safe (chunks are loaded)
-    landPosition = await land_pos(bot, newX, newZ);
-    
-    if (!landPosition) {
-      console.log(
-        `[${bot.username}] Unsafe landing at (${newX.toFixed(2)}, ${newZ.toFixed(2)}), trying new location`
-      );
-      
-      // Try a new random position nearby (within 50 blocks)
-      const offsetAngle = sharedBotRng() * 2 * Math.PI;
-      const offsetDistance = 20 + sharedBotRng() * 30; // 20-50 blocks away
-      newX = newX + offsetDistance * Math.cos(offsetAngle);
-      newZ = newZ + offsetDistance * Math.sin(offsetAngle);
-    }
-  }
-  
-  if (!landPosition) {
-    console.warn(
-      `[${bot.username}] Could not find safe landing after ${maxSafetyAttempts} attempts. Using Y=128 anyway and hoping for the best.`
-    );
-  } else {
-    console.log(
-      `[${bot.username}] Found safe landing at Y=${landPosition.y.toFixed(2)} (ground level)`
-    );
-  }
-
   // Spawn at Y=128 and let bots fall to the ground
-  // This ensures we never spawn inside blocks or in invalid locations
-  const newY = 128;
-  
-  console.log(
-    `[${bot.username}] Will spawn at Y=128 and fall to ground at (${newX.toFixed(2)}, ${newZ.toFixed(2)})`
-  );
+  newY = 128;
   
   // Compute the other bot's new position (opposite side of the random point)
   let otherBotNewX, otherBotNewZ;
@@ -606,59 +546,6 @@ async function teleport(
     // This bot goes in opposite direction, other bot goes in initial direction
     otherBotNewX = randomPointX + halfDistance * Math.cos(botAngle);
     otherBotNewZ = randomPointZ + halfDistance * Math.sin(botAngle);
-  }
-
-  // Verify other bot's landing position is safe too (with forceload)
-  let otherBotLandPosition = null;
-  let otherBotSafetyAttempts = 0;
-  
-  while (!otherBotLandPosition && otherBotSafetyAttempts < maxSafetyAttempts) {
-    otherBotSafetyAttempts++;
-    
-    console.log(
-      `[${bot.username}] Checking other bot landing safety at (${otherBotNewX.toFixed(2)}, ${otherBotNewZ.toFixed(2)}), attempt ${otherBotSafetyAttempts}/${maxSafetyAttempts}`
-    );
-    
-    // Forceload chunks for other bot's location
-    const tempForceloadResult = await rconForceloadChunks(rcon, Math.floor(otherBotNewX), Math.floor(otherBotNewZ), 1);
-    
-    if (!tempForceloadResult.success) {
-      console.warn(`[${bot.username}] Failed to forceload chunks for other bot safety check, skipping this location`);
-      // Try a new random position nearby
-      const offsetAngle = sharedBotRng() * 2 * Math.PI;
-      const offsetDistance = 20 + sharedBotRng() * 30;
-      otherBotNewX = otherBotNewX + offsetDistance * Math.cos(offsetAngle);
-      otherBotNewZ = otherBotNewZ + offsetDistance * Math.sin(offsetAngle);
-      continue;
-    }
-    
-    // Wait for chunks to sync
-    await sleep(1000);
-    
-    // Check if other bot's landing is safe
-    otherBotLandPosition = await land_pos(bot, otherBotNewX, otherBotNewZ);
-    
-    if (!otherBotLandPosition) {
-      console.log(
-        `[${bot.username}] Other bot unsafe landing at (${otherBotNewX.toFixed(2)}, ${otherBotNewZ.toFixed(2)}), trying new location`
-      );
-      
-      // Try a new random position nearby
-      const offsetAngle = sharedBotRng() * 2 * Math.PI;
-      const offsetDistance = 20 + sharedBotRng() * 30;
-      otherBotNewX = otherBotNewX + offsetDistance * Math.cos(offsetAngle);
-      otherBotNewZ = otherBotNewZ + offsetDistance * Math.sin(offsetAngle);
-    }
-  }
-  
-  if (!otherBotLandPosition) {
-    console.warn(
-      `[${bot.username}] Could not find safe landing for other bot after ${maxSafetyAttempts} attempts.`
-    );
-  } else {
-    console.log(
-      `[${bot.username}] Found safe landing for other bot at Y=${otherBotLandPosition.y.toFixed(2)}`
-    );
   }
 
   // Other bot also spawns at Y=128
@@ -700,7 +587,7 @@ async function teleport(
     }
     
     console.log(
-      `[${bot.username}] Teleport completed successfully. Forceloaded ${tpResult.forceloadResult.loadedChunks.length} chunks.`
+      `[${bot.username}] Teleport completed successfully.`
     );
     console.log(
       `[${
@@ -712,7 +599,7 @@ async function teleport(
     
     // Wait for bot to fall and land on the ground
     console.log(`[${bot.username}] Waiting for bot to fall and land...`);
-    await sleep(3000); // 3 seconds should be enough for falling from Y=128
+    await sleep(6000); // 6 seconds should be enough for falling from Y=128
     console.log(`[${bot.username}] Bot landed at Y=${bot.entity.position.y.toFixed(2)}`);
   } catch (error) {
     console.error(`[${bot.username}] Teleport error:`, error);

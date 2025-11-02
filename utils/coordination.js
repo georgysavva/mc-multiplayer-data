@@ -53,49 +53,26 @@ async function rconForceloadChunks(rcon, x, z, radius = 1) {
 }
 
 /**
- * RCON teleportation function with chunk forceloading
+ * RCON teleportation function
  * @param {Rcon} rcon - RCON connection instance
  * @param {string} name - Player name
  * @param {number} x - X coordinate
  * @param {number} y - Y coordinate
  * @param {number} z - Z coordinate
- * @param {number} chunkRadius - Chunk radius to forceload (default 1 = 3x3 chunks)
  * @returns {Promise<{success: boolean, message: string}>} Result object
  */
-async function rconTp(rcon, name, x, y, z, chunkRadius = 1) {
+async function rconTp(rcon, name, x, y, z) {
   console.log(`[RCON] Attempting to teleport ${name} to (${x}, ${y}, ${z})`);
   
-  // First attempt: forceload and teleport
-  let forceloadResult = await rconForceloadChunks(rcon, x, z, chunkRadius);
-  
-  if (!forceloadResult.success) {
-    console.warn(`[RCON] First forceload attempt had failures, retrying once...`);
-    // Wait a bit before retry
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    // Retry forceload
-    forceloadResult = await rconForceloadChunks(rcon, x, z, chunkRadius);
-    
-    if (!forceloadResult.success) {
-      const errorMsg = `Failed to forceload chunks after retry. ${forceloadResult.failedChunks.length} chunks failed.`;
-      console.error(`[RCON] ${errorMsg}`);
-      return { success: false, message: errorMsg, forceloadResult };
-    }
-  }
-  
-  // Wait for chunks to fully load and sync to clients
-  console.log(`[RCON] Waiting 2 seconds for chunks to sync to clients...`);
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  console.log(`[RCON] Chunk sync complete, proceeding with teleport`);
-  
-  // Chunks are loaded, now teleport
+  // Execute teleport command
   try {
     const res = await rcon.send(`tp ${name} ${x} ${y} ${z}`);
     console.log(`[RCON] Teleport ${name} result: ${res}`);
-    return { success: true, message: res, forceloadResult };
+    return { success: true, message: res };
   } catch (error) {
     const errorMsg = `Teleport command failed: ${error.message}`;
     console.error(`[RCON] ${errorMsg}`);
-    return { success: false, message: errorMsg, error: error.message, forceloadResult };
+    return { success: false, message: errorMsg, error: error.message };
   }
 }
 
