@@ -156,6 +156,38 @@ async function gotoWithTimeout(bot, goal, options = {}) {
   }
 }
 
+/**
+ * Dig a block with a timeout, similar to gotoWithTimeout.
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Object} block - Block to dig
+ * @param {Object} [options]
+ * @param {number} [options.timeoutMs=10000] - Maximum time to attempt digging
+ * @param {boolean} [options.stopOnTimeout=true] - Stop digging when timeout triggers
+ * @returns {Promise<void>} Resolves when dig completes; rejects on timeout/error
+ */
+async function digWithTimeout(bot, block, options = {}) {
+  const { timeoutMs = 7000, stopOnTimeout = true } = options;
+
+  let timeoutId;
+  const digPromise = bot.dig(block);
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      if (stopOnTimeout && typeof bot.stopDigging === "function") {
+        try {
+          bot.stopDigging();
+        } catch (_) {}
+      }
+      reject(new Error(`dig timed out after ${timeoutMs} ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    await Promise.race([digPromise, timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 // ============================================================================
 // DIRECTIONAL MOVEMENT FUNCTIONS
 // ============================================================================
@@ -382,6 +414,7 @@ function lookDirection(bot, yawRadians, pitchRadians = 0) {
 // UTILITY FUNCTIONS
 // ============================================================================
 
+const Y_IN_AIR = 128;
 /**
  * Find suitable landing position at given coordinates
  * @param {Bot} bot - Mineflayer bot instance
@@ -390,7 +423,7 @@ function lookDirection(bot, yawRadians, pitchRadians = 0) {
  * @returns {Vec3|null} Landing position or null if not found
  */
 function land_pos(bot, x, z) {
-  const pos = new Vec3(x, 64, z);
+  const pos = new Vec3(x, Y_IN_AIR, z);
   let block = bot.blockAt(pos);
 
   if (block === null) {
@@ -531,6 +564,7 @@ module.exports = {
   initializePathfinder,
   stopPathfinder,
   gotoWithTimeout,
+  digWithTimeout,
 
   // Directional movement
   moveDirection,
@@ -552,4 +586,5 @@ module.exports = {
   isNearBot,
   land_pos,
   jump,
+  Y_IN_AIR,
 };
