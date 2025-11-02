@@ -14,6 +14,7 @@ Enhancements:
 import argparse
 import os
 import re
+import time
 from pathlib import Path
 
 import yaml
@@ -139,7 +140,7 @@ def generate_compose_config(
     entrypoint_host = os.path.join(project_root, "camera", "entrypoint.sh")
     launch_host = os.path.join(project_root, "camera", "launch_minecraft.py")
     camera_package_json_host = os.path.join(project_root, "camera", "package.json")
-
+    seed = str(instance_id) + str(int(time.time()))
     config = {
         "networks": {f"mc_network_{instance_id}": {"driver": "bridge"}},
         "services": {
@@ -150,10 +151,10 @@ def generate_compose_config(
                     "-c",
                     "mkdir -p /data /data/plugins /data/skins && "
                     "chmod 777 /data /data/plugins /data/skins && "
-                    "if [ -d /source_plugins ] && [ -n \"$(ls -A /source_plugins 2>/dev/null)\" ]; then "
+                    'if [ -d /source_plugins ] && [ -n "$(ls -A /source_plugins 2>/dev/null)" ]; then '
                     "  cp -r /source_plugins/. /data/plugins/; "
                     "fi; "
-                    "if [ -d /source_skins ] && [ -n \"$(ls -A /source_skins 2>/dev/null)\" ]; then "
+                    'if [ -d /source_skins ] && [ -n "$(ls -A /source_skins 2>/dev/null)" ]; then '
                     "  cp -r /source_skins/. /data/skins/; "
                     "fi; "
                     "chmod -R 777 /data/plugins /data/skins",
@@ -167,32 +168,39 @@ def generate_compose_config(
             },
             f"mc_instance_{instance_id}": {
                 "depends_on": {
-                    f"prep_data_instance_{instance_id}": {"condition": "service_completed_successfully"}
+                    f"prep_data_instance_{instance_id}": {
+                        "condition": "service_completed_successfully"
+                    }
                 },
                 "image": "itzg/minecraft-server",
                 "tty": True,
                 "network_mode": "host",
-                "environment": (lambda: {
-                    # Base server env, common to both normal and flat worlds
-                    "EULA": "TRUE",
-                    "VERSION": "1.20.4",
-                    "TYPE": "PAPER",
-                    "MODE": "survival",
-                    "RCON_PORT": rcon_port,
-                    "SERVER_PORT": mc_port,
-                    "ONLINE_MODE": False,
-                    "ENFORCE_SECURE_PROFILE": False,
-                    "RCON_PASSWORD": "research",
-                    "BROADCAST_RCON_TO_OPS": True,
-                    "OPS": "timwm,Pengulu",
-                    **(
-                        {"LEVEL_TYPE": "minecraft:flat", "GENERATOR_SETTINGS": "TERRAIN_SETTINGS_PLACEHOLDER"}
-                        if str(world_type).lower() == "flat" else {}
-                    ),
-                })(),
-                "volumes": [
-                    f"{data_dir}:/data"
-                ],
+                "environment": (
+                    lambda: {
+                        # Base server env, common to both normal and flat worlds
+                        "EULA": "TRUE",
+                        "VERSION": "1.20.4",
+                        "TYPE": "PAPER",
+                        "MODE": "survival",
+                        "RCON_PORT": rcon_port,
+                        "SERVER_PORT": mc_port,
+                        "ONLINE_MODE": False,
+                        "SPAWN_PROTECTION": 0,
+                        "SEED": seed,
+                        "ENFORCE_SECURE_PROFILE": False,
+                        "RCON_PASSWORD": "research",
+                        "BROADCAST_RCON_TO_OPS": True,
+                        **(
+                            {
+                                "LEVEL_TYPE": "minecraft:flat",
+                                "GENERATOR_SETTINGS": "TERRAIN_SETTINGS_PLACEHOLDER",
+                            }
+                            if str(world_type).lower() == "flat"
+                            else {}
+                        ),
+                    }
+                )(),
+                "volumes": [f"{data_dir}:/data"],
                 "healthcheck": {
                     "test": [
                         "CMD-SHELL",
@@ -211,7 +219,9 @@ def generate_compose_config(
                 },
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"},
-                    f"receiver_alpha_instance_{instance_id}": {"condition": "service_started"},
+                    f"receiver_alpha_instance_{instance_id}": {
+                        "condition": "service_started"
+                    },
                 },
                 "volumes": [f"{output_dir}:/output"],
                 "environment": {
@@ -258,8 +268,12 @@ def generate_compose_config(
                 },
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"},
-                    f"receiver_bravo_instance_{instance_id}": {"condition": "service_started"},
-                    f"sender_alpha_instance_{instance_id}": {"condition": "service_started"},
+                    f"receiver_bravo_instance_{instance_id}": {
+                        "condition": "service_started"
+                    },
+                    f"sender_alpha_instance_{instance_id}": {
+                        "condition": "service_started"
+                    },
                 },
                 "volumes": [f"{output_dir}:/output"],
                 "environment": {
@@ -371,7 +385,9 @@ def generate_compose_config(
                 "network_mode": "host",
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"},
-                    f"camera_alpha_instance_{instance_id}": {"condition": "service_started"}
+                    f"camera_alpha_instance_{instance_id}": {
+                        "condition": "service_started"
+                    },
                 },
                 "working_dir": "/app",
                 "environment": {
@@ -588,11 +604,15 @@ def main():
     # Defaults for camera data bases
     project_root = str(Path(__file__).resolve().parent)
     if args.camera_data_alpha_base is None:
-        args.camera_data_alpha_base = absdir(os.path.join(project_root, "camera", "data_alpha"))
+        args.camera_data_alpha_base = absdir(
+            os.path.join(project_root, "camera", "data_alpha")
+        )
     else:
         args.camera_data_alpha_base = absdir(args.camera_data_alpha_base)
     if args.camera_data_bravo_base is None:
-        args.camera_data_bravo_base = absdir(os.path.join(project_root, "camera", "data_bravo"))
+        args.camera_data_bravo_base = absdir(
+            os.path.join(project_root, "camera", "data_bravo")
+        )
     else:
         args.camera_data_bravo_base = absdir(args.camera_data_bravo_base)
 
@@ -604,7 +624,9 @@ def main():
     use_split = (args.num_flatland_world > 0) or (args.num_normal_world > 0)
     if use_split:
         total_instances = args.num_flatland_world + args.num_normal_world
-        world_plan = ["flat"] * args.num_flatland_world + ["normal"] * args.num_normal_world
+        world_plan = ["flat"] * args.num_flatland_world + [
+            "normal"
+        ] * args.num_normal_world
     else:
         total_instances = args.instances
         world_plan = ["normal"] * total_instances
@@ -663,15 +685,17 @@ def main():
 
             layers_json = []
             for layer in terrain_settings["layers"]:
-                layer_str = f'{{ "block": "{layer["block"]}", "height": {layer["height"]} }}'
+                layer_str = (
+                    f'{{ "block": "{layer["block"]}", "height": {layer["height"]} }}'
+                )
                 layers_json.append(layer_str)
             layers_str = ",\n    ".join(layers_json)
             biome_val = terrain_settings["biome"]
-            terrain_json = (
-                f'{{\n  "layers": [\n    {layers_str}\n  ],\n  "biome": "{biome_val}"\n}}'
-            )
+            terrain_json = f'{{\n  "layers": [\n    {layers_str}\n  ],\n  "biome": "{biome_val}"\n}}'
             newline = "\n"
-            terrain_multiline = f">-\n        {terrain_json.replace(newline, newline + '        ')}"
+            terrain_multiline = (
+                f">-\n        {terrain_json.replace(newline, newline + '        ')}"
+            )
 
             with open(compose_file, "r") as f:
                 content = f.read()
@@ -705,20 +729,38 @@ def main():
 
     print(f"\nGenerated {total_instances} configurations in {compose_dir}/")
     print("Published port ranges (host network):")
-    print(f"  Minecraft servers: {args.base_port}-{args.base_port + total_instances - 1}")
-    print(f"  RCON ports: {args.base_rcon_port}-{args.base_rcon_port + total_instances - 1}")
+    print(
+        f"  Minecraft servers: {args.base_port}-{args.base_port + total_instances - 1}"
+    )
+    print(
+        f"  RCON ports: {args.base_rcon_port}-{args.base_rcon_port + total_instances - 1}"
+    )
     # Collision validation for camera ports
-    alpha_vncs = {args.camera_alpha_vnc_base + args.vnc_step * i for i in range(total_instances)}
-    alpha_novncs = {args.camera_alpha_novnc_base + args.vnc_step * i for i in range(total_instances)}
-    bravo_vncs = {args.camera_bravo_vnc_base + args.vnc_step * i for i in range(total_instances)}
-    bravo_novncs = {args.camera_bravo_novnc_base + args.vnc_step * i for i in range(total_instances)}
+    alpha_vncs = {
+        args.camera_alpha_vnc_base + args.vnc_step * i for i in range(total_instances)
+    }
+    alpha_novncs = {
+        args.camera_alpha_novnc_base + args.vnc_step * i for i in range(total_instances)
+    }
+    bravo_vncs = {
+        args.camera_bravo_vnc_base + args.vnc_step * i for i in range(total_instances)
+    }
+    bravo_novncs = {
+        args.camera_bravo_novnc_base + args.vnc_step * i for i in range(total_instances)
+    }
     assert len(alpha_vncs) == total_instances, "alpha VNC port collisions detected"
     assert len(alpha_novncs) == total_instances, "alpha noVNC port collisions detected"
     assert len(bravo_vncs) == total_instances, "bravo VNC port collisions detected"
     assert len(bravo_novncs) == total_instances, "bravo noVNC port collisions detected"
-    print(f"  Camera Alpha noVNC: {args.camera_alpha_novnc_base}..{args.camera_alpha_novnc_base + args.vnc_step * (total_instances - 1)}")
-    print(f"  Camera Bravo noVNC: {args.camera_bravo_novnc_base}..{args.camera_bravo_novnc_base + args.vnc_step * (total_instances - 1)}")
-    print("Bridge network services (receivers, senders) use internal communication only.")
+    print(
+        f"  Camera Alpha noVNC: {args.camera_alpha_novnc_base}..{args.camera_alpha_novnc_base + args.vnc_step * (total_instances - 1)}"
+    )
+    print(
+        f"  Camera Bravo noVNC: {args.camera_bravo_novnc_base}..{args.camera_bravo_novnc_base + args.vnc_step * (total_instances - 1)}"
+    )
+    print(
+        "Bridge network services (receivers, senders) use internal communication only."
+    )
 
 
 if __name__ == "__main__":
