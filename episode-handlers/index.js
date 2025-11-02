@@ -618,8 +618,20 @@ async function teleport(
       (blockAtFeet && (blockAtFeet.name === 'water' || blockAtFeet.name === 'flowing_water')) ||
       (blockAtHead && (blockAtHead.name === 'water' || blockAtHead.name === 'flowing_water'));
     
+    // Check if bot's body is inside solid blocks (suffocation risk)
+    // Bot's feet and head should be in air (standing ON a block below is fine)
+    const isInSolidBlock = 
+      (blockAtFeet && blockAtFeet.name !== 'air' && blockAtFeet.name !== 'water' && blockAtFeet.name !== 'flowing_water') ||
+      (blockAtHead && blockAtHead.name !== 'air' && blockAtHead.name !== 'water' && blockAtHead.name !== 'flowing_water');
+    
     if (isInWater) {
       const errorMsg = `Bot landed in water at (${bot.entity.position.x.toFixed(2)}, ${bot.entity.position.y.toFixed(2)}, ${bot.entity.position.z.toFixed(2)}). Aborting episode to retry with new position.`;
+      console.warn(`[${bot.username}] ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+    
+    if (isInSolidBlock) {
+      const errorMsg = `Bot teleported inside solid blocks at (${bot.entity.position.x.toFixed(2)}, ${bot.entity.position.y.toFixed(2)}, ${bot.entity.position.z.toFixed(2)}). Aborting episode to retry with new position.`;
       console.warn(`[${bot.username}] ${errorMsg}`);
       throw new Error(errorMsg);
     }
@@ -627,8 +639,8 @@ async function teleport(
     console.log(`[${bot.username}] Bot landed on dry ground. Proceeding with episode.`);
     return computedOtherBotPosition;
   } catch (error) {
-    // If this is a water detection error, re-throw it to abort the episode
-    if (error.message && error.message.includes('Bot landed in water')) {
+    // If this is a water or solid block detection error, re-throw it to abort the episode
+    if (error.message && (error.message.includes('Bot landed in water') || error.message.includes('inside solid blocks'))) {
       throw error;
     }
     

@@ -82,11 +82,11 @@ function disableSprint(bot) {
 function initializePathfinder(bot, options = {}) {
   const movements = new Movements(bot);
 
-  // Configure movement settings
+  // Configure movement settings - enable all features by default
   movements.allowSprinting = options.allowSprinting !== false; // Default: true
   movements.allowParkour = options.allowParkour !== false; // Default: true
-  movements.canDig = options.canDig || false; // Default: false (don't break blocks)
-  movements.canPlaceOn = options.canPlaceOn || false; // Default: false (don't place blocks)
+  movements.canDig = options.canDig !== false; // Default: true (allow digging)
+  movements.canPlaceOn = options.canPlaceOn !== false; // Default: true (allow placing)
   movements.allowFreeMotion = options.allowFreeMotion || false; // Default: false
   movements.allowEntityDetection = options.allowEntityDetection !== false; // Default: true
 
@@ -97,6 +97,7 @@ function initializePathfinder(bot, options = {}) {
     sprint: movements.allowSprinting,
     parkour: movements.allowParkour,
     dig: movements.canDig,
+    placeBlocks: movements.canPlaceOn,
     entityDetection: movements.allowEntityDetection,
   });
 
