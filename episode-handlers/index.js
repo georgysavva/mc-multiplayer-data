@@ -525,7 +525,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       console.log(
         `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
       );
-      await sleep(1000);
+      await sleep(10000);
       const episodeCleanup = await runSingleEpisode(
         bot,
         rcon,
