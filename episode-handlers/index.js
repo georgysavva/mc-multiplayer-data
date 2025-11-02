@@ -610,6 +610,15 @@ async function teleport(
     await sleep(6000); // 6 seconds should be enough for falling from Y=128
     console.log(`[${bot.username}] Bot landed at Y=${bot.entity.position.y.toFixed(2)}`);
     
+    // Check if bot actually fell (not stuck in solid blocks)
+    const finalY = bot.entity.position.y;
+    const minFallDistance = 10; // Bot should fall at least 10 blocks from Y=128
+    if (finalY >= newY - minFallDistance) {
+      const errorMsg = `Bot stuck at Y=${finalY.toFixed(2)}, didn't fall from Y=${newY}. Likely inside solid blocks. Aborting episode to retry with new position.`;
+      console.warn(`[${bot.username}] ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+    
     // Check if bot is in water after landing
     const blockAtFeet = bot.blockAt(bot.entity.position);
     const blockAtHead = bot.blockAt(bot.entity.position.offset(0, 1, 0));
@@ -618,20 +627,8 @@ async function teleport(
       (blockAtFeet && (blockAtFeet.name === 'water' || blockAtFeet.name === 'flowing_water')) ||
       (blockAtHead && (blockAtHead.name === 'water' || blockAtHead.name === 'flowing_water'));
     
-    // Check if bot's body is inside solid blocks (suffocation risk)
-    // Bot's feet and head should be in air (standing ON a block below is fine)
-    const isInSolidBlock = 
-      (blockAtFeet && blockAtFeet.name !== 'air' && blockAtFeet.name !== 'water' && blockAtFeet.name !== 'flowing_water') ||
-      (blockAtHead && blockAtHead.name !== 'air' && blockAtHead.name !== 'water' && blockAtHead.name !== 'flowing_water');
-    
     if (isInWater) {
       const errorMsg = `Bot landed in water at (${bot.entity.position.x.toFixed(2)}, ${bot.entity.position.y.toFixed(2)}, ${bot.entity.position.z.toFixed(2)}). Aborting episode to retry with new position.`;
-      console.warn(`[${bot.username}] ${errorMsg}`);
-      throw new Error(errorMsg);
-    }
-    
-    if (isInSolidBlock) {
-      const errorMsg = `Bot teleported inside solid blocks at (${bot.entity.position.x.toFixed(2)}, ${bot.entity.position.y.toFixed(2)}, ${bot.entity.position.z.toFixed(2)}). Aborting episode to retry with new position.`;
       console.warn(`[${bot.username}] ${errorMsg}`);
       throw new Error(errorMsg);
     }
@@ -639,8 +636,8 @@ async function teleport(
     console.log(`[${bot.username}] Bot landed on dry ground. Proceeding with episode.`);
     return computedOtherBotPosition;
   } catch (error) {
-    // If this is a water or solid block detection error, re-throw it to abort the episode
-    if (error.message && (error.message.includes('Bot landed in water') || error.message.includes('inside solid blocks'))) {
+    // If this is a water or fall detection error, re-throw it to abort the episode
+    if (error.message && (error.message.includes('Bot landed in water') || error.message.includes('didn\'t fall from'))) {
       throw error;
     }
     
