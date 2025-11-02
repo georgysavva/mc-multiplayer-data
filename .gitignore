@@ -4,6 +4,8 @@ videos/
 .vscode/
 logs/
 aligned/*
+aligned/alpha/
+aligned/beta/
 __pycache__/
 .env
 SkinsRestorer/cache/*
