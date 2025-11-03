@@ -1,3 +1,6 @@
+# Default output directory for processed videos
+PROCESSED_OUTPUT_DIR=${PROCESSED_OUTPUT_DIR:-"/mnt/disks/storage/data/mc_multiplayer_v1/batch1/aligned"}
+
 python3 generate_compose.py \
  --compose_dir /home/ojm2030/mc-multiplayer-data/compose_configs \
  --base_port 25590 \
@@ -11,8 +14,8 @@ python3 generate_compose.py \
  --camera_data_alpha_base /mnt/disks/storage/data/mc_multiplayer_v1/batch1/camera/data_alpha \
  --camera_data_bravo_base /mnt/disks/storage/data/mc_multiplayer_v1/batch1/camera/data_bravo \
  --smoke_test 0 \
- --num_flatland_world 15 \
- --num_normal_world 15 \
+ --num_flatland_world 7 \
+ --num_normal_world 7 \
  --num_episodes 100 \
  --iterations_num_per_episode 1 \
  --viewer_rendering_disabled 1
@@ -22,4 +25,4 @@ python3 orchestrate.py status
 python3 orchestrate.py logs --tail 20
 python3 orchestrate.py recordings
 python3 orchestrate.py stop
-python3 orchestrate.py postprocess --workers 16 --comparison-video
+python3 orchestrate.py postprocess --workers 16 --comparison-video --output-dir "$PROCESSED_OUTPUT_DIR"

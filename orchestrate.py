@@ -492,7 +492,7 @@ class InstanceManager:
         else:
             print("  (none)")
 
-    def _process_single_recording(self, job, comparison_video):
+    def _process_single_recording(self, job, comparison_video, output_dir=None):
         """Process a single episode recording."""
         script_path = Path(__file__).parent / "postprocess" / "process_recordings.py"
         
@@ -503,8 +503,9 @@ class InstanceManager:
             "--actions-dir", str(job['output_dir']),
             "--camera-prefix", str(job['camera_prefix']),
             "--episode-file", str(job['episode_file']),
+            "--output-dir", output_dir or "/mnt/disks/storage/data/mc_multiplayer_v1/batch1/aligned",
         ]
-        
+
         if comparison_video:
             cmd.append("--comparison-video")
         
@@ -529,7 +530,7 @@ class InstanceManager:
             print(f"  Error processing {job['episode_file'].name}: {e}")
             return False
 
-    def postprocess_recordings(self, workers=4, comparison_video=False, debug=False):
+    def postprocess_recordings(self, workers=4, comparison_video=False, debug=False, output_dir=None):
         """Process camera recordings for all instances in parallel."""
         print(f"Discovering episodes from orchestrated instances...")
         
@@ -556,19 +557,38 @@ class InstanceManager:
             sender_service = config['services'].get(f'sender_alpha_instance_{instance_id}')
             if not sender_service:
                 continue
-            
-            # Parse volume mount: /host/path:/output
-            output_dir = None
+
+            # Parse volume mount: /host/path:/output (actions output dir)
+            actions_output_dir = None
             for vol in sender_service.get('volumes', []):
                 if ':/output' in vol:
-                    output_dir = Path(vol.split(':')[0])
+                    actions_output_dir = Path(vol.split(':')[0])
                     break
-            
-            if not output_dir:
+
+            if not actions_output_dir:
                 continue
+
+            # Extract camera output directories from camera services
+            camera_alpha_service = config['services'].get(f'camera_alpha_instance_{instance_id}')
+            camera_bravo_service = config['services'].get(f'camera_bravo_instance_{instance_id}')
+
+            camera_output_alpha = None
+            camera_output_bravo = None
+
+            if camera_alpha_service:
+                for vol in camera_alpha_service.get('volumes', []):
+                    if ':/output' in vol:
+                        camera_output_alpha = Path(vol.split(':')[0])
+                        break
+
+            if camera_bravo_service:
+                for vol in camera_bravo_service.get('volumes', []):
+                    if ':/output' in vol:
+                        camera_output_bravo = Path(vol.split(':')[0])
+                        break
             
-            # Find all episode JSON files in output directory
-            for json_path in sorted(output_dir.glob("*.json")):
+            # Find all episode JSON files in actions output directory
+            for json_path in sorted(actions_output_dir.glob("*.json")):
                 # Skip non-episode files and those not belonging to this instance
                 instance_tag = f"_instance_{instance_id:03d}"
                 if (
@@ -581,12 +601,12 @@ class InstanceManager:
                 # Determine bot from filename
                 if "_Alpha_" in json_path.name:
                     bot = "Alpha"
-                    # Pass full path: camera/output_alpha/{instance_id}
-                    camera_prefix = project_root / "camera" / "output_alpha" / str(instance_id)
+                    # Use camera output directory from compose file
+                    camera_prefix = camera_output_alpha or (project_root / "camera" / "output_alpha" / str(instance_id))
                 elif "_Bravo_" in json_path.name:
                     bot = "Bravo"
-                    # Pass full path: camera/output_bravo/{instance_id}
-                    camera_prefix = project_root / "camera" / "output_bravo" / str(instance_id)
+                    # Use camera output directory from compose file
+                    camera_prefix = camera_output_bravo or (project_root / "camera" / "output_bravo" / str(instance_id))
                 else:
                     continue
                 
@@ -594,13 +614,13 @@ class InstanceManager:
                     print(f"[DEBUG] Episode: {json_path.name}")
                     print(f"[DEBUG]   Bot: {bot}, Instance: {instance_id}")
                     print(f"[DEBUG]   Camera prefix: {camera_prefix}")
-                    print(f"[DEBUG]   Output dir: {output_dir}")
+                    print(f"[DEBUG]   Output dir: {actions_output_dir}")
                 
                 jobs.append({
                     'episode_file': json_path,
                     'bot': bot,
                     'instance_id': instance_id,
-                    'output_dir': output_dir,
+                    'output_dir': actions_output_dir,
                     'camera_prefix': camera_prefix,
                 })
         
@@ -615,9 +635,10 @@ class InstanceManager:
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {
                 executor.submit(
-                    self._process_single_recording, 
-                    job, 
-                    comparison_video
+                    self._process_single_recording,
+                    job,
+                    comparison_video,
+                    output_dir
                 ): job
                 for job in jobs
             }
@@ -695,6 +716,11 @@ def main():
         action="store_true",
         help="Enable debug output for postprocess command",
     )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        help="Directory for processed video outputs (default: batch1/aligned)",
+    )
 
     args = parser.parse_args()
 
@@ -711,7 +737,7 @@ def main():
     elif args.command == "recordings":
         manager.recordings()
     elif args.command == "postprocess":
-        manager.postprocess_recordings(args.workers, args.comparison_video, args.debug)
+        manager.postprocess_recordings(args.workers, args.comparison_video, args.debug, args.output_dir)
 
 
 if __name__ == "__main__":
