@@ -250,10 +250,46 @@ class InstanceManager:
                 print(f"[{instance_name}] ✅ Senders completed successfully")
                 return True
             else:
-                print(f"[{instance_name}] ⚠️ Sender wait failed: {result.stderr}")
+                print(f"[{instance_name}] ❌ Sender wait failed: {result.stderr}")
                 return False
         except Exception as e:
             print(f"[{instance_name}] ❌ Error waiting for senders: {e}")
+            return False
+
+    def wait_for_episode_starter(self, instance_name, compose_file):
+        """Wait for the episode starter to finish and report success/failure."""
+        idx = self._instance_index_from_stem(instance_name)
+        episode_starter = f"episode_starter_instance_{idx}"
+
+        try:
+            cmd = [
+                *self.compose_bin,
+                "-p",
+                instance_name,
+                "-f",
+                str(compose_file),
+                "wait",
+                episode_starter,
+            ]
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=self.compose_dir.parent
+            )
+
+            if result.returncode == 0:
+                print(f"[{instance_name}] ✅ Episode started")
+                return True
+            else:
+                print(f"[{instance_name}] ❌ Episode start failed; shutting down instance")
+                # Stop this instance since start failed
+                self.stop_instance(compose_file)
+                return False
+        except Exception as e:
+            print(f"[{instance_name}] ❌ Error waiting for episode starter: {e}")
+            # Attempt to stop instance on unexpected error as well
+            try:
+                self.stop_instance(compose_file)
+            except Exception:
+                pass
             return False
 
     def start_all(self):
@@ -287,21 +323,35 @@ class InstanceManager:
             f"\n🎉 Started {len(self.running_instances)}/{total_instances} instances successfully"
         )
         
-        # Wait for all sender services to complete
-        print(f"\n⏳ Waiting for all sender services to complete...")
-        
+        # First, wait for episode starter to complete (success/failure per instance)
+        print(f"\n⏳ Waiting for episode starters to finish...")
+
+        ok_instances = {}
         with ThreadPoolExecutor(max_workers=total_instances) as executor:
-            wait_futures = {
-                executor.submit(self.wait_for_senders, inst_name, cf): inst_name
+            starter_futures = {
+                executor.submit(self.wait_for_episode_starter, inst_name, cf): (inst_name, cf)
                 for inst_name, cf in started_instances.items()
             }
-            
+            for future in as_completed(starter_futures):
+                inst_name, cf = starter_futures[future]
+                if future.result():
+                    ok_instances[inst_name] = cf
+
+        # Then, wait for senders only on instances where the episode started
+        print(f"\n⏳ Waiting for sender services to complete...")
+
+        with ThreadPoolExecutor(max_workers=max(1, len(ok_instances))) as executor:
+            wait_futures = {
+                executor.submit(self.wait_for_senders, inst_name, cf): inst_name
+                for inst_name, cf in ok_instances.items()
+            }
+
             completed_count = 0
             for future in as_completed(wait_futures):
                 if future.result():
                     completed_count += 1
         
-        print(f"\n✅ {completed_count}/{len(started_instances)} instances completed successfully")
+        print(f"\n✅ {completed_count}/{len(ok_instances)} instances completed successfully")
         
         # Stop all instances
         print(f"\n🛑 Shutting down all instances...")

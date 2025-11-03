@@ -223,6 +223,9 @@ def generate_compose_config(
                     f"receiver_alpha_instance_{instance_id}": {
                         "condition": "service_started"
                     },
+                    f"episode_starter_instance_{instance_id}": {
+                        "condition": "service_completed_successfully"
+                    },
                 },
                 "volumes": [f"{output_dir}:/output"],
                 "environment": {
@@ -275,6 +278,9 @@ def generate_compose_config(
                     },
                     f"sender_alpha_instance_{instance_id}": {
                         "condition": "service_started"
+                    },
+                    f"episode_starter_instance_{instance_id}": {
+                        "condition": "service_completed_successfully"
                     },
                 },
                 "volumes": [f"{output_dir}:/output"],
@@ -397,7 +403,8 @@ def generate_compose_config(
                     "RCON_HOST": "127.0.0.1",
                     "RCON_PORT": rcon_port,
                     "RCON_PASSWORD": "research",
-                    "EPISODE_START_RETRIES": "60",
+                    "EPISODE_START_RETRIES": "300",
+                    "EPISODE_PLAYER_CHECK_INTERVAL_MS": "2000",
                     "EPISODE_REQUIRED_PLAYERS": "Alpha,CameraAlpha,Bravo,CameraBravo",
                     "EPISODE_START_COMMAND": "episode start Alpha CameraAlpha technoblade.png Bravo CameraBravo test.png",
                 },
