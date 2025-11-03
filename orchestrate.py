@@ -226,8 +226,43 @@ class InstanceManager:
     def wait_for_senders(self, instance_name, compose_file):
         """Wait for sender services to complete for a single instance."""
         idx = self._instance_index_from_stem(instance_name)
+        episode_starter = f"episode_starter_instance_{idx}"
         sender_alpha = f"sender_alpha_instance_{idx}"
         sender_bravo = f"sender_bravo_instance_{idx}"
+        
+        # First, gate on the one-shot episode starter. If it fails or times out,
+        # tear down this instance to avoid idle containers when bots don't all join.
+        print(f"[{instance_name}] Waiting for {episode_starter} to complete...")
+        try:
+            gate_cmd = [
+                *self.compose_bin,
+                "-p",
+                instance_name,
+                "-f",
+                str(compose_file),
+                "wait",
+                episode_starter,
+            ]
+            # Allow ample time for players to join (episode_starter retries internally).
+            gate_result = subprocess.run(
+                gate_cmd,
+                capture_output=True,
+                text=True,
+                cwd=self.compose_dir.parent,
+                timeout=900,  # 15 minutes
+            )
+            if gate_result.returncode != 0:
+                print(
+                    f"[{instance_name}] episode_starter failed (exit {gate_result.returncode}); shutting down instance"
+                )
+                self.stop_instance(compose_file)
+                return False
+            else:
+                print(f"[{instance_name}] episode_starter completed successfully; proceeding")
+        except subprocess.TimeoutExpired:
+            print(f"[{instance_name}] episode_starter timed out; shutting down instance")
+            self.stop_instance(compose_file)
+            return False
         
         print(f"[{instance_name}] Waiting for senders to complete...")
         
