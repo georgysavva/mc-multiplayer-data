@@ -15,6 +15,8 @@ const FINAL_EYE_CONTACT_MS = 1500; // Final look duration
 const TOOL_TYPE = "diamond_pickaxe"; // Tool for mining
 const PATHFIND_TIMEOUT_MS = 60000; // 60 second timeout for pathfinding with mining
 const UNDERGROUND_DEPTH = 5; // How many blocks to dig down before horizontal mining
+const TORCH_TYPE = "torch"; // Torch item
+const TORCH_PLACEMENT_INTERVAL = 2; // Place torches every 2 blocks
 
 /**
  * Dig straight down to get underground before starting horizontal mining
@@ -84,6 +86,211 @@ async function digDownToUnderground(bot, depth = UNDERGROUND_DEPTH) {
   console.log(`[${bot.username}]    Actual depth: ${actualDepth} blocks`);
 
   return actualDepth > 0;
+}
+
+/**
+ * Place a torch on the floor at the bot's current feet position
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Vec3} movementDirection - Direction the bot is moving (not used)
+ * @returns {Promise<boolean>} True if torch was placed
+ */
+async function placeTorchOnFloor(bot, movementDirection = null) {
+  try {
+    const currentPos = bot.entity.position.clone();
+    
+    // Place torch at bot's current feet position (not behind)
+    const torchPos = new Vec3(
+      Math.floor(currentPos.x),
+      Math.floor(currentPos.y),
+      Math.floor(currentPos.z)
+    );
+    
+    // Check if the torch position is valid (should be air or replaceable)
+    const torchBlock = bot.blockAt(torchPos);
+    if (!torchBlock) {
+      console.log(`[${bot.username}] ⚠️ Cannot access block at ${torchPos}`);
+      return false;
+    }
+    
+    // Check if a torch is already there (skip if so)
+    if (torchBlock.name === 'torch' || torchBlock.name === 'wall_torch') {
+      console.log(`[${bot.username}] ⚠️ Torch already exists at ${torchPos}, skipping`);
+      return false;
+    }
+    
+    // Find the floor block below torch position to place torch on
+    const floorPos = torchPos.offset(0, -1, 0);
+    const floorBlock = bot.blockAt(floorPos);
+    
+    if (!floorBlock || floorBlock.name === 'air' || floorBlock.name === 'cave_air') {
+      console.log(`[${bot.username}] ⚠️ No floor block at ${floorPos} to place torch on`);
+      return false;
+    }
+    
+    console.log(`[${bot.username}] 🔦 Placing torch on floor at ${torchPos} (on top of ${floorBlock.name})`);
+    
+    // Equip torch
+    const torch = bot.inventory.items().find(item => item.name === TORCH_TYPE);
+    if (!torch) {
+      console.log(`[${bot.username}] ⚠️ No torches in inventory!`);
+      return false;
+    }
+    
+    console.log(`[${bot.username}] ✅ Found torch: ${torch.name} (${torch.count} remaining)`);
+    await bot.equip(torch, 'hand');
+    await sleep(300);
+    
+    // Look down at the floor block where torch will be placed
+    console.log(`[${bot.username}] 👀 Looking at floor block ${floorPos}`);
+    await bot.lookAt(floorBlock.position.offset(0.5, 1, 0.5), true);
+    await sleep(500);
+    
+    // Place torch on floor
+    try {
+      await bot.placeBlock(floorBlock, new Vec3(0, 1, 0)); // Place on top face of floor block
+      await sleep(800); // Wait longer to make placement visible
+      console.log(`[${bot.username}] ✅ Torch successfully placed on floor`);
+      
+      // Look back up/forward
+      await bot.look(0, 0, true); // Look straight ahead
+      await sleep(300);
+      
+      return true;
+    } catch (placeError) {
+      console.log(`[${bot.username}] ⚠️ Failed to place torch block: ${placeError.message}`);
+      return false;
+    }
+  } catch (error) {
+    console.log(`[${bot.username}] ❌ Failed to place torch: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Mine towards a target position using pathfinder with mining enabled and torch placement
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Vec3} targetPos - Target position to mine towards
+ * @returns {Promise<Object>} Mining statistics
+ */
+async function mineTowardsTargetWithTorchPlacement(bot, targetPos) {
+  console.log(`[${bot.username}] 🚇 Mining towards ${targetPos} using pathfinder with torch placement`);
+
+  const startPos = bot.entity.position.clone();
+  const startTime = Date.now();
+  let lastTorchPos = startPos.clone();
+  let torchesPlaced = 0;
+  let intervalStopped = false; // Flag to stop interval callback
+
+  // Initialize pathfinder with mining enabled
+  const mcData = require("minecraft-data")(bot.version);
+  const { Movements, goals } = require("mineflayer-pathfinder");
+  const { GoalNear } = goals;
+
+  // Configure movements to allow mining
+  const movements = new Movements(bot, mcData);
+  movements.canDig = true;
+  movements.digCost = 1;
+  movements.placeCost = 10;
+  movements.allowParkour = false;
+  movements.allowSprinting = true;
+  movements.maxDropDown = 4;
+  movements.scafoldingBlocks = [];
+
+  bot.pathfinder.setMovements(movements);
+
+  const initialDistance = startPos.distanceTo(targetPos);
+  console.log(
+    `[${bot.username}] 📐 Distance to target: ${initialDistance.toFixed(2)} blocks`
+  );
+
+  // Set goal to get very close to the target position
+  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 0.5);
+
+  // Set up periodic torch placement check
+  const torchCheckInterval = setInterval(async () => {
+    if (intervalStopped) return; // Stop executing interval callback
+    
+    const currentPos = bot.entity.position.clone();
+    const distanceSinceLastTorch = currentPos.distanceTo(lastTorchPos);
+    
+    if (distanceSinceLastTorch >= TORCH_PLACEMENT_INTERVAL) {
+      console.log(`[${bot.username}] 📏 Traveled ${distanceSinceLastTorch.toFixed(1)} blocks since last torch`);
+      
+      // Re-equip pickaxe after placing torch
+      const pickaxe = bot.inventory.items().find(item => item.name === TOOL_TYPE);
+      const currentHand = bot.heldItem;
+      
+      const placed = await placeTorchOnFloor(bot);
+      
+      if (placed) {
+        torchesPlaced++;
+        lastTorchPos = currentPos.clone();
+        console.log(`[${bot.username}] ✅ Torch placed! Total: ${torchesPlaced}`);
+      } else {
+        // Update position even if placement failed to prevent distance from growing
+        lastTorchPos = currentPos.clone();
+        console.log(`[${bot.username}] ⚠️ Torch placement failed, will try again in ${TORCH_PLACEMENT_INTERVAL} blocks`);
+      }
+      
+      // Re-equip pickaxe
+      if (pickaxe && (!currentHand || currentHand.name !== TOOL_TYPE)) {
+        await bot.equip(pickaxe, 'hand');
+        await sleep(100);
+      }
+    }
+  }, 2000); // Check every 2 seconds
+
+  try {
+    console.log(`[${bot.username}] 🎯 Starting pathfinder navigation with mining and torch placement...`);
+    
+    // Use pathfinder to navigate to target
+    await gotoWithTimeout(bot, goal, { timeoutMs: PATHFIND_TIMEOUT_MS });
+
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+    const timeElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const finalDistance = endPos.distanceTo(targetPos);
+
+    console.log(`[${bot.username}] 🏁 Mining navigation complete!`);
+    console.log(`[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`);
+    console.log(`[${bot.username}]    Time elapsed: ${timeElapsed}s`);
+    console.log(`[${bot.username}]    Final distance to target: ${finalDistance.toFixed(2)} blocks`);
+    console.log(`[${bot.username}]    Torches placed: ${torchesPlaced} 🔦`);
+
+    return {
+      success: true,
+      distanceTraveled: distanceTraveled,
+      timeElapsed: parseFloat(timeElapsed),
+      reachedTarget: finalDistance < 1.5,
+      finalDistance: finalDistance,
+      torchesPlaced: torchesPlaced,
+    };
+  } catch (error) {
+    console.log(
+      `[${bot.username}] ⚠️ Pathfinder mining failed: ${error.message}`
+    );
+    
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+    const finalDistance = endPos.distanceTo(targetPos);
+    
+    return {
+      success: false,
+      distanceTraveled: distanceTraveled,
+      timeElapsed: ((Date.now() - startTime) / 1000).toFixed(1),
+      reachedTarget: false,
+      finalDistance: finalDistance,
+      torchesPlaced: torchesPlaced,
+      error: error.message,
+    };
+  } finally {
+    // Stop torch placement interval
+    clearInterval(torchCheckInterval);
+    intervalStopped = true; // Set flag to stop interval callback
+    
+    // Stop pathfinder
+    bot.pathfinder.setGoal(null);
+  }
 }
 
 /**
@@ -244,6 +451,24 @@ function getOnMinePhaseFn(
       );
     }
 
+    // STEP 3b: Ensure torches are in inventory for illumination
+    console.log(`[${bot.username}] 🔦 STEP 3b: Ensuring torches in inventory...`);
+    try {
+      const torch = bot.inventory.items().find(item => item.name === TORCH_TYPE);
+      if (!torch) {
+        // Give torches via RCON
+        await rcon.send(`give ${bot.username} ${TORCH_TYPE} 64`);
+        await sleep(500);
+        console.log(`[${bot.username}] ✅ Received 64 torches`);
+      } else {
+        console.log(`[${bot.username}] ✅ Already have ${torch.count} torches`);
+      }
+    } catch (torchError) {
+      console.log(
+        `[${bot.username}] ⚠️ Could not get torches: ${torchError.message}`
+      );
+    }
+
     // STEP 4: Dig down to underground
     console.log(`[${bot.username}] ⬇️ STEP 4: Digging down to underground...`);
     const dugDown = await digDownToUnderground(bot, Math.floor(Math.random() * 3) + 5);
@@ -293,7 +518,7 @@ function getOnMinePhaseFn(
     console.log(
       `[${bot.username}] 🚇 STEP 6: Mining towards midpoint using pathfinder...`
     );
-    const miningResult = await mineTowardsTarget(bot, midpoint);
+    const miningResult = await mineTowardsTargetWithTorchPlacement(bot, midpoint);
 
     console.log(
       `[${bot.username}] ✅ Mining complete! Result: ${JSON.stringify(miningResult)}`
@@ -405,8 +630,12 @@ class MineEpisode2 extends BaseEpisode {
 
 module.exports = {
   getOnMinePhaseFn,
+  mineTowardsTargetWithTorchPlacement,
   mineTowardsTarget,
   TOOL_TYPE,
+  TORCH_TYPE,
+  TORCH_PLACEMENT_INTERVAL,
   MineEpisode2,
   digDownToUnderground,
+  placeTorchOnFloor,
 };
