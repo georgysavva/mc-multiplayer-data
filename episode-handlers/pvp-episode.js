@@ -177,103 +177,58 @@ async function rconCommand(command, args) {
 }
 
 /**
- * Main PVP combat loop
+ * Main PVP combat loop using mineflayer-pvp plugin
  * @param {Bot} bot - Mineflayer bot instance
  * @param {string} targetBotName - Name of target bot
  * @param {number} durationMs - Combat duration in milliseconds
  */
 async function pvpCombatLoop(bot, targetBotName, durationMs) {
   console.log(
-    `[${bot.username}] ⚔️ Starting PVP combat loop for ${durationMs / 1000}s`
+    `[${bot.username}] ⚔️ Starting PVP combat loop (using pvp plugin) for ${durationMs / 1000}s`
   );
 
-  // Initialize pathfinder for combat
-  initializePathfinder(bot, {
-    allowSprinting: true, // Sprint to close distance
-    allowParkour: true, // Stable movement
-    canDig: true, // No terrain modification
-    allowEntityDetection: true,
-  });
-
-  console.log(`[${bot.username}] ✅ Pathfinder initialized for combat`);
-
   const startTime = Date.now();
-  let lastAttackTime = 0;
   let totalAttacks = 0;
   let lastHealthLog = Date.now();
 
-  try {
-    while (Date.now() - startTime < durationMs) {
-      // Get target entity using nearestEntity for more robust targeting
-      const targetEntity = bot.nearestEntity((entity) => {
-        // Find the specific target player by username
-        return entity.type === "player" && entity.username === targetBotName;
-      });
-
-      if (!targetEntity) {
-        console.log(`[${bot.username}] ⚠️ Cannot find target ${targetBotName}`);
-        await sleep(COMBAT_LOOP_INTERVAL_MS);
-        continue;
-      }
-
-      const distance = bot.entity.position.distanceTo(targetEntity.position);
-
-      // Update pathfinder to follow target
-      bot.pathfinder.setGoal(
-        new GoalFollow(targetEntity, APPROACH_DISTANCE),
-        true
+  // Track attacks using the playerHurt event
+  const attackListener = (attacker, victim) => {
+    if (attacker === bot.entity && victim.username === targetBotName) {
+      totalAttacks++;
+      console.log(
+        `[${bot.username}] ⚔️ Attack #${totalAttacks} on ${targetBotName}`
       );
+    }
+  };
+  bot.on("playerHurt", attackListener);
 
-      // Look at target during combat (aim at head height)
-      try {
-        const targetHeadPos = targetEntity.position.offset(
-          0,
-          targetEntity.height,
-          0
-        );
-        await bot.lookAt(targetHeadPos, true);
-      } catch (lookError) {
-        // Ignore look errors during combat
-      }
+  try {
+    // Get target entity
+    const targetEntity = bot.nearestEntity((entity) => {
+      return entity.type === "player" && entity.username === targetBotName;
+    });
 
-      // Attack if in melee range and cooldown expired
-      if (distance <= MELEE_RANGE) {
-        const now = Date.now();
-        if (now - lastAttackTime >= ATTACK_COOLDOWN_MS) {
-          try {
-            await bot.attack(targetEntity);
-            totalAttacks++;
-            lastAttackTime = now;
-            console.log(
-              `[${
-                bot.username
-              }] ⚔️ Attack #${totalAttacks} on ${targetBotName} (distance: ${distance.toFixed(
-                2
-              )} blocks)`
-            );
-          } catch (attackError) {
-            console.log(
-              `[${bot.username}] ⚠️ Attack failed: ${attackError.message}`
-            );
-          }
-        }
-      } else {
-        // Log chase status occasionally
-        if (Date.now() - lastHealthLog > 2000) {
-          console.log(
-            `[${
-              bot.username
-            }] 🏃 Chasing ${targetBotName} (distance: ${distance.toFixed(
-              2
-            )} blocks)`
-          );
-          lastHealthLog = Date.now();
-        }
-      }
+    if (!targetEntity) {
+      console.log(`[${bot.username}] ❌ Cannot find target ${targetBotName}`);
+      return;
+    }
 
+    console.log(`[${bot.username}] 🎯 Target acquired: ${targetBotName}`);
+    console.log(`[${bot.username}] 🤖 Starting pvp plugin attack...`);
+
+    // Start PVP plugin attack - it handles pathfinding, following, and attacking
+    bot.pvp.attack(targetEntity);
+
+    // Monitor combat for the specified duration
+    while (Date.now() - startTime < durationMs) {
       // Log health periodically
       if (Date.now() - lastHealthLog > 3000) {
-        console.log(`[${bot.username}] ❤️ Health: ${bot.health}/20`);
+        const distance = targetEntity.position
+          ? bot.entity.position.distanceTo(targetEntity.position)
+          : -1;
+        console.log(
+          `[${bot.username}] ❤️ Health: ${bot.health}/20 | Distance: ${distance.toFixed(2)} blocks`
+        );
         lastHealthLog = Date.now();
       }
 
@@ -282,11 +237,21 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
         console.log(`[${bot.username}] 💀 Died in combat (continuing episode)`);
       }
 
+      // Check if target is still valid
+      if (!targetEntity.isValid) {
+        console.log(`[${bot.username}] ⚠️ Target entity no longer valid`);
+        break;
+      }
+
       await sleep(COMBAT_LOOP_INTERVAL_MS);
     }
   } finally {
-    // Clean up pathfinder
-    stopPathfinder(bot);
+    // Stop PVP plugin
+    bot.pvp.stop();
+    console.log(`[${bot.username}] 🛑 Stopped pvp plugin`);
+
+    // Remove attack listener
+    bot.removeListener("playerHurt", attackListener);
 
     // Log combat statistics
     const duration = Date.now() - startTime;
@@ -294,14 +259,16 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
     console.log(
       `[${bot.username}]    Duration: ${(duration / 1000).toFixed(1)}s`
     );
-    console.log(`[${bot.username}]    Total attacks: ${totalAttacks}`);
+    console.log(`[${bot.username}]    Total attacks detected: ${totalAttacks}`);
     console.log(`[${bot.username}]    Final health: ${bot.health}/20`);
-    console.log(
-      `[${bot.username}]    Attacks per second: ${(
-        totalAttacks /
-        (duration / 1000)
-      ).toFixed(2)}`
-    );
+    if (totalAttacks > 0) {
+      console.log(
+        `[${bot.username}]    Attacks per second: ${(
+          totalAttacks /
+          (duration / 1000)
+        ).toFixed(2)}`
+      );
+    }
   }
 }
 
