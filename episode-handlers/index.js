@@ -30,6 +30,7 @@ const { PvpEpisode } = require("./pvp-episode");
 const { BuildStructureEpisode } = require("./build-structure-episode");
 const { BuildTowerEpisode } = require("./build-tower-episode");
 const { MineEpisode } = require("./mine-episode");
+const { MineEpisode2 } = require("./mine-episode2");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 // const { CollectorEpisode } = require("./collector-episode");
@@ -46,6 +47,7 @@ const episodeClassMap = {
   buildStructure: BuildStructureEpisode,
   buildTower: BuildTowerEpisode,
   mine: MineEpisode,
+  mine2: MineEpisode2,
   towerBridge: TowerBridgeEpisode,
   // collector: CollectorEpisode,
 };
@@ -60,11 +62,12 @@ const defaultEpisodeTypes = [
   // "orbit",
   // "walkLook",
   // "walkLookAway",
-  "pvp",
+  // "pvp",
   // "pve",
   // "buildStructure",
   // "buildTower",
   // "mine",
+  "mine2",
   // "towerBridge",
   // "collector",
 ];

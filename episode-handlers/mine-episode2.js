@@ -1,0 +1,412 @@
+// mine-episode2.js - Simplified mining episode using pathfinder with mining enabled
+const { Vec3 } = require("vec3");
+const {
+  sleep,
+  gotoWithTimeout,
+  digWithTimeout,
+} = require("../utils/movement");
+const { ensureItemInHand } = require("./builder");
+const { BaseEpisode } = require("./base-episode");
+const { unequipHand } = require("../utils/items");
+
+// Constants for mining behavior
+const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
+const FINAL_EYE_CONTACT_MS = 1500; // Final look duration
+const TOOL_TYPE = "diamond_pickaxe"; // Tool for mining
+const PATHFIND_TIMEOUT_MS = 60000; // 60 second timeout for pathfinding with mining
+const UNDERGROUND_DEPTH = 5; // How many blocks to dig down before horizontal mining
+
+/**
+ * Dig straight down to get underground before starting horizontal mining
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} depth - Number of blocks to dig down
+ * @returns {Promise<boolean>} True if successfully dug down
+ */
+async function digDownToUnderground(bot, depth = UNDERGROUND_DEPTH) {
+  console.log(`[${bot.username}] ⬇️ Digging down ${depth} blocks to start underground mining...`);
+
+  const startPos = bot.entity.position.clone();
+  const startY = Math.floor(startPos.y);
+
+  for (let i = 0; i < depth; i++) {
+    const currentPos = bot.entity.position.clone();
+    const blockBelowPos = new Vec3(
+      Math.floor(currentPos.x),
+      Math.floor(currentPos.y) - 1,
+      Math.floor(currentPos.z)
+    );
+
+    const block = bot.blockAt(blockBelowPos);
+
+    // Check if block exists and is not air
+    if (!block) {
+      console.log(`[${bot.username}] ⚠️ Block below not loaded, stopping dig down`);
+      break;
+    }
+
+    if (block.name === 'air' || block.name === 'cave_air') {
+      console.log(`[${bot.username}] 🕳️ Air below (cave detected), falling...`);
+      await sleep(500);
+      continue;
+    }
+
+    // Check for dangerous blocks
+    if (block.name.includes('lava')) {
+      console.log(`[${bot.username}] 🛑 Lava detected below! Stopping dig down at depth ${i}`);
+      break;
+    }
+
+    console.log(`[${bot.username}] ⛏️ Digging down: ${block.name} at ${blockBelowPos} (${i + 1}/${depth})`);
+
+    try {
+      // Look down (negative pitch looks down in Minecraft)
+      await bot.look(bot.entity.yaw, -1.57, true); // -1.57 radians = 90 degrees down
+      await sleep(100);
+
+      // Dig the block
+      await digWithTimeout(bot, block);
+      console.log(`[${bot.username}] ✅ Dug block ${i + 1}/${depth}`);
+
+      // Wait to fall down
+      await sleep(400);
+    } catch (error) {
+      console.log(`[${bot.username}] ❌ Failed to dig down: ${error.message}`);
+      break;
+    }
+  }
+
+  const endPos = bot.entity.position.clone();
+  const actualDepth = startY - Math.floor(endPos.y);
+
+  console.log(`[${bot.username}] ✅ Finished digging down`);
+  console.log(`[${bot.username}]    Start Y: ${startY}`);
+  console.log(`[${bot.username}]    Current Y: ${Math.floor(endPos.y)}`);
+  console.log(`[${bot.username}]    Actual depth: ${actualDepth} blocks`);
+
+  return actualDepth > 0;
+}
+
+/**
+ * Mine towards a target position using pathfinder with mining enabled
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Vec3} targetPos - Target position to mine towards
+ * @returns {Promise<Object>} Mining statistics
+ */
+async function mineTowardsTarget(bot, targetPos) {
+  console.log(`[${bot.username}] 🚇 Mining towards ${targetPos} using pathfinder`);
+
+  const startPos = bot.entity.position.clone();
+  const startTime = Date.now();
+
+  // Initialize pathfinder with mining enabled
+  const mcData = require("minecraft-data")(bot.version);
+  const { Movements, goals } = require("mineflayer-pathfinder");
+  const { GoalNear } = goals;
+
+  // Configure movements to allow mining
+  const movements = new Movements(bot, mcData);
+  movements.canDig = true; // Enable block breaking
+  movements.digCost = 1; // Low cost for digging (prefer digging over long detours)
+  movements.placeCost = 10; // Higher cost for placing blocks (avoid if possible)
+  movements.allowParkour = false; // Disable parkour for safer mining
+  movements.allowSprinting = true; // Allow sprinting
+  movements.maxDropDown = 4; // Allow dropping down up to 4 blocks
+  movements.scafoldingBlocks = []; // Don't place scaffolding blocks
+
+  bot.pathfinder.setMovements(movements);
+
+  const initialDistance = startPos.distanceTo(targetPos);
+  console.log(
+    `[${bot.username}] 📐 Distance to target: ${initialDistance.toFixed(2)} blocks`
+  );
+
+  // Set goal to get very close to the target position (0.5 blocks = almost exact)
+  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 0.5);
+
+  try {
+    console.log(`[${bot.username}] 🎯 Starting pathfinder navigation with mining...`);
+    
+    // Use pathfinder to navigate to target, mining blocks as needed
+    await gotoWithTimeout(bot, goal, { timeoutMs: PATHFIND_TIMEOUT_MS });
+
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+    const timeElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const finalDistance = endPos.distanceTo(targetPos);
+
+    console.log(`[${bot.username}] 🏁 Mining navigation complete!`);
+    console.log(`[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`);
+    console.log(`[${bot.username}]    Time elapsed: ${timeElapsed}s`);
+    console.log(`[${bot.username}]    Final distance to target: ${finalDistance.toFixed(2)} blocks`);
+
+    return {
+      success: true,
+      distanceTraveled: distanceTraveled,
+      timeElapsed: parseFloat(timeElapsed),
+      reachedTarget: finalDistance < 1.5,
+      finalDistance: finalDistance,
+    };
+  } catch (error) {
+    console.log(
+      `[${bot.username}] ⚠️ Pathfinder mining failed: ${error.message}`
+    );
+    
+    // Return partial results
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+    const finalDistance = endPos.distanceTo(targetPos);
+    
+    return {
+      success: false,
+      distanceTraveled: distanceTraveled,
+      timeElapsed: ((Date.now() - startTime) / 1000).toFixed(1),
+      reachedTarget: false,
+      finalDistance: finalDistance,
+      error: error.message,
+    };
+  } finally {
+    // Stop pathfinder
+    bot.pathfinder.setGoal(null);
+  }
+}
+
+/**
+ * Get the phase function for mining episodes
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Object} rcon - RCON connection
+ * @param {Function} sharedBotRng - Shared random number generator
+ * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {number} iterationID - Iteration ID
+ * @param {number} episodeNum - Episode number
+ * @param {Object} episodeInstance - Episode instance
+ * @param {Object} args - Configuration arguments
+ * @returns {Function} Phase function
+ */
+function getOnMinePhaseFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  iterationID,
+  episodeNum,
+  episodeInstance,
+  args
+) {
+  return async function onMinePhase(otherBotPosition) {
+    coordinator.sendToOtherBot(
+      `minePhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      `minePhase_${iterationID} beginning`
+    );
+
+    console.log(`[${bot.username}] 🚀 Starting MINE2 phase ${iterationID}`);
+    console.log(
+      `[${bot.username}] 🎬 MINING EPISODE 2 (Pathfinder) - Episode ${episodeNum}, Iteration ${iterationID}`
+    );
+
+    // STEP 1: Bots spawn (already done by teleport phase)
+    console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
+
+    // STEP 2: Initial eye contact
+    console.log(
+      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
+    );
+    let actualOtherBotPosition = null;
+    try {
+      const otherEntity = bot.players[args.other_bot_name]?.entity;
+      if (otherEntity) {
+        actualOtherBotPosition = otherEntity.position.clone();
+        const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
+        await bot.lookAt(targetPos);
+        await sleep(INITIAL_EYE_CONTACT_MS);
+      } else {
+        console.log(
+          `[${bot.username}] ⚠️ Could not find other bot entity, using passed position`
+        );
+        actualOtherBotPosition = otherBotPosition.clone();
+      }
+    } catch (lookError) {
+      console.log(
+        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+      );
+      actualOtherBotPosition = otherBotPosition.clone();
+    }
+
+    // STEP 3: Equip mining tool
+    console.log(`[${bot.username}] ⛏️ STEP 3: Equipping mining tool...`);
+    try {
+      await ensureItemInHand(bot, TOOL_TYPE, args);
+      console.log(`[${bot.username}] ✅ Equipped ${TOOL_TYPE}`);
+    } catch (toolError) {
+      console.log(
+        `[${bot.username}] ⚠️ Could not equip tool: ${toolError.message}`
+      );
+    }
+
+    // STEP 4: Dig down to underground
+    console.log(`[${bot.username}] ⬇️ STEP 4: Digging down to underground...`);
+    const dugDown = await digDownToUnderground(bot, Math.floor(Math.random() * 3) + 5);
+    if (!dugDown) {
+      console.log(`[${bot.username}] ⚠️ Failed to dig down, aborting episode`);
+      return {
+        success: false,
+        error: "Failed to dig down",
+      };
+    }
+
+    // STEP 5: Calculate midpoint between bots
+    console.log(`[${bot.username}] 📐 STEP 5: Calculating midpoint...`);
+    const myPos = bot.entity.position.clone();
+
+    // Try to get updated other bot position
+    const otherEntity = bot.players[args.other_bot_name]?.entity;
+    if (otherEntity) {
+      actualOtherBotPosition = otherEntity.position.clone();
+    }
+
+    const midpoint = new Vec3(
+      Math.floor((myPos.x + actualOtherBotPosition.x) / 2),
+      Math.floor(myPos.y), // Same Y level
+      Math.floor((myPos.z + actualOtherBotPosition.z) / 2)
+    );
+
+    console.log(
+      `[${bot.username}] 📍 My position: ${myPos.x.toFixed(
+        2
+      )}, ${myPos.y.toFixed(2)}, ${myPos.z.toFixed(2)}`
+    );
+    console.log(
+      `[${
+        bot.username
+      }] 📍 Other bot position: ${actualOtherBotPosition.x.toFixed(
+        2
+      )}, ${actualOtherBotPosition.y.toFixed(
+        2
+      )}, ${actualOtherBotPosition.z.toFixed(2)}`
+    );
+    console.log(
+      `[${bot.username}] 🎯 Midpoint: ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`
+    );
+
+    // STEP 6: Mine towards the midpoint using pathfinder
+    console.log(
+      `[${bot.username}] 🚇 STEP 6: Mining towards midpoint using pathfinder...`
+    );
+    const miningResult = await mineTowardsTarget(bot, midpoint);
+
+    console.log(
+      `[${bot.username}] ✅ Mining complete! Result: ${JSON.stringify(miningResult)}`
+    );
+
+    // STEP 7: Final eye contact
+    console.log(`[${bot.username}] 👀 STEP 7: Final eye contact...`);
+    try {
+      const otherEntity2 = bot.players[args.other_bot_name]?.entity;
+      if (otherEntity2) {
+        const targetPos = otherEntity2.position.offset(
+          0,
+          otherEntity2.height,
+          0
+        );
+        await bot.lookAt(targetPos);
+        await sleep(FINAL_EYE_CONTACT_MS);
+      }
+    } catch (lookError) {
+      console.log(
+        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+      );
+    }
+
+    console.log(`[${bot.username}] ✅ MINE2 phase complete!`);
+    console.log(
+      `[${bot.username}] 📊 Final stats: ${JSON.stringify(miningResult)}`
+    );
+
+    // STEP 8: Transition to stop phase (end episode)
+    coordinator.onceEvent(
+      "stopPhase",
+      episodeNum,
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      "stopPhase",
+      bot.entity.position.clone(),
+      episodeNum,
+      `minePhase_${iterationID} end`
+    );
+
+    return miningResult;
+  };
+}
+
+/**
+ * MineEpisode2 - Simplified episode class using pathfinder for mining
+ */
+class MineEpisode2 extends BaseEpisode {
+  static WORKS_IN_NON_FLAT_WORLD = true;
+
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+    console.log(`[${bot.username}] 🔧 Setting up Mine Episode 2 (Pathfinder)`);
+  }
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args
+  ) {
+    coordinator.onceEvent(
+      `minePhase_${iterationID}`,
+      episodeNum,
+      getOnMinePhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        this,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `minePhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      "entryPoint end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args
+  ) {
+    console.log(`[${bot.username}] 🧹 Tearing down Mine Episode 2`);
+    // Unequip pickaxe from main hand
+    await unequipHand(bot);
+  }
+}
+
+module.exports = {
+  getOnMinePhaseFn,
+  mineTowardsTarget,
+  TOOL_TYPE,
+  MineEpisode2,
+  digDownToUnderground,
+};
