@@ -135,7 +135,7 @@ def annotate_video(video_file, action_data, output_file):
         f"Mismatch between JSON frames ({len(action_data)}) and video frames ({total_frames}). "
         f"The JSON file must contain exactly one action object per video frame."
     )
-    print(f"[OK] Verified: JSON contains {len(action_data)} frames matching video")
+    print(f"✓ Verified: JSON contains {len(action_data)} frames matching video")
 
     # Define codec and create VideoWriter
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")

@@ -27,8 +27,8 @@ services:
     image: itzg/minecraft-server
     tty: true
     ports:
-      - "${MC_SERVER_PORT:-25565}:25565" # Minecraft server port
-      - "${MC_RCON_PORT:-25575}:25575" # RCON port
+      - "25565:25565" # Minecraft server port
+      - "25575:25575" # RCON port
     environment:
       EULA: "TRUE"
       VERSION: 1.20.4
@@ -36,18 +36,13 @@ services:
       MODE: survival
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
-      SERVER_PORT: ${MC_SERVER_PORT:-25565}
-      RCON_PORT: ${MC_RCON_PORT:-25575}
+      PVP: "TRUE"
       RCON_PASSWORD: research
       BROADCAST_RCON_TO_OPS: true
-      SPAWN_PROTECTION: 0
-      ALLOW_FLIGHT: true
-      SEED: ${WORLD_SEED:-1234567890}
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
-      LEVEL_TYPE: minecraft:${LEVEL_TYPE:-flat}
-      # below should be irrelevant if LEVEL_TYPE is not minecraft:flat
+      LEVEL_TYPE: minecraft:flat
       GENERATOR_SETTINGS: >-
         {
           "layers": [
@@ -60,13 +55,11 @@ services:
         }
     volumes:
       # attach the relative directory 'data' to the container's /data path
-      - ${MC_DATA_DIR:-./data}:/data
+      - ./data53:/data
+      - ./plugins:/data/plugins
+      - ./skins:/data/skins
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "mc-monitor status --host localhost --port ${MC_SERVER_PORT:-25565}",
-        ]
+      test: ["CMD-SHELL", "mc-monitor status --host localhost --port 25565"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -91,34 +84,24 @@ services:
       RECEIVER_PORT: 8090
       COORD_PORT: 8100
       OTHER_COORD_HOST: sender_bravo
-      OTHER_COORD_PORT: 8100
-      BOT_RNG_SEED: "123456"
-      EPISODE_TYPES: ${EPISODE_TYPES:-all}
-      EPISODES_NUM: ${EPISODES_NUM:-1}
-      EPISODE_START_ID: ${EPISODE_START_ID:-0}
+      OTHER_COORD_PORT: 8101
+      BOT_RNG_SEED: "12345"
+      EPISODES_NUM: 1
+      EPISODE_CATEGORY: look_away
       MC_HOST: mc
-      MC_PORT: ${MC_SERVER_PORT:-25565}
+      MC_PORT: 25565
       RCON_HOST: mc
-      RCON_PORT: ${MC_RCON_PORT:-25575}
+      RCON_PORT: 25575
       RCON_PASSWORD: research
-      WALK_TIMEOUT: 5
-      TELEPORT: ${TELEPORT:-1}
-      TELEPORT_CENTER_X: ${TELEPORT_CENTER_X:-0}
-      TELEPORT_CENTER_Z: ${TELEPORT_CENTER_Z:-0}
-      TELEPORT_RADIUS: ${TELEPORT_RADIUS:-3000}
-      TELEPORT_MIN_DISTANCE: ${TELEPORT_MIN_DISTANCE:-1000}
-      BOOTSTRAP_WAIT_TIME: ${BOOTSTRAP_WAIT_TIME:-1}
-      ENABLE_CAMERA_WAIT: 1
+      COLOR: red
+      BOOTSTRAP_WAIT_TIME: 20
+      MIN_RUN_ACTIONS: 1
+      MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
-      CAMERA_READY_RETRIES: 300
+      CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
-      VIEWER_RENDERING_DISABLED: 1
-      VIEWER_RECORDING_INTERVAL: 50 # should be 50 when rendering is disabled to have 20 FPS
-      WORLD_TYPE: ${LEVEL_TYPE:-flat}
-      SMOKE_TEST: ${SMOKE_TEST:-0}
-      INSTANCE_ID: 0
-      OUTPUT_DIR: /output
+      SMOKE_TEST: 0
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -140,36 +123,26 @@ services:
       OTHER_BOT_NAME: Alpha
       RECEIVER_HOST: receiver_bravo
       RECEIVER_PORT: 8090
-      COORD_PORT: 8100
+      COORD_PORT: 8101
       OTHER_COORD_HOST: sender_alpha
       OTHER_COORD_PORT: 8100
-      BOT_RNG_SEED: "123456"
-      EPISODES_NUM: ${EPISODES_NUM:-1}
-      EPISODE_START_ID: ${EPISODE_START_ID:-0}
-      EPISODE_TYPES: ${EPISODE_TYPES:-all}
+      BOT_RNG_SEED: "12345"
+      EPISODE_CATEGORY: look_away
+      EPISODES_NUM: 1
       MC_HOST: mc
-      MC_PORT: ${MC_SERVER_PORT:-25565}
+      MC_PORT: 25565
       RCON_HOST: mc
-      RCON_PORT: ${MC_RCON_PORT:-25575}
+      RCON_PORT: 25575
       RCON_PASSWORD: research
-      WALK_TIMEOUT: 5
-      TELEPORT: ${TELEPORT:-1}
-      TELEPORT_CENTER_X: ${TELEPORT_CENTER_X:-0}
-      TELEPORT_CENTER_Z: ${TELEPORT_CENTER_Z:-0}
-      TELEPORT_RADIUS: ${TELEPORT_RADIUS:-3000}
-      TELEPORT_MIN_DISTANCE: ${TELEPORT_MIN_DISTANCE:-1000}
-      BOOTSTRAP_WAIT_TIME: ${BOOTSTRAP_WAIT_TIME:-1}
-      ENABLE_CAMERA_WAIT: 1
+      COLOR: blue
+      BOOTSTRAP_WAIT_TIME: 20
+      MIN_RUN_ACTIONS: 1
+      MAX_RUN_ACTIONS: 1
       ITERATIONS_NUM_PER_EPISODE: 5
       MC_VERSION: "1.20.4"
-      CAMERA_READY_RETRIES: 300
+      CAMERA_READY_RETRIES: 30
       CAMERA_READY_CHECK_INTERVAL: 2000
-      VIEWER_RENDERING_DISABLED: 1
-      VIEWER_RECORDING_INTERVAL: 50
-      SMOKE_TEST: ${SMOKE_TEST:-0}
-      WORLD_TYPE: ${LEVEL_TYPE:-flat}
-      INSTANCE_ID: 0
-      OUTPUT_DIR: /output
+      SMOKE_TEST: 0
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ./entrypoint_senders.sh
@@ -180,9 +153,7 @@ services:
       PORT: 8090
       NAME: Alpha
       INSTANCE_ID: 0
-      EPISODE_START_ID: ${EPISODE_START_ID:-0}
-      EPISODES_NUM: ${EPISODES_NUM:-1}
-      VIEWER_RENDERING_DISABLED: 1
+      EPISODE_START_ID: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -195,9 +166,7 @@ services:
       PORT: 8090
       NAME: Bravo
       INSTANCE_ID: 0
-      EPISODE_START_ID: ${EPISODE_START_ID:-0}
-      EPISODES_NUM: ${EPISODES_NUM:-1}
-      VIEWER_RENDERING_DISABLED: 1
+      EPISODE_START_ID: 0
     tty: true
     volumes:
       # attach the relative directory 'data' to the container's /data path
@@ -211,7 +180,6 @@ services:
     restart: "no"
     volumes:
       - .:/usr/src/app
-      - ./output:/output
 
   camera_alpha:
     image: ojmichel/mineflayer-spectator-client:latest
@@ -314,28 +282,3 @@ services:
       - ./camera/package.json:/app/package.json:ro
     command:
       ["sh", "-c", "npm install --omit=dev --no-progress && node spectator.js"]
-
-  episode_starter:
-    image: node:20
-    depends_on:
-      mc:
-        condition: service_healthy
-      camera_alpha:
-        condition: service_started
-    working_dir: /app
-    environment:
-      RCON_HOST: mc
-      RCON_PORT: "${MC_RCON_PORT:-25575}"
-      RCON_PASSWORD: "research"
-      EPISODE_START_RETRIES: "60"
-      EPISODE_REQUIRED_PLAYERS: "Alpha,CameraAlpha,Bravo,CameraBravo"
-      EPISODE_START_COMMAND: "episode start Alpha CameraAlpha technoblade.png Bravo CameraBravo test.png"
-    volumes:
-      - ./camera/episode_starter.js:/app/episode_starter.js:ro
-      - ./camera/package.json:/app/package.json:ro
-    command:
-      [
-        "sh",
-        "-c",
-        "npm install --omit=dev --no-progress && node episode_starter.js",
-      ]

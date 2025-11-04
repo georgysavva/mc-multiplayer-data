@@ -256,10 +256,8 @@ def find_episode_pairs(output_dir: str) -> List[Dict[str, str]]:
     # Parse meta JSON files
     for meta_path in meta_files:
         filename = os.path.basename(meta_path)
-        # Updated regex to handle both _meta.json and _camera_meta.json patterns
-        # Supports: YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id_meta.json
-        #       OR: YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id_camera_meta.json
-        match = re.match(r'(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})(?:_camera)?_meta\.json$', filename)
+        # Updated regex to handle timestamp prefix: YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id_meta.json
+        match = re.match(r'(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})_meta\.json$', filename)
         if match:
             timestamp, episode_id, bot_name, instance_id = match.groups()
 
