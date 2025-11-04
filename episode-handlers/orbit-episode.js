@@ -1,160 +1,202 @@
 const Vec3 = require("vec3").Vec3;
-const { GoalNear } = require("../utils/bot-factory");
+const { Movements, GoalNear } = require("../utils/bot-factory");
 const {
+  stopAll,
   lookAtBot,
+  lookAtSmooth,
   sleep,
   initializePathfinder,
   stopPathfinder,
   land_pos,
 } = require("../utils/movement");
+const { tickMVC, createMVC } = require("../utils/mvc");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for orbit behavior
-const NUM_CHECKPOINTS = 8; // Number of checkpoints around the circle
-const CHECKPOINT_REACH_DISTANCE = 1.5; // How close to get to checkpoint (blocks)
-const CHECKPOINT_TIMEOUT_MS = 5000; // Maximum time to reach each checkpoint (5 seconds)
-const EYE_CONTACT_DURATION_MS = 1000; // How long to look at partner at each checkpoint
-const CAMERA_SPEED_DEGREES_PER_SEC = 90; // Camera rotation speed
+const ORBIT_DURATION_MS = 15000; // 15 seconds of orbiting
+const ORBIT_UPDATE_INTERVAL_MS = 200; // Update positions every 200ms
+const ORBIT_RADIUS = 5.0; // Fixed radius around midpoint
+const ORBIT_SPEED = 0.1; // Angular speed for circular movement (radians per update)
+const CAMERA_SPEED_DEGREES_PER_SEC = 90; // Camera movement speed
+const EYE_CONTACT_UPDATE_INTERVAL_MS = 500; // Update eye contact every 1 second
+
+// MVC Configuration for orbit episode
+const ORBIT_MVC_CONFIG = {
+  fov_max_deg: 90, // Slightly larger FOV for orbit movement
+  d_min: 3.0, // Minimum distance (closer than orbit radius)
+  d_max: 8.0, // Maximum distance (further than orbit radius)
+  enable_los_check: false, // Phase I - flat terrain
+  correction_strength: 0.3, // Gentle corrections during orbit
+  debug_logging: true,
+};
 
 /**
- * Calculate checkpoint positions around a circle
- * @param {Vec3} center - Center point of the circle
- * @param {number} radius - Radius of the circle
- * @param {number} numCheckpoints - Number of checkpoints to generate
- * @param {number} startAngle - Starting angle in radians (for bot's initial position)
- * @returns {Array<Vec3>} Array of checkpoint positions
- */
-function calculateOrbitCheckpoints(center, radius, numCheckpoints, startAngle = 0) {
-  const checkpoints = [];
-  const angleStep = (2 * Math.PI) / numCheckpoints;
-
-  for (let i = 0; i < numCheckpoints; i++) {
-    const angle = startAngle + (i * angleStep);
-    const x = center.x + radius * Math.cos(angle);
-    const z = center.z + radius * Math.sin(angle);
-    checkpoints.push(new Vec3(x, center.y, z));
-  }
-
-  return checkpoints;
-}
-
-/**
- * Execute orbit by traveling to checkpoints in sequence
+ * Make both bots orbit around their shared midpoint using checkpoints
  * @param {Bot} bot - Mineflayer bot instance
+ * @param {BotCoordinator} coordinator - Bot coordinator instance
  * @param {string} otherBotName - Name of the other bot
- * @param {Array<Vec3>} checkpoints - Array of checkpoint positions
- * @param {Object} rcon - RCON connection for chunk loading
+ * @param {Vec3} sharedMidpoint - Shared orbit center between both bots
+ * @param {number} radius - Orbit radius
+ * @param {number} durationMs - Duration to orbit in milliseconds
  */
-async function executeOrbitWithCheckpoints(bot, otherBotName, checkpoints, rcon) {
+async function orbitAroundSharedMidpoint(
+  bot,
+  coordinator,
+  otherBotName,
+  sharedMidpoint,
+  durationMs
+) {
   console.log(
-    `[${bot.username}] Starting orbit with ${checkpoints.length} checkpoints`
+    `[${bot.username}] Starting ${
+      durationMs / 1000
+    }s MVC-enhanced pathfinder orbit around shared midpoint (${sharedMidpoint.x.toFixed(
+      1
+    )}, ${sharedMidpoint.y.toFixed(1)}, ${sharedMidpoint.z.toFixed(1)})`
   );
 
-  // Initialize pathfinder with full capabilities
+  // Initialize pathfinder with optimal settings for orbiting
   initializePathfinder(bot, {
-    allowSprinting: true, // Sprint for faster movement between checkpoints
+    allowSprinting: false,
     allowParkour: true,
     canDig: true,
-    canPlaceOn: true,
     allowEntityDetection: true,
   });
 
-  for (let i = 0; i < checkpoints.length; i++) {
-    const checkpoint = checkpoints[i];
-    
-    // Get ground Y coordinate for checkpoint
-    const groundPos = await land_pos(bot, rcon, checkpoint.x, checkpoint.z);
-    const targetPos = groundPos || checkpoint;
+  // Create MVC instance for this episode
+  const mvc = createMVC(ORBIT_MVC_CONFIG);
 
-    console.log(
-      `[${bot.username}] 📍 Checkpoint ${i + 1}/${checkpoints.length}: ` +
-      `(${targetPos.x.toFixed(1)}, ${targetPos.y.toFixed(1)}, ${targetPos.z.toFixed(1)})`
-    );
-    console.log(
-      `[${bot.username}] 📊 Current position: ` +
-      `(${bot.entity.position.x.toFixed(1)}, ${bot.entity.position.y.toFixed(1)}, ${bot.entity.position.z.toFixed(1)})`
-    );
-    console.log(
-      `[${bot.username}] 📏 Distance to checkpoint: ${bot.entity.position.distanceTo(targetPos).toFixed(2)} blocks`
-    );
+  console.log(`[${bot.username}] Pathfinder and MVC initialized for orbit`);
 
-    // Check pathfinder state before setting goal
-    console.log(`[${bot.username}] 🔍 Pathfinder state BEFORE: isMoving=${bot.pathfinder.isMoving()}, goal=${bot.pathfinder.goal ? 'SET' : 'NULL'}`);
+  const startTime = Date.now();
+  let lastEyeContactUpdate = 0;
+  let lastMVCUpdate = 0;
 
-    // Set pathfinder goal to checkpoint
-    console.log(`[${bot.username}] 🚀 Starting pathfinder to checkpoint ${i + 1}`);
-    const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, CHECKPOINT_REACH_DISTANCE);
-    bot.pathfinder.setGoal(goal);
-    
-    // Verify goal was set
-    await sleep(200); // Give pathfinder time to process
-    console.log(`[${bot.username}] 🔍 Pathfinder state AFTER: isMoving=${bot.pathfinder.isMoving()}, goal=${bot.pathfinder.goal ? 'SET' : 'NULL'}`);
+  // Calculate starting angle based on bot's current position relative to midpoint
+  const startPos = bot.entity.position;
+  const initialDx = startPos.x - sharedMidpoint.x;
+  const initialDz = startPos.z - sharedMidpoint.z;
+  let angle = Math.atan2(initialDz, initialDx); // Starting angle
 
-    // Wait until bot reaches checkpoint or timeout
-    let reached = false;
-    let timedOut = false;
-    let checkCount = 0;
-    const checkpointStartTime = Date.now();
-    
-    while (!reached && !timedOut) {
-      const distance = bot.entity.position.distanceTo(targetPos);
-      const elapsed = Date.now() - checkpointStartTime;
-      
-      // Log every 2 seconds (20 checks)
-      if (checkCount % 20 === 0) {
+  console.log(
+    `[${bot.username}] Starting orbit angle: ${(
+      (angle * 180) /
+      Math.PI
+    ).toFixed(1)}°`
+  );
+
+  // MVC state tracking for metadata
+  let mvcMetadata = {
+    partner_in_fov: true,
+    fov_angle_deg: 0,
+    distance_to_partner: 0,
+    mvc_corrections_applied: 0,
+  };
+
+  try {
+    while (Date.now() - startTime < durationMs) {
+      const now = Date.now();
+
+      // Calculate target position on the circle around shared midpoint
+      const targetX = sharedMidpoint.x + ORBIT_RADIUS * Math.cos(angle);
+      const targetZ = sharedMidpoint.z + ORBIT_RADIUS * Math.sin(angle);
+      let targetPos = new Vec3(targetX, sharedMidpoint.y, targetZ);
+      targetPos = land_pos(bot, targetPos.x, targetPos.z) || targetPos;
+
+      // Use pathfinder to move to orbit position
+      bot.pathfinder.setGoal(
+        new GoalNear(targetPos.x, targetPos.y, targetPos.z, 1.0)
+      );
+
+      console.log(
+        `[${bot.username}] Orbit target: (${targetX.toFixed(
+          2
+        )}, ${targetZ.toFixed(2)}) angle: ${((angle * 180) / Math.PI).toFixed(
+          1
+        )}°`
+      );
+
+      // Get other bot's position for MVC
+      const otherBot = bot.players[otherBotName];
+      if (otherBot && otherBot.entity) {
+        const otherBotPos = otherBot.entity.position;
+
+        // Run MVC tick every update interval
+        if (now - lastMVCUpdate > ORBIT_UPDATE_INTERVAL_MS) {
+          try {
+            const mvcResult = await mvc.tick(bot, otherBotPos);
+
+            // Update metadata with MVC state
+            mvcMetadata = {
+              ...mvcMetadata,
+              ...mvcResult.mvcState,
+            };
+
+            if (
+              mvcResult.appliedCorrections.lookedAt ||
+              mvcResult.appliedCorrections.movedRight
+            ) {
+              mvcMetadata.mvc_corrections_applied++;
+              console.log(
+                `[${bot.username}] MVC applied corrections during orbit: lookAt=${mvcResult.appliedCorrections.lookedAt}, moveRight=${mvcResult.appliedCorrections.movedRight}`
+              );
+            }
+
+            lastMVCUpdate = now;
+          } catch (error) {
+            console.error(`[${bot.username}] MVC error during orbit:`, error);
+          }
+        }
+
+        // Maintain eye contact with other bot (less frequent than MVC to avoid conflicts)
+        if (now - lastEyeContactUpdate > EYE_CONTACT_UPDATE_INTERVAL_MS) {
+          // Only do manual eye contact if MVC didn't just correct it
+          if (now - lastMVCUpdate > 100) {
+            await lookAtBot(bot, otherBotName, CAMERA_SPEED_DEGREES_PER_SEC);
+            console.log(
+              `[${bot.username}] Manual eye contact with ${otherBotName} while orbiting`
+            );
+          }
+          lastEyeContactUpdate = now;
+        }
+      } else {
         console.log(
-          `[${bot.username}] 🔄 Moving to checkpoint ${i + 1}: distance=${distance.toFixed(2)}, ` +
-          `isMoving=${bot.pathfinder.isMoving()}, pos=(${bot.entity.position.x.toFixed(1)}, ${bot.entity.position.z.toFixed(1)}), ` +
-          `elapsed=${(elapsed / 1000).toFixed(1)}s`
+          `[${bot.username}] Cannot see ${otherBotName} for MVC/eye contact`
         );
       }
-      
-      if (distance <= CHECKPOINT_REACH_DISTANCE) {
-        reached = true;
-        console.log(`[${bot.username}] ✅ Reached checkpoint ${i + 1} in ${(elapsed / 1000).toFixed(1)}s`);
-      } else if (elapsed > CHECKPOINT_TIMEOUT_MS) {
-        timedOut = true;
-        console.log(
-          `[${bot.username}] ⏰ Timeout at checkpoint ${i + 1} after ${(elapsed / 1000).toFixed(1)}s ` +
-          `(distance: ${distance.toFixed(2)} blocks, target: ${CHECKPOINT_REACH_DISTANCE} blocks)`
-        );
+
+      // Advance angle for next orbit position
+      angle += ORBIT_SPEED;
+      if (angle > 2 * Math.PI) {
+        angle -= 2 * Math.PI; // Keep angle in [0, 2π] range
       }
 
-      checkCount++;
-      await sleep(100); // Check every 100ms
+      await sleep(ORBIT_UPDATE_INTERVAL_MS);
     }
+  } finally {
+    // Clean up pathfinder
+    stopPathfinder(bot);
 
-    // Stop movement at checkpoint (but keep pathfinder active for next checkpoint)
-    console.log(`[${bot.username}] 🛑 Stopping movement at checkpoint ${i + 1}`);
-    bot.pathfinder.setGoal(null); // Clear current goal
-    console.log(`[${bot.username}] 🔍 Goal cleared: goal=${bot.pathfinder.goal ? 'STILL SET' : 'NULL'}`);
-    
-    // Manually stop control states (don't use stopAll which calls pathfinder.stop())
-    bot.setControlState('forward', false);
-    bot.setControlState('back', false);
-    bot.setControlState('left', false);
-    bot.setControlState('right', false);
-    bot.setControlState('sprint', false);
-
-    // Look at other bot
-    console.log(`[${bot.username}] 👀 Looking at ${otherBotName}`);
-    await lookAtBot(bot, otherBotName, CAMERA_SPEED_DEGREES_PER_SEC);
-
-    // Hold eye contact
-    console.log(`[${bot.username}] ⏸️ Holding eye contact for ${EYE_CONTACT_DURATION_MS}ms`);
-    await sleep(EYE_CONTACT_DURATION_MS);
-    
-    console.log(`[${bot.username}] ✅ Checkpoint ${i + 1} complete, continuing to next...`);
+    // Log MVC statistics
+    console.log(`[${bot.username}] MVC-enhanced orbit complete! Stats:`, {
+      final_partner_in_fov: mvcMetadata.partner_in_fov,
+      final_fov_angle: mvcMetadata.fov_angle_deg.toFixed(1),
+      final_distance: mvcMetadata.distance_to_partner.toFixed(2),
+      total_corrections: mvcMetadata.mvc_corrections_applied,
+    });
   }
-
-  // Clean up pathfinder after all checkpoints
-  stopPathfinder(bot);
-
-  console.log(`[${bot.username}] ✅ Orbit complete! Visited all ${checkpoints.length} checkpoints`);
 }
 
 /**
  * Get orbit phase handler function
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Function} sharedBotRng - Shared random number generator
+ * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {number} iterationID - Iteration ID
+ * @param {string} otherBotName - Other bot name
+ * @param {number} episodeNum - Episode number
+ * @param {Object} episodeInstance - Episode instance
+ * @param {Object} args - Configuration arguments
+ * @returns {Function} Orbit phase handler
  */
 function getOnOrbitPhaseFn(
   bot,
@@ -170,7 +212,12 @@ function getOnOrbitPhaseFn(
   return async (otherBotPosition) => {
     const startTime = Date.now();
     console.log(
-      `[${bot.username}] 🌀 ORBIT EPISODE STARTING - Episode ${episodeNum}, Iteration ${iterationID}`
+      `[${bot.username}] ORBIT EPISODE STARTING - Episode ${episodeNum}, Iteration ${iterationID}`
+    );
+    console.log(
+      `[${bot.username}] Episode start time: ${new Date(
+        startTime
+      ).toISOString()}`
     );
 
     coordinator.sendToOtherBot(
@@ -180,55 +227,42 @@ function getOnOrbitPhaseFn(
       `orbitPhase_${iterationID} beginning`
     );
 
-    // Step 1: Calculate shared midpoint between both bots
+    console.log(
+      `[${bot.username}] Starting pathfinder orbit phase ${iterationID}`
+    );
+
+    // Calculate shared midpoint between both bots
     const myPosition = bot.entity.position;
-    const otherPosition = otherBotPosition;
+    const otherPosition = otherBotPosition; // Received from coordination
 
     const sharedMidpoint = new Vec3(
-      (myPosition.x + otherPosition.x) / 2,
-      (myPosition.y + otherPosition.y) / 2,
-      (myPosition.z + otherPosition.z) / 2
+      Math.round((myPosition.x + otherPosition.x) / 2),
+      Math.round((myPosition.y + otherPosition.y) / 2),
+      Math.round((myPosition.z + otherPosition.z) / 2)
     );
 
     console.log(
-      `[${bot.username}] 📍 Shared midpoint: (${sharedMidpoint.x.toFixed(1)}, ` +
-      `${sharedMidpoint.y.toFixed(1)}, ${sharedMidpoint.z.toFixed(1)})`
-    );
-
-    // Step 2: Calculate orbit radius (half the distance between bots)
-    const distanceBetweenBots = myPosition.distanceTo(otherPosition);
-    const orbitRadius = distanceBetweenBots / 2;
-
-    console.log(
-      `[${bot.username}] 📏 Distance between bots: ${distanceBetweenBots.toFixed(2)} blocks`
+      `[${bot.username}] Shared midpoint calculated: (${sharedMidpoint.x}, ${sharedMidpoint.y}, ${sharedMidpoint.z})`
     );
     console.log(
-      `[${bot.username}] ⭕ Orbit radius: ${orbitRadius.toFixed(2)} blocks`
+      `[${bot.username}] My position: (${myPosition.x.toFixed(
+        1
+      )}, ${myPosition.y.toFixed(1)}, ${myPosition.z.toFixed(1)})`
     );
-
-    // Step 3: Calculate starting angle based on bot's current position
-    const dx = myPosition.x - sharedMidpoint.x;
-    const dz = myPosition.z - sharedMidpoint.z;
-    const startAngle = Math.atan2(dz, dx);
-
     console.log(
-      `[${bot.username}] 🎯 Starting angle: ${((startAngle * 180) / Math.PI).toFixed(1)}°`
+      `[${bot.username}] ${otherBotName} position: (${otherPosition.x.toFixed(
+        1
+      )}, ${otherPosition.y.toFixed(1)}, ${otherPosition.z.toFixed(1)})`
     );
 
-    // Step 4: Generate checkpoint coordinates around the circle
-    const checkpoints = calculateOrbitCheckpoints(
+    // Execute the orbit behavior using pathfinder around shared midpoint
+    await orbitAroundSharedMidpoint(
+      bot,
+      coordinator,
+      otherBotName,
       sharedMidpoint,
-      orbitRadius,
-      NUM_CHECKPOINTS,
-      startAngle
+      ORBIT_DURATION_MS
     );
-
-    console.log(
-      `[${bot.username}] 📋 Generated ${checkpoints.length} checkpoints for orbit path`
-    );
-
-    // Step 5 & 6: Execute orbit by traveling to checkpoints
-    await executeOrbitWithCheckpoints(bot, otherBotName, checkpoints, rcon);
 
     // Transition to stop phase
     console.log(`[${bot.username}] Transitioning to stop phase...`);
@@ -252,18 +286,16 @@ function getOnOrbitPhaseFn(
       `orbitPhase_${iterationID} end`
     );
 
-    const duration = (Date.now() - startTime) / 1000;
     console.log(
-      `[${bot.username}] Orbit phase complete in ${duration.toFixed(1)}s`
+      `[${bot.username}] Orbit phase ${iterationID} transition complete`
     );
   };
 }
 
 class OrbitEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
-  
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
-    console.log(`[${bot.username}] 🌀 Setting up orbit episode`);
+    // optional setup
   }
 
   async entryPoint(
@@ -306,19 +338,12 @@ class OrbitEpisode extends BaseEpisode {
     episodeNum,
     args
   ) {
-    console.log(`[${bot.username}] 🧹 Cleaning up orbit episode`);
-    stopPathfinder(bot);
-    bot.setControlState('forward', false);
-    bot.setControlState('back', false);
-    bot.setControlState('left', false);
-    bot.setControlState('right', false);
-    bot.setControlState('sprint', false);
+    // optional teardown
   }
 }
 
 module.exports = {
-  calculateOrbitCheckpoints,
-  executeOrbitWithCheckpoints,
+  orbitAroundSharedMidpoint,
   getOnOrbitPhaseFn,
   OrbitEpisode,
 };
