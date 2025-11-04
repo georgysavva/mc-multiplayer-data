@@ -150,15 +150,16 @@ async function runFromChaser(
     }s`
   );
 
-  // Initialize pathfinder with optimal settings for running
+  // Initialize pathfinder with full capabilities for running - can dig/place to escape
   initializePathfinder(bot, {
     allowSprinting: true,
     allowParkour: true,
-    canDig: false,
+    canDig: true, // Can break blocks to escape
+    canPlaceOn: true, // Can place blocks to bridge/climb
     allowEntityDetection: true,
   });
 
-  console.log(`[${bot.username}] ✅ Pathfinder initialized for escape`);
+  console.log(`[${bot.username}] ✅ Pathfinder initialized for escape with full capabilities`);
 
   // Get chaser's initial position to calculate escape destination
   let chaserPos = null;
