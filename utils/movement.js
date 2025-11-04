@@ -83,29 +83,22 @@ function initializePathfinder(bot, options = {}) {
   const mcData = require("minecraft-data")(bot.version);
   const movements = new Movements(bot, mcData);
 
-  // Configure movement settings with full capabilities enabled by default
-  movements.allowSprinting = options.allowSprinting !== false; // Default: true - Sprint while moving
-  movements.allowParkour = options.allowParkour !== false; // Default: true - Jump gaps
-  movements.canDig = options.canDig !== false; // Default: true - Break blocks to path through terrain
-  movements.canPlaceOn = options.canPlaceOn !== false; // Default: true - Place blocks to bridge gaps
-  movements.allowFreeMotion = options.allowFreeMotion || false; // Default: false - Flying/swimming
-  movements.allowEntityDetection = options.allowEntityDetection !== false; // Default: true - Avoid entities
-
-  // Additional pathfinder settings for robust navigation
-  movements.scaffoldingBlocks = options.scaffoldingBlocks || []; // Blocks to use for bridging
-  movements.maxDropDown = options.maxDropDown || 4; // Max blocks to drop down
-  movements.infiniteLiquidDropdownDistance = options.infiniteLiquidDropdownDistance !== false; // Can drop any distance into water
+  // Configure movement settings
+  movements.allowSprinting = options.allowSprinting !== false; // Default: true
+  movements.allowParkour = options.allowParkour !== false; // Default: true
+  movements.canDig = options.canDig || false; // Default: false (don't break blocks)
+  movements.canPlaceOn = options.canPlaceOn || false; // Default: false (don't place blocks)
+  movements.allowFreeMotion = options.allowFreeMotion || false; // Default: false
+  movements.allowEntityDetection = options.allowEntityDetection !== false; // Default: true
 
   // Set pathfinder movements
   bot.pathfinder.setMovements(movements);
 
-  console.log(`[${bot.username}] Pathfinder initialized with full capabilities:`, {
+  console.log(`[${bot.username}] Pathfinder initialized with settings:`, {
     sprint: movements.allowSprinting,
     parkour: movements.allowParkour,
     dig: movements.canDig,
-    placeBlocks: movements.canPlaceOn,
     entityDetection: movements.allowEntityDetection,
-    maxDropDown: movements.maxDropDown,
   });
 
   return movements;
