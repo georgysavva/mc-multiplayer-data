@@ -5,6 +5,7 @@ Orchestration script to manage multiple Docker Compose instances for parallel da
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -114,6 +115,8 @@ class InstanceManager:
             "camera_bravo_instance_{i}",
         ]
         self.instance_logs: Dict[str, Dict[str, subprocess.Popen]] = {}
+        # If True, do not call stop_all() at the end of start_all()
+        self.keep_running: bool = False
 
     def get_compose_files(self):
         """Get all Docker Compose files in the config directory."""
@@ -252,14 +255,56 @@ class InstanceManager:
                 cwd=self.compose_dir.parent,
                 timeout=900,  # 15 minutes
             )
-            if gate_result.returncode != 0:
-                print(
-                    f"[{instance_name}] episode_starter failed (exit {gate_result.returncode}); shutting down instance"
-                )
-                self.stop_instance(compose_file)
-                return False
-            else:
+            if gate_result.returncode == 0:
                 print(f"[{instance_name}] episode_starter completed successfully; proceeding")
+            else:
+                # Fallback to the container's actual exit code to avoid false negatives
+                # from 'docker compose wait'. If the container exited 0, treat as success.
+                stderr = (gate_result.stderr or "").strip()
+                # Get container id for the episode_starter service
+                ps_cmd = [
+                    *self.compose_bin,
+                    "-p",
+                    instance_name,
+                    "-f",
+                    str(compose_file),
+                    "ps",
+                    "-q",
+                    episode_starter,
+                ]
+                ps_result = subprocess.run(
+                    ps_cmd, capture_output=True, text=True, cwd=self.compose_dir.parent
+                )
+                container_id = (ps_result.stdout or "").strip()
+                exit_code = None
+                if container_id:
+                    inspect_cmd = [
+                        "docker",
+                        "inspect",
+                        "--format",
+                        "{{.State.ExitCode}}",
+                        container_id,
+                    ]
+                    inspect_result = subprocess.run(
+                        inspect_cmd, capture_output=True, text=True
+                    )
+                    try:
+                        exit_code = int((inspect_result.stdout or "").strip())
+                    except Exception:
+                        exit_code = None
+
+                if exit_code == 0:
+                    print(
+                        f"[{instance_name}] episode_starter wait returned {gate_result.returncode} but container ExitCode=0; proceeding"
+                    )
+                else:
+                    print(
+                        f"[{instance_name}] episode_starter failed (wait rc={gate_result.returncode}, exit={exit_code}); shutting down instance"
+                    )
+                    if stderr:
+                        print(f"[{instance_name}] episode_starter wait stderr: {stderr}")
+                    self.stop_instance(compose_file)
+                    return False
         except subprocess.TimeoutExpired:
             print(f"[{instance_name}] episode_starter timed out; shutting down instance")
             self.stop_instance(compose_file)
@@ -339,10 +384,13 @@ class InstanceManager:
                     completed_count += 1
         
         print(f"\n✅ {completed_count}/{len(started_instances)} instances completed successfully")
-        
-        # Stop all instances
-        print(f"\n🛑 Shutting down all instances...")
-        self.stop_all()
+
+        # Optionally keep instances running
+        if not getattr(self, "keep_running", False):
+            print(f"\n🛑 Shutting down all instances...")
+            self.stop_all()
+        else:
+            print("\nℹ️ Keeping running instances alive (use 'orchestrate.py stop' when ready).")
 
     def stop_all(self):
         """Stop all instances."""
@@ -567,14 +615,9 @@ class InstanceManager:
             print(f"  Error processing {job['episode_file'].name}: {e}")
             return False
 
-    def postprocess_recordings(self, workers=4, comparison_video=False, debug=False, output_dir=None):
+    def postprocess_recordings(self, workers=4, comparison_video=False, debug=False, output_dir=None, data_dir=None):
         """Process camera recordings for all instances in parallel."""
         print(f"Discovering episodes from orchestrated instances...")
-        
-        compose_files = self.get_compose_files()
-        if not compose_files:
-            print("No compose files found.")
-            return
         
         # Build list of all episode processing jobs
         jobs = []
@@ -583,67 +626,55 @@ class InstanceManager:
         if debug:
             print(f"[DEBUG] Project root: {project_root}")
         
-        for compose_file in compose_files:
-            instance_id = self._instance_index_from_stem(compose_file.stem)
+        # If data_dir is provided, use it directly instead of compose files
+        if data_dir:
+            data_dir_path = Path(data_dir)
+            if not data_dir_path.exists():
+                print(f"Error: Data directory does not exist: {data_dir_path}")
+                return
             
-            # Parse compose file to get directories
-            with open(compose_file) as f:
-                config = yaml.safe_load(f)
+            # Build directory paths based on batch directory structure
+            actions_output_dir = data_dir_path / "output"
+            camera_output_alpha_base = data_dir_path / "camera" / "output_alpha"
+            camera_output_bravo_base = data_dir_path / "camera" / "output_bravo"
             
-            # Extract output directory from sender service
-            sender_service = config['services'].get(f'sender_alpha_instance_{instance_id}')
-            if not sender_service:
-                continue
-
-            # Parse volume mount: /host/path:/output (actions output dir)
-            actions_output_dir = None
-            for vol in sender_service.get('volumes', []):
-                if ':/output' in vol:
-                    actions_output_dir = Path(vol.split(':')[0])
-                    break
-
-            if not actions_output_dir:
-                continue
-
-            # Extract camera output directories from camera services
-            camera_alpha_service = config['services'].get(f'camera_alpha_instance_{instance_id}')
-            camera_bravo_service = config['services'].get(f'camera_bravo_instance_{instance_id}')
-
-            camera_output_alpha = None
-            camera_output_bravo = None
-
-            if camera_alpha_service:
-                for vol in camera_alpha_service.get('volumes', []):
-                    if ':/output' in vol:
-                        camera_output_alpha = Path(vol.split(':')[0])
-                        break
-
-            if camera_bravo_service:
-                for vol in camera_bravo_service.get('volumes', []):
-                    if ':/output' in vol:
-                        camera_output_bravo = Path(vol.split(':')[0])
-                        break
+            if not actions_output_dir.exists():
+                print(f"Error: Actions output directory does not exist: {actions_output_dir}")
+                return
             
-            # Find all episode JSON files in actions output directory
+            if debug:
+                print(f"[DEBUG] Using data_dir mode")
+                print(f"[DEBUG] Actions output: {actions_output_dir}")
+                print(f"[DEBUG] Camera alpha base: {camera_output_alpha_base}")
+                print(f"[DEBUG] Camera bravo base: {camera_output_bravo_base}")
+            
+            # Find all episode JSON files and extract instance IDs from filenames
+            # Pattern: {timestamp}_{episode_id}_{Bot}_instance_{instance_id:03d}.json
+            instance_pattern = re.compile(r'_instance_(\d{3})')
+            
             for json_path in sorted(actions_output_dir.glob("*.json")):
-                # Skip non-episode files and those not belonging to this instance
-                instance_tag = f"_instance_{instance_id:03d}"
+                # Skip non-episode files
                 if (
                     json_path.name.endswith("_meta.json")
                     or json_path.name.endswith("_episode_info.json")
-                    or instance_tag not in json_path.name
                 ):
                     continue
+                
+                # Extract instance ID from filename
+                match = instance_pattern.search(json_path.name)
+                if not match:
+                    continue
+                
+                instance_id = int(match.group(1))
                 
                 # Determine bot from filename
                 if "_Alpha_" in json_path.name:
                     bot = "Alpha"
-                    # Use camera output directory from compose file
-                    camera_prefix = camera_output_alpha or (project_root / "camera" / "output_alpha" / str(instance_id))
+                    # Camera output is organized by instance ID
+                    camera_prefix = camera_output_alpha_base / str(instance_id)
                 elif "_Bravo_" in json_path.name:
                     bot = "Bravo"
-                    # Use camera output directory from compose file
-                    camera_prefix = camera_output_bravo or (project_root / "camera" / "output_bravo" / str(instance_id))
+                    camera_prefix = camera_output_bravo_base / str(instance_id)
                 else:
                     continue
                 
@@ -660,12 +691,106 @@ class InstanceManager:
                     'output_dir': actions_output_dir,
                     'camera_prefix': camera_prefix,
                 })
+            
+            if not jobs:
+                print("No episodes found to process.")
+                return
+            
+            # Count unique instances
+            unique_instances = len(set(job['instance_id'] for job in jobs))
+            print(f"Found {len(jobs)} episodes to process across {unique_instances} instances")
         
-        if not jobs:
-            print("No episodes found to process.")
-            return
+        else:
+            # Original compose file-based approach
+            compose_files = self.get_compose_files()
+            if not compose_files:
+                print("No compose files found.")
+                return
+            
+            for compose_file in compose_files:
+                instance_id = self._instance_index_from_stem(compose_file.stem)
+                
+                # Parse compose file to get directories
+                with open(compose_file) as f:
+                    config = yaml.safe_load(f)
+                
+                # Extract output directory from sender service
+                sender_service = config['services'].get(f'sender_alpha_instance_{instance_id}')
+                if not sender_service:
+                    continue
+
+                # Parse volume mount: /host/path:/output (actions output dir)
+                actions_output_dir = None
+                for vol in sender_service.get('volumes', []):
+                    if ':/output' in vol:
+                        actions_output_dir = Path(vol.split(':')[0])
+                        break
+
+                if not actions_output_dir:
+                    continue
+
+                # Extract camera output directories from camera services
+                camera_alpha_service = config['services'].get(f'camera_alpha_instance_{instance_id}')
+                camera_bravo_service = config['services'].get(f'camera_bravo_instance_{instance_id}')
+
+                camera_output_alpha = None
+                camera_output_bravo = None
+
+                if camera_alpha_service:
+                    for vol in camera_alpha_service.get('volumes', []):
+                        if ':/output' in vol:
+                            camera_output_alpha = Path(vol.split(':')[0])
+                            break
+
+                if camera_bravo_service:
+                    for vol in camera_bravo_service.get('volumes', []):
+                        if ':/output' in vol:
+                            camera_output_bravo = Path(vol.split(':')[0])
+                            break
+                
+                # Find all episode JSON files in actions output directory
+                for json_path in sorted(actions_output_dir.glob("*.json")):
+                    # Skip non-episode files and those not belonging to this instance
+                    instance_tag = f"_instance_{instance_id:03d}"
+                    if (
+                        json_path.name.endswith("_meta.json")
+                        or json_path.name.endswith("_episode_info.json")
+                        or instance_tag not in json_path.name
+                    ):
+                        continue
+                    
+                    # Determine bot from filename
+                    if "_Alpha_" in json_path.name:
+                        bot = "Alpha"
+                        # Use camera output directory from compose file
+                        camera_prefix = camera_output_alpha or (project_root / "camera" / "output_alpha" / str(instance_id))
+                    elif "_Bravo_" in json_path.name:
+                        bot = "Bravo"
+                        # Use camera output directory from compose file
+                        camera_prefix = camera_output_bravo or (project_root / "camera" / "output_bravo" / str(instance_id))
+                    else:
+                        continue
+                    
+                    if debug:
+                        print(f"[DEBUG] Episode: {json_path.name}")
+                        print(f"[DEBUG]   Bot: {bot}, Instance: {instance_id}")
+                        print(f"[DEBUG]   Camera prefix: {camera_prefix}")
+                        print(f"[DEBUG]   Output dir: {actions_output_dir}")
+                    
+                    jobs.append({
+                        'episode_file': json_path,
+                        'bot': bot,
+                        'instance_id': instance_id,
+                        'output_dir': actions_output_dir,
+                        'camera_prefix': camera_prefix,
+                    })
+            
+            if not jobs:
+                print("No episodes found to process.")
+                return
+            
+            print(f"Found {len(jobs)} episodes to process across {len(compose_files)} instances")
         
-        print(f"Found {len(jobs)} episodes to process across {len(compose_files)} instances")
         print(f"Processing with {workers} parallel workers...\n")
         
         # Process jobs in parallel
@@ -759,6 +884,11 @@ def main():
         help="Directory for processed video outputs (default: batch1/aligned)",
     )
     parser.add_argument(
+        "--data-dir",
+        type=str,
+        help="Batch data directory (e.g., /path/to/batch5). If provided, bypasses compose file discovery.",
+    )
+    parser.add_argument(
         "--logs-dir",
         type=str,
         default="logs",
@@ -770,6 +900,11 @@ def main():
         default=20,
         help="Delay between starting each compose project (seconds, default: 5)",
     )
+    parser.add_argument(
+        "--keep-running",
+        action="store_true",
+        help="Keep running instances after waits finish (do not stop all).",
+    )
 
     args = parser.parse_args()
 
@@ -779,6 +914,8 @@ def main():
         logs_dir=args.logs_dir,
         start_delay_seconds=args.start_delay_seconds,
     )
+    # Propagate keep-running preference
+    manager.keep_running = args.keep_running
 
     if args.command == "start":
         manager.start_all()
@@ -791,7 +928,7 @@ def main():
     elif args.command == "recordings":
         manager.recordings()
     elif args.command == "postprocess":
-        manager.postprocess_recordings(args.workers, args.comparison_video, args.debug, args.output_dir)
+        manager.postprocess_recordings(args.workers, args.comparison_video, args.debug, args.output_dir, args.data_dir)
 
 
 if __name__ == "__main__":

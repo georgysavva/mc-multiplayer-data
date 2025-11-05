@@ -636,6 +636,17 @@ def main():
 
     print(f"Generating {total_instances} Docker Compose configurations...")
 
+    # Safety: ensure server and RCON port ranges don't overlap on host network
+    server_range = {args.base_port + i for i in range(total_instances)}
+    rcon_range = {args.base_rcon_port + i for i in range(total_instances)}
+    overlap = sorted(server_range & rcon_range)
+    assert not overlap, (
+        "Port collision between server and RCON: "
+        + ", ".join(str(p) for p in overlap[:10])
+        + (" ..." if len(overlap) > 10 else "")
+        + ". Adjust --base_port/--base_rcon_port."
+    )
+
     for i in range(total_instances):
         world_type = world_plan[i]
         config = generate_compose_config(
