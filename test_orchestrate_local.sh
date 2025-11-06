@@ -2,10 +2,10 @@
 PROJECT_ROOT=$(pwd)
 python3 $PROJECT_ROOT/generate_compose.py --instances 2 \
  --compose_dir $PROJECT_ROOT/compose_configs \
- --base_port 25590 \
- --base_rcon_port 25600 \
- --receiver_port 8110 \
- --coord_port 8120 \
+ --base_port 26590 \
+ --base_rcon_port 26600 \
+ --receiver_port 8210 \
+ --coord_port 8220 \
  --data_dir $PROJECT_ROOT/data \
  --output_dir $PROJECT_ROOT/output \
  --camera_output_alpha_base $PROJECT_ROOT/camera/output_alpha \
@@ -14,7 +14,7 @@ python3 $PROJECT_ROOT/generate_compose.py --instances 2 \
  --camera_data_bravo_base $PROJECT_ROOT/camera/data_bravo \
  --smoke_test 0 \
  --num_flatland_world 1 \
- --num_normal_world 2 \
+ --num_normal_world 1 \
  --num_episodes 2 \
  --iterations_num_per_episode 1 \
  --viewer_rendering_disabled 0
