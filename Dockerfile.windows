@@ -17,7 +17,7 @@ ENV MESA_GL_VERSION_OVERRIDE=3.3
 ENV MESA_GLSL_VERSION_OVERRIDE=330
 # (Optional) library lookup hints
 ENV LIBGL_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/aarch64-linux-gnu:/usr/lib/x86_64-linux-gnu
+ENV LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/usr/lib/x86_64-linux-gnu
 ENV PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig"
 
 # Helps some node-gyp flows, though the shim above is the key
@@ -34,9 +34,11 @@ COPY package.json ./
 RUN npm install 
 RUN npm i rcon-client
 # These echo numbers are needed to trigger a rebuild of this image in the case a downstream dependency has changed.
-RUN echo "41" && npm install github:georgysavva/mineflayer
-RUN echo "47" && npm install github:PrismarineJS/mineflayer-pathfinder
-RUN echo "39" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "43" && npm install github:georgysavva/mineflayer
+RUN echo "48" && npm install github:daohanlu/mineflayer-pathfinder
+RUN echo "44" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "50" && npm install minecraft-data
+RUN npm install --save mineflayer-pvp
 RUN set -eux; \
   PKG_DIR="node_modules/prismarine-viewer-colalab"; \
   mkdir -p "$PKG_DIR/public/textures/1.16.4/entity"; \
@@ -47,7 +49,7 @@ COPY . ./
 
 # Fix line endings for shell scripts and make them executable (Windows compatibility)
 RUN apt-get update && apt-get install -y dos2unix && rm -rf /var/lib/apt/lists/* && \
-    dos2unix entrypoint_senders.sh entrypoint_receiver.sh && \
+    find . -type f \( -name "*.sh" -o -name "*.py" \) -exec dos2unix {} \; && \
     chmod +x entrypoint_senders.sh entrypoint_receiver.sh
 
 CMD ["./entrypoint_sender.sh"]

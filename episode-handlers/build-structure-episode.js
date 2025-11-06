@@ -13,6 +13,7 @@ const { pickRandom } = require("../utils/coordination");
 const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const BUILD_BLOCK_TYPES = ["stone", "cobblestone", "oak_planks", "bricks"];
+const BLOCK_PLACE_DELAY_MS = 400; // Delay between placing blocks (more human-like)
 
 /**
  * Generate positions for a simple wall structure
@@ -93,6 +94,7 @@ async function buildStructure(bot, positions, blockType, args) {
       useSneak: true,
       tries: 5,
       args: args,
+      delayMs: BLOCK_PLACE_DELAY_MS, // Add delay between blocks
     });
 
     console.log(`[${bot.username}] 🏁 Build complete!`);

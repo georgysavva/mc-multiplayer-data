@@ -1,0 +1,349 @@
+// build-house-episode.js - Collaborative 5x5 house building episode
+const { Vec3 } = require("vec3");
+const {
+  sleep,
+  initializePathfinder,
+  stopPathfinder,
+} = require("../utils/movement");
+const {
+  makeHouseBlueprint5x5,
+  rotateLocalToWorld,
+  splitWorkByXAxis,
+  ensureBlocks,
+  buildPhase,
+  cleanupScaffolds,
+  admireHouse,
+  calculateMaterialCounts,
+} = require("../utils/building");
+const { BaseEpisode } = require("./base-episode");
+const { pickRandom } = require("../utils/coordination");
+
+// Constants for house building behavior
+const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
+const FINAL_EYE_CONTACT_MS = 2000; // Final admiration duration
+const BLOCK_PLACE_DELAY_MS = 300; // Delay between placing blocks
+const ORIENTATION = 0; // Only 0° supported for now (south-facing door)
+
+// Material set (cobblestone house)
+const MATERIALS = {
+  floor: "cobblestone",
+  walls: "cobblestone",
+  door: "oak_door",
+  windows: "glass_pane",
+  roof: "cobblestone",
+};
+
+/**
+ * Get the phase function for house building episodes
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Object} rcon - RCON connection
+ * @param {Function} sharedBotRng - Shared random number generator
+ * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {number} iterationID - Iteration ID
+ * @param {number} episodeNum - Episode number
+ * @param {Object} episodeInstance - Episode instance
+ * @param {Object} args - Configuration arguments
+ * @returns {Function} Phase function
+ */
+function getOnBuildHousePhaseFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  iterationID,
+  episodeNum,
+  episodeInstance,
+  args
+) {
+  return async function onBuildHousePhase(otherBotPosition) {
+    coordinator.sendToOtherBot(
+      `buildHousePhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      `buildHousePhase_${iterationID} beginning`
+    );
+
+    console.log(`[${bot.username}] 🏠 Starting BUILD HOUSE phase ${iterationID}`);
+
+    // STEP 1: Bots spawn (already done by teleport phase)
+    console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
+
+    // STEP 2: Initial eye contact
+    console.log(
+      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
+    );
+    try {
+      const otherEntity = bot.players[args.other_bot_name]?.entity;
+      if (otherEntity) {
+        const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
+        await bot.lookAt(targetPos);
+        await sleep(INITIAL_EYE_CONTACT_MS);
+      }
+    } catch (lookError) {
+      console.log(
+        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+      );
+    }
+
+    // STEP 3: Determine world origin for house (midpoint between bots)
+    console.log(`[${bot.username}] 📐 STEP 3: Planning house location...`);
+    const botPos = bot.entity.position.floored();
+    const otherBotPos = new Vec3(otherBotPosition.x, otherBotPosition.y, otherBotPosition.z).floored();
+    
+    // Place house origin at midpoint, on the ground
+    const worldOrigin = new Vec3(
+      Math.floor((botPos.x + otherBotPos.x) / 2),
+      Math.floor(botPos.y), // Use bot's Y level
+      Math.floor((botPos.z + otherBotPos.z) / 2)
+    );
+
+    console.log(
+      `[${bot.username}] 🏗️ House origin: (${worldOrigin.x}, ${worldOrigin.y}, ${worldOrigin.z})`
+    );
+
+    // STEP 4: Generate blueprint and convert to world coordinates
+    console.log(`[${bot.username}] 📋 STEP 4: Generating blueprint...`);
+    const blueprint = makeHouseBlueprint5x5({
+      materials: episodeInstance.materials,
+    });
+
+    // Convert all local coords to world coords
+    const worldTargets = blueprint.map((target) => ({
+      ...target,
+      worldPos: rotateLocalToWorld(target, worldOrigin, ORIENTATION),
+    }));
+
+    console.log(
+      `[${bot.username}]    Total blocks: ${worldTargets.length}`
+    );
+
+    // STEP 5: Give blocks to bot via RCON
+    console.log(`[${bot.username}] 📦 STEP 5: Receiving building materials...`);
+    const materialCounts = calculateMaterialCounts(blueprint);
+    
+    // Add extra blocks for safety (50% more)
+    const safetyMaterials = {};
+    for (const [block, count] of Object.entries(materialCounts)) {
+      safetyMaterials[block] = Math.ceil(count * 1.5);
+    }
+    
+    await ensureBlocks(bot, rcon, safetyMaterials);
+
+    // STEP 6: Initialize pathfinder for building
+    console.log(`[${bot.username}] 🚶 STEP 6: Initializing pathfinder...`);
+    initializePathfinder(bot, {
+      allowSprinting: false,
+      allowParkour: true,
+      canDig: false,
+      allowEntityDetection: true,
+    });
+
+    // STEP 7: Build in phases (floor → walls → door → windows → roof)
+    console.log(`[${bot.username}] 🏗️ STEP 7: Building house in phases...`);
+    const phases = ["floor", "walls", "door", "windows", "roof"];
+    
+    try {
+      for (const phaseName of phases) {
+        console.log(`[${bot.username}] ═══════════════════════════════════════`);
+        console.log(`[${bot.username}] 🔨 Building phase: ${phaseName.toUpperCase()}`);
+        console.log(`[${bot.username}] 🕐 Phase start time: ${new Date().toISOString()}`);
+        
+        // Get all targets for this phase
+        const phaseTargets = worldTargets.filter((t) => t.phase === phaseName);
+        
+        // Split work between bots using X-axis split
+        const { alphaTargets, bravoTargets } = splitWorkByXAxis(
+          phaseTargets,
+          args.bot_name,
+          args.other_bot_name
+        );
+        
+        // Determine which targets this bot should build
+        // Alpha bot gets west half (x < 3), Bravo bot gets east half (x >= 3)
+        const myTargets =
+          bot.username === "Alpha" ? alphaTargets : bravoTargets;
+        
+        console.log(
+          `[${bot.username}]    My blocks: ${myTargets.length}/${phaseTargets.length}`
+        );
+        
+        // Build this bot's assigned blocks
+        if (myTargets.length > 0) {
+          console.log(`[${bot.username}] 🏗️ Starting to build my ${myTargets.length} blocks...`);
+          const result = await buildPhase(bot, myTargets, {
+            args: args,
+            delayMs: BLOCK_PLACE_DELAY_MS,
+          });
+          console.log(`[${bot.username}] ✅ Finished building my blocks`);
+          
+          // Check for catastrophic failure (more than 50% failed)
+          if (result.failed > myTargets.length * 0.5) {
+            console.log(
+              `[${bot.username}] ❌ Phase ${phaseName} failed significantly: ${result.failed}/${myTargets.length} blocks failed`
+            );
+            throw new Error(
+              `Phase ${phaseName} failed: ${result.failed}/${myTargets.length} blocks failed`
+            );
+          }
+        } else {
+          console.log(`[${bot.username}] ⏭️ No blocks assigned to me in this phase, skipping...`);
+        }
+        
+        // Wait for other bot to finish this phase
+        console.log(`[${bot.username}]    Waiting for ${args.other_bot_name}...`);
+        await sleep(2000); // Give other bot time to catch up
+        console.log(`[${bot.username}] ✅ Phase ${phaseName} complete at ${new Date().toISOString()}`);
+      }
+
+      console.log(`[${bot.username}] ✅ All phases complete!`);
+    } catch (buildError) {
+      console.error(
+        `[${bot.username}] ❌ Building failed: ${buildError.message}`
+      );
+      console.log(
+        `[${bot.username}] ⚠️ Aborting house building, transitioning to stop phase...`
+      );
+      
+      // Stop pathfinder before transitioning
+      stopPathfinder(bot);
+      
+      // Transition to stop phase immediately
+      coordinator.onceEvent(
+        "stopPhase",
+        episodeNum,
+        episodeInstance.getOnStopPhaseFn(
+          bot,
+          rcon,
+          sharedBotRng,
+          coordinator,
+          args.other_bot_name,
+          episodeNum,
+          args
+        )
+      );
+      coordinator.sendToOtherBot(
+        "stopPhase",
+        bot.entity.position.clone(),
+        episodeNum,
+        `buildHousePhase_${iterationID} failed`
+      );
+      return; // Exit early
+    }
+
+    // STEP 8: Stop pathfinder
+    stopPathfinder(bot);
+
+    // STEP 9: Exit through door and admire the house
+    console.log(`[${bot.username}] 🚪 STEP 9: Exiting and admiring house...`);
+    
+    // Re-initialize pathfinder for admiration movement
+    initializePathfinder(bot, {
+      allowSprinting: false,
+      allowParkour: true,
+      canDig: false,
+      allowEntityDetection: true,
+    });
+    
+    const doorWorldPos = rotateLocalToWorld({ x: 2, y: 1, z: 0 }, worldOrigin, ORIENTATION);
+    const houseCenter = worldOrigin.offset(2, 2, 2); // Center of 5x5 house
+    
+    await admireHouse(bot, doorWorldPos, houseCenter, 7);
+    
+    stopPathfinder(bot);
+
+    console.log(`[${bot.username}] ✅ BUILD HOUSE phase complete!`);
+
+    // Transition to stop phase
+    coordinator.onceEvent(
+      "stopPhase",
+      episodeNum,
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      "stopPhase",
+      bot.entity.position.clone(),
+      episodeNum,
+      `buildHousePhase_${iterationID} end`
+    );
+  };
+}
+
+/**
+ * BuildHouseEpisode - Episode class for collaborative 5x5 house building
+ */
+class BuildHouseEpisode extends BaseEpisode {
+  static INIT_MIN_BOTS_DISTANCE = 10;
+  static INIT_MAX_BOTS_DISTANCE = 20;
+  static WORKS_IN_NON_FLAT_WORLD = true; // Auto-scaffolding enabled
+
+  constructor(sharedBotRng) {
+    super();
+    // Pick random material set for this episode
+    this.materials = MATERIALS;
+    console.log(`[BuildHouseEpisode] Selected materials:`, this.materials);
+  }
+
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+    console.log(`[${bot.username}] 🏠 Setting up house building episode...`);
+  }
+
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args
+  ) {
+    coordinator.onceEvent(
+      `buildHousePhase_${iterationID}`,
+      episodeNum,
+      getOnBuildHousePhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        this,
+        args
+      )
+    );
+    coordinator.sendToOtherBot(
+      `buildHousePhase_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      "entryPoint end"
+    );
+  }
+
+  async tearDownEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args
+  ) {
+    console.log(`[${bot.username}] 🧹 Cleaning up house building episode...`);
+    // Clean up pathfinder if still active
+    if (bot.pathfinder) {
+      stopPathfinder(bot);
+    }
+  }
+}
+
+module.exports = {
+  BuildHouseEpisode,
+  getOnBuildHousePhaseFn,
+  MATERIALS,
+};

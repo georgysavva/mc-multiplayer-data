@@ -30,8 +30,10 @@ const { PvpEpisode } = require("./pvp-episode");
 const { BuildStructureEpisode } = require("./build-structure-episode");
 const { BuildTowerEpisode } = require("./build-tower-episode");
 const { MineEpisode } = require("./mine-episode");
+const { MineEpisode2 } = require("./mine-episode2");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
+const { BuildHouseEpisode } = require("./build-house-episode");
 // const { CollectorEpisode } = require("./collector-episode");
 
 // Map episode type strings to their class implementations
@@ -46,7 +48,9 @@ const episodeClassMap = {
   buildStructure: BuildStructureEpisode,
   buildTower: BuildTowerEpisode,
   mine: MineEpisode,
+  mine2: MineEpisode2,
   towerBridge: TowerBridgeEpisode,
+  buildHouse: BuildHouseEpisode,
   // collector: CollectorEpisode,
 };
 
@@ -55,17 +59,19 @@ const episodeClassMap = {
 // Add episode type selection - Enable multiple types for diverse data collection
 // Default episode types list
 const defaultEpisodeTypes = [
-  "straightLineWalk",
-  "chase",
-  "orbit",
-  "walkLook",
-  "walkLookAway",
-  "pvp",
-  "pve",
-  "buildStructure",
-  "buildTower",
-  "mine",
-  "towerBridge",
+  // "straightLineWalk",
+  // "chase",
+  // "orbit",
+  // "walkLook",
+  "buildHouse",
+  // "walkLookAway",
+  // "pvp",
+  // "pve",
+  // "buildStructure",
+  // "buildTower",
+  // // "mine", //older episode, use mine2 instead for enahnced version with pathfinder
+  // "mine2",
+  // "towerBridge",
   // "collector",
 ];
 

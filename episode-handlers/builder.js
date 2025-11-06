@@ -230,10 +230,12 @@ async function placeAt(
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Array<Vec3>} positions - Array of positions to place blocks
  * @param {string} itemName - Name of block/item to place
- * @param {Object} options - Options for placement
+ * @param {Object} options - Options for placement {useSneak, tries, args, delayMs}
  * @returns {Promise<Object>} {success: number, failed: number}
  */
 async function placeMultiple(bot, positions, itemName, options = {}) {
+  const { delayMs = 300 } = options; // Default 300ms delay between blocks
+  
   // Sort positions: bottom-up (Y), then near-to-far, then left-to-right
   const botPos = bot.entity.position;
   const sorted = positions.slice().sort((a, b) => {
@@ -262,6 +264,11 @@ async function placeMultiple(bot, positions, itemName, options = {}) {
       console.log(
         `[${bot.username}] ❌ Error placing at ${pos}: ${error.message}`
       );
+    }
+    
+    // Add delay between block placements for more human-like building
+    if (delayMs > 0) {
+      await new Promise((res) => setTimeout(res, delayMs));
     }
   }
 
@@ -420,9 +427,7 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
     const newY = Math.floor(newPos.y);
     const heightGained = newY - startY;
     console.log(
-      `[${
-        bot.username
-      }] 📏 New Y: ${newY} (gained ${heightGained} blocks, target: ${i + 1})`
+      `[${bot.username}] 📏 New Y: ${newY} (gained ${heightGained} blocks, target: ${i + 1})`
     );
 
     // If we haven't gained height and retry is enabled, retry this block
