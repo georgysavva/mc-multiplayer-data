@@ -4,14 +4,18 @@ const {
   sleep,
   initializePathfinder,
   stopPathfinder,
+  gotoWithTimeout,
+  lookAtSmooth,
 } = require("../utils/movement");
 const { placeAt, placeMultiple } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");
+const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
 const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
+const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone", "cobblestone", "oak_planks", "bricks"];
 const BLOCK_PLACE_DELAY_MS = 400; // Delay between placing blocks (more human-like)
 
@@ -69,6 +73,29 @@ function generatePlatformPositions(startPos, width, depth) {
 }
 
 /**
+ * Calculate the center position of a structure for camera targeting
+ * @param {string} structureType - Type of structure
+ * @param {Vec3} basePos - Base position of structure
+ * @param {number} height - Height of structure
+ * @param {number} length - Length of structure (for wall)
+ * @param {number} width - Width of structure (for platform)
+ * @returns {Vec3} Center position to look at
+ */
+function getStructureCenter(structureType, basePos, height, length = 5, width = 4) {
+  if (structureType === "tower") {
+    // Look at middle of tower
+    return basePos.offset(0, height / 2, 0);
+  } else if (structureType === "wall") {
+    // Look at center of wall
+    return basePos.offset(length / 2, height / 2, 0);
+  } else if (structureType === "platform") {
+    // Look at center of platform
+    return basePos.offset(width / 2, 0.5, width / 2);
+  }
+  return basePos;
+}
+
+/**
  * Main building loop - bot builds assigned structure
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Array<Vec3>} positions - Positions to build at
@@ -121,7 +148,6 @@ async function buildStructure(bot, positions, blockType, args) {
  * @param {number} episodeNum - Episode number
  * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
- * @param {string} structureType - Type of structure ('wall', 'tower', 'platform')
  * @returns {Function} Phase function
  */
 function getOnStructureEvalPhaseFn(
@@ -132,8 +158,7 @@ function getOnStructureEvalPhaseFn(
   iterationID,
   episodeNum,
   episodeInstance,
-  args,
-  structureType = "wall"
+  args
 ) {
   return async function onStructureEvalPhase(otherBotPosition) {
     coordinator.sendToOtherBot(
@@ -145,8 +170,58 @@ function getOnStructureEvalPhaseFn(
 
     console.log(`[${bot.username}] 🚀 Starting STRUCTURE EVAL phase ${iterationID}`);
 
+    // Save initial spawn position for later return
+    const initialSpawnPos = bot.entity.position.clone();
+    console.log(
+      `[${bot.username}] 📍 Spawn position: ${initialSpawnPos.toString()}`
+    );
+
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
+
+    // STEP 1b: Clear construction area - move away from spawn
+    console.log(
+      `[${bot.username}] 🚶 STEP 1b: Moving away from spawn to clear construction area...`
+    );
+    try {
+      initializePathfinder(bot, {
+        allowSprinting: true,
+        allowParkour: true,
+        canDig: false,
+        allowEntityDetection: true,
+      });
+
+      // Randomly choose direction to move (North/South/East/West)
+      const directions = [
+        { name: "North", offset: [0, 0, -8] },  // -Z
+        { name: "South", offset: [0, 0, 8] },   // +Z
+        { name: "East", offset: [8, 0, 0] },    // +X
+        { name: "West", offset: [-8, 0, 0] },   // -X
+      ];
+      const chosenDirection = directions[Math.floor(Math.random() * directions.length)];
+      
+      console.log(
+        `[${bot.username}] 🧭 Moving ${chosenDirection.name} (${chosenDirection.offset[0]}, ${chosenDirection.offset[2]})`
+      );
+
+      // Move 8 blocks away from spawn in chosen direction
+      const clearPos = initialSpawnPos.offset(
+        chosenDirection.offset[0],
+        chosenDirection.offset[1],
+        chosenDirection.offset[2]
+      );
+      const clearGoal = new GoalNear(clearPos.x, clearPos.y, clearPos.z, 1);
+      await gotoWithTimeout(bot, clearGoal, { timeoutMs: 10000 });
+      console.log(`[${bot.username}] ✅ Cleared construction area`);
+    } catch (pathError) {
+      console.log(
+        `[${bot.username}] ⚠️ Could not clear area: ${pathError.message}`
+      );
+    } finally {
+      stopPathfinder(bot);
+    }
+
+    await sleep(500);
 
     // STEP 2: Initial eye contact
     console.log(
@@ -167,47 +242,64 @@ function getOnStructureEvalPhaseFn(
 
     // STEP 3: Determine build positions based on bot role
     console.log(
-      `[${bot.username}] 📐 STEP 3: Planning structure ${structureType}...`
+      `[${bot.username}] 📐 STEP 3: Planning structure...`
     );
+    
+    // Each bot independently chooses structure type and block type
+    const structureType = ALL_STRUCTURE_TYPES[Math.floor(Math.random() * ALL_STRUCTURE_TYPES.length)];
+    const blockType = BUILD_BLOCK_TYPES[Math.floor(Math.random() * BUILD_BLOCK_TYPES.length)];
+    
+    console.log(
+      `[${bot.username}] 🎲 Randomly selected: ${structureType} with ${blockType}`
+    );
+    
     const botPos = bot.entity.position.floored();
     let positions = [];
-    let blockType =
-      BUILD_BLOCK_TYPES[Math.floor(sharedBotRng() * BUILD_BLOCK_TYPES.length)];
-    const botNameSmaller = bot.username < args.other_bot_name;
+    let structureBasePos = null;
+    let structureHeight = 0;
+    let structureLength = 5;
+    let structureWidth = 4;
 
     if (structureType === "wall") {
       // Alpha builds left side, Bravo builds right side
       const startPos = botPos.offset(2, 0, 0);
       const length = 5;
       const height = 3;
+      structureHeight = height;
+      structureLength = length;
 
+      const botNameSmaller = bot.username < args.other_bot_name;
       if (botNameSmaller) {
         positions = generateWallPositions(startPos, length, height, "x");
+        structureBasePos = startPos;
       } else {
-        positions = generateWallPositions(
-          startPos.offset(0, 0, 2),
-          length,
-          height,
-          "x"
-        );
+        const offsetStart = startPos.offset(0, 0, 2);
+        positions = generateWallPositions(offsetStart, length, height, "x");
+        structureBasePos = offsetStart;
       }
     } else if (structureType === "tower") {
       // Each bot builds their own tower
-      const startPos = botPos.offset(3, 0, botNameSmaller ? 0 : 3);
+      const startPos = botPos.offset(3, 0, bot.username < args.other_bot_name ? 0 : 3);
       const height = 5;
+      structureHeight = height;
       positions = generateTowerPositions(startPos, height);
+      structureBasePos = startPos;
     } else if (structureType === "platform") {
       // Bots build a shared platform
       const startPos = botPos.offset(2, 0, 0);
       const width = 4;
       const depth = 4;
+      structureHeight = 1;
+      structureWidth = width;
 
       // Split platform: Alpha does first half, Bravo does second half
       const allPositions = generatePlatformPositions(startPos, width, depth);
       const half = Math.floor(allPositions.length / 2);
+      const botNameSmaller = bot.username < args.other_bot_name;
       positions = botNameSmaller
         ? allPositions.slice(0, half)
         : allPositions.slice(half);
+      structureBasePos = startPos;
     }
 
     console.log(
@@ -218,8 +310,63 @@ function getOnStructureEvalPhaseFn(
     console.log(`[${bot.username}] 🏗️ STEP 4: Building structure...`);
     const buildResult = await buildStructure(bot, positions, blockType, args);
 
-    // STEP 5: Final eye contact
-    console.log(`[${bot.username}] 👀 STEP 5: Final eye contact...`);
+    // Calculate structure center for viewing
+    const structureCenter = getStructureCenter(
+      structureType,
+      structureBasePos,
+      structureHeight,
+      structureLength,
+      structureWidth
+    );
+
+    // STEP 5: Return to spawn position
+    console.log(
+      `[${bot.username}] 🏠 STEP 5: Returning to spawn position...`
+    );
+    try {
+      initializePathfinder(bot, {
+        allowSprinting: true,
+        allowParkour: true,
+        canDig: false,
+        allowEntityDetection: true,
+      });
+
+      const returnGoal = new GoalNear(
+        initialSpawnPos.x,
+        initialSpawnPos.y,
+        initialSpawnPos.z,
+        1
+      );
+      await gotoWithTimeout(bot, returnGoal, { timeoutMs: 15000 });
+      console.log(`[${bot.username}] ✅ Returned to spawn`);
+    } catch (pathError) {
+      console.log(
+        `[${bot.username}] ⚠️ Could not return to spawn: ${pathError.message}`
+      );
+    } finally {
+      stopPathfinder(bot);
+    }
+
+    await sleep(500);
+
+    // STEP 6: Look at own structure
+    console.log(
+      `[${bot.username}] 👁️ STEP 6: Looking at own ${structureType}...`
+    );
+    try {
+      if (structureCenter) {
+        await lookAtSmooth(bot, structureCenter, 90);
+        await sleep(STRUCTURE_GAZE_MS);
+        console.log(`[${bot.username}] ✅ Admired own structure`);
+      }
+    } catch (lookError) {
+      console.log(
+        `[${bot.username}] ⚠️ Could not look at own structure: ${lookError.message}`
+      );
+    }
+
+    // STEP 7: Final eye contact
+    console.log(`[${bot.username}] 👀 STEP 7: Final eye contact...`);
     try {
       const otherEntity = bot.players[args.other_bot_name]?.entity;
       if (otherEntity) {
@@ -270,7 +417,6 @@ class StructureEvalEpisode extends BaseEpisode {
 
   constructor(sharedBotRng) {
     super();
-    this.structureType = pickRandom(ALL_STRUCTURE_TYPES, sharedBotRng);
   }
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
@@ -295,8 +441,7 @@ class StructureEvalEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args,
-        this.structureType
+        args
       )
     );
     coordinator.sendToOtherBot(
@@ -324,6 +469,7 @@ module.exports = {
   generateWallPositions,
   generateTowerPositions,
   generatePlatformPositions,
+  getStructureCenter,
   getOnStructureEvalPhaseFn,
   StructureEvalEpisode,
 };
