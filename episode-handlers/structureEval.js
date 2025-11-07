@@ -19,6 +19,7 @@ const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
 const BLOCK_PLACE_DELAY_MS = 400; // Delay between placing blocks (more human-like)
+const BUILDER_ADMIRE_MS = 3000; // Time for builder to admire structure with observer
 
 /**
  * Generate positions for a simple wall structure
@@ -269,10 +270,10 @@ function getOnStructureEvalPhaseFn(
 
         // Randomly choose direction to move (North/South/East/West)
         const directions = [
-          { name: "North", offset: [0, 0, -8] },  // -Z
-          { name: "South", offset: [0, 0, 8] },   // +Z
-          { name: "East", offset: [8, 0, 0] },    // +X
-          { name: "West", offset: [-8, 0, 0] },   // -X
+          { name: "North", offset: [0, 0, -3] },  // -Z
+          { name: "South", offset: [0, 0, 3] },   // +Z
+          { name: "East", offset: [3, 0, 0] },    // +X
+          { name: "West", offset: [-3, 0, 0] },   // -X
         ];
         const chosenDirection = directions[Math.floor(Math.random() * directions.length)];
         
@@ -280,7 +281,7 @@ function getOnStructureEvalPhaseFn(
           `[${bot.username}] 🧭 Moving ${chosenDirection.name} (${chosenDirection.offset[0]}, ${chosenDirection.offset[2]})`
         );
 
-        // Move 8 blocks away from spawn in chosen direction
+        // Move 3 blocks away from spawn in chosen direction
         const clearPos = initialSpawnPos.offset(
           chosenDirection.offset[0],
           chosenDirection.offset[1],
@@ -304,21 +305,28 @@ function getOnStructureEvalPhaseFn(
 
     await sleep(500);
 
-    // STEP 2: Initial eye contact
-    console.log(
-      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
-    );
-    try {
-      const otherEntity = bot.players[args.other_bot_name]?.entity;
-      if (otherEntity) {
-        const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
-        await bot.lookAt(targetPos);
-        await sleep(INITIAL_EYE_CONTACT_MS);
-      }
-    } catch (lookError) {
+    // STEP 2: Initial eye contact (BUILDER only, observer remains stationary)
+    if (isBuilder) {
       console.log(
-        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+        `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
       );
+      try {
+        const otherEntity = bot.players[args.other_bot_name]?.entity;
+        if (otherEntity) {
+          const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
+          await bot.lookAt(targetPos);
+          await sleep(INITIAL_EYE_CONTACT_MS);
+        }
+      } catch (lookError) {
+        console.log(
+          `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+        );
+      }
+    } else {
+      console.log(
+        `[${bot.username}] 🧍 STEP 2: Remaining stationary (observer role - no eye contact)`
+      );
+      await sleep(INITIAL_EYE_CONTACT_MS);
     }
 
     // STEP 3: Determine build positions based on bot role
@@ -384,25 +392,11 @@ function getOnStructureEvalPhaseFn(
       console.log(`[${bot.username}] 🏗️ STEP 4: Building structure...`);
       buildResult = await buildStructure(bot, positions, blockType, args);
     } else {
-      console.log(`[${bot.username}] 👁️ STEP 4: Observing builder bot...`);
-      // Observer continuously watches the builder bot
+      console.log(`[${bot.username}] 🧍 STEP 4: Remaining stationary (observer role)...`);
+      // Observer remains completely stationary - no looking, no movement
       const totalWatchTime = positions.length * BLOCK_PLACE_DELAY_MS;
-      const watchInterval = 2000; // Update look direction every 2000ms
-      const watchIterations = Math.ceil(totalWatchTime / watchInterval);
-      
-      for (let i = 0; i < watchIterations; i++) {
-        try {
-          const otherEntity = bot.players[args.other_bot_name]?.entity;
-          if (otherEntity) {
-            const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
-            await bot.lookAt(targetPos);
-          }
-        } catch (lookError) {
-          // Ignore look errors during observation
-        }
-        await sleep(watchInterval);
-      }
-      console.log(`[${bot.username}] ✅ Finished observing builder`);
+      await sleep(totalWatchTime);
+      console.log(`[${bot.username}] ✅ Finished waiting (stationary)`);
     }
 
     // Calculate structure center for viewing
@@ -414,84 +408,56 @@ function getOnStructureEvalPhaseFn(
       structureWidth
     );
 
-    // STEP 5: Return to spawn position
-    console.log(
-      `[${bot.username}] 🏠 STEP 5: Returning to spawn position...`
-    );
-    try {
-      initializePathfinder(bot, {
-        allowSprinting: true,
-        allowParkour: true,
-        canDig: false,
-        allowEntityDetection: true,
-      });
-
-      const returnGoal = new GoalNear(
-        initialSpawnPos.x,
-        initialSpawnPos.y,
-        initialSpawnPos.z,
-        1
-      );
-      await gotoWithTimeout(bot, returnGoal, { timeoutMs: 15000 });
-      console.log(`[${bot.username}] ✅ Returned to spawn`);
-    } catch (pathError) {
-      console.log(
-        `[${bot.username}] ⚠️ Could not return to spawn: ${pathError.message}`
-      );
-    } finally {
-      stopPathfinder(bot);
-    }
-
-    await sleep(500);
-
-    // STEP 6: Look at structure (BUILDER) or look at builder bot (OBSERVER)
+    // STEP 5: Builder moves next to observer and looks at structure together
     if (isBuilder) {
       console.log(
-        `[${bot.username}] 👁️ STEP 6: Looking at own ${structureType}...`
+        `[${bot.username}] 🚶 STEP 5: Moving to stand next to observer...`
       );
       try {
-        if (structureCenter) {
-          await lookAtSmooth(bot, structureCenter, 90);
-          await sleep(STRUCTURE_GAZE_MS);
-          console.log(`[${bot.username}] ✅ Admired own structure`);
+        initializePathfinder(bot, {
+          allowSprinting: true,
+          allowParkour: true,
+          canDig: false,
+          allowEntityDetection: true,
+        });
+
+        // Get observer's position
+        const otherEntity = bot.players[args.other_bot_name]?.entity;
+        if (otherEntity) {
+          const observerPos = otherEntity.position.clone();
+          
+          // Move to stand 2 blocks away from observer
+          const standGoal = new GoalNear(
+            observerPos.x,
+            observerPos.y,
+            observerPos.z,
+            2
+          );
+          await gotoWithTimeout(bot, standGoal, { timeoutMs: 10000 });
+          console.log(`[${bot.username}] ✅ Moved next to observer`);
+          
+          // Look at the structure for 3 seconds
+          if (structureCenter) {
+            console.log(`[${bot.username}] 👁️ Looking at structure together...`);
+            await lookAtSmooth(bot, structureCenter, 90);
+            await sleep(BUILDER_ADMIRE_MS);
+            console.log(`[${bot.username}] ✅ Admired structure from observer position`);
+          }
         }
-      } catch (lookError) {
+      } catch (pathError) {
         console.log(
-          `[${bot.username}] ⚠️ Could not look at structure: ${lookError.message}`
+          `[${bot.username}] ⚠️ Could not move to observer: ${pathError.message}`
         );
+      } finally {
+        stopPathfinder(bot);
       }
     } else {
       console.log(
-        `[${bot.username}] 👁️ STEP 6: Continuing to watch builder bot...`
+        `[${bot.username}] 🧍 STEP 5: Remaining stationary (observer role)...`
       );
-      try {
-        const otherEntity = bot.players[args.other_bot_name]?.entity;
-        if (otherEntity) {
-          const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
-          await bot.lookAt(targetPos);
-          await sleep(STRUCTURE_GAZE_MS);
-          console.log(`[${bot.username}] ✅ Watched builder bot`);
-        }
-      } catch (lookError) {
-        console.log(
-          `[${bot.username}] ⚠️ Could not look at builder bot: ${lookError.message}`
-        );
-      }
-    }
-
-    // STEP 7: Final eye contact
-    console.log(`[${bot.username}] 👀 STEP 7: Final eye contact...`);
-    try {
-      const otherEntity = bot.players[args.other_bot_name]?.entity;
-      if (otherEntity) {
-        const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
-        await bot.lookAt(targetPos);
-        await sleep(INITIAL_EYE_CONTACT_MS);
-      }
-    } catch (lookError) {
-      console.log(
-        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
-      );
+      // Observer waits while builder moves and looks
+      await sleep(BUILDER_ADMIRE_MS + 5000); // Extra time for builder to pathfind
+      console.log(`[${bot.username}] ✅ Finished waiting (stationary)`);
     }
 
     console.log(`[${bot.username}] ✅ STRUCTURE EVAL phase complete!`);
