@@ -141,7 +141,7 @@ async function ensureReachAndSight(bot, refBlock, faceVec, maxTries = 3) {
   for (let i = 0; i < maxTries; i++) {
     // Try to look at the face
     try {
-      await bot.lookAt(lookAtPos, true);
+      await bot.lookAt(lookAtPos, false); // false = smooth looking, true = instant snap
     } catch (e) {
       // Ignore look errors
     }
