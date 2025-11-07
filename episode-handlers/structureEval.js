@@ -7,7 +7,7 @@ const {
   gotoWithTimeout,
   lookAtSmooth,
 } = require("../utils/movement");
-const { placeAt } = require("./builder");
+const { placeAt, findPlaceReference } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
@@ -17,7 +17,7 @@ const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_4"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
-const BLOCK_PLACE_DELAY_MS = 400; // Delay between placing blocks (more human-like)
+const BLOCK_PLACE_DELAY_MS = 1000; // Delay between placing blocks (more human-like)
 const BUILDER_ADMIRE_MS = 3000; // Time for builder to admire structure with observer
 
 /**
@@ -129,7 +129,7 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
 
   // Override bot.lookAt to prevent camera movement during placeAt internal retries
   // We'll manually control when the bot looks (before each placement)
-  const LOOK_SETTLE_DELAY_MS = 200; // Time to wait for smooth camera rotation to complete
+  const LOOK_SETTLE_DELAY_MS = 500; // Time to wait for smooth camera rotation to complete
   let allowLookAt = true; // Flag to control when lookAt is allowed
   const originalLookAt = bot.lookAt.bind(bot);
   bot.lookAt = async function(position, forceLook) {
@@ -189,11 +189,30 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
           }
         }
 
-        // EXPLICITLY look at the block position before placing
-        allowLookAt = true;
-        const lookAtBlockPos = pos.offset(0.5, 0.5, 0.5); // Center of block
-        await bot.lookAt(lookAtBlockPos);
-        console.log(`[${bot.username}] 👁️ Looking at block position ${pos}`);
+        // Find the reference block (existing block to click on) before placing
+        const placeReference = findPlaceReference(bot, pos);
+        if (placeReference) {
+          const { refBlock, faceVec } = placeReference;
+          
+          // Calculate the specific face position to look at (not the center)
+          const lookAtFacePos = refBlock.position.offset(
+            0.5 + faceVec.x * 0.5,
+            0.5 + faceVec.y * 0.5,
+            0.5 + faceVec.z * 0.5
+          );
+          
+          // EXPLICITLY look at the reference block's face (where we'll click)
+          // This also verifies line of sight - if lookAt fails, we don't have LOS
+          allowLookAt = true;
+          try {
+            await bot.lookAt(lookAtFacePos);
+            console.log(`[${bot.username}] 👁️ Looking at reference block face at ${refBlock.position} (face: ${faceVec.x},${faceVec.y},${faceVec.z})`);
+          } catch (lookError) {
+            console.log(`[${bot.username}] ⚠️ Cannot look at reference block face - no line of sight: ${lookError.message}`);
+          }
+        } else {
+          console.log(`[${bot.username}] ⚠️ No reference block found for position ${pos}`);
+        }
 
         // Now disable lookAt during placeAt to prevent camera resetting
         allowLookAt = false;
