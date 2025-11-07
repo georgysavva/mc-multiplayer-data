@@ -13,10 +13,10 @@ const { pickRandom } = require("../utils/coordination");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
-const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
+const ALL_STRUCTURE_TYPES = ["platform_2x2", "wall_2x2", "wall_4x1", "tower_4"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
-const BUILD_BLOCK_TYPES = ["stone", "cobblestone", "oak_planks", "bricks"];
+const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
 const BLOCK_PLACE_DELAY_MS = 400; // Delay between placing blocks (more human-like)
 
 /**
@@ -73,26 +73,30 @@ function generatePlatformPositions(startPos, width, depth) {
 }
 
 /**
- * Calculate the center position of a structure for camera targeting
+ * Calculate the center position of a structure for camera targeting at eye level
  * @param {string} structureType - Type of structure
  * @param {Vec3} basePos - Base position of structure
  * @param {number} height - Height of structure
  * @param {number} length - Length of structure (for wall)
  * @param {number} width - Width of structure (for platform)
- * @returns {Vec3} Center position to look at
+ * @returns {Vec3} Center position to look at (at eye level ~1.6 blocks)
  */
 function getStructureCenter(structureType, basePos, height, length = 5, width = 4) {
-  if (structureType === "tower") {
-    // Look at middle of tower
-    return basePos.offset(0, height / 2, 0);
-  } else if (structureType === "wall") {
-    // Look at center of wall
-    return basePos.offset(length / 2, height / 2, 0);
-  } else if (structureType === "platform") {
-    // Look at center of platform
-    return basePos.offset(width / 2, 0.5, width / 2);
+  const EYE_LEVEL = 1.6; // Standard Minecraft player eye level
+  
+  if (structureType === "tower_4") {
+    // Look at eye level of tower (or middle if tower is shorter than eye level)
+    const lookHeight = Math.min(EYE_LEVEL, height / 2);
+    return basePos.offset(0, lookHeight, 0);
+  } else if (structureType === "wall_2x2" || structureType === "wall_4x1") {
+    // Look at center of wall at eye level (or middle height if wall is shorter)
+    const lookHeight = Math.min(EYE_LEVEL, height / 2);
+    return basePos.offset(length / 2, lookHeight, 0);
+  } else if (structureType === "platform_2x2") {
+    // Look at center of platform at eye level
+    return basePos.offset(width / 2, EYE_LEVEL, width / 2);
   }
-  return basePos;
+  return basePos.offset(0, EYE_LEVEL, 0);
 }
 
 /**
@@ -268,27 +272,35 @@ function getOnStructureEvalPhaseFn(
     let structureLength = 5;
     let structureWidth = 4;
 
-    if (structureType === "wall") {
+    if (structureType === "platform_2x2") {
       const startPos = botPos.offset(2, 0, 0);
-      const length = 5;
-      const height = 3;
+      const width = 2;
+      const depth = 2;
+      structureHeight = 1;
+      structureWidth = width;
+      positions = generatePlatformPositions(startPos, width, depth);
+      structureBasePos = startPos;
+    } else if (structureType === "wall_2x2") {
+      const startPos = botPos.offset(2, 0, 0);
+      const length = 2;
+      const height = 2;
       structureHeight = height;
       structureLength = length;
       positions = generateWallPositions(startPos, length, height, "x");
       structureBasePos = startPos;
-    } else if (structureType === "tower") {
+    } else if (structureType === "wall_4x1") {
+      const startPos = botPos.offset(2, 0, 0);
+      const length = 4;
+      const height = 1;
+      structureHeight = height;
+      structureLength = length;
+      positions = generateWallPositions(startPos, length, height, "x");
+      structureBasePos = startPos;
+    } else if (structureType === "tower_4") {
       const startPos = botPos.offset(3, 0, 0);
-      const height = 5;
+      const height = 4;
       structureHeight = height;
       positions = generateTowerPositions(startPos, height);
-      structureBasePos = startPos;
-    } else if (structureType === "platform") {
-      const startPos = botPos.offset(2, 0, 0);
-      const width = 4;
-      const depth = 4;
-      structureHeight = 1;
-      structureWidth = width;
-      positions = generatePlatformPositions(startPos, width, depth);
       structureBasePos = startPos;
     }
 
