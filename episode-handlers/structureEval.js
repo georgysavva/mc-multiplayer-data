@@ -425,16 +425,29 @@ function getOnStructureEvalPhaseFn(
         const otherEntity = bot.players[args.other_bot_name]?.entity;
         if (otherEntity) {
           const observerPos = otherEntity.position.clone();
+          const observerYaw = otherEntity.yaw; // Observer's facing direction
           
-          // Move to stand 2 blocks away from observer
+          // Calculate a position 2 blocks to the RIGHT of observer (perpendicular to their view)
+          // Yaw + 90° (π/2 radians) = right side
+          const sideAngle = observerYaw + Math.PI / 2;
+          const sideDistance = 2;
+          
+          const sideX = observerPos.x + Math.cos(sideAngle) * sideDistance;
+          const sideZ = observerPos.z + Math.sin(sideAngle) * sideDistance;
+          
+          console.log(
+            `[${bot.username}] 📐 Observer yaw: ${observerYaw.toFixed(2)}, moving to side position (${sideX.toFixed(1)}, ${sideZ.toFixed(1)})`
+          );
+          
+          // Move to stand beside observer (not in front)
           const standGoal = new GoalNear(
-            observerPos.x,
+            sideX,
             observerPos.y,
-            observerPos.z,
-            2
+            sideZ,
+            1 // Get within 1 block of the side position
           );
           await gotoWithTimeout(bot, standGoal, { timeoutMs: 10000 });
-          console.log(`[${bot.username}] ✅ Moved next to observer`);
+          console.log(`[${bot.username}] ✅ Moved next to observer (side position)`);
           
           // Look at the structure for 3 seconds
           if (structureCenter) {
