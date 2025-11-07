@@ -245,6 +245,14 @@ function getOnStructureEvalPhaseFn(
       `[${bot.username}] 📐 STEP 3: Planning structure...`
     );
     
+    // Determine if this bot is the builder or observer
+    const isBuilder = bot.username < args.other_bot_name;
+    const role = isBuilder ? "BUILDER" : "OBSERVER";
+    
+    console.log(
+      `[${bot.username}] 🎭 Role: ${role}`
+    );
+    
     // Each bot independently chooses structure type and block type
     const structureType = ALL_STRUCTURE_TYPES[Math.floor(Math.random() * ALL_STRUCTURE_TYPES.length)];
     const blockType = BUILD_BLOCK_TYPES[Math.floor(Math.random() * BUILD_BLOCK_TYPES.length)];
@@ -261,54 +269,44 @@ function getOnStructureEvalPhaseFn(
     let structureWidth = 4;
 
     if (structureType === "wall") {
-      // Alpha builds left side, Bravo builds right side
       const startPos = botPos.offset(2, 0, 0);
       const length = 5;
       const height = 3;
       structureHeight = height;
       structureLength = length;
-
-      const botNameSmaller = bot.username < args.other_bot_name;
-      if (botNameSmaller) {
-        positions = generateWallPositions(startPos, length, height, "x");
-        structureBasePos = startPos;
-      } else {
-        const offsetStart = startPos.offset(0, 0, 2);
-        positions = generateWallPositions(offsetStart, length, height, "x");
-        structureBasePos = offsetStart;
-      }
+      positions = generateWallPositions(startPos, length, height, "x");
+      structureBasePos = startPos;
     } else if (structureType === "tower") {
-      // Each bot builds their own tower
-      const startPos = botPos.offset(3, 0, bot.username < args.other_bot_name ? 0 : 3);
+      const startPos = botPos.offset(3, 0, 0);
       const height = 5;
       structureHeight = height;
       positions = generateTowerPositions(startPos, height);
       structureBasePos = startPos;
     } else if (structureType === "platform") {
-      // Bots build a shared platform
       const startPos = botPos.offset(2, 0, 0);
       const width = 4;
       const depth = 4;
       structureHeight = 1;
       structureWidth = width;
-
-      // Split platform: Alpha does first half, Bravo does second half
-      const allPositions = generatePlatformPositions(startPos, width, depth);
-      const half = Math.floor(allPositions.length / 2);
-      const botNameSmaller = bot.username < args.other_bot_name;
-      positions = botNameSmaller
-        ? allPositions.slice(0, half)
-        : allPositions.slice(half);
+      positions = generatePlatformPositions(startPos, width, depth);
       structureBasePos = startPos;
     }
 
     console.log(
-      `[${bot.username}] 📋 Building ${positions.length} blocks with ${blockType}`
+      `[${bot.username}] 📋 ${isBuilder ? 'Building' : 'Observing'} ${positions.length} blocks with ${blockType}`
     );
 
-    // STEP 4: Build the structure
-    console.log(`[${bot.username}] 🏗️ STEP 4: Building structure...`);
-    const buildResult = await buildStructure(bot, positions, blockType, args);
+    // STEP 4: Build the structure (only builder builds, observer watches)
+    let buildResult = { placed: 0, failed: 0 };
+    
+    if (isBuilder) {
+      console.log(`[${bot.username}] 🏗️ STEP 4: Building structure...`);
+      buildResult = await buildStructure(bot, positions, blockType, args);
+    } else {
+      console.log(`[${bot.username}] 👁️ STEP 4: Observing (not building)...`);
+      // Observer waits while builder builds
+      await sleep(positions.length * BLOCK_PLACE_DELAY_MS);
+    }
 
     // Calculate structure center for viewing
     const structureCenter = getStructureCenter(
