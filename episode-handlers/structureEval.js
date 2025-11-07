@@ -13,7 +13,8 @@ const { pickRandom } = require("../utils/coordination");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
-const ALL_STRUCTURE_TYPES = ["platform_2x2", "wall_2x2", "wall_4x1", "tower_4"];
+// const ALL_STRUCTURE_TYPES = ["platform_2x2", "wall_2x2", "wall_4x1", "tower_4"];
+const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_4"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
@@ -233,46 +234,59 @@ function getOnStructureEvalPhaseFn(
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
 
-    // STEP 1b: Clear construction area - move away from spawn
+    // STEP 1b: Clear construction area - move away from spawn (BUILDER only)
+    const isBuilder = bot.username < args.other_bot_name;
+    const role = isBuilder ? "BUILDER" : "OBSERVER";
+    
     console.log(
-      `[${bot.username}] 🚶 STEP 1b: Moving away from spawn to clear construction area...`
+      `[${bot.username}] 🎭 Role: ${role}`
     );
-    try {
-      initializePathfinder(bot, {
-        allowSprinting: true,
-        allowParkour: true,
-        canDig: false,
-        allowEntityDetection: true,
-      });
-
-      // Randomly choose direction to move (North/South/East/West)
-      const directions = [
-        { name: "North", offset: [0, 0, -8] },  // -Z
-        { name: "South", offset: [0, 0, 8] },   // +Z
-        { name: "East", offset: [8, 0, 0] },    // +X
-        { name: "West", offset: [-8, 0, 0] },   // -X
-      ];
-      const chosenDirection = directions[Math.floor(Math.random() * directions.length)];
-      
+    
+    if (isBuilder) {
       console.log(
-        `[${bot.username}] 🧭 Moving ${chosenDirection.name} (${chosenDirection.offset[0]}, ${chosenDirection.offset[2]})`
+        `[${bot.username}] 🚶 STEP 1b: Moving away from spawn to clear construction area...`
       );
+      try {
+        initializePathfinder(bot, {
+          allowSprinting: true,
+          allowParkour: true,
+          canDig: false,
+          allowEntityDetection: true,
+        });
 
-      // Move 8 blocks away from spawn in chosen direction
-      const clearPos = initialSpawnPos.offset(
-        chosenDirection.offset[0],
-        chosenDirection.offset[1],
-        chosenDirection.offset[2]
-      );
-      const clearGoal = new GoalNear(clearPos.x, clearPos.y, clearPos.z, 1);
-      await gotoWithTimeout(bot, clearGoal, { timeoutMs: 10000 });
-      console.log(`[${bot.username}] ✅ Cleared construction area`);
-    } catch (pathError) {
+        // Randomly choose direction to move (North/South/East/West)
+        const directions = [
+          { name: "North", offset: [0, 0, -8] },  // -Z
+          { name: "South", offset: [0, 0, 8] },   // +Z
+          { name: "East", offset: [8, 0, 0] },    // +X
+          { name: "West", offset: [-8, 0, 0] },   // -X
+        ];
+        const chosenDirection = directions[Math.floor(Math.random() * directions.length)];
+        
+        console.log(
+          `[${bot.username}] 🧭 Moving ${chosenDirection.name} (${chosenDirection.offset[0]}, ${chosenDirection.offset[2]})`
+        );
+
+        // Move 8 blocks away from spawn in chosen direction
+        const clearPos = initialSpawnPos.offset(
+          chosenDirection.offset[0],
+          chosenDirection.offset[1],
+          chosenDirection.offset[2]
+        );
+        const clearGoal = new GoalNear(clearPos.x, clearPos.y, clearPos.z, 1);
+        await gotoWithTimeout(bot, clearGoal, { timeoutMs: 10000 });
+        console.log(`[${bot.username}] ✅ Cleared construction area`);
+      } catch (pathError) {
+        console.log(
+          `[${bot.username}] ⚠️ Could not clear area: ${pathError.message}`
+        );
+      } finally {
+        stopPathfinder(bot);
+      }
+    } else {
       console.log(
-        `[${bot.username}] ⚠️ Could not clear area: ${pathError.message}`
+        `[${bot.username}] 🧍 STEP 1b: Staying stationary (observer role)`
       );
-    } finally {
-      stopPathfinder(bot);
     }
 
     await sleep(500);
@@ -297,14 +311,6 @@ function getOnStructureEvalPhaseFn(
     // STEP 3: Determine build positions based on bot role
     console.log(
       `[${bot.username}] 📐 STEP 3: Planning structure...`
-    );
-    
-    // Determine if this bot is the builder or observer
-    const isBuilder = bot.username < args.other_bot_name;
-    const role = isBuilder ? "BUILDER" : "OBSERVER";
-    
-    console.log(
-      `[${bot.username}] 🎭 Role: ${role}`
     );
     
     // Each bot independently chooses structure type and block type
@@ -365,9 +371,25 @@ function getOnStructureEvalPhaseFn(
       console.log(`[${bot.username}] 🏗️ STEP 4: Building structure...`);
       buildResult = await buildStructure(bot, positions, blockType, args);
     } else {
-      console.log(`[${bot.username}] 👁️ STEP 4: Observing (not building)...`);
-      // Observer waits while builder builds
-      await sleep(positions.length * BLOCK_PLACE_DELAY_MS);
+      console.log(`[${bot.username}] 👁️ STEP 4: Observing builder bot...`);
+      // Observer continuously watches the builder bot
+      const totalWatchTime = positions.length * BLOCK_PLACE_DELAY_MS;
+      const watchInterval = 2000; // Update look direction every 2000ms
+      const watchIterations = Math.ceil(totalWatchTime / watchInterval);
+      
+      for (let i = 0; i < watchIterations; i++) {
+        try {
+          const otherEntity = bot.players[args.other_bot_name]?.entity;
+          if (otherEntity) {
+            const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
+            await bot.lookAt(targetPos);
+          }
+        } catch (lookError) {
+          // Ignore look errors during observation
+        }
+        await sleep(watchInterval);
+      }
+      console.log(`[${bot.username}] ✅ Finished observing builder`);
     }
 
     // Calculate structure center for viewing
@@ -409,20 +431,39 @@ function getOnStructureEvalPhaseFn(
 
     await sleep(500);
 
-    // STEP 6: Look at own structure
-    console.log(
-      `[${bot.username}] 👁️ STEP 6: Looking at own ${structureType}...`
-    );
-    try {
-      if (structureCenter) {
-        await lookAtSmooth(bot, structureCenter, 90);
-        await sleep(STRUCTURE_GAZE_MS);
-        console.log(`[${bot.username}] ✅ Admired own structure`);
-      }
-    } catch (lookError) {
+    // STEP 6: Look at structure (BUILDER) or look at builder bot (OBSERVER)
+    if (isBuilder) {
       console.log(
-        `[${bot.username}] ⚠️ Could not look at own structure: ${lookError.message}`
+        `[${bot.username}] 👁️ STEP 6: Looking at own ${structureType}...`
       );
+      try {
+        if (structureCenter) {
+          await lookAtSmooth(bot, structureCenter, 90);
+          await sleep(STRUCTURE_GAZE_MS);
+          console.log(`[${bot.username}] ✅ Admired own structure`);
+        }
+      } catch (lookError) {
+        console.log(
+          `[${bot.username}] ⚠️ Could not look at structure: ${lookError.message}`
+        );
+      }
+    } else {
+      console.log(
+        `[${bot.username}] 👁️ STEP 6: Continuing to watch builder bot...`
+      );
+      try {
+        const otherEntity = bot.players[args.other_bot_name]?.entity;
+        if (otherEntity) {
+          const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
+          await bot.lookAt(targetPos);
+          await sleep(STRUCTURE_GAZE_MS);
+          console.log(`[${bot.username}] ✅ Watched builder bot`);
+        }
+      } catch (lookError) {
+        console.log(
+          `[${bot.username}] ⚠️ Could not look at builder bot: ${lookError.message}`
+        );
+      }
     }
 
     // STEP 7: Final eye contact
