@@ -102,6 +102,7 @@ function getStructureCenter(structureType, basePos, height, length = 5, width = 
 
 /**
  * Place multiple blocks with delay between each placement (custom version for structureEval)
+ * This version overrides the lookAt behavior to use smooth looking instead of instant snap
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Array<Vec3>} positions - Array of positions to place blocks
  * @param {string} itemName - Name of block/item to place
@@ -124,27 +125,39 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
   let success = 0;
   let failed = 0;
 
-  for (const pos of sorted) {
-    try {
-      const placed = await placeAt(bot, pos, itemName, options);
-      if (placed) {
-        success++;
-        console.log(`[${bot.username}] ✅ Placed block at ${pos}`);
-      } else {
+  // Override bot.lookAt to use smooth looking (forceLook: false) for this episode
+  const originalLookAt = bot.lookAt.bind(bot);
+  bot.lookAt = async function(position, forceLook) {
+    // Always use smooth looking (false) regardless of what placeAt requests
+    return originalLookAt(position, false);
+  };
+
+  try {
+    for (const pos of sorted) {
+      try {
+        const placed = await placeAt(bot, pos, itemName, options);
+        if (placed) {
+          success++;
+          console.log(`[${bot.username}] ✅ Placed block at ${pos}`);
+        } else {
+          failed++;
+          console.log(`[${bot.username}] ❌ Failed to place at ${pos}`);
+        }
+      } catch (error) {
         failed++;
-        console.log(`[${bot.username}] ❌ Failed to place at ${pos}`);
+        console.log(
+          `[${bot.username}] ❌ Error placing at ${pos}: ${error.message}`
+        );
       }
-    } catch (error) {
-      failed++;
-      console.log(
-        `[${bot.username}] ❌ Error placing at ${pos}: ${error.message}`
-      );
+      
+      // Add delay between blocks if specified
+      if (delayMs > 0) {
+        await sleep(delayMs);
+      }
     }
-    
-    // Add delay between blocks if specified
-    if (delayMs > 0) {
-      await sleep(delayMs);
-    }
+  } finally {
+    // Restore original lookAt behavior
+    bot.lookAt = originalLookAt;
   }
 
   return { success, failed, placed: success };
