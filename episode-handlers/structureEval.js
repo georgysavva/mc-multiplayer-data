@@ -14,7 +14,8 @@ const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
 // const ALL_STRUCTURE_TYPES = ["platform_2x2", "wall_2x2", "wall_4x1", "tower_4"];
-const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_4"];
+// const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_4"];
+const ALL_STRUCTURE_TYPES = ["wall_4x1"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
@@ -113,13 +114,15 @@ function getStructureCenter(structureType, basePos, height, length = 5, width = 
 async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
   const { delayMs = 0 } = options;
   
-  // Sort positions: bottom-up (Y), then near-to-far, then left-to-right
+  // Sort positions: bottom-up (Y), then far-to-near, then left-to-right
+  // FAR-TO-NEAR ensures blocks are placed from furthest to closest,
+  // preventing blocks from being placed through other unplaced blocks
   const botPos = bot.entity.position;
   const sorted = positions.slice().sort((a, b) => {
     if (a.y !== b.y) return a.y - b.y; // Bottom first
     const distA = botPos.distanceTo(a);
     const distB = botPos.distanceTo(b);
-    if (Math.abs(distA - distB) > 0.5) return distA - distB; // Near first
+    if (Math.abs(distA - distB) > 0.5) return distB - distA; // FAR first (reversed)
     return a.x - b.x; // Left to right
   });
 
@@ -127,10 +130,14 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
   let failed = 0;
 
   // Override bot.lookAt to use smooth looking (forceLook: false) for this episode
+  // BUT add a delay after each lookAt to ensure camera has finished rotating
+  const LOOK_SETTLE_DELAY_MS = 200; // Time to wait for smooth camera rotation to complete
   const originalLookAt = bot.lookAt.bind(bot);
   bot.lookAt = async function(position, forceLook) {
     // Always use smooth looking (false) regardless of what placeAt requests
-    return originalLookAt(position, false);
+    await originalLookAt(position, false);
+    // Wait for camera to finish rotating before returning
+    await sleep(LOOK_SETTLE_DELAY_MS);
   };
 
   try {
@@ -324,7 +331,7 @@ function getOnStructureEvalPhaseFn(
       }
     } else {
       console.log(
-        `[${bot.username}] 🧍 STEP 2: Remaining stationary (observer role - no eye contact)`
+        `[${bot.username}] 🧍 STEP 2: Remaining stationary (observer role)...`
       );
       await sleep(INITIAL_EYE_CONTACT_MS);
     }
