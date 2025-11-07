@@ -13,9 +13,7 @@ const { pickRandom } = require("../utils/coordination");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
-// const ALL_STRUCTURE_TYPES = ["platform_2x2", "wall_2x2", "wall_4x1", "tower_4"];
-// const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_4"];
-const ALL_STRUCTURE_TYPES = ["wall_4x1"];
+const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_4"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
