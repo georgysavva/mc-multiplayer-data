@@ -440,7 +440,7 @@ function getOnStructureEvalPhaseFn(
       structureBasePos = startPos;
     } else if (structureType === "tower_4") {
       const startPos = botPos.offset(3, 0, 0);
-      const height = 4;
+      const height = 2;
       structureHeight = height;
       positions = generateTowerPositions(startPos, height);
       structureBasePos = startPos;
