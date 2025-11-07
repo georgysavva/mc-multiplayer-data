@@ -13,7 +13,10 @@ const {
 } = require("./constants");
 const { lookSmooth, stopAll, jump, land_pos } = require("./movement");
 
-async function walk(bot, distance, lookAway, flipCameraInReturn, args) {
+async function walk(bot, distance, lookAway, flipCameraInReturn, args, customConstants = {}) {
+  // Allow overriding constants per episode type
+  const jumpProb = customConstants.JUMP_PROBABILITY ?? JUMP_PROBABILITY;
+  
   const startPos = bot.entity.position.clone();
   const dir = choice(["forward", "back", "left", "right"]);
   const walkTimeoutMs = args.walk_timeout * 1000; // Convert to milliseconds
@@ -75,7 +78,7 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args) {
   );
 
   // Randomly jump before returning based on jump probability
-  if (Math.random() < JUMP_PROBABILITY) {
+  if (Math.random() < jumpProb) {
     const jumpDurationSec =
       MIN_JUMP_DURATION_SEC +
       Math.random() * (MAX_JUMP_DURATION_SEC - MIN_JUMP_DURATION_SEC);
@@ -139,7 +142,7 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args) {
   );
 
   // Randomly jump after returning to start position
-  if (Math.random() < JUMP_PROBABILITY) {
+  if (Math.random() < jumpProb) {
     const jumpDurationSec =
       MIN_JUMP_DURATION_SEC +
       Math.random() * (MAX_JUMP_DURATION_SEC - MIN_JUMP_DURATION_SEC);
@@ -161,35 +164,42 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args) {
   }
 }
 
-async function run(bot, actionCount, lookAway, args) {
+async function run(bot, actionCount, lookAway, args, customConstants = {}) {
+  // Allow overriding constants per episode type
+  const minWalkDist = customConstants.MIN_WALK_DISTANCE ?? MIN_WALK_DISTANCE;
+  const maxWalkDist = customConstants.MAX_WALK_DISTANCE ?? MAX_WALK_DISTANCE;
+  
   const actions = [];
   if (lookAway) {
     actions.push(() =>
       walk(
         bot,
-        rand(MIN_WALK_DISTANCE, MAX_WALK_DISTANCE),
+        rand(minWalkDist, maxWalkDist),
         lookAway,
         /*flipCameraInReturn*/ true,
-        args
+        args,
+        customConstants
       )
     );
     actions.push(() =>
       walk(
         bot,
-        rand(MIN_WALK_DISTANCE, MAX_WALK_DISTANCE),
+        rand(minWalkDist, maxWalkDist),
         lookAway,
         /*flipCameraInReturn*/ false,
-        args
+        args,
+        customConstants
       )
     );
   } else {
     actions.push(() =>
       walk(
         bot,
-        rand(MIN_WALK_DISTANCE, MAX_WALK_DISTANCE),
+        rand(minWalkDist, maxWalkDist),
         lookAway,
         /*flipCameraInReturn*/ false,
-        args
+        args,
+        customConstants
       )
     );
   }

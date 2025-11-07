@@ -28,9 +28,8 @@ function getOnWalkLookPhaseFn(
       MIN_RUN_ACTIONS +
       Math.floor(sharedBotRng() * (MAX_RUN_ACTIONS - MIN_RUN_ACTIONS + 1));
 
-    // Define three walking phase modes and randomly pick one using sharedBotRng
+    // Removed the "both_bots_walk" mode because we want to evaluate the bot's ability to walk alone
     const walkingModes = [
-      // "both_bots_walk",
       "lower_name_walks",
       "bigger_name_walks",
     ];
@@ -67,9 +66,7 @@ function getOnWalkLookPhaseFn(
 
     // Either run() or sleep() based on the mode
     if (shouldThisBotWalk) {
-      // wait for 1 second before running
-      await bot.waitForTicks(20)
-      await run(bot, actionCount, /*lookAway*/ false, args);
+      await run(bot, actionCount, /*lookAway*/ false, args, episodeInstance.constructor.MOVEMENT_CONSTANTS);
     } else {
       // Bot doesn't run, so no sleep is needed
       console.log(
@@ -123,8 +120,18 @@ function getOnWalkLookPhaseFn(
   };
 }
 
-class WalkLookEpisode extends BaseEpisode {
+class WalkLookEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
+  static INIT_MIN_BOTS_DISTANCE = 10;  // Override: bots spawn 10-12 blocks apart
+  static INIT_MAX_BOTS_DISTANCE = 12;
+  
+  // Custom movement constants for this episode type
+  static MOVEMENT_CONSTANTS = {
+    MIN_WALK_DISTANCE: 6,
+    MAX_WALK_DISTANCE: 9,
+    JUMP_PROBABILITY: 0.0,
+  };
+  
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     // optional setup
   }
@@ -174,5 +181,5 @@ class WalkLookEpisode extends BaseEpisode {
 
 module.exports = {
   getOnWalkLookPhaseFn,
-  WalkLookEpisode,
+  WalkLookEvalEpisode,
 };
