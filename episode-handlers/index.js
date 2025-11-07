@@ -32,6 +32,7 @@ const { BuildTowerEpisode } = require("./build-tower-episode");
 const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
+const { StructureEvalEpisode } = require("./structureEval");
 // const { CollectorEpisode } = require("./collector-episode");
 
 // Map episode type strings to their class implementations
@@ -47,6 +48,7 @@ const episodeClassMap = {
   buildTower: BuildTowerEpisode,
   mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
+  structureEval: StructureEvalEpisode,
   // collector: CollectorEpisode,
 };
 
@@ -55,17 +57,18 @@ const episodeClassMap = {
 // Add episode type selection - Enable multiple types for diverse data collection
 // Default episode types list
 const defaultEpisodeTypes = [
-  "straightLineWalk",
-  "chase",
-  "orbit",
-  "walkLook",
-  "walkLookAway",
-  "pvp",
-  "pve",
-  "buildStructure",
-  "buildTower",
-  "mine",
-  "towerBridge",
+  // "straightLineWalk",
+  // "chase",
+  // "orbit",
+  // "walkLook",
+  // "walkLookAway",
+  // "pvp",
+  // "pve",
+  // "buildStructure",
+  // "buildTower",
+  // "mine",
+  // "towerBridge",
+  "structureEval",
   // "collector",
 ];
 
