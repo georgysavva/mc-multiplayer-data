@@ -129,21 +129,78 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
   let success = 0;
   let failed = 0;
 
-  // Override bot.lookAt to use smooth looking (forceLook: false) for this episode
-  // BUT add a delay after each lookAt to ensure camera has finished rotating
+  // Override bot.lookAt to prevent camera movement during placeAt internal retries
+  // We'll manually control when the bot looks (before each placement)
   const LOOK_SETTLE_DELAY_MS = 200; // Time to wait for smooth camera rotation to complete
+  let allowLookAt = true; // Flag to control when lookAt is allowed
   const originalLookAt = bot.lookAt.bind(bot);
   bot.lookAt = async function(position, forceLook) {
-    // Always use smooth looking (false) regardless of what placeAt requests
-    await originalLookAt(position, false);
-    // Wait for camera to finish rotating before returning
-    await sleep(LOOK_SETTLE_DELAY_MS);
+    // Only allow lookAt when explicitly enabled
+    if (allowLookAt) {
+      // Use smooth looking and wait for it to settle
+      await originalLookAt(position, false);
+      await sleep(LOOK_SETTLE_DELAY_MS);
+    }
+    // When disabled: do nothing, maintain current camera angle
+    // This prevents placeAt's internal retry logic from moving the camera
   };
 
   try {
+    // Initialize pathfinder for movement
+    initializePathfinder(bot, {
+      allowSprinting: false,
+      allowParkour: false,
+      canDig: false,
+      allowEntityDetection: true,
+    });
+
     for (const pos of sorted) {
       try {
+        // Move bot to stand ADJACENT to the block position before placing
+        // This creates natural "walking along while building" behavior
+        const currentBotPos = bot.entity.position.clone();
+        
+        // Calculate adjacent position (perpendicular to the wall direction)
+        // For a wall along X-axis, stand at Z-1 (south side of the wall)
+        // For a wall along Z-axis, stand at X-1 (west side of the wall)
+        const adjacentPos = pos.clone();
+        
+        // Determine wall direction by checking if positions vary in X or Z
+        const firstPos = sorted[0];
+        const lastPos = sorted[sorted.length - 1];
+        const isXAxis = Math.abs(lastPos.x - firstPos.x) > Math.abs(lastPos.z - firstPos.z);
+        
+        if (isXAxis) {
+          // Wall extends along X-axis, stand to the side (Z direction)
+          adjacentPos.z -= 1; // Stand 1 block south of the wall
+        } else {
+          // Wall extends along Z-axis, stand to the side (X direction)
+          adjacentPos.x -= 1; // Stand 1 block west of the wall
+        }
+        
+        // Move to adjacent position if not already there
+        const distanceToAdjacent = currentBotPos.distanceTo(adjacentPos);
+        if (distanceToAdjacent > 0.5) {
+          console.log(`[${bot.username}] 🚶 Moving to adjacent position (${adjacentPos.x.toFixed(1)}, ${adjacentPos.y}, ${adjacentPos.z.toFixed(1)}) before placing at ${pos}`);
+          const adjacentGoal = new GoalNear(adjacentPos.x, adjacentPos.y, adjacentPos.z, 0.3);
+          
+          try {
+            await gotoWithTimeout(bot, adjacentGoal, { timeoutMs: 3000 });
+          } catch (moveError) {
+            console.log(`[${bot.username}] ⚠️ Could not move to adjacent position: ${moveError.message}`);
+          }
+        }
+
+        // EXPLICITLY look at the block position before placing
+        allowLookAt = true;
+        const lookAtBlockPos = pos.offset(0.5, 0.5, 0.5); // Center of block
+        await bot.lookAt(lookAtBlockPos);
+        console.log(`[${bot.username}] 👁️ Looking at block position ${pos}`);
+
+        // Now disable lookAt during placeAt to prevent camera resetting
+        allowLookAt = false;
         const placed = await placeAt(bot, pos, itemName, options);
+        
         if (placed) {
           success++;
           console.log(`[${bot.username}] ✅ Placed block at ${pos}`);
@@ -166,6 +223,7 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
   } finally {
     // Restore original lookAt behavior
     bot.lookAt = originalLookAt;
+    stopPathfinder(bot);
   }
 
   return { success, failed, placed: success };
