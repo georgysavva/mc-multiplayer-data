@@ -34,6 +34,7 @@ const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 // const { CollectorEpisode } = require("./collector-episode");
 const { WalkLookEvalEpisode } = require("./walk-look-eval-episode");
+const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -50,6 +51,7 @@ const episodeClassMap = {
   towerBridge: TowerBridgeEpisode,
   // collector: CollectorEpisode,
   walkLookEval: WalkLookEvalEpisode,
+  lookAwayEval: LookAwayEvalEpisode,
 };
 
 // Import episode-specific handlers
@@ -69,6 +71,7 @@ const defaultEpisodeTypes = [
   "mine",
   "towerBridge",
   "walkLookEval",
+  "lookAwayEval",
 ];
 
 // Load episode types from environment variable or use default
