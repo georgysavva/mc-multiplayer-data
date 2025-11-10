@@ -151,14 +151,6 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
       canDig: false,
       allowEntityDetection: true,
     });
-    
-    // CRITICAL FIX: Disable pathfinder camera control to prevent camera snaps
-    // Pathfinder normally controls camera during movement, causing jarring snaps
-    // We want manual control via lookAtSmooth for smooth video recordings
-    if (bot.pathfinder) {
-      bot.pathfinder.enableLook = false; // Disable automatic camera control
-      console.log(`[${bot.username}] 🎥 Pathfinder camera control DISABLED for smooth manual control`);
-    }
 
     for (const pos of sorted) {
       try {
@@ -274,14 +266,6 @@ async function buildStructure(bot, positions, blockType, args) {
     canDig: true,
     allowEntityDetection: true,
   });
-  
-  // CRITICAL FIX: Disable pathfinder camera control to prevent camera snaps
-  // Pathfinder normally controls camera during movement, causing jarring snaps
-  // We want manual control via lookAtSmooth for smooth video recordings
-  if (bot.pathfinder) {
-    bot.pathfinder.enableLook = false; // Disable automatic camera control
-    console.log(`[${bot.username}] 🎥 Pathfinder camera control DISABLED for smooth manual control`);
-  }
 
   try {
     const result = await placeMultipleWithDelay(bot, positions, blockType, {
@@ -365,14 +349,6 @@ function getOnStructureEvalPhaseFn(
           canDig: false,
           allowEntityDetection: true,
         });
-        
-        // CRITICAL FIX: Disable pathfinder camera control to prevent camera snaps
-        // Pathfinder normally controls camera during movement, causing jarring snaps
-        // We want manual control via lookAtSmooth for smooth video recordings
-        if (bot.pathfinder) {
-          bot.pathfinder.enableLook = false; // Disable automatic camera control
-          console.log(`[${bot.username}] 🎥 Pathfinder camera control DISABLED for smooth manual control`);
-        }
 
         // Randomly choose direction to move (North/South/East/West)
         const directions = [
@@ -526,14 +502,6 @@ function getOnStructureEvalPhaseFn(
           canDig: false,
           allowEntityDetection: true,
         });
-        
-        // CRITICAL FIX: Disable pathfinder camera control to prevent camera snaps
-        // Pathfinder normally controls camera during movement, causing jarring snaps
-        // We want manual control via lookAtSmooth for smooth video recordings
-        if (bot.pathfinder) {
-          bot.pathfinder.enableLook = false; // Disable automatic camera control
-          console.log(`[${bot.username}] 🎥 Pathfinder camera control DISABLED for smooth manual control`);
-        }
 
         // Get observer's position
         const otherEntity = bot.players[args.other_bot_name]?.entity;
