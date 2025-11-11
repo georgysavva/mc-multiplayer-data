@@ -191,10 +191,9 @@ class TranslationEvalEpisode extends BaseEpisode {
         args
       )
     );
-    
-    bot.waitForTicks(10);
     const shouldAlignRng = sharedBotRng();
     const shouldThisBotAlign = bot.username < args.other_bot_name ? shouldAlignRng < 0.5 : shouldAlignRng >= 0.5;
+    bot.waitForTicks(10);
     // Make Bravo bot align to Alpha bot's location along one principal axis (shortest distance)
     if (shouldThisBotAlign) {
       const otherBotPosition = bot.players[args.other_bot_name]?.entity.position;
@@ -233,6 +232,8 @@ class TranslationEvalEpisode extends BaseEpisode {
       );
     } else {
       // For the bot not aligning, do nothing.
+      // The episode will start after signaled by the other bot.
+      bot.waitForTicks(100);
     }
   }
 
