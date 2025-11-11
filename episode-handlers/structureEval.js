@@ -14,7 +14,7 @@ const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
 // const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2"];
-const ALL_STRUCTURE_TYPES = ["tower_2"];
+const ALL_STRUCTURE_TYPES = ["wall_4x1"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
@@ -465,6 +465,9 @@ function getOnStructureEvalPhaseFn(
     console.log(
       `[${bot.username}] 📍 Spawn position: ${initialSpawnPos.toString()}`
     );
+    
+    // 🎬 Frame counting variables (for ML training segment tracking)
+    let frameCountStartTime = null;
 
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
@@ -515,6 +518,11 @@ function getOnStructureEvalPhaseFn(
       console.log(
         `[${bot.username}] 🤫 STEP 1b-sneak: Sneaking for ${(5 + 10) / 20}s...`
       );
+      
+      // 🎬 START FRAME COUNTING - Mark the beginning of the ML training segment
+      frameCountStartTime = Date.now();
+      console.log(`[${bot.username}] 🎬 FRAME COUNTING START at ${frameCountStartTime}`);
+      
       bot.setControlState("sneak", true);
       await bot.waitForTicks(5);
       bot.setControlState("sneak", false);
@@ -736,6 +744,19 @@ function getOnStructureEvalPhaseFn(
         );
       } finally {
         stopPathfinder(bot);
+        
+        // 🎬 END FRAME COUNTING - Always execute, even if pathfinding fails
+        if (frameCountStartTime !== null) {
+          const frameCountEndTime = Date.now();
+          const durationMs = frameCountEndTime - frameCountStartTime;
+          const durationSeconds = durationMs / 1000;
+          const estimatedFrames = Math.round(durationSeconds * 20); // 20 FPS
+          
+          console.log(`[${bot.username}] 🎬 FRAME COUNTING END at ${frameCountEndTime}`);
+          console.log(`[${bot.username}] ⏱️  ML Training Segment Duration: ${durationSeconds.toFixed(2)}s`);
+          console.log(`[${bot.username}] 🎞️  Estimated Frames (at 20 FPS): ${estimatedFrames} frames`);
+          console.log(`[${bot.username}] 📊 Target: 300 frames | Actual: ${estimatedFrames} | Difference: ${estimatedFrames - 300} frames`);
+        }
       }
     } else {
       console.log(
