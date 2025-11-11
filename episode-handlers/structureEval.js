@@ -19,6 +19,9 @@ const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
 const BLOCK_PLACE_DELAY_MS = 1000; // Delay between placing blocks (more human-like)
 const BUILDER_ADMIRE_MS = 3000; // Time for builder to admire structure with observer
+// Placement stance tuning (keep distance from structure and relax adjacency strictness)
+const PLACEMENT_STANDOFF_BLOCKS = 2; // Stand 2 blocks away from the structure while placing
+const ADJACENT_GOAL_RADIUS = 1.0; // Relaxed tolerance to avoid micro-jitter at the target point
 
 /**
  * Generate positions for a simple wall structure
@@ -158,29 +161,32 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
         // This creates natural "walking along while building" behavior
         const currentBotPos = bot.entity.position.clone();
         
-        // Calculate adjacent position (perpendicular to the wall direction)
-        // For a wall along X-axis, stand at Z-1 (south side of the wall)
-        // For a wall along Z-axis, stand at X-1 (west side of the wall)
+        // Calculate adjacent position with a diagonal stance (never exactly parallel)
+        // For X-axis walls: move 2 blocks to the south (Z-) AND 1 block west (X-)
+        // For Z-axis walls (and towers): move 2 blocks to the west (X-) AND 1 block north (Z-)
+        // This diagonal offset makes at least two side faces and often the top visible at ground level.
         const adjacentPos = pos.clone();
-        
+
         // Determine wall direction by checking if positions vary in X or Z
         const firstPos = sorted[0];
         const lastPos = sorted[sorted.length - 1];
         const isXAxis = Math.abs(lastPos.x - firstPos.x) > Math.abs(lastPos.z - firstPos.z);
         
         if (isXAxis) {
-          // Wall extends along X-axis, stand to the side (Z direction)
-          adjacentPos.z -= 1; // Stand 1 block south of the wall
+          // Side offset along Z-, and along-wall offset west (X-)
+          adjacentPos.z -= PLACEMENT_STANDOFF_BLOCKS; // 2 blocks south
+          adjacentPos.x += -1; // 1 block west (diagonal)
         } else {
-          // Wall extends along Z-axis, stand to the side (X direction)
-          adjacentPos.x -= 1; // Stand 1 block west of the wall
+          // Side offset along X-, and along-wall offset north (Z-)
+          adjacentPos.x -= PLACEMENT_STANDOFF_BLOCKS; // 2 blocks west
+          adjacentPos.z += -1; // 1 block north (diagonal)
         }
         
         // Move to adjacent position if not already there
         const distanceToAdjacent = currentBotPos.distanceTo(adjacentPos);
-        if (distanceToAdjacent > 0.5) {
+        if (distanceToAdjacent > ADJACENT_GOAL_RADIUS) {
           console.log(`[${bot.username}] 🚶 Moving to adjacent position (${adjacentPos.x.toFixed(1)}, ${adjacentPos.y}, ${adjacentPos.z.toFixed(1)}) before placing at ${pos}`);
-          const adjacentGoal = new GoalNear(adjacentPos.x, adjacentPos.y, adjacentPos.z, 0.3);
+          const adjacentGoal = new GoalNear(adjacentPos.x, adjacentPos.y, adjacentPos.z, ADJACENT_GOAL_RADIUS);
           
           try {
             await gotoWithTimeout(bot, adjacentGoal, { timeoutMs: 3000 });
