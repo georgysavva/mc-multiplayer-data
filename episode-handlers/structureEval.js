@@ -13,8 +13,8 @@ const { pickRandom } = require("../utils/coordination");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
-// const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_4"];
-const ALL_STRUCTURE_TYPES = ["tower_4"];
+// const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2"];
+const ALL_STRUCTURE_TYPES = ["tower_2"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
@@ -89,7 +89,7 @@ function generatePlatformPositions(startPos, width, depth) {
 function getStructureCenter(structureType, basePos, height, length = 5, width = 4) {
   const EYE_LEVEL = 1.6; // Standard Minecraft player eye level
   
-  if (structureType === "tower_4") {
+  if (structureType === "tower_2") {
     // Look at eye level of tower (or middle if tower is shorter than eye level)
     const lookHeight = Math.min(EYE_LEVEL, height / 2);
     return basePos.offset(0, lookHeight, 0);
@@ -646,7 +646,7 @@ function getOnStructureEvalPhaseFn(
       structureLength = length;
       positions = generateWallPositions(startPos, length, height, "x");
       structureBasePos = startPos;
-    } else if (structureType === "tower_4") {
+    } else if (structureType === "tower_2") {
       const startPos = botPos.offset(3, 0, 0);
       const height = 2;
       structureHeight = height;
