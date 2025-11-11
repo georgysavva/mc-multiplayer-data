@@ -192,6 +192,7 @@ class TranslationEvalEpisode extends BaseEpisode {
       )
     );
     
+    bot.waitForTicks(10);
     const shouldAlignRng = sharedBotRng();
     const shouldThisBotAlign = bot.username < args.other_bot_name ? shouldAlignRng < 0.5 : shouldAlignRng >= 0.5;
     // Make Bravo bot align to Alpha bot's location along one principal axis (shortest distance)
