@@ -14,7 +14,7 @@ const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
 // const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_4"];
-const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1"];
+const ALL_STRUCTURE_TYPES = ["tower_4"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
@@ -253,7 +253,10 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
       allowEntityDetection: true,
     });
 
+    let blockIndex = 0; // Track which block we're placing
     for (const pos of sorted) {
+      blockIndex++;
+      
       try {
         // Move bot to stand ADJACENT to the block position before placing
         // This creates natural "walking along while building" behavior
@@ -280,9 +283,12 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
           adjacentPos.z += -1; // 1 block north (diagonal)
         }
         
-        // Move to adjacent position if not already there
+        // HARD-CODED ENFORCEMENT: Skip adjacent movement for 4th block in 4-block structures
+        const skip4BlockMovement = (blockIndex === 4 && sorted.length === 4);
+        
+        // Move to adjacent position if not already there and skip4BlockMovement is false
         const distanceToAdjacent = currentBotPos.distanceTo(adjacentPos);
-        if (distanceToAdjacent > ADJACENT_GOAL_RADIUS) {
+        if (distanceToAdjacent > ADJACENT_GOAL_RADIUS && !skip4BlockMovement) {
           console.log(`[${bot.username}] 🚶 Moving to adjacent position (${adjacentPos.x.toFixed(1)}, ${adjacentPos.y}, ${adjacentPos.z.toFixed(1)}) before placing at ${pos}`);
           const adjacentGoal = new GoalNear(adjacentPos.x, adjacentPos.y, adjacentPos.z, ADJACENT_GOAL_RADIUS);
           
@@ -291,10 +297,27 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
           } catch (moveError) {
             console.log(`[${bot.username}] ⚠️ Could not move to adjacent position: ${moveError.message}`);
           }
+        } else if (skip4BlockMovement) {
+          console.log(`[${bot.username}] � FORCED NO-MOVE: Skipping adjacent movement for 4th block at ${pos}`);
         }
 
-        // Prefer a face that is both connected and visible+reachable from current stance
-        const visibleRef = findVisibleReachablePlaceReferenceLocal(bot, pos);
+        // HARD-CODED FIX: Force 4th block to use the block directly below (top face)
+        let forcedReference = null;
+        if (blockIndex === 4 && sorted.length === 4) {
+          // This is the 4th block in a 4-block structure (2x2 wall or 4x1 wall)
+          const belowPos = pos.offset(0, -1, 0);
+          const belowBlock = bot.blockAt(belowPos);
+          if (belowBlock && belowBlock.boundingBox === "block") {
+            forcedReference = {
+              refBlock: belowBlock,
+              faceVec: new Vec3(0, 1, 0) // Click the TOP face
+            };
+            console.log(`[${bot.username}] 🎯 FORCED: 4th block will use TOP face of block below at ${belowPos}`);
+          }
+        }
+        
+        // Use forced reference if available, otherwise use normal logic
+        const visibleRef = forcedReference || findVisibleReachablePlaceReferenceLocal(bot, pos);
         // Fallback reference if none visible from here (may trigger pathfinder later)
         const placeReference = visibleRef || findPlaceReference(bot, pos);
         if (placeReference) {
@@ -312,7 +335,7 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
           allowLookAt = true;
           try {
             await bot.lookAt(lookAtFacePos);
-            console.log(`[${bot.username}] 👁️ Looking at reference face at ${refBlock.position} (face: ${faceVec.x},${faceVec.y},${faceVec.z}) ${visibleRef ? "[visible+reachable]" : "[fallback]"}`);
+            console.log(`[${bot.username}] 👁️ Looking at reference face at ${refBlock.position} (face: ${faceVec.x},${faceVec.y},${faceVec.z}) ${visibleRef ? "[visible+reachable]" : "[fallback]"}${skip4BlockMovement ? " [NO-MOVE]" : ""}`);
           } catch (lookError) {
             console.log(`[${bot.username}] ⚠️ Cannot look at reference block face - no line of sight: ${lookError.message}`);
           }
