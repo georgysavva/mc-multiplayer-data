@@ -33,7 +33,7 @@ const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 // const { CollectorEpisode } = require("./collector-episode");
-const { WalkLookEvalEpisode } = require("./walk-look-eval-episode");
+const { TranslationEvalEpisode } = require("./translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
 
 // Map episode type strings to their class implementations
@@ -50,7 +50,7 @@ const episodeClassMap = {
   mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
   // collector: CollectorEpisode,
-  walkLookEval: WalkLookEvalEpisode,
+  translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
 };
 
@@ -70,7 +70,7 @@ const defaultEpisodeTypes = [
   "buildTower",
   "mine",
   "towerBridge",
-  "walkLookEval",
+  "translationEval",
   "lookAwayEval",
 ];
 
@@ -521,7 +521,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
 
       if (!EpisodeClass) {
         throw new Error(
-          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${sortedEligible.join(
+          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${Object.keys(episodeClassMap).sort().join(
             ", "
           )}`
         );

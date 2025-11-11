@@ -549,6 +549,22 @@ async function jump(bot, durationMs) {
   }
 }
 
+/**
+ * Make bot sneak for specified number of ticks (default: 5 ticks)
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} durationTicks - Number of ticks to sneak (default: 5)
+ * @param {number} idleTicks - Number of ticks to idle for after releasing sneak (default: 5)
+ */
+async function sneak(bot, durationTicks = 5, idleTicks = 5) {
+  console.log(
+    `[${bot.username}] Sneaking for ${(durationTicks + idleTicks) / 20}s`
+  );
+  bot.setControlState("sneak", true);
+  await bot.waitForTicks(durationTicks);
+  bot.setControlState("sneak", false);
+  await bot.waitForTicks(idleTicks);
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -586,5 +602,6 @@ module.exports = {
   isNearBot,
   land_pos,
   jump,
+  sneak,
   Y_IN_AIR,
 };

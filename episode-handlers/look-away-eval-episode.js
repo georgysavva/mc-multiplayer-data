@@ -3,9 +3,9 @@ const { sleep } = require("../utils/helpers");
 const { BaseEpisode } = require("./base-episode");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
-const ITERATIONS_NUM_PER_EPISODE = 3;
-const MIN_LOOK_AWAY_DURATION_SEC = 2;
-const MAX_LOOK_AWAY_DURATION_SEC = 4;
+const ITERATIONS_NUM_PER_EPISODE = 1;
+const MIN_LOOK_AWAY_DURATION_SEC = 1.0;
+const MAX_LOOK_AWAY_DURATION_SEC = 1.0;
 
 function getOnLookAwayPhaseFn(
   bot,
@@ -27,13 +27,13 @@ function getOnLookAwayPhaseFn(
       `lookAwayPhase_${iterationID} beginning`
     );
 
-    // Deterministic mode selection based on iteration number
+    // Deterministic mode selection based on episode number
     const walkingModes = [
       "lower_name_looks_away",
       "bigger_name_looks_away",
       "both_look_away",
     ];
-    const selectedMode = walkingModes[iterationID];
+    const selectedMode = walkingModes[episodeNum % 3];
 
     console.log(
       `[iter ${iterationID}] [${bot.username}] starting look away phase - mode: ${selectedMode}`
