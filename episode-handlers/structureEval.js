@@ -469,12 +469,23 @@ function getOnStructureEvalPhaseFn(
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
 
-    // Determine role assignment
-    const isBuilder = bot.username < args.other_bot_name;
+    // Determine role assignment using shared RNG for true 50/50 randomization
+    // Both bots use the same random seed, so they agree on who is builder/observer
+    const roleAssignmentModes = ["alpha_builds", "bravo_builds"];
+    const selectedRoleMode = roleAssignmentModes[Math.floor(sharedBotRng() * roleAssignmentModes.length)];
+    
+    // Determine if this bot is the builder based on the randomly selected mode
+    let isBuilder;
+    if (selectedRoleMode === "alpha_builds") {
+      isBuilder = bot.username < args.other_bot_name; // Alpha (lower name) builds
+    } else {
+      isBuilder = bot.username >= args.other_bot_name; // Bravo (higher name) builds
+    }
+    
     const role = isBuilder ? "BUILDER" : "OBSERVER";
     
     console.log(
-      `[${bot.username}] 🎭 Role: ${role}`
+      `[${bot.username}] 🎭 Role mode: ${selectedRoleMode}, Role: ${role}`
     );
     
     // STEP 1b-pre: Builder equips stone block in hand (before any movement or interactions)
