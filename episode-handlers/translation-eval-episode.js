@@ -8,6 +8,8 @@ const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const ITERATIONS_NUM_PER_EPISODE = 1;
 const MIN_RUN_ACTIONS = 1;
 const MAX_RUN_ACTIONS = 1;
+const MIN_EPISODE_TICKS = 300;
+
 function getOnWalkLookPhaseFn(
   bot,
   rcon,
@@ -19,6 +21,12 @@ function getOnWalkLookPhaseFn(
   args
 ) {
   return async (otherBotPosition) => {
+    // Track start tick on first iteration
+    if (iterationID === 0) {
+      episodeInstance.episodeStartTick = bot.time.age;
+      console.log(`[iter ${iterationID}] [${bot.username}] episode start tick: ${episodeInstance.episodeStartTick}`);
+    }
+    
     coordinator.sendToOtherBot(
       `walkLookPhase_${iterationID}`,
       bot.entity.position.clone(),
@@ -79,10 +87,20 @@ function getOnWalkLookPhaseFn(
     }
 
     if (iterationID == ITERATIONS_NUM_PER_EPISODE - 1) {
-      coordinator.onceEvent(
-        "stopPhase",
-        episodeNum,
-        episodeInstance.getOnStopPhaseFn(
+      // Wrap the stop phase setup in a function that waits for at least 300 ticks
+      const setupStopPhaseWithDelay = async () => {
+        const currentTick = bot.time.age;
+        const elapsedTicks = currentTick - episodeInstance.episodeStartTick;
+        const remainingTicks = MIN_EPISODE_TICKS - elapsedTicks;
+        
+        if (remainingTicks > 0) {
+          console.log(`[iter ${iterationID}] [${bot.username}] waiting ${remainingTicks} more ticks to reach ${MIN_EPISODE_TICKS} total ticks`);
+          await bot.waitForTicks(remainingTicks);
+        } else {
+          console.log(`[iter ${iterationID}] [${bot.username}] already passed ${MIN_EPISODE_TICKS} ticks (elapsed: ${elapsedTicks})`);
+        }
+        
+        return episodeInstance.getOnStopPhaseFn(
           bot,
           rcon,
           sharedBotRng,
@@ -90,8 +108,18 @@ function getOnWalkLookPhaseFn(
           args.other_bot_name,
           episodeNum,
           args
-        )
+        );
+      };
+      
+      coordinator.onceEvent(
+        "stopPhase",
+        episodeNum,
+        async (otherBotPosition) => {
+          const stopPhaseFn = await setupStopPhaseWithDelay();
+          await stopPhaseFn(otherBotPosition);
+        }
       );
+      await bot.waitForTicks(20);
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
