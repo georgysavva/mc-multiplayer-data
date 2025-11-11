@@ -223,6 +223,7 @@ class TranslationEvalEpisode extends BaseEpisode {
       } catch (err) {
         console.log(`[iter ${iterationID}] [${bot.username}] alignment error: ${err.message}`);
       }
+      bot.waitForTicks(5);
       coordinator.sendToOtherBot(
         `walkLookPhase_${iterationID}`,
         bot.entity.position.clone(),
