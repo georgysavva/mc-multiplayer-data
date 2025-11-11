@@ -8,7 +8,7 @@ const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const ITERATIONS_NUM_PER_EPISODE = 1;
 const MIN_RUN_ACTIONS = 1;
 const MAX_RUN_ACTIONS = 1;
-const MIN_EPISODE_TICKS = 300;
+const MIN_EPISODE_TICKS = 340;
 
 function getOnWalkLookPhaseFn(
   bot,
@@ -71,7 +71,7 @@ function getOnWalkLookPhaseFn(
     );
 
     // Look at the other bot smoothly at the start of the phase
-    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC * 4);
 
     // Either run() or sleep() based on the mode
     if (shouldThisBotWalk) {
