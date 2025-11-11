@@ -225,29 +225,15 @@ class TranslationEvalEpisode extends BaseEpisode {
       } catch (err) {
         console.log(`[iter ${iterationID}] [${bot.username}] alignment error: ${err.message}`);
       }
+      coordinator.sendToOtherBot(
+        `walkLookPhase_${iterationID}`,
+        bot.entity.position.clone(),
+        episodeNum,
+        "teleportPhase end"
+      );
     } else {
-      // For Alpha bot, wait for Bravo bot to align to its location.
-      // Check whether Bravo bot is aligned to Alpha bot's location.
-      console.log(`[iter ${iterationID}] [${bot.username}] waiting for other bot to align to this bot's location`);
-      const botPos = bot.entity.position;
-      while (true) {
-        const otherBotPosition = bot.players[args.other_bot_name]?.entity.position;
-        const dx = Math.abs(otherBotPosition.x - botPos.x);
-        const dz = Math.abs(otherBotPosition.z - botPos.z);
-        if (dx < 0.5 || dz < 0.5) {
-          console.log(`[iter ${iterationID}] [${bot.username}] Bravo bot aligned to Alpha bot`);
-          break;
-        }
-        await bot.waitForTicks(1);
-      }
+      // For the bot not aligning, do nothing.
     }
-
-    coordinator.sendToOtherBot(
-      `walkLookPhase_${iterationID}`,
-      bot.entity.position.clone(),
-      episodeNum,
-      "teleportPhase end"
-    );
   }
 
   async tearDownEpisode(
