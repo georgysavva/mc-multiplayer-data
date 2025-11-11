@@ -7,13 +7,14 @@ const {
   gotoWithTimeout,
   lookAtSmooth,
 } = require("../utils/movement");
-const { placeAt, findPlaceReference } = require("./builder");
+const { placeAt, findPlaceReference, ensureItemInHand } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
-const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_4"];
+// const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_4"];
+const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
@@ -101,6 +102,103 @@ function getStructureCenter(structureType, basePos, height, length = 5, width = 
     return basePos.offset(width / 2, EYE_LEVEL, width / 2);
   }
   return basePos.offset(0, EYE_LEVEL, 0);
+}
+
+// ========== Local helpers for face selection, LOS, and fast placement (episode-scoped) ==========
+const CARDINALS = [
+  new Vec3(1, 0, 0), // +X (east)
+  new Vec3(-1, 0, 0), // -X (west)
+  new Vec3(0, 0, 1), // +Z (south)
+  new Vec3(0, 0, -1), // -Z (north)
+  new Vec3(0, 1, 0), // +Y (up)
+  new Vec3(0, -1, 0), // -Y (down)
+];
+
+function isAirLikeLocal(block) {
+  return !block || block.name === "air" || block.boundingBox === "empty";
+}
+
+function reachMax(bot) {
+  return bot.game && bot.game.gameMode === 1 ? 6 : 4.5;
+}
+
+function inReachLocal(bot, pos, max = reachMax(bot)) {
+  const center = pos.offset(0.5, 0.5, 0.5);
+  return bot.entity.position.distanceTo(center) <= max;
+}
+
+function faceCenterOf(refBlock, faceVec) {
+  return refBlock.position.offset(
+    0.5 + faceVec.x * 0.5,
+    0.5 + faceVec.y * 0.5,
+    0.5 + faceVec.z * 0.5
+  );
+}
+
+function hasLineOfSightToFaceLocal(bot, refBlock, faceVec) {
+  try {
+    const eye = bot.entity.position.offset(0, (bot.entity.height ?? 1.62), 0);
+    const faceCenter = faceCenterOf(refBlock, faceVec);
+    const dx = faceCenter.x - eye.x;
+    const dy = faceCenter.y - eye.y;
+    const dz = faceCenter.z - eye.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
+    const step = 0.2; // blocks per step
+    const steps = Math.max(1, Math.ceil(dist / step));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const px = eye.x + dx * t;
+      const py = eye.y + dy * t;
+      const pz = eye.z + dz * t;
+      const bpos = new Vec3(Math.floor(px), Math.floor(py), Math.floor(pz));
+      if (bpos.equals(refBlock.position)) continue; // ignore the face's own block
+      const b = bot.blockAt(bpos);
+      if (b && b.boundingBox === "block") return false; // obstructed
+    }
+    return true;
+  } catch (_) {
+    return true; // be permissive on error
+  }
+}
+
+function findVisibleReachablePlaceReferenceLocal(bot, targetPos) {
+  for (const face of CARDINALS) {
+    const refPos = targetPos.plus(face);
+    const refBlock = bot.blockAt(refPos);
+    if (!refBlock) continue;
+    if (refBlock.boundingBox !== "block" || refBlock.material === "noteblock") continue;
+    const faceVec = new Vec3(-face.x, -face.y, -face.z);
+    if (!inReachLocal(bot, refBlock.position)) continue;
+    if (!hasLineOfSightToFaceLocal(bot, refBlock, faceVec)) continue;
+    return { refBlock, faceVec };
+  }
+  return null;
+}
+
+async function tryPlaceAtUsingLocal(bot, targetPos, itemName, refBlock, faceVec, options = {}) {
+  const { useSneak = true, tries = 2, args = null } = options;
+  // early exit if already placed
+  if (!isAirLikeLocal(bot.blockAt(targetPos))) return true;
+  await ensureItemInHand(bot, itemName, args);
+  const sneakWas = bot.getControlState("sneak");
+  if (useSneak) bot.setControlState("sneak", true);
+  try {
+    for (let i = 0; i < tries; i++) {
+      if (!inReachLocal(bot, refBlock.position)) return false; // let caller fallback
+      try {
+        await bot.placeBlock(refBlock, faceVec);
+      } catch (e) {
+        await sleep(80);
+        continue;
+      }
+      const placed = !isAirLikeLocal(bot.blockAt(targetPos));
+      if (placed) return true;
+      await sleep(80);
+    }
+    return !isAirLikeLocal(bot.blockAt(targetPos));
+  } finally {
+    if (useSneak && !sneakWas) bot.setControlState("sneak", false);
+  }
 }
 
 /**
@@ -195,8 +293,10 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
           }
         }
 
-        // Find the reference block (existing block to click on) before placing
-        const placeReference = findPlaceReference(bot, pos);
+        // Prefer a face that is both connected and visible+reachable from current stance
+        const visibleRef = findVisibleReachablePlaceReferenceLocal(bot, pos);
+        // Fallback reference if none visible from here (may trigger pathfinder later)
+        const placeReference = visibleRef || findPlaceReference(bot, pos);
         if (placeReference) {
           const { refBlock, faceVec } = placeReference;
           
@@ -212,7 +312,7 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
           allowLookAt = true;
           try {
             await bot.lookAt(lookAtFacePos);
-            console.log(`[${bot.username}] 👁️ Looking at reference block face at ${refBlock.position} (face: ${faceVec.x},${faceVec.y},${faceVec.z})`);
+            console.log(`[${bot.username}] 👁️ Looking at reference face at ${refBlock.position} (face: ${faceVec.x},${faceVec.y},${faceVec.z}) ${visibleRef ? "[visible+reachable]" : "[fallback]"}`);
           } catch (lookError) {
             console.log(`[${bot.username}] ⚠️ Cannot look at reference block face - no line of sight: ${lookError.message}`);
           }
@@ -222,7 +322,17 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
 
         // Now disable lookAt during placeAt to prevent camera resetting
         allowLookAt = false;
-        const placed = await placeAt(bot, pos, itemName, options);
+        // If we have a visible+reachable face, place directly using it; else fallback to robust placeAt (may pathfind)
+        let placed;
+        if (visibleRef) {
+          placed = await tryPlaceAtUsingLocal(bot, pos, itemName, visibleRef.refBlock, visibleRef.faceVec, options);
+          if (!placed) {
+            console.log(`[${bot.username}] 🔁 Visible+reachable face placement failed; falling back to robust placeAt (may pathfind)`);
+            placed = await placeAt(bot, pos, itemName, options);
+          }
+        } else {
+          placed = await placeAt(bot, pos, itemName, options);
+        }
         
         if (placed) {
           success++;
