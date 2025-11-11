@@ -153,18 +153,65 @@ def find_last_sneak_action(actions_path: Path) -> Optional[int]:
     return None
 
 
+def get_episode_pair_path(actions_path: Path) -> Optional[Path]:
+    """Get the corresponding Alpha/Bravo file for the same episode.
+    
+    If actions_path is for Alpha, returns the Bravo path (and vice versa).
+    Returns None if the pair file doesn't exist.
+    """
+    filename = actions_path.name
+    
+    if "_Alpha_" in filename:
+        pair_filename = filename.replace("_Alpha_", "_Bravo_")
+    elif "_Bravo_" in filename:
+        pair_filename = filename.replace("_Bravo_", "_Alpha_")
+    else:
+        return None
+    
+    pair_path = actions_path.parent / pair_filename
+    return pair_path if pair_path.exists() else None
+
+
+def find_last_sneak_in_episode(actions_path: Path) -> Optional[int]:
+    """Find the last sneak action across both Alpha and Bravo for the same episode.
+    
+    Returns the action index of the last sneak found in either bot's file.
+    Returns None if no sneak action is found in either file.
+    """
+    # Check current file
+    last_sneak = find_last_sneak_action(actions_path)
+    
+    # Check paired file
+    pair_path = get_episode_pair_path(actions_path)
+    if pair_path:
+        pair_sneak = find_last_sneak_action(pair_path)
+        # If both have sneaks, we still want the last one from either
+        if last_sneak is None:
+            last_sneak = pair_sneak
+        elif pair_sneak is not None:
+            # Both have sneaks - this is unusual, but take the max
+            last_sneak = max(last_sneak, pair_sneak)
+    
+    return last_sneak
+
+
 def compute_skip_actions_for_eval(actions_path: Path, min_frames: int = 256) -> int:
     """Compute how many actions to skip for eval mode.
     
-    Finds the last sneak action and returns (last_sneak_index + 6) to start
-    5 frames after the sneak. Raises ValueError if:
-    - No sneak action is found
+    Finds the last sneak action across both Alpha/Bravo for the same episode
+    and returns (last_sneak_index + 6) to start 5 frames after the sneak.
+    Raises ValueError if:
+    - No sneak action is found in either Alpha or Bravo
     - Remaining frames would be less than min_frames
     """
-    last_sneak_idx = find_last_sneak_action(actions_path)
+    last_sneak_idx = find_last_sneak_in_episode(actions_path)
     
     if last_sneak_idx is None:
-        raise ValueError(f"No sneak action found in {actions_path.name}")
+        pair_path = get_episode_pair_path(actions_path)
+        pair_name = pair_path.name if pair_path else "paired file"
+        raise ValueError(
+            f"No sneak action found in {actions_path.name} or {pair_name}"
+        )
     
     # Load actions to get total count
     with actions_path.open("r", encoding="utf-8") as fh:

@@ -18,9 +18,9 @@ python3 $PROJECT_ROOT/generate_compose.py --instances 2 \
  --camera_data_alpha_base $PROJECT_ROOT/camera/data_alpha \
  --camera_data_bravo_base $PROJECT_ROOT/camera/data_bravo \
  --smoke_test 0 \
- --num_flatland_world 1 \
+ --num_flatland_world 2 \
  --num_normal_world 0 \
- --num_episodes 10 \
+ --num_episodes 16 \
  --episode_types translationEval \
  --iterations_num_per_episode 1 \
  --viewer_rendering_disabled 1
@@ -32,5 +32,5 @@ python3 $PROJECT_ROOT/orchestrate.py status
 python3 $PROJECT_ROOT/orchestrate.py logs --tail 20
 python3 $PROJECT_ROOT/orchestrate.py recordings
 python3 $PROJECT_ROOT/orchestrate.py stop
-python3 $PROJECT_ROOT/orchestrate.py postprocess --workers 16 --output-dir $PROJECT_ROOT/output_batched/mc_multiplayer_eval
+python3 $PROJECT_ROOT/orchestrate.py postprocess --workers 16 --output-dir $PROJECT_ROOT/output_batched/mc_multiplayer_eval --eval
 sudo chown -R $USER:$USER $PROJECT_ROOT/output $PROJECT_ROOT/camera/output_alpha $PROJECT_ROOT/camera/output_bravo $PROJECT_ROOT/camera/data_alpha $PROJECT_ROOT/camera/data_bravo

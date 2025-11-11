@@ -76,6 +76,7 @@ function getOnWalkLookPhaseFn(
     // Either run() or sleep() based on the mode
     if (shouldThisBotWalk) {
       // Sneak to signal that eval should start, and which bot is walking.
+      bot.waitForTicks(10);
       await sneak(bot);
       
       await run(bot, actionCount, /*lookAway*/ false, args, episodeInstance.constructor.MOVEMENT_CONSTANTS);
@@ -192,7 +193,6 @@ class TranslationEvalEpisode extends BaseEpisode {
     );
     const shouldAlignRng = sharedBotRng();
     const shouldThisBotAlign = bot.username < args.other_bot_name ? shouldAlignRng < 0.5 : shouldAlignRng >= 0.5;
-    bot.waitForTicks(10);
     // Make Bravo bot align to Alpha bot's location along one principal axis (shortest distance)
     if (shouldThisBotAlign) {
       const otherBotPosition = bot.players[args.other_bot_name]?.entity.position;
@@ -223,7 +223,7 @@ class TranslationEvalEpisode extends BaseEpisode {
       } catch (err) {
         console.log(`[iter ${iterationID}] [${bot.username}] alignment error: ${err.message}`);
       }
-      bot.waitForTicks(5);
+      bot.waitForTicks(10);
       coordinator.sendToOtherBot(
         `walkLookPhase_${iterationID}`,
         bot.entity.position.clone(),
