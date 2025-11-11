@@ -119,7 +119,6 @@ function getOnWalkLookPhaseFn(
           await stopPhaseFn(otherBotPosition);
         }
       );
-      await bot.waitForTicks(20);
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
