@@ -14,12 +14,12 @@ const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
 // const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2"];
-const ALL_STRUCTURE_TYPES = ["wall_4x1"];
-const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
+const ALL_STRUCTURE_TYPES = ["tower_2"];
+const INITIAL_EYE_CONTACT_MS = 1000; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
-const BLOCK_PLACE_DELAY_MS = 1000; // Delay between placing blocks (more human-like)
-const BUILDER_ADMIRE_MS = 3000; // Time for builder to admire structure with observer
+const BLOCK_PLACE_DELAY_MS = 750; // Delay between placing blocks (more human-like)
+const BUILDER_ADMIRE_MS = 2000; // Time for builder to admire structure with observer
 // Placement stance tuning (keep distance from structure and relax adjacency strictness)
 const PLACEMENT_STANDOFF_BLOCKS = 2; // Stand 2 blocks away from the structure while placing
 const ADJACENT_GOAL_RADIUS = 1.0; // Relaxed tolerance to avoid micro-jitter at the target point
@@ -535,56 +535,8 @@ function getOnStructureEvalPhaseFn(
       // Observer waits equivalent time but does nothing
       await bot.waitForTicks(15);
     }
-    
-    // STEP 1b: Clear construction area - move away from spawn (BUILDER only)
-    if (isBuilder) {
-      console.log(
-        `[${bot.username}] 🚶 STEP 1b: Moving away from spawn to clear construction area...`
-      );
-      try {
-        initializePathfinder(bot, {
-          allowSprinting: true,
-          allowParkour: true,
-          canDig: false,
-          allowEntityDetection: true,
-        });
 
-        // Randomly choose direction to move (North/South/East/West)
-        const directions = [
-          { name: "North", offset: [0, 0, -3] },  // -Z
-          { name: "South", offset: [0, 0, 3] },   // +Z
-          { name: "East", offset: [3, 0, 0] },    // +X
-          { name: "West", offset: [-3, 0, 0] },   // -X
-        ];
-        const chosenDirection = directions[Math.floor(Math.random() * directions.length)];
-        
-        console.log(
-          `[${bot.username}] 🧭 Moving ${chosenDirection.name} (${chosenDirection.offset[0]}, ${chosenDirection.offset[2]})`
-        );
-
-        // Move 3 blocks away from spawn in chosen direction
-        const clearPos = initialSpawnPos.offset(
-          chosenDirection.offset[0],
-          chosenDirection.offset[1],
-          chosenDirection.offset[2]
-        );
-        const clearGoal = new GoalNear(clearPos.x, clearPos.y, clearPos.z, 1);
-        await gotoWithTimeout(bot, clearGoal, { timeoutMs: 10000 });
-        console.log(`[${bot.username}] ✅ Cleared construction area`);
-      } catch (pathError) {
-        console.log(
-          `[${bot.username}] ⚠️ Could not clear area: ${pathError.message}`
-        );
-      } finally {
-        stopPathfinder(bot);
-      }
-    } else {
-      console.log(
-        `[${bot.username}] 🧍 STEP 1b: Staying stationary (observer role)`
-      );
-    }
-
-    await sleep(500);
+    await sleep(200);
 
     // STEP 2: Initial eye contact (BUILDER only, observer remains stationary)
     if (isBuilder) {
@@ -719,7 +671,7 @@ function getOnStructureEvalPhaseFn(
           console.log(
             `[${bot.username}] 📐 Observer yaw: ${observerYaw.toFixed(2)}, moving to side position (${sideX.toFixed(1)}, ${sideZ.toFixed(1)})`
           );
-          
+
           // Move to stand beside observer (not in front)
           const standGoal = new GoalNear(
             sideX,
