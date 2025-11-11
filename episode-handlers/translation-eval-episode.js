@@ -236,6 +236,7 @@ class TranslationEvalEpisode extends BaseEpisode {
         const dz = Math.abs(otherBotPosition.z - botPos.z);
         if (dx < 0.5 || dz < 0.5) {
           console.log(`[iter ${iterationID}] [${bot.username}] Bravo bot aligned to Alpha bot`);
+          break;
         }
         await bot.waitForTicks(1);
       }
