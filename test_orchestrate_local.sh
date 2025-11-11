@@ -32,5 +32,5 @@ python3 $PROJECT_ROOT/orchestrate.py status
 python3 $PROJECT_ROOT/orchestrate.py logs --tail 20
 python3 $PROJECT_ROOT/orchestrate.py recordings
 python3 $PROJECT_ROOT/orchestrate.py stop
-python3 $PROJECT_ROOT/orchestrate.py postprocess --workers 16 --output-dir $PROJECT_ROOT/output_batched/mc_multiplayer_eval --eval
+python3 $PROJECT_ROOT/orchestrate.py postprocess --workers 16 --output-dir $PROJECT_ROOT/output_batched/mc_multiplayer_eval
 sudo chown -R $USER:$USER $PROJECT_ROOT/output $PROJECT_ROOT/camera/output_alpha $PROJECT_ROOT/camera/output_bravo $PROJECT_ROOT/camera/data_alpha $PROJECT_ROOT/camera/data_bravo

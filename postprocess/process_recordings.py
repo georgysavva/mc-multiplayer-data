@@ -61,11 +61,6 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         default=None,
         help="Process single episode file (overrides directory processing)",
     )
-    parser.add_argument(
-        "--eval",
-        action="store_true",
-        help="Eval mode: crop video to start 5 frames after last sneak action",
-    )
     return parser.parse_args(list(argv))
 
 
@@ -130,104 +125,6 @@ def ensure_metadata(meta_path: Path) -> None:
 
 def expected_prismarine_video(actions_path: Path) -> Path:
     return actions_path.with_suffix(".mp4")
-
-
-def find_last_sneak_action(actions_path: Path) -> Optional[int]:
-    """Find the index of the last sneak action in the episode.
-    
-    Returns None if no sneak action is found.
-    """
-    with actions_path.open("r", encoding="utf-8") as fh:
-        actions = json.load(fh)
-    
-    if not isinstance(actions, list):
-        return None
-    
-    # Search backwards for the last sneak action
-    for i in range(len(actions) - 1, -1, -1):
-        action = actions[i]
-        if isinstance(action, dict) and "action" in action:
-            if action["action"].get("sneak", False):
-                return i
-    
-    return None
-
-
-def get_episode_pair_path(actions_path: Path) -> Optional[Path]:
-    """Get the corresponding Alpha/Bravo file for the same episode.
-    
-    If actions_path is for Alpha, returns the Bravo path (and vice versa).
-    Returns None if the pair file doesn't exist.
-    """
-    filename = actions_path.name
-    
-    if "_Alpha_" in filename:
-        pair_filename = filename.replace("_Alpha_", "_Bravo_")
-    elif "_Bravo_" in filename:
-        pair_filename = filename.replace("_Bravo_", "_Alpha_")
-    else:
-        return None
-    
-    pair_path = actions_path.parent / pair_filename
-    return pair_path if pair_path.exists() else None
-
-
-def find_last_sneak_in_episode(actions_path: Path) -> Optional[int]:
-    """Find the last sneak action across both Alpha and Bravo for the same episode.
-    
-    Returns the action index of the last sneak found in either bot's file.
-    Returns None if no sneak action is found in either file.
-    """
-    # Check current file
-    last_sneak = find_last_sneak_action(actions_path)
-    
-    # Check paired file
-    pair_path = get_episode_pair_path(actions_path)
-    if pair_path:
-        pair_sneak = find_last_sneak_action(pair_path)
-        # If both have sneaks, we still want the last one from either
-        if last_sneak is None:
-            last_sneak = pair_sneak
-        elif pair_sneak is not None:
-            # Both have sneaks - this is unusual, but take the max
-            last_sneak = max(last_sneak, pair_sneak)
-    
-    return last_sneak
-
-
-def compute_skip_actions_for_eval(actions_path: Path, min_frames: int = 256) -> int:
-    """Compute how many actions to skip for eval mode.
-    
-    Finds the last sneak action across both Alpha/Bravo for the same episode
-    and returns (last_sneak_index + 6) to start 5 frames after the sneak.
-    Raises ValueError if:
-    - No sneak action is found in either Alpha or Bravo
-    - Remaining frames would be less than min_frames
-    """
-    last_sneak_idx = find_last_sneak_in_episode(actions_path)
-    
-    if last_sneak_idx is None:
-        pair_path = get_episode_pair_path(actions_path)
-        pair_name = pair_path.name if pair_path else "paired file"
-        raise ValueError(
-            f"No sneak action found in {actions_path.name} or {pair_name}"
-        )
-    
-    # Load actions to get total count
-    with actions_path.open("r", encoding="utf-8") as fh:
-        actions = json.load(fh)
-    
-    total_actions = len(actions)
-    skip_actions = last_sneak_idx + 6  # 5 frames after the sneak (0-indexed, so +6)
-    remaining_frames = total_actions - skip_actions
-    
-    if remaining_frames < min_frames:
-        raise ValueError(
-            f"Episode {actions_path.name}: After cropping at frame {skip_actions}, "
-            f"only {remaining_frames} frames remain (minimum {min_frames} required)"
-        )
-    
-    return skip_actions
 
 
 def _resize_to_height(frame: np.ndarray, target_height: int) -> np.ndarray:
@@ -303,8 +200,7 @@ def build_side_by_side(
 
 
 def process_actions(
-    actions_dir: Path, configs: Dict[str, BotConfig], generate_comparison: bool = False,
-    eval_mode: bool = False
+    actions_dir: Path, configs: Dict[str, BotConfig], generate_comparison: bool = False
 ) -> int:
     actions_processed = 0
     for actions_path in sorted(actions_dir.glob("*.json")):
@@ -320,16 +216,6 @@ def process_actions(
         output_video = config.output_dir / f"{actions_path.stem}_camera.mp4"
         output_meta = config.output_dir / f"{actions_path.stem}_camera_meta.json"
 
-        # Compute skip_actions for eval mode
-        skip_actions = 0
-        if eval_mode:
-            try:
-                skip_actions = compute_skip_actions_for_eval(actions_path)
-                print(f"[eval] {actions_path.name}: skipping first {skip_actions} actions")
-            except ValueError as e:
-                print(f"[eval] skipping {actions_path.name}: {e}", file=sys.stderr)
-                continue
-
         alignment_input = AlignmentInput(
             actions_path=actions_path,
             camera_meta_path=config.camera_meta,
@@ -338,7 +224,6 @@ def process_actions(
             ffmpeg_path="ffmpeg",
             margin_start=0.0,
             margin_end=0.0,
-            skip_actions=skip_actions,
         )
 
         align_start = time.time()
@@ -382,7 +267,7 @@ def process_actions(
 
 
 def process_single_episode(episode_path: Path, configs: Dict[str, BotConfig], 
-                          generate_comparison: bool = False, eval_mode: bool = False) -> bool:
+                          generate_comparison: bool = False) -> bool:
     """Process a single episode file. Returns True if successful."""
     if episode_path.name.endswith("_meta.json"):
         return False
@@ -398,12 +283,6 @@ def process_single_episode(episode_path: Path, configs: Dict[str, BotConfig],
         output_video = config.output_dir / f"{episode_path.stem}_camera.mp4"
         output_meta = config.output_dir / f"{episode_path.stem}_camera_meta.json"
 
-        # Compute skip_actions for eval mode
-        skip_actions = 0
-        if eval_mode:
-            skip_actions = compute_skip_actions_for_eval(episode_path)
-            print(f"[eval] {episode_path.name}: skipping first {skip_actions} actions")
-
         alignment_input = AlignmentInput(
             actions_path=episode_path,
             camera_meta_path=config.camera_meta,
@@ -412,7 +291,6 @@ def process_single_episode(episode_path: Path, configs: Dict[str, BotConfig],
             ffmpeg_path="ffmpeg",
             margin_start=0.0,
             margin_end=0.0,
-            skip_actions=skip_actions,
         )
 
         align_start = time.time()
@@ -464,14 +342,13 @@ def main(argv: Iterable[str]) -> int:
             print(f"[align] episode file not found: {episode_path}", file=sys.stderr)
             return 1
         processed = process_single_episode(
-            episode_path, configs, args.comparison_video, args.eval
+            episode_path, configs, args.comparison_video
         )
         return 0 if processed else 1
 
     # Otherwise process all episodes under --actions-dir
     processed = process_actions(
-        actions_dir, configs, generate_comparison=args.comparison_video,
-        eval_mode=args.eval
+        actions_dir, configs, generate_comparison=args.comparison_video
     )
     if processed == 0:
         print("[align] no action traces found; nothing to do")
