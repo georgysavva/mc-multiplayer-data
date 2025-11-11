@@ -26,6 +26,7 @@ class AlignmentInput:
     ffmpeg_path: str  # retained for CLI compatibility, unused internally
     margin_start: float  # unused but kept for backward compatibility
     margin_end: float    # unused but kept for backward compatibility
+    skip_actions: int = 0  # Number of initial actions to skip (for eval mode)
 
 
 def _load_actions(path: Path) -> List[Dict[str, Any]]:
@@ -177,6 +178,15 @@ def align_recording(config: AlignmentInput) -> Dict[str, Any]:
     We compute: frame_index = (action_time - camera_start_time) * fps
     """
     actions = _load_actions(config.actions_path)
+    
+    # Skip initial actions if requested (for eval mode)
+    if config.skip_actions > 0:
+        if config.skip_actions >= len(actions):
+            raise ValueError(
+                f"Cannot skip {config.skip_actions} actions, only {len(actions)} available"
+            )
+        actions = actions[config.skip_actions:]
+    
     camera_meta = _ensure_camera_meta(config.camera_meta_path)
 
     fps = float(camera_meta["fps"])
@@ -241,6 +251,8 @@ def parse_args(argv: List[str]) -> AlignmentInput:
     parser.add_argument("--margin-start", type=float, default=0.0)
     parser.add_argument("--margin-end", type=float, default=0.0)
     parser.add_argument("--ffmpeg", default="ffmpeg")  # kept for CLI compatibility
+    parser.add_argument("--skip-actions", type=int, default=0, 
+                        help="Number of initial actions to skip (for eval mode)")
 
     args = parser.parse_args(argv)
 
@@ -256,6 +268,7 @@ def parse_args(argv: List[str]) -> AlignmentInput:
         ffmpeg_path=args.ffmpeg,
         margin_start=max(0.0, args.margin_start),
         margin_end=max(0.0, args.margin_end),
+        skip_actions=args.skip_actions,
     )
 
 
