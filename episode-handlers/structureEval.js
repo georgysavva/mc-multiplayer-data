@@ -469,7 +469,7 @@ function getOnStructureEvalPhaseFn(
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
 
-    // STEP 1b: Clear construction area - move away from spawn (BUILDER only)
+    // Determine role assignment
     const isBuilder = bot.username < args.other_bot_name;
     const role = isBuilder ? "BUILDER" : "OBSERVER";
     
@@ -477,6 +477,29 @@ function getOnStructureEvalPhaseFn(
       `[${bot.username}] 🎭 Role: ${role}`
     );
     
+    // STEP 1b-pre: Builder equips stone block in hand (before any movement or interactions)
+    if (isBuilder) {
+      console.log(
+        `[${bot.username}] 🔧 STEP 1b-pre: Equipping stone in hand...`
+      );
+      try {
+        // Find stone block in inventory
+        const stoneItem = bot.inventory.items().find(item => item.name === "stone");
+        if (stoneItem) {
+          await bot.equip(stoneItem, "hand");
+          console.log(`[${bot.username}] ✅ Equipped stone in hand`);
+        } else {
+          console.log(`[${bot.username}] ⚠️ No stone found in inventory`);
+        }
+      } catch (equipError) {
+        console.log(
+          `[${bot.username}] ⚠️ Could not equip stone: ${equipError.message}`
+        );
+      }
+      await sleep(300); // Brief pause after equipping
+    }
+    
+    // STEP 1b: Clear construction area - move away from spawn (BUILDER only)
     if (isBuilder) {
       console.log(
         `[${bot.username}] 🚶 STEP 1b: Moving away from spawn to clear construction area...`
