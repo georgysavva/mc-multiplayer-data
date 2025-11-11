@@ -510,6 +510,24 @@ function getOnStructureEvalPhaseFn(
       await sleep(300); // Brief pause after equipping
     }
     
+    // STEP 1b-sneak: Builder sneaks (acknowledgment gesture), Observer remains stationary
+    if (isBuilder) {
+      console.log(
+        `[${bot.username}] 🤫 STEP 1b-sneak: Sneaking for ${(5 + 10) / 20}s...`
+      );
+      bot.setControlState("sneak", true);
+      await bot.waitForTicks(5);
+      bot.setControlState("sneak", false);
+      await bot.waitForTicks(10);
+      console.log(`[${bot.username}] ✅ Sneak complete`);
+    } else {
+      console.log(
+        `[${bot.username}] 🧍 STEP 1b-sneak: Remaining stationary (observer role)`
+      );
+      // Observer waits equivalent time but does nothing
+      await bot.waitForTicks(15);
+    }
+    
     // STEP 1b: Clear construction area - move away from spawn (BUILDER only)
     if (isBuilder) {
       console.log(
