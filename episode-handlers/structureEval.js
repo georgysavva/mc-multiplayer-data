@@ -12,8 +12,8 @@ const { pickRandom } = require("../utils/coordination");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
-// const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2"];
-const ALL_STRUCTURE_TYPES = ["wall_2x2"];
+const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2"];
+// const ALL_STRUCTURE_TYPES = ["wall_2x2"];
 
 // Dynamic timing functions based on block count
 const getInitialEyeContactTicks = (blockCount) => {
