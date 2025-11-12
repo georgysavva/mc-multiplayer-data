@@ -602,7 +602,7 @@ function getOnStructureEvalPhaseFn(
     let structureWidth = 4;
 
     if (structureType === "platform_2x2") {
-      const startPos = botPos.offset(2, 0, 0);
+      const startPos = botPos.offset(1, 0, 0);
       const width = 2;
       const depth = 2;
       structureHeight = 1;
@@ -610,7 +610,7 @@ function getOnStructureEvalPhaseFn(
       positions = generatePlatformPositions(startPos, width, depth);
       structureBasePos = startPos;
     } else if (structureType === "wall_2x2") {
-      const startPos = botPos.offset(2, 0, 0);
+      const startPos = botPos.offset(1, 0, 0);
       const length = 2;
       const height = 2;
       structureHeight = height;
@@ -618,7 +618,7 @@ function getOnStructureEvalPhaseFn(
       positions = generateWallPositions(startPos, length, height, "x");
       structureBasePos = startPos;
     } else if (structureType === "wall_4x1") {
-      const startPos = botPos.offset(2, 0, 0);
+      const startPos = botPos.offset(1, 0, 0);
       const length = 4;
       const height = 1;
       structureHeight = height;
@@ -626,7 +626,7 @@ function getOnStructureEvalPhaseFn(
       positions = generateWallPositions(startPos, length, height, "x");
       structureBasePos = startPos;
     } else if (structureType === "tower_2") {
-      const startPos = botPos.offset(3, 0, 0);
+      const startPos = botPos.offset(1, 0, 0);
       const height = 2;
       structureHeight = height;
       positions = generateTowerPositions(startPos, height);
