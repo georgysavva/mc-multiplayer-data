@@ -35,6 +35,7 @@ const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 // const { CollectorEpisode } = require("./collector-episode");
 const { TranslationEvalEpisode } = require("./translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
+const { RotationEvalEpisode } = require("./rotation-eval-episode");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -52,6 +53,7 @@ const episodeClassMap = {
   // collector: CollectorEpisode,
   translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
+  rotationEval: RotationEvalEpisode,
 };
 
 // Import episode-specific handlers
@@ -72,6 +74,7 @@ const defaultEpisodeTypes = [
   "towerBridge",
   "translationEval",
   "lookAwayEval",
+  "rotationEval",
 ];
 
 // Load episode types from environment variable or use default
@@ -120,6 +123,7 @@ async function saveEpisodeInfo({
     episode_recording_started: Boolean(
       episodeInstance?._episodeRecordingStarted
     ),
+    eval_metadata: episodeInstance?._evalMetadata || {},
   };
 
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2));
