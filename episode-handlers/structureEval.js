@@ -1,7 +1,6 @@
 // structureEval.js - Independent structure building and evaluation episode
 const { Vec3 } = require("vec3");
 const {
-  sleep,
   initializePathfinder,
   stopPathfinder,
   gotoWithTimeout,
@@ -17,28 +16,28 @@ const { GoalNear } = require("mineflayer-pathfinder").goals;
 const ALL_STRUCTURE_TYPES = ["tower_2"];
 
 // Dynamic timing functions based on block count
-const getInitialEyeContactMs = (blockCount) => {
-  if (blockCount === 2) return 2500;    // tower: 2.5 seconds eye contact
-  if (blockCount === 4) return 1300;    // wall: 1.3 seconds eye contact (reduced from 1500)
-  return 1300; // Default: 1.3 seconds
+const getInitialEyeContactTicks = (blockCount) => {
+  if (blockCount === 2) return 20;    // tower: 2.5 seconds (50 ticks)
+  if (blockCount === 4) return 20;    // wall: 1.3 seconds (26 ticks)
+  return 20; // Default: 1.3 seconds (26 ticks)
 };
 
-const getStructureGazeMs = (blockCount) => {
-  if (blockCount === 2) return 3400;    // tower: 3.4 seconds gaze
-  if (blockCount === 4) return 2000;    // wall: 2 seconds gaze
-  return 2000; // Default: 2 seconds
+const getStructureGazeTicks = (blockCount) => {
+  if (blockCount === 2) return 25;    // tower: 3.4 seconds (68 ticks)
+  if (blockCount === 4) return 25;    // wall: 2 seconds (40 ticks)
+  return 25; // Default: 2 seconds (40 ticks)
 };
 
-const getBlockPlaceDelayMs = (blockCount) => {
-  if (blockCount === 2) return 1400;    // tower: 1.4 seconds between blocks
-  if (blockCount === 4) return 900;     // wall: 0.9 seconds between blocks (reduced from 1000)
-  return 900; // Default: 0.9 seconds
+const getBlockPlaceDelayTicks = (blockCount) => {
+  if (blockCount === 2) return 15;    // tower: 1.4 seconds (28 ticks)
+  if (blockCount === 4) return 15;    // wall: 0.9 seconds (18 ticks)
+  return 15; // Default: 0.9 seconds (18 ticks)
 };
 
-const getBuilderAdmireMs = (blockCount) => {
-  if (blockCount === 2) return 3200;    // tower: 3.2 seconds admire
-  if (blockCount === 4) return 1750;    // wall: 1.75 seconds admire (tiny increase from 1700)
-  return 2800; // Default: 2.8 seconds
+const getBuilderAdmireTicks = (blockCount) => {
+  if (blockCount === 2) return 20;    // tower: 3.2 seconds (64 ticks)
+  if (blockCount === 4) return 20;    // wall: 1.75 seconds (35 ticks)
+  return 20; // Default: 2.8 seconds (56 ticks)
 };
 
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
@@ -209,12 +208,12 @@ async function tryPlaceAtUsingLocal(bot, targetPos, itemName, refBlock, faceVec,
       try {
         await bot.placeBlock(refBlock, faceVec);
       } catch (e) {
-        await sleep(80);
+        await bot.waitForTicks(4);
         continue;
       }
       const placed = !isAirLikeLocal(bot.blockAt(targetPos));
       if (placed) return true;
-      await sleep(80);
+      await bot.waitForTicks(4);
     }
     return !isAirLikeLocal(bot.blockAt(targetPos));
   } finally {
@@ -232,7 +231,7 @@ async function tryPlaceAtUsingLocal(bot, targetPos, itemName, refBlock, faceVec,
  * @returns {Promise<Object>} {success: number, failed: number, placed: number}
  */
 async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
-  const { delayMs = 0 } = options;
+  const { delayTicks = 0 } = options;
   
   // Sort positions: bottom-up (Y), then far-to-near, then left-to-right
   // FAR-TO-NEAR ensures blocks are placed from furthest to closest,
@@ -251,7 +250,7 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
 
   // Override bot.lookAt to prevent camera movement during placeAt internal retries
   // We'll manually control when the bot looks (before each placement)
-  const LOOK_SETTLE_DELAY_MS = 500; // Time to wait for smooth camera rotation to complete
+  const LOOK_SETTLE_DELAY_TICKS = 25; // Time to wait for smooth camera rotation to complete
   let allowLookAt = true; // Flag to control when lookAt is allowed
   const originalLookAt = bot.lookAt.bind(bot);
   bot.lookAt = async function(position, forceLook) {
@@ -259,7 +258,7 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
     if (allowLookAt) {
       // Use smooth looking and wait for it to settle
       await originalLookAt(position, false);
-      await sleep(LOOK_SETTLE_DELAY_MS);
+      await bot.waitForTicks(LOOK_SETTLE_DELAY_TICKS); // 500ms / 20 ticks/second
     }
     // When disabled: do nothing, maintain current camera angle
     // This prevents placeAt's internal retry logic from moving the camera
@@ -319,7 +318,7 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
           );
           
           try {
-            await gotoWithTimeout(bot, adjacentGoal, { timeoutMs: 3000 });
+            await gotoWithTimeout(bot, adjacentGoal, { timeoutTicks: 60 });
           } catch (moveError) {
             console.log(`[${bot.username}] ⚠️ Could not move to adjacent position: ${moveError.message}`);
           }
@@ -398,8 +397,8 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
       }
       
       // Add delay between blocks if specified
-      if (delayMs > 0) {
-        await sleep(delayMs);
+      if (delayTicks > 0) {
+        await bot.waitForTicks(delayTicks);
       }
     }
   } finally {
@@ -437,7 +436,7 @@ async function buildStructure(bot, positions, blockType, args) {
       useSneak: true,
       tries: 5,
       args: args,
-      delayMs: getBlockPlaceDelayMs(positions.length), // Add delay between blocks
+      delayTicks: getBlockPlaceDelayTicks(positions.length), // Add delay between blocks
     });
 
     console.log(`[${bot.username}] 🏁 Build complete!`);
@@ -536,7 +535,7 @@ function getOnStructureEvalPhaseFn(
           `[${bot.username}] ⚠️ Could not equip stone: ${equipError.message}`
         );
       }
-      await sleep(300); // Brief pause after equipping
+      await bot.waitForTicks(15); // Brief pause after equipping
     }
     
     // STEP 1b-sneak: Builder sneaks (acknowledgment gesture), Observer remains stationary
@@ -562,7 +561,7 @@ function getOnStructureEvalPhaseFn(
       await bot.waitForTicks(15);
     }
 
-    await sleep(200);
+    await bot.waitForTicks(10);
 
     // STEP 2: Initial eye contact (BUILDER only, observer remains stationary)
     if (isBuilder) {
@@ -574,7 +573,7 @@ function getOnStructureEvalPhaseFn(
         if (otherEntity) {
           const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
           await bot.lookAt(targetPos);
-          await sleep(getInitialEyeContactMs(ALL_STRUCTURE_TYPES.length));
+          await bot.waitForTicks(getInitialEyeContactTicks(ALL_STRUCTURE_TYPES.length));
         }
       } catch (lookError) {
         console.log(
@@ -585,7 +584,7 @@ function getOnStructureEvalPhaseFn(
       console.log(
         `[${bot.username}] 🧍 STEP 2: Remaining stationary (observer role)...`
       );
-      await sleep(getInitialEyeContactMs(ALL_STRUCTURE_TYPES.length));
+      await bot.waitForTicks(getInitialEyeContactTicks(ALL_STRUCTURE_TYPES.length));
     }
 
     // STEP 3: Determine build positions based on bot role
@@ -653,8 +652,8 @@ function getOnStructureEvalPhaseFn(
     } else {
       console.log(`[${bot.username}] 🧍 STEP 4: Remaining stationary (observer role)...`);
       // Observer remains completely stationary - no looking, no movement
-      const totalWatchTime = positions.length * getBlockPlaceDelayMs(positions.length);
-      await sleep(totalWatchTime);
+      const totalWatchTime = positions.length * getBlockPlaceDelayTicks(positions.length);
+      await bot.waitForTicks(totalWatchTime);
       console.log(`[${bot.username}] ✅ Finished waiting (stationary)`);
     }
 
@@ -705,14 +704,14 @@ function getOnStructureEvalPhaseFn(
             sideZ,
             1 // Get within 1 block of the side position
           );
-          await gotoWithTimeout(bot, standGoal, { timeoutMs: 10000 });
+          await gotoWithTimeout(bot, standGoal, { timeoutTicks: 200 });
           console.log(`[${bot.username}] ✅ Moved next to observer (side position)`);
           
           // Look at the structure for 3 seconds
           if (structureCenter) {
             console.log(`[${bot.username}] 👁️ Looking at structure together...`);
             await lookAtSmooth(bot, structureCenter, 90);
-            await sleep(getBuilderAdmireMs(positions.length));
+            await bot.waitForTicks(getBuilderAdmireTicks(positions.length));
             console.log(`[${bot.username}] ✅ Admired structure from observer position`);
           }
         }
@@ -722,27 +721,52 @@ function getOnStructureEvalPhaseFn(
         );
       } finally {
         stopPathfinder(bot);
-        
-        // 🎬 END FRAME COUNTING - Always execute, even if pathfinding fails
-        if (frameCountStartTime !== null) {
-          const frameCountEndTime = Date.now();
-          const durationMs = frameCountEndTime - frameCountStartTime;
-          const durationSeconds = durationMs / 1000;
-          const estimatedFrames = Math.round(durationSeconds * 20); // 20 FPS
-          
-          console.log(`[${bot.username}] 🎬 FRAME COUNTING END at ${frameCountEndTime}`);
-          console.log(`[${bot.username}] ⏱️  ML Training Segment Duration: ${durationSeconds.toFixed(2)}s`);
-          console.log(`[${bot.username}] 🎞️  Estimated Frames (at 20 FPS): ${estimatedFrames} frames`);
-          console.log(`[${bot.username}] 📊 Target: 300 frames | Actual: ${estimatedFrames} | Difference: ${estimatedFrames - 300} frames`);
-        }
       }
     } else {
       console.log(
         `[${bot.username}] 🧍 STEP 5: Remaining stationary (observer role)...`
       );
       // Observer waits while builder moves and looks
-      await sleep(getBuilderAdmireMs(positions.length) + 5000); // Extra time for builder to pathfind
+      await bot.waitForTicks(getBuilderAdmireTicks(positions.length) + 100); // Extra time for builder to pathfind
       console.log(`[${bot.username}] ✅ Finished waiting (stationary)`);
+    }
+
+    // 🎬 END FRAME COUNTING - Always execute, even if pathfinding fails
+    if (frameCountStartTime !== null) {
+      const frameCountEndTime = Date.now();
+      const durationMs = frameCountEndTime - frameCountStartTime;
+      const durationSeconds = durationMs / 1000;
+      const estimatedFrames = Math.round(durationSeconds * 20); // 20 FPS
+      
+      console.log(`[${bot.username}] 🎬 FRAME COUNTING END at ${frameCountEndTime}`);
+      console.log(`[${bot.username}] ⏱️  ML Training Segment Duration: ${durationSeconds.toFixed(2)}s`);
+      console.log(`[${bot.username}] 🎞️  Estimated Frames (at 20 FPS): ${estimatedFrames} frames`);
+      console.log(`[${bot.username}] 📊 Target: 256 frames | Actual: ${estimatedFrames} | Difference: ${estimatedFrames - 256} frames | Actions Duration: ${durationSeconds.toFixed(2)}s`);
+    }
+
+    // 🎯 DYNAMIC PADDING: Ensure exactly 300 frames (15 seconds) total
+    // This runs for BOTH builder and observer
+    if (frameCountStartTime !== null) {
+      const currentTime = Date.now();
+      const durationSeconds = (currentTime - frameCountStartTime) / 1000;
+      const targetTotalSeconds = 15.0; // 300 frames at 20 FPS
+      const remainingTime = targetTotalSeconds - durationSeconds;
+      
+      if (remainingTime > 0) {
+        const paddingFrames = Math.round(remainingTime * 20);
+        const remainingTicks = Math.round(remainingTime * 20); // 20 ticks/second in Minecraft
+        console.log(`[${bot.username}] ⏸️  Adding ${remainingTime.toFixed(2)}s padding (${paddingFrames} frames / ${remainingTicks} ticks) to reach 300 frames total...`);
+        await bot.waitForTicks(remainingTicks);
+        
+        const finalTime = Date.now();
+        const finalDuration = (finalTime - frameCountStartTime) / 1000;
+        const finalFrames = Math.round(finalDuration * 20);
+        const idleDuration = remainingTime;
+        console.log(`[${bot.username}] 🎬 FINAL RECORDING END at ${finalTime}`);
+        console.log(`[${bot.username}] 📊 Final Duration: ${finalDuration.toFixed(2)}s | Final Frames: ${finalFrames} | Actions Duration: ${durationSeconds.toFixed(2)}s | Idle Duration: ${idleDuration.toFixed(2)}s`);
+      } else {
+        console.log(`[${bot.username}] ⚠️  Episode ran long (${durationSeconds.toFixed(2)}s), no padding needed`);
+      }
     }
 
     console.log(`[${bot.username}] ✅ STRUCTURE EVAL phase complete!`);
