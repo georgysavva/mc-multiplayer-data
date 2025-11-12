@@ -13,31 +13,31 @@ const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
 // const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2"];
-const ALL_STRUCTURE_TYPES = ["tower_2"];
+const ALL_STRUCTURE_TYPES = ["wall_2x2"];
 
 // Dynamic timing functions based on block count
 const getInitialEyeContactTicks = (blockCount) => {
-  if (blockCount === 2) return 20;    // tower: 2.5 seconds (50 ticks)
-  if (blockCount === 4) return 20;    // wall: 1.3 seconds (26 ticks)
-  return 20; // Default: 1.3 seconds (26 ticks)
+  if (blockCount === 2) return 20;    // tower: 1.0 seconds (20 ticks)
+  if (blockCount === 4) return 14;    // wall: 0.75 seconds (15 ticks) - REDUCED
+  return 20; // Default: 1.0 seconds (20 ticks)
 };
 
 const getStructureGazeTicks = (blockCount) => {
-  if (blockCount === 2) return 25;    // tower: 3.4 seconds (68 ticks)
-  if (blockCount === 4) return 25;    // wall: 2 seconds (40 ticks)
-  return 25; // Default: 2 seconds (40 ticks)
+  if (blockCount === 2) return 25;    // tower: 1.25 seconds (25 ticks)
+  if (blockCount === 4) return 20;    // wall: 1.0 seconds (20 ticks) - REDUCED
+  return 25; // Default: 1.25 seconds (25 ticks)
 };
 
 const getBlockPlaceDelayTicks = (blockCount) => {
-  if (blockCount === 2) return 15;    // tower: 1.4 seconds (28 ticks)
-  if (blockCount === 4) return 15;    // wall: 0.9 seconds (18 ticks)
-  return 15; // Default: 0.9 seconds (18 ticks)
+  if (blockCount === 2) return 15;    // tower: 0.75 seconds (15 ticks)
+  if (blockCount === 4) return 12;    // wall: 0.6 seconds (12 ticks) - REDUCED
+  return 15; // Default: 0.75 seconds (15 ticks)
 };
 
 const getBuilderAdmireTicks = (blockCount) => {
-  if (blockCount === 2) return 20;    // tower: 3.2 seconds (64 ticks)
-  if (blockCount === 4) return 20;    // wall: 1.75 seconds (35 ticks)
-  return 20; // Default: 2.8 seconds (56 ticks)
+  if (blockCount === 2) return 20;    // tower: 1.0 seconds (20 ticks)
+  if (blockCount === 4) return 10;    // wall: 0.75 seconds (15 ticks) - REDUCED
+  return 20; // Default: 1.0 seconds (20 ticks)
 };
 
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
@@ -250,7 +250,7 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
 
   // Override bot.lookAt to prevent camera movement during placeAt internal retries
   // We'll manually control when the bot looks (before each placement)
-  const LOOK_SETTLE_DELAY_TICKS = 25; // Time to wait for smooth camera rotation to complete
+  const LOOK_SETTLE_DELAY_TICKS = 18; // Time to wait for smooth camera rotation to complete
   let allowLookAt = true; // Flag to control when lookAt is allowed
   const originalLookAt = bot.lookAt.bind(bot);
   bot.lookAt = async function(position, forceLook) {
