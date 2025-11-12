@@ -17,25 +17,25 @@ const ALL_STRUCTURE_TYPES = ["wall_2x2"];
 
 // Dynamic timing functions based on block count
 const getInitialEyeContactTicks = (blockCount) => {
-  if (blockCount === 2) return 10;    // tower: 1.0 seconds (20 ticks)
-  if (blockCount === 4) return 10;    // wall: 0.75 seconds (15 ticks) - REDUCED
-  return 10; // Default: 1.0 seconds (20 ticks)
+  if (blockCount === 2) return 4;    // tower: 1.0 seconds (20 ticks)
+  if (blockCount === 4) return 4;    // wall: 0.75 seconds (15 ticks) - REDUCED
+  return 4; // Default: 1.0 seconds (20 ticks)
 };
 
 const getBlockPlaceDelayTicks = (blockCount) => {
-  if (blockCount === 2) return 10;    // tower: 0.75 seconds (15 ticks)
-  if (blockCount === 4) return 10;    // wall: 0.6 seconds (12 ticks) - REDUCED
-  return 10; // Default: 0.75 seconds (15 ticks)
+  if (blockCount === 2) return 4;    // tower: 0.55 seconds (15 ticks)
+  if (blockCount === 4) return 4;    // wall: 0.6 seconds (12 ticks) - REDUCED
+  return 4; // Default: 0.55 seconds (15 ticks)
 };
 
 const getBuilderAdmireTicks = (blockCount) => {
-  if (blockCount === 2) return 10;    // tower: 1.0 seconds (20 ticks)
-  if (blockCount === 4) return 10;    // wall: 0.75 seconds (15 ticks) - REDUCED
-  return 10; // Default: 1.0 seconds (20 ticks)
+  if (blockCount === 2) return 4;    // tower: 1.0 seconds (20 ticks)
+  if (blockCount === 4) return 4;    // wall: 0.55 seconds (15 ticks) - REDUCED
+  return 4; // Default: 1.0 seconds (20 ticks)
 };
 
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
-const PLACEMENT_STANDOFF_BLOCKS = 2; // Stand 2 blocks away from the structure while placing
+const PLACEMENT_STANDOFF_BLOCKS = 1; // Stand 2 blocks away from the structure while placing
 const ADJACENT_GOAL_RADIUS = 1.0; // Relaxed tolerance to avoid micro-jitter at the target point
 
 /**
@@ -794,8 +794,8 @@ function getOnStructureEvalPhaseFn(
  * StructureEvalEpisode - Episode class for independent structure building and evaluation
  */
 class StructureEvalEpisode extends BaseEpisode {
-  static INIT_MIN_BOTS_DISTANCE = 7;
-  static INIT_MAX_BOTS_DISTANCE = 7;
+  static INIT_MIN_BOTS_DISTANCE = 6;
+  static INIT_MAX_BOTS_DISTANCE = 6;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
   constructor(sharedBotRng) {
