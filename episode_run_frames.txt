@@ -1,0 +1,2207 @@
+2025-11-11 23:03:10.250 | [entrypoint] Starting Xvfb on :99 ...
+2025-11-11 23:03:10.428 | [entrypoint] Xvfb is up
+2025-11-11 23:03:10.428 | [entrypoint] GLX sanity check:
+2025-11-11 23:03:10.483 | name of display: :99
+2025-11-11 23:03:10.483 | display: :99  screen: 0
+2025-11-11 23:03:10.483 | direct rendering: Yes
+2025-11-11 23:03:10.483 | Extended renderer info (GLX_MESA_query_renderer):
+2025-11-11 23:03:10.483 |     Vendor: Mesa/X.org (0xffffffff)
+2025-11-11 23:03:10.483 |     Device: llvmpipe (LLVM 15.0.6, 256 bits) (0xffffffff)
+2025-11-11 23:03:10.483 |     Version: 22.3.6
+2025-11-11 23:03:10.483 |     Accelerated: no
+2025-11-11 23:03:10.483 |     Video memory: 15801MB
+2025-11-11 23:03:10.483 |     Unified memory: yes
+2025-11-11 23:03:10.483 |     Preferred profile: core (0x1)
+2025-11-11 23:03:10.483 |     Max core profile version: 3.3
+2025-11-11 23:03:10.483 |     Max compat profile version: 3.3
+2025-11-11 23:03:10.483 |     Max GLES1 profile version: 1.1
+2025-11-11 23:03:10.483 |     Max GLES[23] profile version: 3.2
+2025-11-11 23:03:10.483 | OpenGL vendor string: Mesa/X.org
+2025-11-11 23:03:10.483 | OpenGL renderer string: llvmpipe (LLVM 15.0.6, 256 bits)
+2025-11-11 23:03:10.483 | OpenGL core profile version string: 3.3 (Core Profile) Mesa 22.3.6
+2025-11-11 23:03:10.483 | OpenGL core profile shading language version string: 3.30
+2025-11-11 23:03:10.483 | OpenGL core profile context flags: (none)
+2025-11-11 23:03:10.483 | OpenGL core profile profile mask: core profile
+2025-11-11 23:03:10.483 | 
+2025-11-11 23:03:10.483 | OpenGL version string: 3.3 (Compatibility Profile) Mesa 22.3.6
+2025-11-11 23:03:10.483 | OpenGL shading language version string: 3.30
+2025-11-11 23:03:10.483 | OpenGL context flags: (none)
+2025-11-11 23:03:10.483 | OpenGL profile mask: compatibility profile
+2025-11-11 23:03:10.483 | 
+2025-11-11 23:03:10.483 | OpenGL ES profile version string: OpenGL ES 3.2 Mesa 22.3.6
+2025-11-11 23:03:10.483 | OpenGL ES profile shading language version string: OpenGL ES GLSL ES 3.20
+2025-11-11 23:03:10.483 | 
+2025-11-11 23:03:10.485 | [entrypoint] Launching app...
+2025-11-11 23:03:10.485 | [entrypoint] Bot config: Alpha <-> Bravo, Ports: 8100/8100, Instance: 0
+2025-11-11 23:03:10.873 | DEBUG environment variable: undefined
+2025-11-11 23:03:10.874 | Starting bot: Alpha
+2025-11-11 23:03:10.874 | Coordinator: Alpha, Ports: 8100/8100
+2025-11-11 23:03:10.874 | [Alpha] Waiting 1 seconds before creating bot...
+2025-11-11 23:03:11.965 | Mineflayer detected that you are using a deprecated event (physicTick)! Please use this event (physicsTick) instead.
+2025-11-11 23:03:12.482 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"Alpha"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell Alpha "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-722440118,978075440,-2132448932,485658594]},"name":{"type":"string","value":"Alpha"}}}}},"text":{"type":"string","value":"Alpha"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-11 23:03:12.581 | [Alpha] resistEffectRes=Applied effect Resistance to Alpha
+2025-11-11 23:03:12.598 | [Alpha] waterBreathingEffectRes=Applied effect Water Breathing to Alpha
+2025-11-11 23:03:12.616 | [Alpha] fallDamageRes=Can't find element 'minecraft:fall_damage_multiplier' of type 'minecraft:attribute'
+2025-11-11 23:03:12.627 | [Alpha] set difficulty to peaceful, difficultyRes=The difficulty has been set to Peaceful
+2025-11-11 23:03:12.643 | [Alpha] set fallDamage gamerule to false, fallDamageGameruleRes=Gamerule fallDamage is now set to: false
+2025-11-11 23:03:12.645 | [Alpha] set doImmediateRespawn gamerule to true, doImmediateRespawnRes=Gamerule doImmediateRespawn is now set to: true
+2025-11-11 23:03:12.646 | [Alpha] set keepInventory gamerule to true, keepInventoryRes=Gamerule keepInventory is now set to: true
+2025-11-11 23:03:12.648 | [Alpha] set showDeathMessages gamerule to false, showDeathMessagesRes=Gamerule showDeathMessages is now set to: false
+2025-11-11 23:03:12.664 | [Alpha] givePickaxeRes=Gave 1 [Diamond Pickaxe] to Alpha
+2025-11-11 23:03:12.667 | [Alpha] giveShovelRes=Gave 1 [Diamond Shovel] to Alpha
+2025-11-11 23:03:12.684 | [Alpha] tag Alpha add minebot result: Added tag 'minebot' to Alpha
+2025-11-11 23:03:12.684 | Setting up coordinator connections...
+2025-11-11 23:03:12.684 | [Alpha] Setting up connections...
+2025-11-11 23:03:12.686 | [Alpha Server] Listening on port 8100, waiting for other bot to connect...
+2025-11-11 23:03:12.689 | [Alpha Client] Connection failed, retrying in 2s: connect ECONNREFUSED 172.18.0.9:8100
+2025-11-11 23:03:12.689 | [Alpha Client] Disconnected from other bot
+2025-11-11 23:03:13.306 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"Bravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell Bravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[743612312,1992048000,-1359440332,-1270157749]},"name":{"type":"string","value":"Bravo"}}}}},"text":{"type":"string","value":"Bravo"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-11 23:03:13.387 | [Alpha Server] Other bot connected
+2025-11-11 23:03:14.690 | [Alpha Client] Connected to other bot's server at sender_bravo:8100
+2025-11-11 23:03:14.690 | [Alpha] All connections established - server ready: true, client ready: true
+2025-11-11 23:03:14.690 | All coordinator connections ready, proceeding with bot spawn...
+2025-11-11 23:03:14.690 | [Alpha] spawned at (10.50, 64.00, 4.50)
+2025-11-11 23:03:14.690 | [Alpha] Waiting for cameras to join server...
+2025-11-11 23:03:14.690 | [camera-ready] Waiting for cameras: CameraAlpha, CameraBravo
+2025-11-11 23:03:14.690 | [camera-ready] Max retries: 300, check interval: 2000ms
+2025-11-11 23:03:14.691 | [Alpha Client] Connected to other bot's server at sender_bravo:8100
+2025-11-11 23:03:14.694 | [camera-ready] Attempt 1/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:16.698 | [camera-ready] Attempt 2/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:18.701 | [camera-ready] Attempt 3/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:20.704 | [camera-ready] Attempt 4/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:22.708 | [camera-ready] Attempt 5/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:24.711 | [camera-ready] Attempt 6/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:25.653 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraAlpha"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraAlpha "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-654309493,1385970675,-1573190332,1256197083]},"name":{"type":"string","value":"CameraAlpha"}}}}},"text":{"type":"string","value":"CameraAlpha"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-11 23:03:26.632 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraBravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraBravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-299957078,-211471048,-1986246765,220115609]},"name":{"type":"string","value":"CameraBravo"}}}}},"text":{"type":"string","value":"CameraBravo"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-11 23:03:26.800 | [camera-ready] All cameras present: CameraAlpha, CameraBravo
+2025-11-11 23:03:26.806 | [CameraAlpha] resistEffectRes=Applied effect Resistance to CameraAlpha
+2025-11-11 23:03:26.809 | [CameraAlpha] waterBreathingEffectRes=Applied effect Water Breathing to CameraAlpha
+2025-11-11 23:03:26.810 | [CameraAlpha] fallDamageRes=Can't find element 'minecraft:fall_damage_multiplier' of type 'minecraft:attribute'
+2025-11-11 23:03:26.810 | [Alpha] Cameras detected, waiting 1s for popups to clear...
+2025-11-11 23:03:27.811 | disableRendering 1
+2025-11-11 23:03:27.811 | [Alpha] Selected episode type: structureEval
+2025-11-11 23:03:27.813 | [Alpha] Created StructureEvalEpisode instance for episode 0
+2025-11-11 23:03:28.190 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"green"},"text":{"type":"string","value":"[Episode] Episode started!"}}}
+2025-11-11 23:03:28.813 | [Alpha] Starting episode 0
+2025-11-11 23:03:28.813 | [Alpha] episode 0 at (10.50, 64.00, 4.50)
+2025-11-11 23:03:28.813 | [sendToOtherBot] spawnPhase end: Sending episode_0_teleportPhase via client connection
+2025-11-11 23:03:28.814 | [Alpha Server] Received: episode_0_teleportPhase (1 listeners) - emitting
+2025-11-11 23:03:28.814 | [sendToOtherBot] teleportPhase beginning: Sending episode_0_teleportPhase via client connection
+2025-11-11 23:03:28.814 | [Alpha] initializing teleport center
+2025-11-11 23:03:28.814 | [Alpha] teleport radius: 3000
+2025-11-11 23:03:28.814 | [Alpha] picked random center at (1215.48, -725.97)
+2025-11-11 23:03:28.814 | [Alpha] spreadplayers args: center=(1215, -726), min=8, max=7, targets=[Alpha Bravo]
+2025-11-11 23:03:28.815 | [Alpha Server] Received: episode_0_teleportPhase (no listeners)
+2025-11-11 23:03:28.816 | [Alpha Server] Received: episode_0_postTeleportPhase (no listeners)
+2025-11-11 23:03:28.996 | [Alpha] spreadplayers result: Spread 2 player(s) around 1215.5, -725.5 with an average distance of 8.45 blocks apart
+2025-11-11 23:03:29.997 | [sendToOtherBot] teleportPhase end: Sending episode_0_postTeleportPhase via client connection
+2025-11-11 23:03:29.998 | [Alpha Server] Received: episode_0_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:03:29.998 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_0_postTeleportPhase via client connection
+2025-11-11 23:03:29.998 | [Alpha] our position after teleport: {"position":{"x":1208.5,"y":64,"z":-718.5}}
+2025-11-11 23:03:29.998 | [sendToOtherBot] postTeleportPhase end: Sending episode_0_beforeStartRecordingPhase via client connection
+2025-11-11 23:03:29.998 | [Alpha Server] Received: episode_0_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:03:29.998 | [Alpha] other position before start recording: {"position":{"x":1214.5,"y":64,"z":-725.5}}
+2025-11-11 23:03:29.999 | [Alpha] Looking at (1214.50, 64.00, -725.50) at 30°/s over 4.65s
+2025-11-11 23:03:34.175 | [Alpha Server] Received: episode_0_startRecordingPhase (no listeners)
+2025-11-11 23:03:34.675 | [Alpha] setting up episode 0
+2025-11-11 23:03:34.675 | [Alpha] inventory stone: have=0, target=128, need=128
+2025-11-11 23:03:34.693 | [Alpha] ensureBotHasEnough: give Alpha minecraft:stone 128 -> Gave 128 [Stone] to Alpha
+2025-11-11 23:03:35.493 | [Alpha] inventory stone: now 128/128
+2025-11-11 23:03:35.496 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-11 23:03:35.498 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-11 23:03:36.498 | [Alpha] unequipping hand before episode
+2025-11-11 23:03:36.498 | [Alpha] Unequipped diamond_pickaxe from main hand
+2025-11-11 23:03:37.499 | [sendToOtherBot] teleportPhase end: Sending episode_0_startRecordingPhase via client connection
+2025-11-11 23:03:37.500 | [Alpha Server] Received: episode_0_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:03:37.500 | [sendToOtherBot] startRecordingPhase end: Sending episode_0_startRecordingPhase via client connection
+2025-11-11 23:03:37.500 | [Alpha] starting episode recording
+2025-11-11 23:03:37.500 | [headless] starting episode - connecting to receiver, episode number 0
+2025-11-11 23:03:37.500 | [headless] creating new connection
+2025-11-11 23:03:37.501 | [headless] Connected to server
+2025-11-11 23:03:38.501 | [Alpha Server] Received: episode_0_structureEvalPhase_0 (no listeners)
+2025-11-11 23:03:38.501 | [sendToOtherBot] entryPoint end: Sending episode_0_structureEvalPhase_0 via client connection
+2025-11-11 23:03:38.502 | [Alpha Server] Received: episode_0_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:03:38.502 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_0_structureEvalPhase_0 via client connection
+2025-11-11 23:03:38.502 | [Alpha] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:03:38.502 | [Alpha] 📍 Spawn position: (1208.5, 64, -718.5)
+2025-11-11 23:03:38.502 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-11 23:03:38.503 | [Alpha] 🎭 Role mode: bravo_builds, Role: OBSERVER
+2025-11-11 23:03:38.503 | [Alpha] 🧍 STEP 1b-sneak: Remaining stationary (observer role)
+2025-11-11 23:03:39.445 | [Alpha] 🧍 STEP 2: Remaining stationary (observer role)...
+2025-11-11 23:03:40.745 | [Alpha] 📐 STEP 3: Planning structure...
+2025-11-11 23:03:40.745 | [Alpha] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:03:40.745 | [Alpha] 📋 Observing 2 blocks with stone
+2025-11-11 23:03:40.745 | [Alpha] 🧍 STEP 4: Remaining stationary (observer role)...
+2025-11-11 23:03:43.546 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:03:43.546 | [Alpha] 🧍 STEP 5: Remaining stationary (observer role)...
+2025-11-11 23:03:51.747 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:03:51.747 | [Alpha] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:03:51.747 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_0_stopPhase via client connection
+2025-11-11 23:03:52.294 | [Alpha Server] Received: episode_0_stopPhase (1 listeners) - emitting
+2025-11-11 23:03:52.294 | [sendToOtherBot] stopPhase beginning: Sending episode_0_stopPhase via client connection
+2025-11-11 23:03:52.294 | [Alpha] stops recording
+2025-11-11 23:03:52.294 | [headless] ending episode
+2025-11-11 23:03:52.294 | [Alpha] waiting for episode recording to end...
+2025-11-11 23:03:52.295 | [Alpha Server] Received: episode_0_stopPhase (no listeners)
+2025-11-11 23:03:52.317 | [headless] sending zero end of stream
+2025-11-11 23:03:52.345 | [headless] Socket ended
+2025-11-11 23:03:52.347 | [headless] Socket state at end: {
+2025-11-11 23:03:52.347 |   writable: false,
+2025-11-11 23:03:52.347 |   destroyed: false,
+2025-11-11 23:03:52.347 |   connecting: false,
+2025-11-11 23:03:52.347 |   bytesWritten: 105830,
+2025-11-11 23:03:52.347 |   bytesRead: 0
+2025-11-11 23:03:52.347 | }
+2025-11-11 23:03:52.347 | [headless] Socket closed
+2025-11-11 23:03:52.347 | [headless] connection closed, firing episodeended event
+2025-11-11 23:03:52.347 | [Alpha] episode recording ended, connection closed
+2025-11-11 23:03:53.344 | [Alpha Server] Received: episode_0_stoppedPhase (no listeners)
+2025-11-11 23:03:53.347 | [sendToOtherBot] StopPhase end: Sending episode_0_stoppedPhase via client connection
+2025-11-11 23:03:53.348 | [Alpha Server] Received: episode_0_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:03:53.348 | [sendToOtherBot] stoppedPhase beginning: Sending episode_0_stoppedPhase via client connection
+2025-11-11 23:03:53.348 | [Alpha] stopped
+2025-11-11 23:03:53.348 | [Alpha] All event handlers finished
+2025-11-11 23:03:53.348 | [Alpha] Stopped PVP for episode 0
+2025-11-11 23:03:53.348 | [Alpha] Stopped pathfinder navigation for episode 0
+2025-11-11 23:03:53.348 | [Alpha] tearing down episode 0
+2025-11-11 23:03:53.348 | [Alpha] Episode 0 completed
+2025-11-11 23:03:53.356 | [Alpha] Saved episode info to /output/20251112_040353_000000_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:03:53.356 | [Alpha] Syncing bots for episode 0
+2025-11-11 23:03:53.356 | [sendToOtherBot] syncBots outer: Sending episode_0_syncBots via client connection
+2025-11-11 23:03:53.360 | [Alpha Server] Received: episode_0_syncBots (1 listeners) - emitting
+2025-11-11 23:03:53.360 | [sendToOtherBot] syncBots beginning: Sending episode_0_syncBots via client connection
+2025-11-11 23:03:53.360 | [Alpha] Syncing bots...
+2025-11-11 23:03:53.360 | [Alpha] Synced bots for episode 0
+2025-11-11 23:03:53.360 | [Alpha] Selected episode type: structureEval
+2025-11-11 23:03:53.360 | [Alpha] Created StructureEvalEpisode instance for episode 1
+2025-11-11 23:03:53.360 | [Alpha Server] Received: episode_0_syncBots (no listeners)
+2025-11-11 23:03:54.361 | [Alpha] Starting episode 1
+2025-11-11 23:03:54.361 | [Alpha] episode 1 at (1208.50, 64.00, -718.50)
+2025-11-11 23:03:54.361 | [sendToOtherBot] spawnPhase end: Sending episode_1_teleportPhase via client connection
+2025-11-11 23:03:54.361 | [Alpha Server] Received: episode_1_teleportPhase (1 listeners) - emitting
+2025-11-11 23:03:54.361 | [sendToOtherBot] teleportPhase beginning: Sending episode_1_teleportPhase via client connection
+2025-11-11 23:03:54.361 | [Alpha] teleport radius: 3000
+2025-11-11 23:03:54.361 | [Alpha] picked random center at (-2010.34, 221.43)
+2025-11-11 23:03:54.361 | [Alpha] spreadplayers args: center=(-2011, 221), min=8, max=7, targets=[Alpha Bravo]
+2025-11-11 23:03:54.361 | [Alpha Server] Received: episode_1_teleportPhase (no listeners)
+2025-11-11 23:03:54.361 | [Alpha Server] Received: episode_1_postTeleportPhase (no listeners)
+2025-11-11 23:03:54.397 | [Alpha] spreadplayers result: Spread 2 player(s) around -2010.5, 221.5 with an average distance of 8.09 blocks apart
+2025-11-11 23:03:55.474 | [sendToOtherBot] teleportPhase end: Sending episode_1_postTeleportPhase via client connection
+2025-11-11 23:03:55.474 | [Alpha Server] Received: episode_1_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:03:55.474 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_1_postTeleportPhase via client connection
+2025-11-11 23:03:55.474 | [Alpha] our position after teleport: {"position":{"x":-2013.5,"y":64,"z":227.5}}
+2025-11-11 23:03:55.474 | [sendToOtherBot] postTeleportPhase end: Sending episode_1_beforeStartRecordingPhase via client connection
+2025-11-11 23:03:55.475 | [Alpha Server] Received: episode_1_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:03:55.475 | [Alpha] other position before start recording: {"position":{"x":-2016.5,"y":64,"z":219.5}}
+2025-11-11 23:03:55.475 | [Alpha] Looking at (-2016.50, 64.00, 219.50) at 30°/s over 2.04s
+2025-11-11 23:03:57.533 | [Alpha] setting up episode 1
+2025-11-11 23:03:57.534 | [Alpha] inventory stone: have=128, target=128, need=0
+2025-11-11 23:03:57.537 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-11 23:03:57.539 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-11 23:03:58.539 | [Alpha] unequipping hand before episode
+2025-11-11 23:03:58.539 | [Alpha] No item equipped in hand
+2025-11-11 23:03:59.539 | [sendToOtherBot] teleportPhase end: Sending episode_1_startRecordingPhase via client connection
+2025-11-11 23:04:02.212 | [Alpha Server] Received: episode_1_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:04:02.212 | [sendToOtherBot] startRecordingPhase end: Sending episode_1_startRecordingPhase via client connection
+2025-11-11 23:04:02.212 | [Alpha] starting episode recording
+2025-11-11 23:04:02.213 | [headless] starting episode - connecting to receiver, episode number 1
+2025-11-11 23:04:02.213 | [headless] creating new connection
+2025-11-11 23:04:02.213 | [Alpha Server] Received: episode_1_startRecordingPhase (no listeners)
+2025-11-11 23:04:02.214 | [headless] Connected to server
+2025-11-11 23:04:03.213 | [sendToOtherBot] entryPoint end: Sending episode_1_structureEvalPhase_0 via client connection
+2025-11-11 23:04:03.214 | [Alpha Server] Received: episode_1_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:04:03.214 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_1_structureEvalPhase_0 via client connection
+2025-11-11 23:04:03.214 | [Alpha] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:04:03.214 | [Alpha] 📍 Spawn position: (-2013.5, 64, 227.5)
+2025-11-11 23:04:03.214 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-11 23:04:03.215 | [Alpha] 🎭 Role mode: alpha_builds, Role: BUILDER
+2025-11-11 23:04:03.215 | [Alpha] 🔧 STEP 1b-pre: Equipping stone in hand...
+2025-11-11 23:04:03.215 | [Alpha] ✅ Equipped stone in hand
+2025-11-11 23:04:03.215 | [Alpha Server] Received: episode_1_structureEvalPhase_0 (no listeners)
+2025-11-11 23:04:03.515 | [Alpha] 🤫 STEP 1b-sneak: Sneaking for 0.75s...
+2025-11-11 23:04:03.515 | [Alpha] 🎬 FRAME COUNTING START at 1762920243515
+2025-11-11 23:04:04.236 | [Alpha] ✅ Sneak complete
+2025-11-11 23:04:04.437 | [Alpha] 👀 STEP 2: Making eye contact with Bravo...
+2025-11-11 23:04:05.788 | [Alpha] 📐 STEP 3: Planning structure...
+2025-11-11 23:04:05.788 | [Alpha] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:04:05.788 | [Alpha] 📋 Building 2 blocks with stone
+2025-11-11 23:04:05.788 | [Alpha] 🏗️ STEP 4: Building structure...
+2025-11-11 23:04:05.788 | [Alpha] 🏗️ Starting to build 2 blocks...
+2025-11-11 23:04:05.792 | [Alpha] Pathfinder initialized with settings: { sprint: false, parkour: true, dig: true, entityDetection: true }
+2025-11-11 23:04:05.796 | [Alpha] Pathfinder initialized with settings: { sprint: false, parkour: false, dig: false, entityDetection: true }
+2025-11-11 23:04:05.796 | [Alpha] 🚶 Moving to adjacent position (-2013.0, 64, 226.0) before placing at (-2011, 64, 227)
+2025-11-11 23:04:07.056 | [Alpha] 👁️ Looking at reference face at (-2011, 63, 227) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:04:07.059 | [Alpha] ✅ Placed block at (-2011, 64, 227)
+2025-11-11 23:04:08.459 | [Alpha] 🚶 Moving to adjacent position (-2013.0, 65, 226.0) before placing at (-2011, 65, 227)
+2025-11-11 23:04:09.019 | [Alpha] 👁️ Looking at reference face at (-2011, 64, 227) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:04:09.021 | [Alpha] ✅ Placed block at (-2011, 65, 227)
+2025-11-11 23:04:10.422 | [Alpha] 🏁 Build complete!
+2025-11-11 23:04:10.422 | [Alpha]    Success: 2/2
+2025-11-11 23:04:10.422 | [Alpha]    Failed: 0/2
+2025-11-11 23:04:10.422 | [Alpha] 🚶 STEP 5: Moving to stand next to observer...
+2025-11-11 23:04:10.424 | [Alpha] Pathfinder initialized with settings: { sprint: true, parkour: true, dig: false, entityDetection: true }
+2025-11-11 23:04:10.424 | [Alpha] 📐 Observer yaw: 3.51, moving to side position (-2015.8, 217.6)
+2025-11-11 23:04:12.152 | [Alpha] ✅ Moved next to observer (side position)
+2025-11-11 23:04:12.152 | [Alpha] 👁️ Looking at structure together...
+2025-11-11 23:04:12.152 | [Alpha] Looking at (-2011.00, 65.00, 227.00) at 90°/s over 1.69s
+2025-11-11 23:04:16.441 | [Alpha Server] Received: episode_1_stopPhase (no listeners)
+2025-11-11 23:04:17.064 | [Alpha] ✅ Admired structure from observer position
+2025-11-11 23:04:17.064 | [Alpha] 🎬 FRAME COUNTING END at 1762920257064
+2025-11-11 23:04:17.064 | [Alpha] ⏱️  ML Training Segment Duration: 13.55s
+2025-11-11 23:04:17.064 | [Alpha] 🎞️  Estimated Frames (at 20 FPS): 271 frames
+2025-11-11 23:04:17.064 | [Alpha] 📊 Target: 300 frames | Actual: 271 | Difference: -29 frames
+2025-11-11 23:04:17.064 | [Alpha] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:04:17.064 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_1_stopPhase via client connection
+2025-11-11 23:04:17.065 | [Alpha Server] Received: episode_1_stopPhase (1 listeners) - emitting
+2025-11-11 23:04:17.065 | [sendToOtherBot] stopPhase beginning: Sending episode_1_stopPhase via client connection
+2025-11-11 23:04:17.065 | [Alpha] stops recording
+2025-11-11 23:04:17.065 | [headless] ending episode
+2025-11-11 23:04:17.065 | [Alpha] waiting for episode recording to end...
+2025-11-11 23:04:17.075 | [headless] sending zero end of stream
+2025-11-11 23:04:17.101 | [headless] Socket ended
+2025-11-11 23:04:17.101 | [headless] Socket state at end: {
+2025-11-11 23:04:17.101 |   writable: false,
+2025-11-11 23:04:17.101 |   destroyed: false,
+2025-11-11 23:04:17.101 |   connecting: false,
+2025-11-11 23:04:17.101 |   bytesWritten: 115420,
+2025-11-11 23:04:17.101 |   bytesRead: 0
+2025-11-11 23:04:17.101 | }
+2025-11-11 23:04:17.101 | [headless] Socket closed
+2025-11-11 23:04:17.101 | [headless] connection closed, firing episodeended event
+2025-11-11 23:04:17.101 | [Alpha] episode recording ended, connection closed
+2025-11-11 23:04:18.099 | [Alpha Server] Received: episode_1_stoppedPhase (no listeners)
+2025-11-11 23:04:18.102 | [sendToOtherBot] StopPhase end: Sending episode_1_stoppedPhase via client connection
+2025-11-11 23:04:18.102 | [Alpha Server] Received: episode_1_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:04:18.102 | [sendToOtherBot] stoppedPhase beginning: Sending episode_1_stoppedPhase via client connection
+2025-11-11 23:04:18.103 | [Alpha] stopped
+2025-11-11 23:04:18.103 | [Alpha] All event handlers finished
+2025-11-11 23:04:18.103 | [Alpha] Stopped PVP for episode 1
+2025-11-11 23:04:18.103 | [Alpha] Stopped pathfinder navigation for episode 1
+2025-11-11 23:04:18.103 | [Alpha] tearing down episode 1
+2025-11-11 23:04:18.103 | [Alpha] Episode 1 completed
+2025-11-11 23:04:18.107 | [Alpha Server] Received: episode_1_syncBots (no listeners)
+2025-11-11 23:04:18.108 | [Alpha] Saved episode info to /output/20251112_040418_000001_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:04:18.108 | [Alpha] Syncing bots for episode 1
+2025-11-11 23:04:18.108 | [sendToOtherBot] syncBots outer: Sending episode_1_syncBots via client connection
+2025-11-11 23:04:18.108 | [Alpha Server] Received: episode_1_syncBots (1 listeners) - emitting
+2025-11-11 23:04:18.108 | [sendToOtherBot] syncBots beginning: Sending episode_1_syncBots via client connection
+2025-11-11 23:04:18.108 | [Alpha] Syncing bots...
+2025-11-11 23:04:18.108 | [Alpha] Synced bots for episode 1
+2025-11-11 23:04:18.108 | [Alpha] Selected episode type: structureEval
+2025-11-11 23:04:18.108 | [Alpha] Created StructureEvalEpisode instance for episode 2
+2025-11-11 23:04:19.109 | [Alpha] Starting episode 2
+2025-11-11 23:04:19.110 | [Alpha] episode 2 at (-2015.50, 64.00, 218.60)
+2025-11-11 23:04:19.110 | [sendToOtherBot] spawnPhase end: Sending episode_2_teleportPhase via client connection
+2025-11-11 23:04:19.110 | [Alpha Server] Received: episode_2_teleportPhase (1 listeners) - emitting
+2025-11-11 23:04:19.110 | [sendToOtherBot] teleportPhase beginning: Sending episode_2_teleportPhase via client connection
+2025-11-11 23:04:19.110 | [Alpha] teleport radius: 3000
+2025-11-11 23:04:19.110 | [Alpha] picked random center at (1123.81, -271.05)
+2025-11-11 23:04:19.110 | [Alpha] spreadplayers args: center=(1123, -272), min=8, max=7, targets=[Alpha Bravo]
+2025-11-11 23:04:19.110 | [Alpha Server] Received: episode_2_teleportPhase (no listeners)
+2025-11-11 23:04:19.110 | [Alpha Server] Received: episode_2_postTeleportPhase (no listeners)
+2025-11-11 23:04:19.361 | [Alpha] spreadplayers result: Spread 2 player(s) around 1123.5, -271.5 with an average distance of 8.29 blocks apart
+2025-11-11 23:04:20.361 | [sendToOtherBot] teleportPhase end: Sending episode_2_postTeleportPhase via client connection
+2025-11-11 23:04:20.361 | [Alpha Server] Received: episode_2_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:04:20.361 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_2_postTeleportPhase via client connection
+2025-11-11 23:04:20.361 | [Alpha] our position after teleport: {"position":{"x":1125.5,"y":64,"z":-278.5}}
+2025-11-11 23:04:20.361 | [sendToOtherBot] postTeleportPhase end: Sending episode_2_beforeStartRecordingPhase via client connection
+2025-11-11 23:04:20.361 | [Alpha Server] Received: episode_2_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:04:20.361 | [Alpha] other position before start recording: {"position":{"x":1117.5,"y":64,"z":-274.5}}
+2025-11-11 23:04:20.362 | [Alpha] Looking at (1117.50, 64.00, -274.50) at 30°/s over 3.06s
+2025-11-11 23:04:23.424 | [Alpha] setting up episode 2
+2025-11-11 23:04:23.425 | [Alpha] inventory stone: have=126, target=128, need=2
+2025-11-11 23:04:23.428 | [Alpha] ensureBotHasEnough: give Alpha minecraft:stone 2 -> Gave 2 [Stone] to Alpha
+2025-11-11 23:04:24.229 | [Alpha] inventory stone: now 128/128
+2025-11-11 23:04:24.234 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-11 23:04:24.237 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-11 23:04:25.314 | [Alpha] unequipping hand before episode
+2025-11-11 23:04:25.314 | [Alpha] Unequipped stone from main hand
+2025-11-11 23:04:25.652 | [Alpha Server] Received: episode_2_startRecordingPhase (no listeners)
+2025-11-11 23:04:26.315 | [sendToOtherBot] teleportPhase end: Sending episode_2_startRecordingPhase via client connection
+2025-11-11 23:04:26.315 | [Alpha Server] Received: episode_2_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:04:26.315 | [sendToOtherBot] startRecordingPhase end: Sending episode_2_startRecordingPhase via client connection
+2025-11-11 23:04:26.315 | [Alpha] starting episode recording
+2025-11-11 23:04:26.315 | [headless] starting episode - connecting to receiver, episode number 2
+2025-11-11 23:04:26.315 | [headless] creating new connection
+2025-11-11 23:04:26.316 | [headless] Connected to server
+2025-11-11 23:04:27.316 | [sendToOtherBot] entryPoint end: Sending episode_2_structureEvalPhase_0 via client connection
+2025-11-11 23:04:27.316 | [Alpha Server] Received: episode_2_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:04:27.316 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_2_structureEvalPhase_0 via client connection
+2025-11-11 23:04:27.316 | [Alpha] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:04:27.316 | [Alpha] 📍 Spawn position: (1125.5, 64, -278.5)
+2025-11-11 23:04:27.316 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-11 23:04:27.316 | [Alpha] 🎭 Role mode: alpha_builds, Role: BUILDER
+2025-11-11 23:04:27.316 | [Alpha] 🔧 STEP 1b-pre: Equipping stone in hand...
+2025-11-11 23:04:27.316 | [Alpha] ✅ Equipped stone in hand
+2025-11-11 23:04:27.316 | [Alpha Server] Received: episode_2_structureEvalPhase_0 (no listeners)
+2025-11-11 23:04:27.617 | [Alpha] 🤫 STEP 1b-sneak: Sneaking for 0.75s...
+2025-11-11 23:04:27.617 | [Alpha] 🎬 FRAME COUNTING START at 1762920267617
+2025-11-11 23:04:28.340 | [Alpha] ✅ Sneak complete
+2025-11-11 23:04:28.542 | [Alpha] 👀 STEP 2: Making eye contact with Bravo...
+2025-11-11 23:04:29.843 | [Alpha] 📐 STEP 3: Planning structure...
+2025-11-11 23:04:29.843 | [Alpha] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:04:29.843 | [Alpha] 📋 Building 2 blocks with stone
+2025-11-11 23:04:29.843 | [Alpha] 🏗️ STEP 4: Building structure...
+2025-11-11 23:04:29.843 | [Alpha] 🏗️ Starting to build 2 blocks...
+2025-11-11 23:04:29.846 | [Alpha] Pathfinder initialized with settings: { sprint: false, parkour: true, dig: true, entityDetection: true }
+2025-11-11 23:04:29.849 | [Alpha] Pathfinder initialized with settings: { sprint: false, parkour: false, dig: false, entityDetection: true }
+2025-11-11 23:04:29.849 | [Alpha] 🚶 Moving to adjacent position (1126.0, 64, -280.0) before placing at (1128, 64, -279)
+2025-11-11 23:04:31.710 | [Alpha] 👁️ Looking at reference face at (1128, 63, -279) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:04:31.713 | [Alpha] ✅ Placed block at (1128, 64, -279)
+2025-11-11 23:04:33.114 | [Alpha] 🚶 Moving to adjacent position (1126.0, 65, -280.0) before placing at (1128, 65, -279)
+2025-11-11 23:04:33.672 | [Alpha] 👁️ Looking at reference face at (1128, 64, -279) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:04:33.674 | [Alpha] ✅ Placed block at (1128, 65, -279)
+2025-11-11 23:04:35.073 | [Alpha] 🏁 Build complete!
+2025-11-11 23:04:35.073 | [Alpha]    Success: 2/2
+2025-11-11 23:04:35.073 | [Alpha]    Failed: 0/2
+2025-11-11 23:04:35.073 | [Alpha] 🚶 STEP 5: Moving to stand next to observer...
+2025-11-11 23:04:35.076 | [Alpha] Pathfinder initialized with settings: { sprint: true, parkour: true, dig: false, entityDetection: true }
+2025-11-11 23:04:35.076 | [Alpha] 📐 Observer yaw: 5.18, moving to side position (1119.3, -273.6)
+2025-11-11 23:04:36.746 | [Alpha] ✅ Moved next to observer (side position)
+2025-11-11 23:04:36.746 | [Alpha] 👁️ Looking at structure together...
+2025-11-11 23:04:36.746 | [Alpha] Looking at (1128.00, 65.00, -279.00) at 90°/s over 1.86s
+2025-11-11 23:04:40.538 | [Alpha Server] Received: episode_2_stopPhase (no listeners)
+2025-11-11 23:04:41.859 | [Alpha] ✅ Admired structure from observer position
+2025-11-11 23:04:41.859 | [Alpha] 🎬 FRAME COUNTING END at 1762920281859
+2025-11-11 23:04:41.859 | [Alpha] ⏱️  ML Training Segment Duration: 14.24s
+2025-11-11 23:04:41.859 | [Alpha] 🎞️  Estimated Frames (at 20 FPS): 285 frames
+2025-11-11 23:04:41.859 | [Alpha] 📊 Target: 300 frames | Actual: 285 | Difference: -15 frames
+2025-11-11 23:04:41.859 | [Alpha] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:04:41.859 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_2_stopPhase via client connection
+2025-11-11 23:04:41.860 | [Alpha Server] Received: episode_2_stopPhase (1 listeners) - emitting
+2025-11-11 23:04:41.860 | [sendToOtherBot] stopPhase beginning: Sending episode_2_stopPhase via client connection
+2025-11-11 23:04:41.860 | [Alpha] stops recording
+2025-11-11 23:04:41.860 | [headless] ending episode
+2025-11-11 23:04:41.860 | [Alpha] waiting for episode recording to end...
+2025-11-11 23:04:41.878 | [headless] sending zero end of stream
+2025-11-11 23:04:41.902 | [headless] Socket ended
+2025-11-11 23:04:41.902 | [headless] Socket state at end: {
+2025-11-11 23:04:41.902 |   writable: false,
+2025-11-11 23:04:41.902 |   destroyed: false,
+2025-11-11 23:04:41.902 |   connecting: false,
+2025-11-11 23:04:41.902 |   bytesWritten: 122613,
+2025-11-11 23:04:41.902 |   bytesRead: 0
+2025-11-11 23:04:41.902 | }
+2025-11-11 23:04:41.903 | [headless] Socket closed
+2025-11-11 23:04:41.903 | [headless] connection closed, firing episodeended event
+2025-11-11 23:04:41.903 | [Alpha] episode recording ended, connection closed
+2025-11-11 23:04:42.902 | [sendToOtherBot] StopPhase end: Sending episode_2_stoppedPhase via client connection
+2025-11-11 23:04:42.906 | [Alpha Server] Received: episode_2_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:04:42.906 | [sendToOtherBot] stoppedPhase beginning: Sending episode_2_stoppedPhase via client connection
+2025-11-11 23:04:42.906 | [Alpha] stopped
+2025-11-11 23:04:42.906 | [Alpha] All event handlers finished
+2025-11-11 23:04:42.906 | [Alpha] Stopped PVP for episode 2
+2025-11-11 23:04:42.907 | [Alpha] Stopped pathfinder navigation for episode 2
+2025-11-11 23:04:42.907 | [Alpha] tearing down episode 2
+2025-11-11 23:04:42.907 | [Alpha] Episode 2 completed
+2025-11-11 23:04:42.907 | [Alpha Server] Received: episode_2_stoppedPhase (no listeners)
+2025-11-11 23:04:42.910 | [Alpha] Saved episode info to /output/20251112_040442_000002_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:04:42.910 | [Alpha] Syncing bots for episode 2
+2025-11-11 23:04:42.910 | [sendToOtherBot] syncBots outer: Sending episode_2_syncBots via client connection
+2025-11-11 23:04:42.913 | [Alpha Server] Received: episode_2_syncBots (1 listeners) - emitting
+2025-11-11 23:04:42.913 | [sendToOtherBot] syncBots beginning: Sending episode_2_syncBots via client connection
+2025-11-11 23:04:42.913 | [Alpha] Syncing bots...
+2025-11-11 23:04:42.913 | [Alpha] Synced bots for episode 2
+2025-11-11 23:04:42.913 | [Alpha] Selected episode type: structureEval
+2025-11-11 23:04:42.913 | [Alpha] Created StructureEvalEpisode instance for episode 3
+2025-11-11 23:04:42.913 | [Alpha Server] Received: episode_2_syncBots (no listeners)
+2025-11-11 23:04:43.913 | [Alpha] Starting episode 3
+2025-11-11 23:04:43.913 | [Alpha] episode 3 at (1119.69, 64.00, -273.69)
+2025-11-11 23:04:43.913 | [sendToOtherBot] spawnPhase end: Sending episode_3_teleportPhase via client connection
+2025-11-11 23:04:43.914 | [Alpha Server] Received: episode_3_teleportPhase (1 listeners) - emitting
+2025-11-11 23:04:43.914 | [sendToOtherBot] teleportPhase beginning: Sending episode_3_teleportPhase via client connection
+2025-11-11 23:04:43.914 | [Alpha] teleport radius: 3000
+2025-11-11 23:04:43.914 | [Alpha] picked random center at (-133.20, 1276.31)
+2025-11-11 23:04:43.914 | [Alpha] spreadplayers args: center=(-134, 1276), min=8, max=7, targets=[Alpha Bravo]
+2025-11-11 23:04:43.914 | [Alpha Server] Received: episode_3_teleportPhase (no listeners)
+2025-11-11 23:04:43.914 | [Alpha Server] Received: episode_3_postTeleportPhase (no listeners)
+2025-11-11 23:04:43.946 | [Alpha] spreadplayers result: Spread 2 player(s) around -133.5, 1276.5 with an average distance of 8.21 blocks apart
+2025-11-11 23:04:44.947 | [sendToOtherBot] teleportPhase end: Sending episode_3_postTeleportPhase via client connection
+2025-11-11 23:04:44.947 | [Alpha Server] Received: episode_3_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:04:44.947 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_3_postTeleportPhase via client connection
+2025-11-11 23:04:44.947 | [Alpha] our position after teleport: {"position":{"x":-129.5,"y":64,"z":1278.5}}
+2025-11-11 23:04:44.947 | [sendToOtherBot] postTeleportPhase end: Sending episode_3_beforeStartRecordingPhase via client connection
+2025-11-11 23:04:44.948 | [Alpha Server] Received: episode_3_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:04:44.948 | [Alpha] other position before start recording: {"position":{"x":-137.5,"y":64,"z":1278.5}}
+2025-11-11 23:04:44.948 | [Alpha] Looking at (-137.50, 64.00, 1278.50) at 30°/s over 4.92s
+2025-11-11 23:04:47.857 | [Alpha Server] Received: episode_3_startRecordingPhase (no listeners)
+2025-11-11 23:04:49.915 | [Alpha] setting up episode 3
+2025-11-11 23:04:49.916 | [Alpha] inventory stone: have=126, target=128, need=2
+2025-11-11 23:04:49.918 | [Alpha] ensureBotHasEnough: give Alpha minecraft:stone 2 -> Gave 2 [Stone] to Alpha
+2025-11-11 23:04:50.719 | [Alpha] inventory stone: now 128/128
+2025-11-11 23:04:50.721 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-11 23:04:50.722 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-11 23:04:51.723 | [Alpha] unequipping hand before episode
+2025-11-11 23:04:51.723 | [Alpha] Unequipped stone from main hand
+2025-11-11 23:04:52.724 | [sendToOtherBot] teleportPhase end: Sending episode_3_startRecordingPhase via client connection
+2025-11-11 23:04:52.725 | [Alpha Server] Received: episode_3_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:04:52.725 | [sendToOtherBot] startRecordingPhase end: Sending episode_3_startRecordingPhase via client connection
+2025-11-11 23:04:52.725 | [Alpha] starting episode recording
+2025-11-11 23:04:52.725 | [headless] starting episode - connecting to receiver, episode number 3
+2025-11-11 23:04:52.725 | [headless] creating new connection
+2025-11-11 23:04:52.726 | [headless] Connected to server
+2025-11-11 23:04:53.726 | [sendToOtherBot] entryPoint end: Sending episode_3_structureEvalPhase_0 via client connection
+2025-11-11 23:04:53.726 | [Alpha Server] Received: episode_3_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:04:53.727 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_3_structureEvalPhase_0 via client connection
+2025-11-11 23:04:53.727 | [Alpha] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:04:53.727 | [Alpha] 📍 Spawn position: (-129.5, 64, 1278.5)
+2025-11-11 23:04:53.727 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-11 23:04:53.727 | [Alpha] 🎭 Role mode: bravo_builds, Role: OBSERVER
+2025-11-11 23:04:53.727 | [Alpha] 🧍 STEP 1b-sneak: Remaining stationary (observer role)
+2025-11-11 23:04:53.727 | [Alpha Server] Received: episode_3_structureEvalPhase_0 (no listeners)
+2025-11-11 23:04:54.657 | [Alpha] 🧍 STEP 2: Remaining stationary (observer role)...
+2025-11-11 23:04:56.038 | [Alpha] 📐 STEP 3: Planning structure...
+2025-11-11 23:04:56.038 | [Alpha] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:04:56.038 | [Alpha] 📋 Observing 2 blocks with stone
+2025-11-11 23:04:56.038 | [Alpha] 🧍 STEP 4: Remaining stationary (observer role)...
+2025-11-11 23:04:58.838 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:04:58.838 | [Alpha] 🧍 STEP 5: Remaining stationary (observer role)...
+2025-11-11 23:05:07.003 | [Alpha Server] Received: episode_3_stopPhase (no listeners)
+2025-11-11 23:05:07.038 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:05:07.038 | [Alpha] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:05:07.038 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_3_stopPhase via client connection
+2025-11-11 23:05:07.039 | [Alpha Server] Received: episode_3_stopPhase (1 listeners) - emitting
+2025-11-11 23:05:07.039 | [sendToOtherBot] stopPhase beginning: Sending episode_3_stopPhase via client connection
+2025-11-11 23:05:07.039 | [Alpha] stops recording
+2025-11-11 23:05:07.039 | [headless] ending episode
+2025-11-11 23:05:07.039 | [Alpha] waiting for episode recording to end...
+2025-11-11 23:05:07.068 | [headless] sending zero end of stream
+2025-11-11 23:05:07.091 | [headless] Socket ended
+2025-11-11 23:05:07.091 | [headless] Socket state at end: {
+2025-11-11 23:05:07.091 |   writable: false,
+2025-11-11 23:05:07.091 |   destroyed: false,
+2025-11-11 23:05:07.091 |   connecting: false,
+2025-11-11 23:05:07.091 |   bytesWritten: 107531,
+2025-11-11 23:05:07.091 |   bytesRead: 0
+2025-11-11 23:05:07.091 | }
+2025-11-11 23:05:07.091 | [headless] Socket closed
+2025-11-11 23:05:07.092 | [headless] connection closed, firing episodeended event
+2025-11-11 23:05:07.092 | [Alpha] episode recording ended, connection closed
+2025-11-11 23:05:08.092 | [sendToOtherBot] StopPhase end: Sending episode_3_stoppedPhase via client connection
+2025-11-11 23:05:08.097 | [Alpha Server] Received: episode_3_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:05:08.097 | [sendToOtherBot] stoppedPhase beginning: Sending episode_3_stoppedPhase via client connection
+2025-11-11 23:05:08.097 | [Alpha] stopped
+2025-11-11 23:05:08.097 | [Alpha] All event handlers finished
+2025-11-11 23:05:08.097 | [Alpha] Stopped PVP for episode 3
+2025-11-11 23:05:08.097 | [Alpha] Stopped pathfinder navigation for episode 3
+2025-11-11 23:05:08.097 | [Alpha] tearing down episode 3
+2025-11-11 23:05:08.097 | [Alpha] Episode 3 completed
+2025-11-11 23:05:08.097 | [Alpha Server] Received: episode_3_stoppedPhase (no listeners)
+2025-11-11 23:05:08.102 | [Alpha] Saved episode info to /output/20251112_040508_000003_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:05:08.102 | [Alpha] Syncing bots for episode 3
+2025-11-11 23:05:08.102 | [sendToOtherBot] syncBots outer: Sending episode_3_syncBots via client connection
+2025-11-11 23:05:08.104 | [Alpha Server] Received: episode_3_syncBots (1 listeners) - emitting
+2025-11-11 23:05:08.104 | [sendToOtherBot] syncBots beginning: Sending episode_3_syncBots via client connection
+2025-11-11 23:05:08.104 | [Alpha] Syncing bots...
+2025-11-11 23:05:08.104 | [Alpha] Synced bots for episode 3
+2025-11-11 23:05:08.104 | [Alpha] Selected episode type: structureEval
+2025-11-11 23:05:08.104 | [Alpha] Created StructureEvalEpisode instance for episode 4
+2025-11-11 23:05:08.105 | [Alpha Server] Received: episode_3_syncBots (no listeners)
+2025-11-11 23:05:09.105 | [Alpha] Starting episode 4
+2025-11-11 23:05:09.105 | [Alpha] episode 4 at (-129.50, 64.00, 1278.50)
+2025-11-11 23:05:09.105 | [sendToOtherBot] spawnPhase end: Sending episode_4_teleportPhase via client connection
+2025-11-11 23:05:09.105 | [Alpha Server] Received: episode_4_teleportPhase (1 listeners) - emitting
+2025-11-11 23:05:09.106 | [sendToOtherBot] teleportPhase beginning: Sending episode_4_teleportPhase via client connection
+2025-11-11 23:05:09.106 | [Alpha] teleport radius: 3000
+2025-11-11 23:05:09.106 | [Alpha] picked random center at (655.58, 540.20)
+2025-11-11 23:05:09.106 | [Alpha] spreadplayers args: center=(655, 540), min=8, max=7, targets=[Alpha Bravo]
+2025-11-11 23:05:09.106 | [Alpha Server] Received: episode_4_teleportPhase (no listeners)
+2025-11-11 23:05:09.106 | [Alpha Server] Received: episode_4_postTeleportPhase (no listeners)
+2025-11-11 23:05:09.138 | [Alpha] spreadplayers result: Spread 2 player(s) around 655.5, 540.5 with an average distance of 9.87 blocks apart
+2025-11-11 23:05:10.138 | [sendToOtherBot] teleportPhase end: Sending episode_4_postTeleportPhase via client connection
+2025-11-11 23:05:10.138 | [Alpha Server] Received: episode_4_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:05:10.138 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_4_postTeleportPhase via client connection
+2025-11-11 23:05:10.139 | [Alpha] our position after teleport: {"position":{"x":657.5,"y":64,"z":547.5}}
+2025-11-11 23:05:10.139 | [sendToOtherBot] postTeleportPhase end: Sending episode_4_beforeStartRecordingPhase via client connection
+2025-11-11 23:05:10.139 | [Alpha Server] Received: episode_4_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:05:10.139 | [Alpha] other position before start recording: {"position":{"x":658.5,"y":64,"z":537.5}}
+2025-11-11 23:05:10.139 | [Alpha] Looking at (658.50, 64.00, 537.50) at 30°/s over 3.19s
+2025-11-11 23:05:13.343 | [Alpha] setting up episode 4
+2025-11-11 23:05:13.343 | [Alpha] inventory stone: have=128, target=128, need=0
+2025-11-11 23:05:13.346 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-11 23:05:13.347 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-11 23:05:14.348 | [Alpha] unequipping hand before episode
+2025-11-11 23:05:14.348 | [Alpha] No item equipped in hand
+2025-11-11 23:05:15.348 | [sendToOtherBot] teleportPhase end: Sending episode_4_startRecordingPhase via client connection
+2025-11-11 23:05:16.300 | [Alpha Server] Received: episode_4_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:05:16.300 | [sendToOtherBot] startRecordingPhase end: Sending episode_4_startRecordingPhase via client connection
+2025-11-11 23:05:16.300 | [Alpha] starting episode recording
+2025-11-11 23:05:16.300 | [headless] starting episode - connecting to receiver, episode number 4
+2025-11-11 23:05:16.300 | [headless] creating new connection
+2025-11-11 23:05:16.300 | [Alpha Server] Received: episode_4_startRecordingPhase (no listeners)
+2025-11-11 23:05:16.301 | [headless] Connected to server
+2025-11-11 23:05:17.301 | [sendToOtherBot] entryPoint end: Sending episode_4_structureEvalPhase_0 via client connection
+2025-11-11 23:05:17.302 | [Alpha Server] Received: episode_4_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:05:17.302 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_4_structureEvalPhase_0 via client connection
+2025-11-11 23:05:17.302 | [Alpha] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:05:17.302 | [Alpha] 📍 Spawn position: (657.5, 64, 547.5)
+2025-11-11 23:05:17.302 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-11 23:05:17.302 | [Alpha] 🎭 Role mode: bravo_builds, Role: OBSERVER
+2025-11-11 23:05:17.302 | [Alpha] 🧍 STEP 1b-sneak: Remaining stationary (observer role)
+2025-11-11 23:05:17.302 | [Alpha Server] Received: episode_4_structureEvalPhase_0 (no listeners)
+2025-11-11 23:05:18.205 | [Alpha] 🧍 STEP 2: Remaining stationary (observer role)...
+2025-11-11 23:05:19.505 | [Alpha] 📐 STEP 3: Planning structure...
+2025-11-11 23:05:19.505 | [Alpha] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:05:19.505 | [Alpha] 📋 Observing 2 blocks with stone
+2025-11-11 23:05:19.505 | [Alpha] 🧍 STEP 4: Remaining stationary (observer role)...
+2025-11-11 23:05:22.305 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:05:22.305 | [Alpha] 🧍 STEP 5: Remaining stationary (observer role)...
+2025-11-11 23:05:30.590 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:05:30.590 | [Alpha] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:05:30.590 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_4_stopPhase via client connection
+2025-11-11 23:05:31.423 | [Alpha Server] Received: episode_4_stopPhase (1 listeners) - emitting
+2025-11-11 23:05:31.423 | [sendToOtherBot] stopPhase beginning: Sending episode_4_stopPhase via client connection
+2025-11-11 23:05:31.423 | [Alpha] stops recording
+2025-11-11 23:05:31.423 | [headless] ending episode
+2025-11-11 23:05:31.423 | [Alpha] waiting for episode recording to end...
+2025-11-11 23:05:31.423 | [Alpha Server] Received: episode_4_stopPhase (no listeners)
+2025-11-11 23:05:31.433 | [headless] sending zero end of stream
+2025-11-11 23:05:31.457 | [headless] Socket ended
+2025-11-11 23:05:31.458 | [headless] Socket state at end: {
+2025-11-11 23:05:31.458 |   writable: false,
+2025-11-11 23:05:31.458 |   destroyed: false,
+2025-11-11 23:05:31.458 |   connecting: false,
+2025-11-11 23:05:31.458 |   bytesWritten: 113615,
+2025-11-11 23:05:31.458 |   bytesRead: 0
+2025-11-11 23:05:31.458 | }
+2025-11-11 23:05:31.458 | [headless] Socket closed
+2025-11-11 23:05:31.458 | [headless] connection closed, firing episodeended event
+2025-11-11 23:05:31.458 | [Alpha] episode recording ended, connection closed
+2025-11-11 23:05:32.457 | [Alpha Server] Received: episode_4_stoppedPhase (no listeners)
+2025-11-11 23:05:32.457 | [sendToOtherBot] StopPhase end: Sending episode_4_stoppedPhase via client connection
+2025-11-11 23:05:32.458 | [Alpha Server] Received: episode_4_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:05:32.458 | [sendToOtherBot] stoppedPhase beginning: Sending episode_4_stoppedPhase via client connection
+2025-11-11 23:05:32.458 | [Alpha] stopped
+2025-11-11 23:05:32.458 | [Alpha] All event handlers finished
+2025-11-11 23:05:32.458 | [Alpha] Stopped PVP for episode 4
+2025-11-11 23:05:32.458 | [Alpha] Stopped pathfinder navigation for episode 4
+2025-11-11 23:05:32.458 | [Alpha] tearing down episode 4
+2025-11-11 23:05:32.458 | [Alpha] Episode 4 completed
+2025-11-11 23:05:32.462 | [Alpha] Saved episode info to /output/20251112_040532_000004_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:05:32.462 | [Alpha] Syncing bots for episode 4
+2025-11-11 23:05:32.462 | [sendToOtherBot] syncBots outer: Sending episode_4_syncBots via client connection
+2025-11-11 23:05:32.467 | [Alpha Server] Received: episode_4_syncBots (1 listeners) - emitting
+2025-11-11 23:05:32.467 | [sendToOtherBot] syncBots beginning: Sending episode_4_syncBots via client connection
+2025-11-11 23:05:32.467 | [Alpha] Syncing bots...
+2025-11-11 23:05:32.467 | [Alpha] Synced bots for episode 4
+2025-11-11 23:05:32.467 | [Alpha] Selected episode type: structureEval
+2025-11-11 23:05:32.467 | [Alpha] Created StructureEvalEpisode instance for episode 5
+2025-11-11 23:05:32.467 | [Alpha Server] Received: episode_4_syncBots (no listeners)
+2025-11-11 23:05:33.468 | [Alpha] Starting episode 5
+2025-11-11 23:05:33.469 | [Alpha] episode 5 at (657.50, 64.00, 547.50)
+2025-11-11 23:05:33.469 | [sendToOtherBot] spawnPhase end: Sending episode_5_teleportPhase via client connection
+2025-11-11 23:05:33.469 | [Alpha Server] Received: episode_5_teleportPhase (1 listeners) - emitting
+2025-11-11 23:05:33.469 | [sendToOtherBot] teleportPhase beginning: Sending episode_5_teleportPhase via client connection
+2025-11-11 23:05:33.469 | [Alpha] teleport radius: 3000
+2025-11-11 23:05:33.469 | [Alpha] picked random center at (2110.56, 333.94)
+2025-11-11 23:05:33.469 | [Alpha] spreadplayers args: center=(2110, 333), min=8, max=7, targets=[Alpha Bravo]
+2025-11-11 23:05:33.469 | [Alpha Server] Received: episode_5_teleportPhase (no listeners)
+2025-11-11 23:05:33.469 | [Alpha Server] Received: episode_5_postTeleportPhase (no listeners)
+2025-11-11 23:05:33.512 | [Alpha] spreadplayers result: Spread 2 player(s) around 2110.5, 333.5 with an average distance of 8.91 blocks apart
+2025-11-11 23:05:34.511 | [sendToOtherBot] teleportPhase end: Sending episode_5_postTeleportPhase via client connection
+2025-11-11 23:05:34.512 | [Alpha Server] Received: episode_5_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:05:34.512 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_5_postTeleportPhase via client connection
+2025-11-11 23:05:34.512 | [Alpha] our position after teleport: {"position":{"x":2110.5,"y":64,"z":336.5}}
+2025-11-11 23:05:34.512 | [sendToOtherBot] postTeleportPhase end: Sending episode_5_beforeStartRecordingPhase via client connection
+2025-11-11 23:05:34.512 | [Alpha Server] Received: episode_5_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:05:34.512 | [Alpha] other position before start recording: {"position":{"x":2117.5,"y":64,"z":330.5}}
+2025-11-11 23:05:34.512 | [Alpha] Looking at (2117.50, 64.00, 330.50) at 30°/s over 1.46s
+2025-11-11 23:05:36.018 | [Alpha] setting up episode 5
+2025-11-11 23:05:36.018 | [Alpha] inventory stone: have=128, target=128, need=0
+2025-11-11 23:05:36.020 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-11 23:05:36.026 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-11 23:05:37.025 | [Alpha] unequipping hand before episode
+2025-11-11 23:05:37.025 | [Alpha] No item equipped in hand
+2025-11-11 23:05:38.025 | [sendToOtherBot] teleportPhase end: Sending episode_5_startRecordingPhase via client connection
+2025-11-11 23:05:42.291 | [Alpha Server] Received: episode_5_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:05:42.291 | [sendToOtherBot] startRecordingPhase end: Sending episode_5_startRecordingPhase via client connection
+2025-11-11 23:05:42.291 | [Alpha] starting episode recording
+2025-11-11 23:05:42.291 | [headless] starting episode - connecting to receiver, episode number 5
+2025-11-11 23:05:42.291 | [headless] creating new connection
+2025-11-11 23:05:42.291 | [Alpha Server] Received: episode_5_startRecordingPhase (no listeners)
+2025-11-11 23:05:42.293 | [headless] Connected to server
+2025-11-11 23:05:43.291 | [sendToOtherBot] entryPoint end: Sending episode_5_structureEvalPhase_0 via client connection
+2025-11-11 23:05:43.293 | [Alpha Server] Received: episode_5_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:05:43.294 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_5_structureEvalPhase_0 via client connection
+2025-11-11 23:05:43.294 | [Alpha] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:05:43.294 | [Alpha] 📍 Spawn position: (2110.5, 64, 336.5)
+2025-11-11 23:05:43.294 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-11 23:05:43.294 | [Alpha] 🎭 Role mode: bravo_builds, Role: OBSERVER
+2025-11-11 23:05:43.294 | [Alpha] 🧍 STEP 1b-sneak: Remaining stationary (observer role)
+2025-11-11 23:05:43.294 | [Alpha Server] Received: episode_5_structureEvalPhase_0 (no listeners)
+2025-11-11 23:05:44.227 | [Alpha] 🧍 STEP 2: Remaining stationary (observer role)...
+2025-11-11 23:05:45.527 | [Alpha] 📐 STEP 3: Planning structure...
+2025-11-11 23:05:45.527 | [Alpha] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:05:45.527 | [Alpha] 📋 Observing 2 blocks with stone
+2025-11-11 23:05:45.527 | [Alpha] 🧍 STEP 4: Remaining stationary (observer role)...
+2025-11-11 23:05:48.328 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:05:48.328 | [Alpha] 🧍 STEP 5: Remaining stationary (observer role)...
+2025-11-11 23:05:56.604 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:05:56.604 | [Alpha] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:05:56.604 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_5_stopPhase via client connection
+2025-11-11 23:05:57.491 | [Alpha Server] Received: episode_5_stopPhase (1 listeners) - emitting
+2025-11-11 23:05:57.491 | [sendToOtherBot] stopPhase beginning: Sending episode_5_stopPhase via client connection
+2025-11-11 23:05:57.492 | [Alpha] stops recording
+2025-11-11 23:05:57.492 | [headless] ending episode
+2025-11-11 23:05:57.492 | [Alpha] waiting for episode recording to end...
+2025-11-11 23:05:57.492 | [Alpha Server] Received: episode_5_stopPhase (no listeners)
+2025-11-11 23:05:57.509 | [headless] sending zero end of stream
+2025-11-11 23:05:57.529 | [headless] Socket ended
+2025-11-11 23:05:57.529 | [headless] Socket state at end: {
+2025-11-11 23:05:57.529 |   writable: false,
+2025-11-11 23:05:57.529 |   destroyed: false,
+2025-11-11 23:05:57.529 |   connecting: false,
+2025-11-11 23:05:57.529 |   bytesWritten: 114365,
+2025-11-11 23:05:57.529 |   bytesRead: 0
+2025-11-11 23:05:57.529 | }
+2025-11-11 23:05:57.529 | [headless] Socket closed
+2025-11-11 23:05:57.529 | [headless] connection closed, firing episodeended event
+2025-11-11 23:05:57.530 | [Alpha] episode recording ended, connection closed
+2025-11-11 23:05:58.529 | [Alpha Server] Received: episode_5_stoppedPhase (no listeners)
+2025-11-11 23:05:58.529 | [sendToOtherBot] StopPhase end: Sending episode_5_stoppedPhase via client connection
+2025-11-11 23:05:58.530 | [Alpha Server] Received: episode_5_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:05:58.530 | [sendToOtherBot] stoppedPhase beginning: Sending episode_5_stoppedPhase via client connection
+2025-11-11 23:05:58.530 | [Alpha] stopped
+2025-11-11 23:05:58.530 | [Alpha] All event handlers finished
+2025-11-11 23:05:58.530 | [Alpha] Stopped PVP for episode 5
+2025-11-11 23:05:58.531 | [Alpha] Stopped pathfinder navigation for episode 5
+2025-11-11 23:05:58.531 | [Alpha] tearing down episode 5
+2025-11-11 23:05:58.531 | [Alpha] Episode 5 completed
+2025-11-11 23:05:58.535 | [Alpha Server] Received: episode_5_syncBots (no listeners)
+2025-11-11 23:05:58.536 | [Alpha] Saved episode info to /output/20251112_040558_000005_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:05:58.536 | [Alpha] Syncing bots for episode 5
+2025-11-11 23:05:58.536 | [sendToOtherBot] syncBots outer: Sending episode_5_syncBots via client connection
+2025-11-11 23:05:58.538 | [Alpha Server] Received: episode_5_syncBots (1 listeners) - emitting
+2025-11-11 23:05:58.538 | [sendToOtherBot] syncBots beginning: Sending episode_5_syncBots via client connection
+2025-11-11 23:05:58.538 | [Alpha] Syncing bots...
+2025-11-11 23:05:58.538 | [Alpha] Synced bots for episode 5
+2025-11-11 23:05:58.538 | [Alpha] Selected episode type: structureEval
+2025-11-11 23:05:58.538 | [Alpha] Created StructureEvalEpisode instance for episode 6
+2025-11-11 23:05:59.536 | [Alpha] Starting episode 6
+2025-11-11 23:05:59.536 | [Alpha] episode 6 at (2110.50, 64.00, 336.50)
+2025-11-11 23:05:59.537 | [sendToOtherBot] spawnPhase end: Sending episode_6_teleportPhase via client connection
+2025-11-11 23:05:59.538 | [Alpha Server] Received: episode_6_teleportPhase (1 listeners) - emitting
+2025-11-11 23:05:59.538 | [sendToOtherBot] teleportPhase beginning: Sending episode_6_teleportPhase via client connection
+2025-11-11 23:05:59.538 | [Alpha] teleport radius: 3000
+2025-11-11 23:05:59.538 | [Alpha] picked random center at (2795.15, -355.31)
+2025-11-11 23:05:59.538 | [Alpha] spreadplayers args: center=(2795, -356), min=8, max=7, targets=[Alpha Bravo]
+2025-11-11 23:05:59.538 | [Alpha Server] Received: episode_6_teleportPhase (no listeners)
+2025-11-11 23:05:59.538 | [Alpha Server] Received: episode_6_postTeleportPhase (no listeners)
+2025-11-11 23:05:59.570 | [Alpha] spreadplayers result: Spread 2 player(s) around 2795.5, -355.5 with an average distance of 8.72 blocks apart
+2025-11-11 23:06:00.570 | [sendToOtherBot] teleportPhase end: Sending episode_6_postTeleportPhase via client connection
+2025-11-11 23:06:00.570 | [Alpha Server] Received: episode_6_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:06:00.570 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_6_postTeleportPhase via client connection
+2025-11-11 23:06:00.570 | [Alpha] our position after teleport: {"position":{"x":2792.5,"y":64,"z":-358.5}}
+2025-11-11 23:06:00.570 | [sendToOtherBot] postTeleportPhase end: Sending episode_6_beforeStartRecordingPhase via client connection
+2025-11-11 23:06:00.570 | [Alpha Server] Received: episode_6_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:00.570 | [Alpha] other position before start recording: {"position":{"x":2790.5,"y":64,"z":-350.5}}
+2025-11-11 23:06:00.570 | [Alpha] Looking at (2790.50, 64.00, -350.50) at 30°/s over 4.82s
+2025-11-11 23:06:04.584 | [Alpha Server] Received: episode_6_startRecordingPhase (no listeners)
+2025-11-11 23:06:05.400 | [Alpha] setting up episode 6
+2025-11-11 23:06:05.401 | [Alpha] inventory stone: have=128, target=128, need=0
+2025-11-11 23:06:05.403 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-11 23:06:05.404 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-11 23:06:06.405 | [Alpha] unequipping hand before episode
+2025-11-11 23:06:06.405 | [Alpha] No item equipped in hand
+2025-11-11 23:06:07.405 | [sendToOtherBot] teleportPhase end: Sending episode_6_startRecordingPhase via client connection
+2025-11-11 23:06:07.405 | [Alpha Server] Received: episode_6_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:07.405 | [sendToOtherBot] startRecordingPhase end: Sending episode_6_startRecordingPhase via client connection
+2025-11-11 23:06:07.406 | [Alpha] starting episode recording
+2025-11-11 23:06:07.406 | [headless] starting episode - connecting to receiver, episode number 6
+2025-11-11 23:06:07.406 | [headless] creating new connection
+2025-11-11 23:06:07.406 | [headless] Connected to server
+2025-11-11 23:06:08.406 | [Alpha Server] Received: episode_6_structureEvalPhase_0 (no listeners)
+2025-11-11 23:06:08.406 | [sendToOtherBot] entryPoint end: Sending episode_6_structureEvalPhase_0 via client connection
+2025-11-11 23:06:08.407 | [Alpha Server] Received: episode_6_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:06:08.407 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_6_structureEvalPhase_0 via client connection
+2025-11-11 23:06:08.407 | [Alpha] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:06:08.407 | [Alpha] 📍 Spawn position: (2792.5, 64, -358.5)
+2025-11-11 23:06:08.407 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-11 23:06:08.407 | [Alpha] 🎭 Role mode: alpha_builds, Role: BUILDER
+2025-11-11 23:06:08.407 | [Alpha] 🔧 STEP 1b-pre: Equipping stone in hand...
+2025-11-11 23:06:08.407 | [Alpha] ✅ Equipped stone in hand
+2025-11-11 23:06:08.707 | [Alpha] 🤫 STEP 1b-sneak: Sneaking for 0.75s...
+2025-11-11 23:06:08.707 | [Alpha] 🎬 FRAME COUNTING START at 1762920368707
+2025-11-11 23:06:09.454 | [Alpha] ✅ Sneak complete
+2025-11-11 23:06:09.654 | [Alpha] 👀 STEP 2: Making eye contact with Bravo...
+2025-11-11 23:06:10.955 | [Alpha] 📐 STEP 3: Planning structure...
+2025-11-11 23:06:10.955 | [Alpha] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:06:10.955 | [Alpha] 📋 Building 2 blocks with stone
+2025-11-11 23:06:10.955 | [Alpha] 🏗️ STEP 4: Building structure...
+2025-11-11 23:06:10.955 | [Alpha] 🏗️ Starting to build 2 blocks...
+2025-11-11 23:06:10.958 | [Alpha] Pathfinder initialized with settings: { sprint: false, parkour: true, dig: true, entityDetection: true }
+2025-11-11 23:06:10.960 | [Alpha] Pathfinder initialized with settings: { sprint: false, parkour: false, dig: false, entityDetection: true }
+2025-11-11 23:06:10.960 | [Alpha] 🚶 Moving to adjacent position (2793.0, 64, -360.0) before placing at (2795, 64, -359)
+2025-11-11 23:06:11.912 | [Alpha] 👁️ Looking at reference face at (2795, 63, -359) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:06:11.914 | [Alpha] ✅ Placed block at (2795, 64, -359)
+2025-11-11 23:06:13.315 | [Alpha] 🚶 Moving to adjacent position (2793.0, 65, -360.0) before placing at (2795, 65, -359)
+2025-11-11 23:06:13.873 | [Alpha] 👁️ Looking at reference face at (2795, 64, -359) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:06:13.875 | [Alpha] ✅ Placed block at (2795, 65, -359)
+2025-11-11 23:06:15.276 | [Alpha] 🏁 Build complete!
+2025-11-11 23:06:15.276 | [Alpha]    Success: 2/2
+2025-11-11 23:06:15.276 | [Alpha]    Failed: 0/2
+2025-11-11 23:06:15.276 | [Alpha] 🚶 STEP 5: Moving to stand next to observer...
+2025-11-11 23:06:15.278 | [Alpha] Pathfinder initialized with settings: { sprint: true, parkour: true, dig: false, entityDetection: true }
+2025-11-11 23:06:15.278 | [Alpha] 📐 Observer yaw: 6.04, moving to side position (2791.0, -348.6)
+2025-11-11 23:06:17.434 | [Alpha] ✅ Moved next to observer (side position)
+2025-11-11 23:06:17.434 | [Alpha] 👁️ Looking at structure together...
+2025-11-11 23:06:17.434 | [Alpha] Looking at (2795.00, 65.00, -359.00) at 90°/s over 1.71s
+2025-11-11 23:06:21.645 | [Alpha Server] Received: episode_6_stopPhase (no listeners)
+2025-11-11 23:06:22.393 | [Alpha] ✅ Admired structure from observer position
+2025-11-11 23:06:22.393 | [Alpha] 🎬 FRAME COUNTING END at 1762920382393
+2025-11-11 23:06:22.393 | [Alpha] ⏱️  ML Training Segment Duration: 13.69s
+2025-11-11 23:06:22.393 | [Alpha] 🎞️  Estimated Frames (at 20 FPS): 274 frames
+2025-11-11 23:06:22.393 | [Alpha] 📊 Target: 300 frames | Actual: 274 | Difference: -26 frames
+2025-11-11 23:06:22.393 | [Alpha] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:06:22.393 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_6_stopPhase via client connection
+2025-11-11 23:06:22.393 | [Alpha Server] Received: episode_6_stopPhase (1 listeners) - emitting
+2025-11-11 23:06:22.393 | [sendToOtherBot] stopPhase beginning: Sending episode_6_stopPhase via client connection
+2025-11-11 23:06:22.393 | [Alpha] stops recording
+2025-11-11 23:06:22.393 | [headless] ending episode
+2025-11-11 23:06:22.393 | [Alpha] waiting for episode recording to end...
+2025-11-11 23:06:22.412 | [headless] sending zero end of stream
+2025-11-11 23:06:22.438 | [headless] Socket ended
+2025-11-11 23:06:22.438 | [headless] Socket state at end: {
+2025-11-11 23:06:22.438 |   writable: false,
+2025-11-11 23:06:22.438 |   destroyed: false,
+2025-11-11 23:06:22.438 |   connecting: false,
+2025-11-11 23:06:22.438 |   bytesWritten: 116216,
+2025-11-11 23:06:22.438 |   bytesRead: 0
+2025-11-11 23:06:22.438 | }
+2025-11-11 23:06:22.438 | [headless] Socket closed
+2025-11-11 23:06:22.438 | [headless] connection closed, firing episodeended event
+2025-11-11 23:06:22.438 | [Alpha] episode recording ended, connection closed
+2025-11-11 23:06:23.435 | [Alpha Server] Received: episode_6_stoppedPhase (no listeners)
+2025-11-11 23:06:23.438 | [sendToOtherBot] StopPhase end: Sending episode_6_stoppedPhase via client connection
+2025-11-11 23:06:23.439 | [Alpha Server] Received: episode_6_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:06:23.439 | [sendToOtherBot] stoppedPhase beginning: Sending episode_6_stoppedPhase via client connection
+2025-11-11 23:06:23.439 | [Alpha] stopped
+2025-11-11 23:06:23.439 | [Alpha] All event handlers finished
+2025-11-11 23:06:23.439 | [Alpha] Stopped PVP for episode 6
+2025-11-11 23:06:23.439 | [Alpha] Stopped pathfinder navigation for episode 6
+2025-11-11 23:06:23.439 | [Alpha] tearing down episode 6
+2025-11-11 23:06:23.439 | [Alpha] Episode 6 completed
+2025-11-11 23:06:23.443 | [Alpha] Saved episode info to /output/20251112_040623_000006_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:06:23.443 | [Alpha] Syncing bots for episode 6
+2025-11-11 23:06:23.443 | [sendToOtherBot] syncBots outer: Sending episode_6_syncBots via client connection
+2025-11-11 23:06:23.444 | [Alpha Server] Received: episode_6_syncBots (1 listeners) - emitting
+2025-11-11 23:06:23.444 | [sendToOtherBot] syncBots beginning: Sending episode_6_syncBots via client connection
+2025-11-11 23:06:23.445 | [Alpha] Syncing bots...
+2025-11-11 23:06:23.445 | [Alpha] Synced bots for episode 6
+2025-11-11 23:06:23.445 | [Alpha] Selected episode type: structureEval
+2025-11-11 23:06:23.445 | [Alpha] Created StructureEvalEpisode instance for episode 7
+2025-11-11 23:06:23.445 | [Alpha Server] Received: episode_6_syncBots (no listeners)
+2025-11-11 23:06:24.444 | [Alpha] Starting episode 7
+2025-11-11 23:06:24.445 | [Alpha] episode 7 at (2790.50, 64.00, -348.50)
+2025-11-11 23:06:24.445 | [sendToOtherBot] spawnPhase end: Sending episode_7_teleportPhase via client connection
+2025-11-11 23:06:24.445 | [Alpha Server] Received: episode_7_teleportPhase (1 listeners) - emitting
+2025-11-11 23:06:24.445 | [sendToOtherBot] teleportPhase beginning: Sending episode_7_teleportPhase via client connection
+2025-11-11 23:06:24.445 | [Alpha] teleport radius: 3000
+2025-11-11 23:06:24.445 | [Alpha] picked random center at (108.81, 238.90)
+2025-11-11 23:06:24.445 | [Alpha] spreadplayers args: center=(108, 238), min=8, max=7, targets=[Alpha Bravo]
+2025-11-11 23:06:24.445 | [Alpha Server] Received: episode_7_teleportPhase (no listeners)
+2025-11-11 23:06:24.445 | [Alpha Server] Received: episode_7_postTeleportPhase (no listeners)
+2025-11-11 23:06:24.464 | [Alpha] spreadplayers result: Spread 2 player(s) around 108.5, 238.5 with an average distance of 8.16 blocks apart
+2025-11-11 23:06:25.544 | [sendToOtherBot] teleportPhase end: Sending episode_7_postTeleportPhase via client connection
+2025-11-11 23:06:25.545 | [Alpha Server] Received: episode_7_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:06:25.545 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_7_postTeleportPhase via client connection
+2025-11-11 23:06:25.545 | [Alpha] our position after teleport: {"position":{"x":111.5,"y":64,"z":236.5}}
+2025-11-11 23:06:25.545 | [sendToOtherBot] postTeleportPhase end: Sending episode_7_beforeStartRecordingPhase via client connection
+2025-11-11 23:06:25.545 | [Alpha Server] Received: episode_7_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:25.545 | [Alpha] other position before start recording: {"position":{"x":105.5,"y":64,"z":242.5}}
+2025-11-11 23:06:25.545 | [Alpha] Looking at (105.50, 64.00, 242.50) at 30°/s over 5.28s
+2025-11-11 23:06:28.604 | [Alpha Server] Received: episode_7_startRecordingPhase (no listeners)
+2025-11-11 23:06:30.870 | [Alpha] setting up episode 7
+2025-11-11 23:06:30.870 | [Alpha] inventory stone: have=126, target=128, need=2
+2025-11-11 23:06:30.872 | [Alpha] ensureBotHasEnough: give Alpha minecraft:stone 2 -> Gave 2 [Stone] to Alpha
+2025-11-11 23:06:31.673 | [Alpha] inventory stone: now 128/128
+2025-11-11 23:06:31.675 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-11 23:06:31.682 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-11 23:06:32.683 | [Alpha] unequipping hand before episode
+2025-11-11 23:06:32.683 | [Alpha] Unequipped stone from main hand
+2025-11-11 23:06:33.683 | [sendToOtherBot] teleportPhase end: Sending episode_7_startRecordingPhase via client connection
+2025-11-11 23:06:33.684 | [Alpha Server] Received: episode_7_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:33.684 | [sendToOtherBot] startRecordingPhase end: Sending episode_7_startRecordingPhase via client connection
+2025-11-11 23:06:33.684 | [Alpha] starting episode recording
+2025-11-11 23:06:33.684 | [headless] starting episode - connecting to receiver, episode number 7
+2025-11-11 23:06:33.684 | [headless] creating new connection
+2025-11-11 23:06:33.685 | [headless] Connected to server
+2025-11-11 23:06:34.684 | [sendToOtherBot] entryPoint end: Sending episode_7_structureEvalPhase_0 via client connection
+2025-11-11 23:06:34.684 | [Alpha Server] Received: episode_7_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:06:34.684 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_7_structureEvalPhase_0 via client connection
+2025-11-11 23:06:34.684 | [Alpha] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:06:34.684 | [Alpha] 📍 Spawn position: (111.5, 64, 236.5)
+2025-11-11 23:06:34.684 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-11 23:06:34.684 | [Alpha] 🎭 Role mode: alpha_builds, Role: BUILDER
+2025-11-11 23:06:34.684 | [Alpha] 🔧 STEP 1b-pre: Equipping stone in hand...
+2025-11-11 23:06:34.685 | [Alpha] ✅ Equipped stone in hand
+2025-11-11 23:06:34.685 | [Alpha Server] Received: episode_7_structureEvalPhase_0 (no listeners)
+2025-11-11 23:06:34.986 | [Alpha] 🤫 STEP 1b-sneak: Sneaking for 0.75s...
+2025-11-11 23:06:34.986 | [Alpha] 🎬 FRAME COUNTING START at 1762920394985
+2025-11-11 23:06:35.699 | [Alpha] ✅ Sneak complete
+2025-11-11 23:06:35.901 | [Alpha] 👀 STEP 2: Making eye contact with Bravo...
+2025-11-11 23:06:37.249 | [Alpha] 📐 STEP 3: Planning structure...
+2025-11-11 23:06:37.249 | [Alpha] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:06:37.249 | [Alpha] 📋 Building 2 blocks with stone
+2025-11-11 23:06:37.249 | [Alpha] 🏗️ STEP 4: Building structure...
+2025-11-11 23:06:37.249 | [Alpha] 🏗️ Starting to build 2 blocks...
+2025-11-11 23:06:37.252 | [Alpha] Pathfinder initialized with settings: { sprint: false, parkour: true, dig: true, entityDetection: true }
+2025-11-11 23:06:37.254 | [Alpha] Pathfinder initialized with settings: { sprint: false, parkour: false, dig: false, entityDetection: true }
+2025-11-11 23:06:37.254 | [Alpha] 🚶 Moving to adjacent position (112.0, 64, 235.0) before placing at (114, 64, 236)
+2025-11-11 23:06:39.016 | [Alpha] 👁️ Looking at reference face at (114, 63, 236) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:06:39.019 | [Alpha] ✅ Placed block at (114, 64, 236)
+2025-11-11 23:06:40.419 | [Alpha] 🚶 Moving to adjacent position (112.0, 65, 235.0) before placing at (114, 65, 236)
+2025-11-11 23:06:40.977 | [Alpha] 👁️ Looking at reference face at (114, 64, 236) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:06:40.979 | [Alpha] ✅ Placed block at (114, 65, 236)
+2025-11-11 23:06:42.379 | [Alpha] 🏁 Build complete!
+2025-11-11 23:06:42.379 | [Alpha]    Success: 2/2
+2025-11-11 23:06:42.379 | [Alpha]    Failed: 0/2
+2025-11-11 23:06:42.379 | [Alpha] 🚶 STEP 5: Moving to stand next to observer...
+2025-11-11 23:06:42.381 | [Alpha] Pathfinder initialized with settings: { sprint: true, parkour: true, dig: false, entityDetection: true }
+2025-11-11 23:06:42.382 | [Alpha] 📐 Observer yaw: 5.52, moving to side position (106.9, 243.9)
+2025-11-11 23:06:44.097 | [Alpha] ✅ Moved next to observer (side position)
+2025-11-11 23:06:44.097 | [Alpha] 👁️ Looking at structure together...
+2025-11-11 23:06:44.097 | [Alpha] Looking at (114.00, 65.00, 236.00) at 90°/s over 1.45s
+2025-11-11 23:06:47.899 | [Alpha Server] Received: episode_7_stopPhase (no listeners)
+2025-11-11 23:06:48.759 | [Alpha] ✅ Admired structure from observer position
+2025-11-11 23:06:48.759 | [Alpha] 🎬 FRAME COUNTING END at 1762920408759
+2025-11-11 23:06:48.759 | [Alpha] ⏱️  ML Training Segment Duration: 13.77s
+2025-11-11 23:06:48.759 | [Alpha] 🎞️  Estimated Frames (at 20 FPS): 275 frames
+2025-11-11 23:06:48.759 | [Alpha] 📊 Target: 300 frames | Actual: 275 | Difference: -25 frames
+2025-11-11 23:06:48.759 | [Alpha] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:06:48.759 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_7_stopPhase via client connection
+2025-11-11 23:06:48.760 | [Alpha Server] Received: episode_7_stopPhase (1 listeners) - emitting
+2025-11-11 23:06:48.760 | [sendToOtherBot] stopPhase beginning: Sending episode_7_stopPhase via client connection
+2025-11-11 23:06:48.760 | [Alpha] stops recording
+2025-11-11 23:06:48.760 | [headless] ending episode
+2025-11-11 23:06:48.760 | [Alpha] waiting for episode recording to end...
+2025-11-11 23:06:48.768 | [headless] sending zero end of stream
+2025-11-11 23:06:48.793 | [headless] Socket ended
+2025-11-11 23:06:48.793 | [headless] Socket state at end: {
+2025-11-11 23:06:48.793 |   writable: false,
+2025-11-11 23:06:48.793 |   destroyed: false,
+2025-11-11 23:06:48.793 |   connecting: false,
+2025-11-11 23:06:48.793 |   bytesWritten: 117422,
+2025-11-11 23:06:48.793 |   bytesRead: 0
+2025-11-11 23:06:48.793 | }
+2025-11-11 23:06:48.793 | [headless] Socket closed
+2025-11-11 23:06:48.793 | [headless] connection closed, firing episodeended event
+2025-11-11 23:06:48.793 | [Alpha] episode recording ended, connection closed
+2025-11-11 23:06:49.793 | [Alpha Server] Received: episode_7_stoppedPhase (no listeners)
+2025-11-11 23:06:49.793 | [sendToOtherBot] StopPhase end: Sending episode_7_stoppedPhase via client connection
+2025-11-11 23:06:49.794 | [Alpha Server] Received: episode_7_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:06:49.794 | [sendToOtherBot] stoppedPhase beginning: Sending episode_7_stoppedPhase via client connection
+2025-11-11 23:06:49.794 | [Alpha] stopped
+2025-11-11 23:06:49.794 | [Alpha] All event handlers finished
+2025-11-11 23:06:49.794 | [Alpha] Stopped PVP for episode 7
+2025-11-11 23:06:49.794 | [Alpha] Stopped pathfinder navigation for episode 7
+2025-11-11 23:06:49.794 | [Alpha] tearing down episode 7
+2025-11-11 23:06:49.794 | [Alpha] Episode 7 completed
+2025-11-11 23:06:49.797 | [Alpha] Saved episode info to /output/20251112_040649_000007_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:06:49.797 | [Alpha] Syncing bots for episode 7
+2025-11-11 23:06:49.797 | [sendToOtherBot] syncBots outer: Sending episode_7_syncBots via client connection
+2025-11-11 23:06:49.799 | [Alpha Server] Received: episode_7_syncBots (1 listeners) - emitting
+2025-11-11 23:06:49.799 | [sendToOtherBot] syncBots beginning: Sending episode_7_syncBots via client connection
+2025-11-11 23:06:49.799 | [Alpha] Syncing bots...
+2025-11-11 23:06:49.799 | [Alpha] Synced bots for episode 7
+2025-11-11 23:06:49.799 | [Alpha] Selected episode type: structureEval
+2025-11-11 23:06:49.799 | [Alpha] Created StructureEvalEpisode instance for episode 8
+2025-11-11 23:06:49.799 | [Alpha Server] Received: episode_7_syncBots (no listeners)
+2025-11-11 23:06:50.799 | [Alpha Server] Received: episode_8_teleportPhase (no listeners)
+2025-11-11 23:06:50.799 | [Alpha] Starting episode 8
+2025-11-11 23:06:50.799 | [Alpha] episode 8 at (106.47, 64.00, 242.50)
+2025-11-11 23:06:50.799 | [sendToOtherBot] spawnPhase end: Sending episode_8_teleportPhase via client connection
+2025-11-11 23:06:50.800 | [Alpha Server] Received: episode_8_teleportPhase (1 listeners) - emitting
+2025-11-11 23:06:50.800 | [sendToOtherBot] teleportPhase beginning: Sending episode_8_teleportPhase via client connection
+2025-11-11 23:06:50.800 | [Alpha] teleport radius: 3000
+2025-11-11 23:06:50.800 | [Alpha] picked random center at (671.32, -612.15)
+2025-11-11 23:06:50.800 | [Alpha] spreadplayers args: center=(671, -613), min=8, max=7, targets=[Alpha Bravo]
+2025-11-11 23:06:50.801 | [Alpha Server] Received: episode_8_postTeleportPhase (no listeners)
+2025-11-11 23:06:50.870 | [Alpha] spreadplayers result: Spread 2 player(s) around 671.5, -612.5 with an average distance of 8.08 blocks apart
+2025-11-11 23:06:51.870 | [sendToOtherBot] teleportPhase end: Sending episode_8_postTeleportPhase via client connection
+2025-11-11 23:06:51.870 | [Alpha Server] Received: episode_8_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:06:51.872 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_8_postTeleportPhase via client connection
+2025-11-11 23:06:51.872 | [Alpha] our position after teleport: {"position":{"x":670.5,"y":64,"z":-608.5}}
+2025-11-11 23:06:51.872 | [sendToOtherBot] postTeleportPhase end: Sending episode_8_beforeStartRecordingPhase via client connection
+2025-11-11 23:06:51.872 | [Alpha Server] Received: episode_8_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:51.872 | [Alpha] other position before start recording: {"position":{"x":678.5,"y":64,"z":-608.5}}
+2025-11-11 23:06:51.872 | [Alpha] Looking at (678.50, 64.00, -608.50) at 30°/s over 1.37s
+2025-11-11 23:06:53.275 | [Alpha] setting up episode 8
+2025-11-11 23:06:53.275 | [Alpha] inventory stone: have=126, target=128, need=2
+2025-11-11 23:06:53.283 | [Alpha] ensureBotHasEnough: give Alpha minecraft:stone 2 -> Gave 2 [Stone] to Alpha
+2025-11-11 23:06:54.084 | [Alpha] inventory stone: now 128/128
+2025-11-11 23:06:54.085 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-11 23:06:54.087 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-11 23:06:55.087 | [Alpha] unequipping hand before episode
+2025-11-11 23:06:55.087 | [Alpha] Unequipped stone from main hand
+2025-11-11 23:06:56.167 | [sendToOtherBot] teleportPhase end: Sending episode_8_startRecordingPhase via client connection
+2025-11-11 23:06:58.379 | [Alpha Server] Received: episode_8_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:58.379 | [sendToOtherBot] startRecordingPhase end: Sending episode_8_startRecordingPhase via client connection
+2025-11-11 23:06:58.379 | [Alpha] starting episode recording
+2025-11-11 23:06:58.379 | [headless] starting episode - connecting to receiver, episode number 8
+2025-11-11 23:06:58.379 | [headless] creating new connection
+2025-11-11 23:06:58.379 | [Alpha Server] Received: episode_8_startRecordingPhase (no listeners)
+2025-11-11 23:06:58.380 | [headless] Connected to server
+2025-11-11 23:06:59.380 | [sendToOtherBot] entryPoint end: Sending episode_8_structureEvalPhase_0 via client connection
+2025-11-11 23:06:59.380 | [Alpha Server] Received: episode_8_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:06:59.380 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_8_structureEvalPhase_0 via client connection
+2025-11-11 23:06:59.380 | [Alpha] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:06:59.380 | [Alpha] 📍 Spawn position: (670.5, 64, -608.5)
+2025-11-11 23:06:59.380 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-11 23:06:59.380 | [Alpha] 🎭 Role mode: bravo_builds, Role: OBSERVER
+2025-11-11 23:06:59.380 | [Alpha] 🧍 STEP 1b-sneak: Remaining stationary (observer role)
+2025-11-11 23:06:59.380 | [Alpha Server] Received: episode_8_structureEvalPhase_0 (no listeners)
+2025-11-11 23:07:00.289 | [Alpha] 🧍 STEP 2: Remaining stationary (observer role)...
+2025-11-11 23:07:01.589 | [Alpha] 📐 STEP 3: Planning structure...
+2025-11-11 23:07:01.589 | [Alpha] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:07:01.589 | [Alpha] 📋 Observing 2 blocks with stone
+2025-11-11 23:07:01.589 | [Alpha] 🧍 STEP 4: Remaining stationary (observer role)...
+2025-11-11 23:07:04.390 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:07:04.390 | [Alpha] 🧍 STEP 5: Remaining stationary (observer role)...
+2025-11-11 23:07:12.591 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:07:12.591 | [Alpha] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:07:12.591 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_8_stopPhase via client connection
+2025-11-11 23:07:12.845 | [Alpha Server] Received: episode_8_stopPhase (1 listeners) - emitting
+2025-11-11 23:07:12.845 | [sendToOtherBot] stopPhase beginning: Sending episode_8_stopPhase via client connection
+2025-11-11 23:07:12.845 | [Alpha] stops recording
+2025-11-11 23:07:12.845 | [headless] ending episode
+2025-11-11 23:07:12.845 | [Alpha] waiting for episode recording to end...
+2025-11-11 23:07:12.846 | [Alpha Server] Received: episode_8_stopPhase (no listeners)
+2025-11-11 23:07:12.862 | [headless] sending zero end of stream
+2025-11-11 23:07:12.884 | [headless] Socket ended
+2025-11-11 23:07:12.884 | [headless] Socket state at end: {
+2025-11-11 23:07:12.884 |   writable: false,
+2025-11-11 23:07:12.884 |   destroyed: false,
+2025-11-11 23:07:12.884 |   connecting: false,
+2025-11-11 23:07:12.884 |   bytesWritten: 109438,
+2025-11-11 23:07:12.884 |   bytesRead: 0
+2025-11-11 23:07:12.885 | }
+2025-11-11 23:07:12.885 | [headless] Socket closed
+2025-11-11 23:07:12.885 | [headless] connection closed, firing episodeended event
+2025-11-11 23:07:12.885 | [Alpha] episode recording ended, connection closed
+2025-11-11 23:07:13.879 | [Alpha Server] Received: episode_8_stoppedPhase (no listeners)
+2025-11-11 23:07:13.885 | [sendToOtherBot] StopPhase end: Sending episode_8_stoppedPhase via client connection
+2025-11-11 23:07:13.886 | [Alpha Server] Received: episode_8_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:07:13.886 | [sendToOtherBot] stoppedPhase beginning: Sending episode_8_stoppedPhase via client connection
+2025-11-11 23:07:13.886 | [Alpha] stopped
+2025-11-11 23:07:13.886 | [Alpha] All event handlers finished
+2025-11-11 23:07:13.886 | [Alpha] Stopped PVP for episode 8
+2025-11-11 23:07:13.886 | [Alpha] Stopped pathfinder navigation for episode 8
+2025-11-11 23:07:13.886 | [Alpha] tearing down episode 8
+2025-11-11 23:07:13.886 | [Alpha] Episode 8 completed
+2025-11-11 23:07:13.890 | [Alpha] Saved episode info to /output/20251112_040713_000008_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:07:13.890 | [Alpha] Syncing bots for episode 8
+2025-11-11 23:07:13.890 | [sendToOtherBot] syncBots outer: Sending episode_8_syncBots via client connection
+2025-11-11 23:07:13.892 | [Alpha Server] Received: episode_8_syncBots (1 listeners) - emitting
+2025-11-11 23:07:13.892 | [sendToOtherBot] syncBots beginning: Sending episode_8_syncBots via client connection
+2025-11-11 23:07:13.892 | [Alpha] Syncing bots...
+2025-11-11 23:07:13.892 | [Alpha] Synced bots for episode 8
+2025-11-11 23:07:13.892 | [Alpha] Selected episode type: structureEval
+2025-11-11 23:07:13.892 | [Alpha] Created StructureEvalEpisode instance for episode 9
+2025-11-11 23:07:13.892 | [Alpha Server] Received: episode_8_syncBots (no listeners)
+2025-11-11 23:07:14.892 | [Alpha] Starting episode 9
+2025-11-11 23:07:14.892 | [Alpha] episode 9 at (670.50, 64.00, -608.50)
+2025-11-11 23:07:14.892 | [sendToOtherBot] spawnPhase end: Sending episode_9_teleportPhase via client connection
+2025-11-11 23:07:14.892 | [Alpha Server] Received: episode_9_teleportPhase (1 listeners) - emitting
+2025-11-11 23:07:14.892 | [sendToOtherBot] teleportPhase beginning: Sending episode_9_teleportPhase via client connection
+2025-11-11 23:07:14.893 | [Alpha] teleport radius: 3000
+2025-11-11 23:07:14.893 | [Alpha] picked random center at (-851.23, 1078.73)
+2025-11-11 23:07:14.893 | [Alpha] spreadplayers args: center=(-852, 1078), min=8, max=7, targets=[Alpha Bravo]
+2025-11-11 23:07:14.893 | [Alpha Server] Received: episode_9_teleportPhase (no listeners)
+2025-11-11 23:07:14.893 | [Alpha Server] Received: episode_9_postTeleportPhase (no listeners)
+2025-11-11 23:07:14.923 | [Alpha] spreadplayers result: Spread 2 player(s) around -851.5, 1078.5 with an average distance of 8.22 blocks apart
+2025-11-11 23:07:15.923 | [sendToOtherBot] teleportPhase end: Sending episode_9_postTeleportPhase via client connection
+2025-11-11 23:07:15.924 | [Alpha Server] Received: episode_9_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:07:15.924 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_9_postTeleportPhase via client connection
+2025-11-11 23:07:15.924 | [Alpha] our position after teleport: {"position":{"x":-852.5,"y":64,"z":1074.5}}
+2025-11-11 23:07:15.924 | [sendToOtherBot] postTeleportPhase end: Sending episode_9_beforeStartRecordingPhase via client connection
+2025-11-11 23:07:15.924 | [Alpha Server] Received: episode_9_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:07:15.924 | [Alpha] other position before start recording: {"position":{"x":-850.5,"y":64,"z":1082.5}}
+2025-11-11 23:07:15.924 | [Alpha] Looking at (-850.50, 64.00, 1082.50) at 30°/s over 2.53s
+2025-11-11 23:07:18.481 | [Alpha] setting up episode 9
+2025-11-11 23:07:18.482 | [Alpha] inventory stone: have=128, target=128, need=0
+2025-11-11 23:07:18.484 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-11 23:07:18.486 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-11 23:07:19.487 | [Alpha] unequipping hand before episode
+2025-11-11 23:07:19.487 | [Alpha] No item equipped in hand
+2025-11-11 23:07:20.487 | [sendToOtherBot] teleportPhase end: Sending episode_9_startRecordingPhase via client connection
+2025-11-11 23:07:22.102 | [Alpha Server] Received: episode_9_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:07:22.102 | [sendToOtherBot] startRecordingPhase end: Sending episode_9_startRecordingPhase via client connection
+2025-11-11 23:07:22.102 | [Alpha] starting episode recording
+2025-11-11 23:07:22.102 | [headless] starting episode - connecting to receiver, episode number 9
+2025-11-11 23:07:22.102 | [headless] creating new connection
+2025-11-11 23:07:22.103 | [Alpha Server] Received: episode_9_startRecordingPhase (no listeners)
+2025-11-11 23:07:22.103 | [headless] Connected to server
+2025-11-11 23:07:23.103 | [sendToOtherBot] entryPoint end: Sending episode_9_structureEvalPhase_0 via client connection
+2025-11-11 23:07:23.104 | [Alpha Server] Received: episode_9_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:07:23.104 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_9_structureEvalPhase_0 via client connection
+2025-11-11 23:07:23.104 | [Alpha] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:07:23.104 | [Alpha] 📍 Spawn position: (-852.5, 64, 1074.5)
+2025-11-11 23:07:23.104 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-11 23:07:23.104 | [Alpha] 🎭 Role mode: bravo_builds, Role: OBSERVER
+2025-11-11 23:07:23.104 | [Alpha] 🧍 STEP 1b-sneak: Remaining stationary (observer role)
+2025-11-11 23:07:23.104 | [Alpha Server] Received: episode_9_structureEvalPhase_0 (no listeners)
+2025-11-11 23:07:24.020 | [Alpha] 🧍 STEP 2: Remaining stationary (observer role)...
+2025-11-11 23:07:25.320 | [Alpha] 📐 STEP 3: Planning structure...
+2025-11-11 23:07:25.320 | [Alpha] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:07:25.320 | [Alpha] 📋 Observing 2 blocks with stone
+2025-11-11 23:07:25.320 | [Alpha] 🧍 STEP 4: Remaining stationary (observer role)...
+2025-11-11 23:07:28.204 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:07:28.204 | [Alpha] 🧍 STEP 5: Remaining stationary (observer role)...
+2025-11-11 23:07:36.406 | [Alpha] ✅ Finished waiting (stationary)
+2025-11-11 23:07:36.406 | [Alpha] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:07:36.406 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_9_stopPhase via client connection
+2025-11-11 23:07:36.923 | [Alpha Server] Received: episode_9_stopPhase (1 listeners) - emitting
+2025-11-11 23:07:36.923 | [sendToOtherBot] stopPhase beginning: Sending episode_9_stopPhase via client connection
+2025-11-11 23:07:36.923 | [Alpha] stops recording
+2025-11-11 23:07:36.923 | [headless] ending episode
+2025-11-11 23:07:36.923 | [Alpha] waiting for episode recording to end...
+2025-11-11 23:07:36.924 | [Alpha Server] Received: episode_9_stopPhase (no listeners)
+2025-11-11 23:07:36.966 | [headless] sending zero end of stream
+2025-11-11 23:07:36.991 | [headless] Socket ended
+2025-11-11 23:07:36.991 | [headless] Socket state at end: {
+2025-11-11 23:07:36.991 |   writable: false,
+2025-11-11 23:07:36.991 |   destroyed: false,
+2025-11-11 23:07:36.991 |   connecting: false,
+2025-11-11 23:07:36.991 |   bytesWritten: 111333,
+2025-11-11 23:07:36.991 |   bytesRead: 0
+2025-11-11 23:07:36.991 | }
+2025-11-11 23:07:36.992 | [headless] Socket closed
+2025-11-11 23:07:36.992 | [headless] connection closed, firing episodeended event
+2025-11-11 23:07:36.992 | [Alpha] episode recording ended, connection closed
+2025-11-11 23:07:37.967 | [Alpha Server] Received: episode_9_stoppedPhase (no listeners)
+2025-11-11 23:07:37.992 | [sendToOtherBot] StopPhase end: Sending episode_9_stoppedPhase via client connection
+2025-11-11 23:07:37.992 | [Alpha Server] Received: episode_9_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:07:37.992 | [sendToOtherBot] stoppedPhase beginning: Sending episode_9_stoppedPhase via client connection
+2025-11-11 23:07:37.992 | [Alpha] stopped
+2025-11-11 23:07:37.992 | [Alpha] All event handlers finished
+2025-11-11 23:07:37.992 | [Alpha] Stopped PVP for episode 9
+2025-11-11 23:07:37.993 | [Alpha] Stopped pathfinder navigation for episode 9
+2025-11-11 23:07:37.993 | [Alpha] tearing down episode 9
+2025-11-11 23:07:37.993 | [Alpha] Episode 9 completed
+2025-11-11 23:07:37.998 | [Alpha] Saved episode info to /output/20251112_040737_000009_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:07:37.998 | [Alpha] Syncing bots for episode 9
+2025-11-11 23:07:37.998 | [sendToOtherBot] syncBots outer: Sending episode_9_syncBots via client connection
+2025-11-11 23:07:37.999 | [Alpha Server] Received: episode_9_syncBots (1 listeners) - emitting
+2025-11-11 23:07:37.999 | [sendToOtherBot] syncBots beginning: Sending episode_9_syncBots via client connection
+2025-11-11 23:07:38.000 | [Alpha] Syncing bots...
+2025-11-11 23:07:38.000 | [Alpha] Synced bots for episode 9
+2025-11-11 23:07:38.000 | [Alpha Server] Received: episode_9_syncBots (no listeners)
+2025-11-11 23:07:38.001 | [Alpha] All 10 episodes completed
+2025-11-11 23:03:11.002 | [entrypoint] Starting Xvfb on :99 ...
+2025-11-11 23:03:11.110 | [entrypoint] Xvfb is up
+2025-11-11 23:03:11.110 | [entrypoint] GLX sanity check:
+2025-11-11 23:03:11.170 | name of display: :99
+2025-11-11 23:03:11.170 | display: :99  screen: 0
+2025-11-11 23:03:11.170 | direct rendering: Yes
+2025-11-11 23:03:11.170 | Extended renderer info (GLX_MESA_query_renderer):
+2025-11-11 23:03:11.170 |     Vendor: Mesa/X.org (0xffffffff)
+2025-11-11 23:03:11.170 |     Device: llvmpipe (LLVM 15.0.6, 256 bits) (0xffffffff)
+2025-11-11 23:03:11.170 |     Version: 22.3.6
+2025-11-11 23:03:11.170 |     Accelerated: no
+2025-11-11 23:03:11.170 |     Video memory: 15801MB
+2025-11-11 23:03:11.170 |     Unified memory: yes
+2025-11-11 23:03:11.170 |     Preferred profile: core (0x1)
+2025-11-11 23:03:11.170 |     Max core profile version: 3.3
+2025-11-11 23:03:11.170 |     Max compat profile version: 3.3
+2025-11-11 23:03:11.170 |     Max GLES1 profile version: 1.1
+2025-11-11 23:03:11.170 |     Max GLES[23] profile version: 3.2
+2025-11-11 23:03:11.170 | OpenGL vendor string: Mesa/X.org
+2025-11-11 23:03:11.170 | OpenGL renderer string: llvmpipe (LLVM 15.0.6, 256 bits)
+2025-11-11 23:03:11.170 | OpenGL core profile version string: 3.3 (Core Profile) Mesa 22.3.6
+2025-11-11 23:03:11.170 | OpenGL core profile shading language version string: 3.30
+2025-11-11 23:03:11.170 | OpenGL core profile context flags: (none)
+2025-11-11 23:03:11.170 | OpenGL core profile profile mask: core profile
+2025-11-11 23:03:11.170 | 
+2025-11-11 23:03:11.170 | OpenGL version string: 3.3 (Compatibility Profile) Mesa 22.3.6
+2025-11-11 23:03:11.170 | OpenGL shading language version string: 3.30
+2025-11-11 23:03:11.170 | OpenGL context flags: (none)
+2025-11-11 23:03:11.170 | OpenGL profile mask: compatibility profile
+2025-11-11 23:03:11.170 | 
+2025-11-11 23:03:11.170 | OpenGL ES profile version string: OpenGL ES 3.2 Mesa 22.3.6
+2025-11-11 23:03:11.170 | OpenGL ES profile shading language version string: OpenGL ES GLSL ES 3.20
+2025-11-11 23:03:11.170 | 
+2025-11-11 23:03:11.172 | [entrypoint] Launching app...
+2025-11-11 23:03:11.172 | [entrypoint] Bot config: Bravo <-> Alpha, Ports: 8100/8100, Instance: 0
+2025-11-11 23:03:11.556 | DEBUG environment variable: undefined
+2025-11-11 23:03:11.558 | Starting bot: Bravo
+2025-11-11 23:03:11.558 | Coordinator: Bravo, Ports: 8100/8100
+2025-11-11 23:03:11.558 | [Bravo] Waiting 1 seconds before creating bot...
+2025-11-11 23:03:12.667 | Mineflayer detected that you are using a deprecated event (physicTick)! Please use this event (physicsTick) instead.
+2025-11-11 23:03:13.355 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"Bravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell Bravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[743612312,1992048000,-1359440332,-1270157749]},"name":{"type":"string","value":"Bravo"}}}}},"text":{"type":"string","value":"Bravo"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-11 23:03:13.364 | [Bravo] resistEffectRes=Applied effect Resistance to Bravo
+2025-11-11 23:03:13.365 | [Bravo] waterBreathingEffectRes=Applied effect Water Breathing to Bravo
+2025-11-11 23:03:13.374 | [Bravo] fallDamageRes=Can't find element 'minecraft:fall_damage_multiplier' of type 'minecraft:attribute'
+2025-11-11 23:03:13.374 | [Bravo] set difficulty to peaceful, difficultyRes=The difficulty did not change; it is already set to peaceful
+2025-11-11 23:03:13.375 | [Bravo] set fallDamage gamerule to false, fallDamageGameruleRes=Gamerule fallDamage is now set to: false
+2025-11-11 23:03:13.377 | [Bravo] set doImmediateRespawn gamerule to true, doImmediateRespawnRes=Gamerule doImmediateRespawn is now set to: true
+2025-11-11 23:03:13.377 | [Bravo] set keepInventory gamerule to true, keepInventoryRes=Gamerule keepInventory is now set to: true
+2025-11-11 23:03:13.378 | [Bravo] set showDeathMessages gamerule to false, showDeathMessagesRes=Gamerule showDeathMessages is now set to: false
+2025-11-11 23:03:13.381 | [Bravo] givePickaxeRes=Gave 1 [Diamond Pickaxe] to Bravo
+2025-11-11 23:03:13.384 | [Bravo] giveShovelRes=Gave 1 [Diamond Shovel] to Bravo
+2025-11-11 23:03:13.385 | [Bravo] tag Bravo add minebot result: Added tag 'minebot' to Bravo
+2025-11-11 23:03:13.385 | Setting up coordinator connections...
+2025-11-11 23:03:13.385 | [Bravo] Setting up connections...
+2025-11-11 23:03:13.387 | [Bravo Server] Listening on port 8100, waiting for other bot to connect...
+2025-11-11 23:03:13.387 | [Bravo Client] Connected to other bot's server at sender_alpha:8100
+2025-11-11 23:03:14.691 | [Bravo Server] Other bot connected
+2025-11-11 23:03:14.691 | [Bravo] All connections established - server ready: true, client ready: true
+2025-11-11 23:03:14.691 | All coordinator connections ready, proceeding with bot spawn...
+2025-11-11 23:03:14.691 | [Bravo] spawned at (-2.50, 64.00, 6.50)
+2025-11-11 23:03:14.691 | [Bravo] Waiting for cameras to join server...
+2025-11-11 23:03:14.691 | [camera-ready] Waiting for cameras: CameraAlpha, CameraBravo
+2025-11-11 23:03:14.691 | [camera-ready] Max retries: 300, check interval: 2000ms
+2025-11-11 23:03:14.691 | [Bravo Server] Other bot connected
+2025-11-11 23:03:14.694 | [camera-ready] Attempt 1/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:16.698 | [camera-ready] Attempt 2/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:18.700 | [camera-ready] Attempt 3/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:20.704 | [camera-ready] Attempt 4/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:22.708 | [camera-ready] Attempt 5/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:24.711 | [camera-ready] Attempt 6/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-11 23:03:25.654 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraAlpha"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraAlpha "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-654309493,1385970675,-1573190332,1256197083]},"name":{"type":"string","value":"CameraAlpha"}}}}},"text":{"type":"string","value":"CameraAlpha"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-11 23:03:26.626 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraBravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraBravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-299957078,-211471048,-1986246765,220115609]},"name":{"type":"string","value":"CameraBravo"}}}}},"text":{"type":"string","value":"CameraBravo"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-11 23:03:26.801 | [camera-ready] All cameras present: CameraAlpha, CameraBravo
+2025-11-11 23:03:26.807 | [CameraBravo] resistEffectRes=Applied effect Resistance to CameraBravo
+2025-11-11 23:03:26.810 | [CameraBravo] waterBreathingEffectRes=Applied effect Water Breathing to CameraBravo
+2025-11-11 23:03:26.810 | [CameraBravo] fallDamageRes=Can't find element 'minecraft:fall_damage_multiplier' of type 'minecraft:attribute'
+2025-11-11 23:03:26.810 | [Bravo] Cameras detected, waiting 1s for popups to clear...
+2025-11-11 23:03:27.812 | disableRendering 1
+2025-11-11 23:03:27.813 | [Bravo] Selected episode type: structureEval
+2025-11-11 23:03:27.813 | [Bravo] Created StructureEvalEpisode instance for episode 0
+2025-11-11 23:03:28.190 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"green"},"text":{"type":"string","value":"[Episode] Episode started!"}}}
+2025-11-11 23:03:28.813 | [Bravo] Starting episode 0
+2025-11-11 23:03:28.813 | [Bravo] episode 0 at (-2.50, 64.00, 6.50)
+2025-11-11 23:03:28.813 | [sendToOtherBot] spawnPhase end: Sending episode_0_teleportPhase via client connection
+2025-11-11 23:03:28.814 | [Bravo Server] Received: episode_0_teleportPhase (1 listeners) - emitting
+2025-11-11 23:03:28.814 | [sendToOtherBot] teleportPhase beginning: Sending episode_0_teleportPhase via client connection
+2025-11-11 23:03:28.814 | [Bravo] initializing teleport center
+2025-11-11 23:03:28.815 | [Bravo] teleport radius: 3000
+2025-11-11 23:03:28.815 | [Bravo] picked random center at (1215.48, -725.97)
+2025-11-11 23:03:28.815 | [sendToOtherBot] teleportPhase end: Sending episode_0_postTeleportPhase via client connection
+2025-11-11 23:03:28.815 | [Bravo Server] Received: episode_0_teleportPhase (no listeners)
+2025-11-11 23:03:29.997 | [Bravo Server] Received: episode_0_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:03:29.997 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_0_postTeleportPhase via client connection
+2025-11-11 23:03:29.997 | [Bravo] our position after teleport: {"position":{"x":1214.5,"y":64,"z":-725.5}}
+2025-11-11 23:03:29.998 | [sendToOtherBot] postTeleportPhase end: Sending episode_0_beforeStartRecordingPhase via client connection
+2025-11-11 23:03:29.998 | [Bravo Server] Received: episode_0_postTeleportPhase (no listeners)
+2025-11-11 23:03:29.998 | [Bravo Server] Received: episode_0_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:03:29.998 | [Bravo] other position before start recording: {"position":{"x":1208.5,"y":64,"z":-718.5}}
+2025-11-11 23:03:29.999 | [Bravo] Looking at (1208.50, 64.00, -718.50) at 30°/s over 1.35s
+2025-11-11 23:03:31.357 | [Bravo] setting up episode 0
+2025-11-11 23:03:31.357 | [Bravo] inventory stone: have=0, target=128, need=128
+2025-11-11 23:03:31.367 | [Bravo] ensureBotHasEnough: give Bravo minecraft:stone 128 -> Gave 128 [Stone] to Bravo
+2025-11-11 23:03:32.167 | [Bravo] inventory stone: now 128/128
+2025-11-11 23:03:32.171 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-11 23:03:32.173 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-11 23:03:33.173 | [Bravo] unequipping hand before episode
+2025-11-11 23:03:33.174 | [Bravo] Unequipped diamond_pickaxe from main hand
+2025-11-11 23:03:34.175 | [sendToOtherBot] teleportPhase end: Sending episode_0_startRecordingPhase via client connection
+2025-11-11 23:03:37.499 | [Bravo Server] Received: episode_0_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:03:37.499 | [sendToOtherBot] startRecordingPhase end: Sending episode_0_startRecordingPhase via client connection
+2025-11-11 23:03:37.499 | [Bravo] starting episode recording
+2025-11-11 23:03:37.499 | [headless] starting episode - connecting to receiver, episode number 0
+2025-11-11 23:03:37.499 | [headless] creating new connection
+2025-11-11 23:03:37.500 | [Bravo Server] Received: episode_0_startRecordingPhase (no listeners)
+2025-11-11 23:03:37.501 | [headless] Connected to server
+2025-11-11 23:03:38.500 | [sendToOtherBot] entryPoint end: Sending episode_0_structureEvalPhase_0 via client connection
+2025-11-11 23:03:38.501 | [Bravo Server] Received: episode_0_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:03:38.501 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_0_structureEvalPhase_0 via client connection
+2025-11-11 23:03:38.502 | [Bravo] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:03:38.502 | [Bravo] 📍 Spawn position: (1214.5, 64, -725.5)
+2025-11-11 23:03:38.502 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-11 23:03:38.502 | [Bravo] 🎭 Role mode: bravo_builds, Role: BUILDER
+2025-11-11 23:03:38.502 | [Bravo] 🔧 STEP 1b-pre: Equipping stone in hand...
+2025-11-11 23:03:38.502 | [Bravo] ✅ Equipped stone in hand
+2025-11-11 23:03:38.503 | [Bravo Server] Received: episode_0_structureEvalPhase_0 (no listeners)
+2025-11-11 23:03:38.803 | [Bravo] 🤫 STEP 1b-sneak: Sneaking for 0.75s...
+2025-11-11 23:03:38.803 | [Bravo] 🎬 FRAME COUNTING START at 1762920218803
+2025-11-11 23:03:39.532 | [Bravo] ✅ Sneak complete
+2025-11-11 23:03:39.732 | [Bravo] 👀 STEP 2: Making eye contact with Alpha...
+2025-11-11 23:03:41.033 | [Bravo] 📐 STEP 3: Planning structure...
+2025-11-11 23:03:41.033 | [Bravo] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:03:41.033 | [Bravo] 📋 Building 2 blocks with stone
+2025-11-11 23:03:41.033 | [Bravo] 🏗️ STEP 4: Building structure...
+2025-11-11 23:03:41.033 | [Bravo] 🏗️ Starting to build 2 blocks...
+2025-11-11 23:03:41.040 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: true, dig: true, entityDetection: true }
+2025-11-11 23:03:41.044 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: false, dig: false, entityDetection: true }
+2025-11-11 23:03:41.044 | [Bravo] 🚶 Moving to adjacent position (1215.0, 64, -727.0) before placing at (1217, 64, -726)
+2025-11-11 23:03:42.147 | [Bravo] 👁️ Looking at reference face at (1217, 63, -726) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:03:42.163 | [Bravo] ✅ Placed block at (1217, 64, -726)
+2025-11-11 23:03:43.563 | [Bravo] 🚶 Moving to adjacent position (1215.0, 65, -727.0) before placing at (1217, 65, -726)
+2025-11-11 23:03:44.152 | [Bravo] 👁️ Looking at reference face at (1217, 64, -726) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:03:44.156 | [Bravo] ✅ Placed block at (1217, 65, -726)
+2025-11-11 23:03:45.556 | [Bravo] 🏁 Build complete!
+2025-11-11 23:03:45.556 | [Bravo]    Success: 2/2
+2025-11-11 23:03:45.556 | [Bravo]    Failed: 0/2
+2025-11-11 23:03:45.556 | [Bravo] 🚶 STEP 5: Moving to stand next to observer...
+2025-11-11 23:03:45.559 | [Bravo] Pathfinder initialized with settings: { sprint: true, parkour: true, dig: false, entityDetection: true }
+2025-11-11 23:03:45.559 | [Bravo] 📐 Observer yaw: 5.60, moving to side position (1209.8, -717.0)
+2025-11-11 23:03:47.631 | [Bravo] ✅ Moved next to observer (side position)
+2025-11-11 23:03:47.631 | [Bravo] 👁️ Looking at structure together...
+2025-11-11 23:03:47.631 | [Bravo] Looking at (1217.00, 65.00, -726.00) at 90°/s over 1.43s
+2025-11-11 23:03:51.747 | [Bravo Server] Received: episode_0_stopPhase (no listeners)
+2025-11-11 23:03:52.293 | [Bravo] ✅ Admired structure from observer position
+2025-11-11 23:03:52.293 | [Bravo] 🎬 FRAME COUNTING END at 1762920232293
+2025-11-11 23:03:52.293 | [Bravo] ⏱️  ML Training Segment Duration: 13.49s
+2025-11-11 23:03:52.293 | [Bravo] 🎞️  Estimated Frames (at 20 FPS): 270 frames
+2025-11-11 23:03:52.293 | [Bravo] 📊 Target: 300 frames | Actual: 270 | Difference: -30 frames
+2025-11-11 23:03:52.293 | [Bravo] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:03:52.294 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_0_stopPhase via client connection
+2025-11-11 23:03:52.294 | [Bravo Server] Received: episode_0_stopPhase (1 listeners) - emitting
+2025-11-11 23:03:52.295 | [sendToOtherBot] stopPhase beginning: Sending episode_0_stopPhase via client connection
+2025-11-11 23:03:52.295 | [Bravo] stops recording
+2025-11-11 23:03:52.295 | [headless] ending episode
+2025-11-11 23:03:52.295 | [Bravo] waiting for episode recording to end...
+2025-11-11 23:03:52.316 | [headless] sending zero end of stream
+2025-11-11 23:03:52.343 | [headless] Socket ended
+2025-11-11 23:03:52.343 | [headless] Socket state at end: {
+2025-11-11 23:03:52.343 |   writable: false,
+2025-11-11 23:03:52.343 |   destroyed: false,
+2025-11-11 23:03:52.343 |   connecting: false,
+2025-11-11 23:03:52.343 |   bytesWritten: 114386,
+2025-11-11 23:03:52.343 |   bytesRead: 0
+2025-11-11 23:03:52.343 | }
+2025-11-11 23:03:52.343 | [headless] Socket closed
+2025-11-11 23:03:52.344 | [headless] connection closed, firing episodeended event
+2025-11-11 23:03:52.344 | [Bravo] episode recording ended, connection closed
+2025-11-11 23:03:53.344 | [sendToOtherBot] StopPhase end: Sending episode_0_stoppedPhase via client connection
+2025-11-11 23:03:53.347 | [Bravo Server] Received: episode_0_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:03:53.347 | [sendToOtherBot] stoppedPhase beginning: Sending episode_0_stoppedPhase via client connection
+2025-11-11 23:03:53.347 | [Bravo] stopped
+2025-11-11 23:03:53.347 | [Bravo] All event handlers finished
+2025-11-11 23:03:53.347 | [Bravo] Stopped PVP for episode 0
+2025-11-11 23:03:53.348 | [Bravo] Stopped pathfinder navigation for episode 0
+2025-11-11 23:03:53.348 | [Bravo] tearing down episode 0
+2025-11-11 23:03:53.348 | [Bravo] Episode 0 completed
+2025-11-11 23:03:53.348 | [Bravo Server] Received: episode_0_stoppedPhase (no listeners)
+2025-11-11 23:03:53.357 | [Bravo Server] Received: episode_0_syncBots (no listeners)
+2025-11-11 23:03:53.359 | [Bravo] Saved episode info to /output/20251112_040353_000000_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:03:53.359 | [Bravo] Syncing bots for episode 0
+2025-11-11 23:03:53.359 | [sendToOtherBot] syncBots outer: Sending episode_0_syncBots via client connection
+2025-11-11 23:03:53.360 | [Bravo Server] Received: episode_0_syncBots (1 listeners) - emitting
+2025-11-11 23:03:53.360 | [sendToOtherBot] syncBots beginning: Sending episode_0_syncBots via client connection
+2025-11-11 23:03:53.360 | [Bravo] Syncing bots...
+2025-11-11 23:03:53.360 | [Bravo] Synced bots for episode 0
+2025-11-11 23:03:53.360 | [Bravo] Selected episode type: structureEval
+2025-11-11 23:03:53.360 | [Bravo] Created StructureEvalEpisode instance for episode 1
+2025-11-11 23:03:54.361 | [Bravo] Starting episode 1
+2025-11-11 23:03:54.361 | [Bravo] episode 1 at (1209.43, 64.00, -717.64)
+2025-11-11 23:03:54.361 | [sendToOtherBot] spawnPhase end: Sending episode_1_teleportPhase via client connection
+2025-11-11 23:03:54.361 | [Bravo Server] Received: episode_1_teleportPhase (1 listeners) - emitting
+2025-11-11 23:03:54.361 | [sendToOtherBot] teleportPhase beginning: Sending episode_1_teleportPhase via client connection
+2025-11-11 23:03:54.361 | [Bravo] teleport radius: 3000
+2025-11-11 23:03:54.361 | [Bravo] picked random center at (-2010.34, 221.43)
+2025-11-11 23:03:54.361 | [sendToOtherBot] teleportPhase end: Sending episode_1_postTeleportPhase via client connection
+2025-11-11 23:03:54.361 | [Bravo Server] Received: episode_1_teleportPhase (no listeners)
+2025-11-11 23:03:55.474 | [Bravo Server] Received: episode_1_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:03:55.474 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_1_postTeleportPhase via client connection
+2025-11-11 23:03:55.474 | [Bravo] our position after teleport: {"position":{"x":-2016.5,"y":64,"z":219.5}}
+2025-11-11 23:03:55.474 | [sendToOtherBot] postTeleportPhase end: Sending episode_1_beforeStartRecordingPhase via client connection
+2025-11-11 23:03:55.474 | [Bravo Server] Received: episode_1_postTeleportPhase (no listeners)
+2025-11-11 23:03:55.475 | [Bravo Server] Received: episode_1_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:03:55.475 | [Bravo] other position before start recording: {"position":{"x":-2013.5,"y":64,"z":227.5}}
+2025-11-11 23:03:55.475 | [Bravo] Looking at (-2013.50, 64.00, 227.50) at 30°/s over 3.91s
+2025-11-11 23:03:59.402 | [Bravo] setting up episode 1
+2025-11-11 23:03:59.402 | [Bravo] inventory stone: have=126, target=128, need=2
+2025-11-11 23:03:59.404 | [Bravo] ensureBotHasEnough: give Bravo minecraft:stone 2 -> Gave 2 [Stone] to Bravo
+2025-11-11 23:03:59.540 | [Bravo Server] Received: episode_1_startRecordingPhase (no listeners)
+2025-11-11 23:04:00.205 | [Bravo] inventory stone: now 128/128
+2025-11-11 23:04:00.209 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-11 23:04:00.210 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-11 23:04:01.211 | [Bravo] unequipping hand before episode
+2025-11-11 23:04:01.211 | [Bravo] Unequipped stone from main hand
+2025-11-11 23:04:02.212 | [sendToOtherBot] teleportPhase end: Sending episode_1_startRecordingPhase via client connection
+2025-11-11 23:04:02.213 | [Bravo Server] Received: episode_1_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:04:02.213 | [sendToOtherBot] startRecordingPhase end: Sending episode_1_startRecordingPhase via client connection
+2025-11-11 23:04:02.213 | [Bravo] starting episode recording
+2025-11-11 23:04:02.213 | [headless] starting episode - connecting to receiver, episode number 1
+2025-11-11 23:04:02.213 | [headless] creating new connection
+2025-11-11 23:04:02.214 | [headless] Connected to server
+2025-11-11 23:04:03.213 | [Bravo Server] Received: episode_1_structureEvalPhase_0 (no listeners)
+2025-11-11 23:04:03.214 | [sendToOtherBot] entryPoint end: Sending episode_1_structureEvalPhase_0 via client connection
+2025-11-11 23:04:03.215 | [Bravo Server] Received: episode_1_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:04:03.215 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_1_structureEvalPhase_0 via client connection
+2025-11-11 23:04:03.215 | [Bravo] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:04:03.215 | [Bravo] 📍 Spawn position: (-2016.5, 64, 219.5)
+2025-11-11 23:04:03.215 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-11 23:04:03.215 | [Bravo] 🎭 Role mode: alpha_builds, Role: OBSERVER
+2025-11-11 23:04:03.215 | [Bravo] 🧍 STEP 1b-sneak: Remaining stationary (observer role)
+2025-11-11 23:04:04.139 | [Bravo] 🧍 STEP 2: Remaining stationary (observer role)...
+2025-11-11 23:04:05.439 | [Bravo] 📐 STEP 3: Planning structure...
+2025-11-11 23:04:05.439 | [Bravo] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:04:05.440 | [Bravo] 📋 Observing 2 blocks with stone
+2025-11-11 23:04:05.440 | [Bravo] 🧍 STEP 4: Remaining stationary (observer role)...
+2025-11-11 23:04:08.240 | [Bravo] ✅ Finished waiting (stationary)
+2025-11-11 23:04:08.240 | [Bravo] 🧍 STEP 5: Remaining stationary (observer role)...
+2025-11-11 23:04:16.441 | [Bravo] ✅ Finished waiting (stationary)
+2025-11-11 23:04:16.441 | [Bravo] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:04:16.441 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_1_stopPhase via client connection
+2025-11-11 23:04:17.065 | [Bravo Server] Received: episode_1_stopPhase (1 listeners) - emitting
+2025-11-11 23:04:17.065 | [sendToOtherBot] stopPhase beginning: Sending episode_1_stopPhase via client connection
+2025-11-11 23:04:17.065 | [Bravo] stops recording
+2025-11-11 23:04:17.065 | [headless] ending episode
+2025-11-11 23:04:17.065 | [Bravo] waiting for episode recording to end...
+2025-11-11 23:04:17.065 | [Bravo Server] Received: episode_1_stopPhase (no listeners)
+2025-11-11 23:04:17.074 | [headless] sending zero end of stream
+2025-11-11 23:04:17.097 | [headless] Socket ended
+2025-11-11 23:04:17.097 | [headless] Socket state at end: {
+2025-11-11 23:04:17.097 |   writable: false,
+2025-11-11 23:04:17.097 |   destroyed: false,
+2025-11-11 23:04:17.097 |   connecting: false,
+2025-11-11 23:04:17.097 |   bytesWritten: 111794,
+2025-11-11 23:04:17.097 |   bytesRead: 0
+2025-11-11 23:04:17.097 | }
+2025-11-11 23:04:17.097 | [headless] Socket closed
+2025-11-11 23:04:17.097 | [headless] connection closed, firing episodeended event
+2025-11-11 23:04:17.097 | [Bravo] episode recording ended, connection closed
+2025-11-11 23:04:18.098 | [sendToOtherBot] StopPhase end: Sending episode_1_stoppedPhase via client connection
+2025-11-11 23:04:18.102 | [Bravo Server] Received: episode_1_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:04:18.102 | [sendToOtherBot] stoppedPhase beginning: Sending episode_1_stoppedPhase via client connection
+2025-11-11 23:04:18.102 | [Bravo] stopped
+2025-11-11 23:04:18.102 | [Bravo] All event handlers finished
+2025-11-11 23:04:18.102 | [Bravo] Stopped PVP for episode 1
+2025-11-11 23:04:18.102 | [Bravo] Stopped pathfinder navigation for episode 1
+2025-11-11 23:04:18.102 | [Bravo] tearing down episode 1
+2025-11-11 23:04:18.102 | [Bravo] Episode 1 completed
+2025-11-11 23:04:18.103 | [Bravo Server] Received: episode_1_stoppedPhase (no listeners)
+2025-11-11 23:04:18.106 | [Bravo] Saved episode info to /output/20251112_040418_000001_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:04:18.106 | [Bravo] Syncing bots for episode 1
+2025-11-11 23:04:18.106 | [sendToOtherBot] syncBots outer: Sending episode_1_syncBots via client connection
+2025-11-11 23:04:18.108 | [Bravo Server] Received: episode_1_syncBots (1 listeners) - emitting
+2025-11-11 23:04:18.108 | [sendToOtherBot] syncBots beginning: Sending episode_1_syncBots via client connection
+2025-11-11 23:04:18.108 | [Bravo] Syncing bots...
+2025-11-11 23:04:18.108 | [Bravo] Synced bots for episode 1
+2025-11-11 23:04:18.108 | [Bravo] Selected episode type: structureEval
+2025-11-11 23:04:18.108 | [Bravo] Created StructureEvalEpisode instance for episode 2
+2025-11-11 23:04:18.108 | [Bravo Server] Received: episode_1_syncBots (no listeners)
+2025-11-11 23:04:19.110 | [Bravo] Starting episode 2
+2025-11-11 23:04:19.110 | [Bravo] episode 2 at (-2016.50, 64.00, 219.50)
+2025-11-11 23:04:19.110 | [sendToOtherBot] spawnPhase end: Sending episode_2_teleportPhase via client connection
+2025-11-11 23:04:19.110 | [Bravo Server] Received: episode_2_teleportPhase (1 listeners) - emitting
+2025-11-11 23:04:19.110 | [sendToOtherBot] teleportPhase beginning: Sending episode_2_teleportPhase via client connection
+2025-11-11 23:04:19.110 | [Bravo] teleport radius: 3000
+2025-11-11 23:04:19.110 | [Bravo] picked random center at (1123.81, -271.05)
+2025-11-11 23:04:19.110 | [sendToOtherBot] teleportPhase end: Sending episode_2_postTeleportPhase via client connection
+2025-11-11 23:04:19.110 | [Bravo Server] Received: episode_2_teleportPhase (no listeners)
+2025-11-11 23:04:20.361 | [Bravo Server] Received: episode_2_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:04:20.361 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_2_postTeleportPhase via client connection
+2025-11-11 23:04:20.361 | [Bravo] our position after teleport: {"position":{"x":1117.5,"y":64,"z":-274.5}}
+2025-11-11 23:04:20.361 | [sendToOtherBot] postTeleportPhase end: Sending episode_2_beforeStartRecordingPhase via client connection
+2025-11-11 23:04:20.361 | [Bravo Server] Received: episode_2_postTeleportPhase (no listeners)
+2025-11-11 23:04:20.362 | [Bravo Server] Received: episode_2_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:04:20.362 | [Bravo] other position before start recording: {"position":{"x":1125.5,"y":64,"z":-278.5}}
+2025-11-11 23:04:20.362 | [Bravo] Looking at (1125.50, 64.00, -278.50) at 30°/s over 3.20s
+2025-11-11 23:04:23.571 | [Bravo] setting up episode 2
+2025-11-11 23:04:23.572 | [Bravo] inventory stone: have=128, target=128, need=0
+2025-11-11 23:04:23.573 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-11 23:04:23.575 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-11 23:04:24.575 | [Bravo] unequipping hand before episode
+2025-11-11 23:04:24.575 | [Bravo] No item equipped in hand
+2025-11-11 23:04:25.652 | [sendToOtherBot] teleportPhase end: Sending episode_2_startRecordingPhase via client connection
+2025-11-11 23:04:26.315 | [Bravo Server] Received: episode_2_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:04:26.315 | [sendToOtherBot] startRecordingPhase end: Sending episode_2_startRecordingPhase via client connection
+2025-11-11 23:04:26.315 | [Bravo] starting episode recording
+2025-11-11 23:04:26.315 | [headless] starting episode - connecting to receiver, episode number 2
+2025-11-11 23:04:26.315 | [headless] creating new connection
+2025-11-11 23:04:26.315 | [Bravo Server] Received: episode_2_startRecordingPhase (no listeners)
+2025-11-11 23:04:26.316 | [headless] Connected to server
+2025-11-11 23:04:27.316 | [sendToOtherBot] entryPoint end: Sending episode_2_structureEvalPhase_0 via client connection
+2025-11-11 23:04:27.316 | [Bravo Server] Received: episode_2_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:04:27.316 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_2_structureEvalPhase_0 via client connection
+2025-11-11 23:04:27.316 | [Bravo] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:04:27.316 | [Bravo] 📍 Spawn position: (1117.5, 64, -274.5)
+2025-11-11 23:04:27.316 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-11 23:04:27.316 | [Bravo] 🎭 Role mode: alpha_builds, Role: OBSERVER
+2025-11-11 23:04:27.316 | [Bravo] 🧍 STEP 1b-sneak: Remaining stationary (observer role)
+2025-11-11 23:04:27.316 | [Bravo Server] Received: episode_2_structureEvalPhase_0 (no listeners)
+2025-11-11 23:04:28.238 | [Bravo] 🧍 STEP 2: Remaining stationary (observer role)...
+2025-11-11 23:04:29.538 | [Bravo] 📐 STEP 3: Planning structure...
+2025-11-11 23:04:29.538 | [Bravo] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:04:29.539 | [Bravo] 📋 Observing 2 blocks with stone
+2025-11-11 23:04:29.539 | [Bravo] 🧍 STEP 4: Remaining stationary (observer role)...
+2025-11-11 23:04:32.338 | [Bravo] ✅ Finished waiting (stationary)
+2025-11-11 23:04:32.338 | [Bravo] 🧍 STEP 5: Remaining stationary (observer role)...
+2025-11-11 23:04:40.538 | [Bravo] ✅ Finished waiting (stationary)
+2025-11-11 23:04:40.538 | [Bravo] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:04:40.538 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_2_stopPhase via client connection
+2025-11-11 23:04:41.860 | [Bravo Server] Received: episode_2_stopPhase (1 listeners) - emitting
+2025-11-11 23:04:41.860 | [sendToOtherBot] stopPhase beginning: Sending episode_2_stopPhase via client connection
+2025-11-11 23:04:41.860 | [Bravo] stops recording
+2025-11-11 23:04:41.860 | [headless] ending episode
+2025-11-11 23:04:41.860 | [Bravo] waiting for episode recording to end...
+2025-11-11 23:04:41.860 | [Bravo Server] Received: episode_2_stopPhase (no listeners)
+2025-11-11 23:04:41.880 | [headless] sending zero end of stream
+2025-11-11 23:04:41.905 | [headless] Socket ended
+2025-11-11 23:04:41.905 | [headless] Socket state at end: {
+2025-11-11 23:04:41.905 |   writable: false,
+2025-11-11 23:04:41.905 |   destroyed: false,
+2025-11-11 23:04:41.905 |   connecting: false,
+2025-11-11 23:04:41.905 |   bytesWritten: 117396,
+2025-11-11 23:04:41.905 |   bytesRead: 0
+2025-11-11 23:04:41.905 | }
+2025-11-11 23:04:41.905 | [headless] Socket closed
+2025-11-11 23:04:41.905 | [headless] connection closed, firing episodeended event
+2025-11-11 23:04:41.905 | [Bravo] episode recording ended, connection closed
+2025-11-11 23:04:42.902 | [Bravo Server] Received: episode_2_stoppedPhase (no listeners)
+2025-11-11 23:04:42.906 | [sendToOtherBot] StopPhase end: Sending episode_2_stoppedPhase via client connection
+2025-11-11 23:04:42.907 | [Bravo Server] Received: episode_2_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:04:42.907 | [sendToOtherBot] stoppedPhase beginning: Sending episode_2_stoppedPhase via client connection
+2025-11-11 23:04:42.907 | [Bravo] stopped
+2025-11-11 23:04:42.907 | [Bravo] All event handlers finished
+2025-11-11 23:04:42.907 | [Bravo] Stopped PVP for episode 2
+2025-11-11 23:04:42.907 | [Bravo] Stopped pathfinder navigation for episode 2
+2025-11-11 23:04:42.907 | [Bravo] tearing down episode 2
+2025-11-11 23:04:42.907 | [Bravo] Episode 2 completed
+2025-11-11 23:04:42.910 | [Bravo Server] Received: episode_2_syncBots (no listeners)
+2025-11-11 23:04:42.912 | [Bravo] Saved episode info to /output/20251112_040442_000002_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:04:42.912 | [Bravo] Syncing bots for episode 2
+2025-11-11 23:04:42.912 | [sendToOtherBot] syncBots outer: Sending episode_2_syncBots via client connection
+2025-11-11 23:04:42.913 | [Bravo Server] Received: episode_2_syncBots (1 listeners) - emitting
+2025-11-11 23:04:42.913 | [sendToOtherBot] syncBots beginning: Sending episode_2_syncBots via client connection
+2025-11-11 23:04:42.913 | [Bravo] Syncing bots...
+2025-11-11 23:04:42.913 | [Bravo] Synced bots for episode 2
+2025-11-11 23:04:42.913 | [Bravo] Selected episode type: structureEval
+2025-11-11 23:04:42.913 | [Bravo] Created StructureEvalEpisode instance for episode 3
+2025-11-11 23:04:43.913 | [Bravo Server] Received: episode_3_teleportPhase (no listeners)
+2025-11-11 23:04:43.913 | [Bravo] Starting episode 3
+2025-11-11 23:04:43.913 | [Bravo] episode 3 at (1117.50, 64.00, -274.50)
+2025-11-11 23:04:43.913 | [sendToOtherBot] spawnPhase end: Sending episode_3_teleportPhase via client connection
+2025-11-11 23:04:43.914 | [Bravo Server] Received: episode_3_teleportPhase (1 listeners) - emitting
+2025-11-11 23:04:43.914 | [sendToOtherBot] teleportPhase beginning: Sending episode_3_teleportPhase via client connection
+2025-11-11 23:04:43.914 | [Bravo] teleport radius: 3000
+2025-11-11 23:04:43.914 | [Bravo] picked random center at (-133.20, 1276.31)
+2025-11-11 23:04:43.914 | [sendToOtherBot] teleportPhase end: Sending episode_3_postTeleportPhase via client connection
+2025-11-11 23:04:44.947 | [Bravo Server] Received: episode_3_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:04:44.947 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_3_postTeleportPhase via client connection
+2025-11-11 23:04:44.947 | [Bravo] our position after teleport: {"position":{"x":-137.5,"y":64,"z":1278.5}}
+2025-11-11 23:04:44.947 | [sendToOtherBot] postTeleportPhase end: Sending episode_3_beforeStartRecordingPhase via client connection
+2025-11-11 23:04:44.948 | [Bravo Server] Received: episode_3_postTeleportPhase (no listeners)
+2025-11-11 23:04:44.948 | [Bravo Server] Received: episode_3_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:04:44.948 | [Bravo] other position before start recording: {"position":{"x":-129.5,"y":64,"z":1278.5}}
+2025-11-11 23:04:44.948 | [Bravo] Looking at (-129.50, 64.00, 1278.50) at 30°/s over 0.89s
+2025-11-11 23:04:45.850 | [Bravo] setting up episode 3
+2025-11-11 23:04:45.850 | [Bravo] inventory stone: have=128, target=128, need=0
+2025-11-11 23:04:45.853 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-11 23:04:45.854 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-11 23:04:46.855 | [Bravo] unequipping hand before episode
+2025-11-11 23:04:46.855 | [Bravo] No item equipped in hand
+2025-11-11 23:04:47.856 | [sendToOtherBot] teleportPhase end: Sending episode_3_startRecordingPhase via client connection
+2025-11-11 23:04:52.724 | [Bravo Server] Received: episode_3_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:04:52.724 | [sendToOtherBot] startRecordingPhase end: Sending episode_3_startRecordingPhase via client connection
+2025-11-11 23:04:52.725 | [Bravo] starting episode recording
+2025-11-11 23:04:52.725 | [headless] starting episode - connecting to receiver, episode number 3
+2025-11-11 23:04:52.725 | [headless] creating new connection
+2025-11-11 23:04:52.725 | [Bravo Server] Received: episode_3_startRecordingPhase (no listeners)
+2025-11-11 23:04:52.726 | [headless] Connected to server
+2025-11-11 23:04:53.726 | [Bravo Server] Received: episode_3_structureEvalPhase_0 (no listeners)
+2025-11-11 23:04:53.726 | [sendToOtherBot] entryPoint end: Sending episode_3_structureEvalPhase_0 via client connection
+2025-11-11 23:04:53.727 | [Bravo Server] Received: episode_3_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:04:53.727 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_3_structureEvalPhase_0 via client connection
+2025-11-11 23:04:53.727 | [Bravo] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:04:53.727 | [Bravo] 📍 Spawn position: (-137.5, 64, 1278.5)
+2025-11-11 23:04:53.727 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-11 23:04:53.727 | [Bravo] 🎭 Role mode: bravo_builds, Role: BUILDER
+2025-11-11 23:04:53.727 | [Bravo] 🔧 STEP 1b-pre: Equipping stone in hand...
+2025-11-11 23:04:53.728 | [Bravo] ✅ Equipped stone in hand
+2025-11-11 23:04:54.028 | [Bravo] 🤫 STEP 1b-sneak: Sneaking for 0.75s...
+2025-11-11 23:04:54.028 | [Bravo] 🎬 FRAME COUNTING START at 1762920294028
+2025-11-11 23:04:54.765 | [Bravo] ✅ Sneak complete
+2025-11-11 23:04:54.965 | [Bravo] 👀 STEP 2: Making eye contact with Alpha...
+2025-11-11 23:04:56.396 | [Bravo] 📐 STEP 3: Planning structure...
+2025-11-11 23:04:56.396 | [Bravo] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:04:56.396 | [Bravo] 📋 Building 2 blocks with stone
+2025-11-11 23:04:56.396 | [Bravo] 🏗️ STEP 4: Building structure...
+2025-11-11 23:04:56.396 | [Bravo] 🏗️ Starting to build 2 blocks...
+2025-11-11 23:04:56.400 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: true, dig: true, entityDetection: true }
+2025-11-11 23:04:56.402 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: false, dig: false, entityDetection: true }
+2025-11-11 23:04:56.402 | [Bravo] 🚶 Moving to adjacent position (-137.0, 64, 1277.0) before placing at (-135, 64, 1278)
+2025-11-11 23:04:57.655 | [Bravo] 👁️ Looking at reference face at (-135, 63, 1278) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:04:57.658 | [Bravo] ✅ Placed block at (-135, 64, 1278)
+2025-11-11 23:04:59.059 | [Bravo] 🚶 Moving to adjacent position (-137.0, 65, 1277.0) before placing at (-135, 65, 1278)
+2025-11-11 23:04:59.616 | [Bravo] 👁️ Looking at reference face at (-135, 64, 1278) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:04:59.618 | [Bravo] ✅ Placed block at (-135, 65, 1278)
+2025-11-11 23:05:01.018 | [Bravo] 🏁 Build complete!
+2025-11-11 23:05:01.018 | [Bravo]    Success: 2/2
+2025-11-11 23:05:01.018 | [Bravo]    Failed: 0/2
+2025-11-11 23:05:01.018 | [Bravo] 🚶 STEP 5: Moving to stand next to observer...
+2025-11-11 23:05:01.021 | [Bravo] Pathfinder initialized with settings: { sprint: true, parkour: true, dig: false, entityDetection: true }
+2025-11-11 23:05:01.021 | [Bravo] 📐 Observer yaw: 1.60, moving to side position (-131.5, 1278.5)
+2025-11-11 23:05:01.990 | [Bravo] ✅ Moved next to observer (side position)
+2025-11-11 23:05:01.990 | [Bravo] 👁️ Looking at structure together...
+2025-11-11 23:05:01.990 | [Bravo] Looking at (-135.00, 65.00, 1278.00) at 90°/s over 1.76s
+2025-11-11 23:05:07.003 | [Bravo] ✅ Admired structure from observer position
+2025-11-11 23:05:07.003 | [Bravo] 🎬 FRAME COUNTING END at 1762920307003
+2025-11-11 23:05:07.003 | [Bravo] ⏱️  ML Training Segment Duration: 12.97s
+2025-11-11 23:05:07.003 | [Bravo] 🎞️  Estimated Frames (at 20 FPS): 260 frames
+2025-11-11 23:05:07.003 | [Bravo] 📊 Target: 300 frames | Actual: 260 | Difference: -40 frames
+2025-11-11 23:05:07.003 | [Bravo] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:05:07.003 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_3_stopPhase via client connection
+2025-11-11 23:05:07.038 | [Bravo Server] Received: episode_3_stopPhase (1 listeners) - emitting
+2025-11-11 23:05:07.039 | [sendToOtherBot] stopPhase beginning: Sending episode_3_stopPhase via client connection
+2025-11-11 23:05:07.039 | [Bravo] stops recording
+2025-11-11 23:05:07.039 | [headless] ending episode
+2025-11-11 23:05:07.039 | [Bravo] waiting for episode recording to end...
+2025-11-11 23:05:07.039 | [Bravo Server] Received: episode_3_stopPhase (no listeners)
+2025-11-11 23:05:07.072 | [headless] sending zero end of stream
+2025-11-11 23:05:07.097 | [headless] Socket ended
+2025-11-11 23:05:07.097 | [headless] Socket state at end: {
+2025-11-11 23:05:07.097 |   writable: false,
+2025-11-11 23:05:07.097 |   destroyed: false,
+2025-11-11 23:05:07.097 |   connecting: false,
+2025-11-11 23:05:07.097 |   bytesWritten: 112397,
+2025-11-11 23:05:07.097 |   bytesRead: 0
+2025-11-11 23:05:07.097 | }
+2025-11-11 23:05:07.097 | [headless] Socket closed
+2025-11-11 23:05:07.097 | [headless] connection closed, firing episodeended event
+2025-11-11 23:05:07.097 | [Bravo] episode recording ended, connection closed
+2025-11-11 23:05:08.093 | [Bravo Server] Received: episode_3_stoppedPhase (no listeners)
+2025-11-11 23:05:08.097 | [sendToOtherBot] StopPhase end: Sending episode_3_stoppedPhase via client connection
+2025-11-11 23:05:08.097 | [Bravo Server] Received: episode_3_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:05:08.097 | [sendToOtherBot] stoppedPhase beginning: Sending episode_3_stoppedPhase via client connection
+2025-11-11 23:05:08.097 | [Bravo] stopped
+2025-11-11 23:05:08.097 | [Bravo] All event handlers finished
+2025-11-11 23:05:08.097 | [Bravo] Stopped PVP for episode 3
+2025-11-11 23:05:08.097 | [Bravo] Stopped pathfinder navigation for episode 3
+2025-11-11 23:05:08.097 | [Bravo] tearing down episode 3
+2025-11-11 23:05:08.097 | [Bravo] Episode 3 completed
+2025-11-11 23:05:08.102 | [Bravo Server] Received: episode_3_syncBots (no listeners)
+2025-11-11 23:05:08.104 | [Bravo] Saved episode info to /output/20251112_040508_000003_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:05:08.104 | [Bravo] Syncing bots for episode 3
+2025-11-11 23:05:08.104 | [sendToOtherBot] syncBots outer: Sending episode_3_syncBots via client connection
+2025-11-11 23:05:08.105 | [Bravo Server] Received: episode_3_syncBots (1 listeners) - emitting
+2025-11-11 23:05:08.105 | [sendToOtherBot] syncBots beginning: Sending episode_3_syncBots via client connection
+2025-11-11 23:05:08.105 | [Bravo] Syncing bots...
+2025-11-11 23:05:08.105 | [Bravo] Synced bots for episode 3
+2025-11-11 23:05:08.105 | [Bravo] Selected episode type: structureEval
+2025-11-11 23:05:08.105 | [Bravo] Created StructureEvalEpisode instance for episode 4
+2025-11-11 23:05:09.105 | [Bravo] Starting episode 4
+2025-11-11 23:05:09.105 | [Bravo] episode 4 at (-132.60, 64.00, 1278.57)
+2025-11-11 23:05:09.105 | [sendToOtherBot] spawnPhase end: Sending episode_4_teleportPhase via client connection
+2025-11-11 23:05:09.106 | [Bravo Server] Received: episode_4_teleportPhase (1 listeners) - emitting
+2025-11-11 23:05:09.106 | [sendToOtherBot] teleportPhase beginning: Sending episode_4_teleportPhase via client connection
+2025-11-11 23:05:09.106 | [Bravo] teleport radius: 3000
+2025-11-11 23:05:09.106 | [Bravo] picked random center at (655.58, 540.20)
+2025-11-11 23:05:09.106 | [sendToOtherBot] teleportPhase end: Sending episode_4_postTeleportPhase via client connection
+2025-11-11 23:05:09.106 | [Bravo Server] Received: episode_4_teleportPhase (no listeners)
+2025-11-11 23:05:10.138 | [Bravo Server] Received: episode_4_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:05:10.138 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_4_postTeleportPhase via client connection
+2025-11-11 23:05:10.138 | [Bravo] our position after teleport: {"position":{"x":658.5,"y":64,"z":537.5}}
+2025-11-11 23:05:10.138 | [sendToOtherBot] postTeleportPhase end: Sending episode_4_beforeStartRecordingPhase via client connection
+2025-11-11 23:05:10.139 | [Bravo Server] Received: episode_4_postTeleportPhase (no listeners)
+2025-11-11 23:05:10.139 | [Bravo Server] Received: episode_4_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:05:10.139 | [Bravo] other position before start recording: {"position":{"x":657.5,"y":64,"z":547.5}}
+2025-11-11 23:05:10.139 | [Bravo] Looking at (657.50, 64.00, 547.50) at 30°/s over 3.34s
+2025-11-11 23:05:13.490 | [Bravo] setting up episode 4
+2025-11-11 23:05:13.490 | [Bravo] inventory stone: have=126, target=128, need=2
+2025-11-11 23:05:13.493 | [Bravo] ensureBotHasEnough: give Bravo minecraft:stone 2 -> Gave 2 [Stone] to Bravo
+2025-11-11 23:05:14.293 | [Bravo] inventory stone: now 128/128
+2025-11-11 23:05:14.297 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-11 23:05:14.299 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-11 23:05:15.300 | [Bravo] unequipping hand before episode
+2025-11-11 23:05:15.300 | [Bravo] Unequipped stone from main hand
+2025-11-11 23:05:15.349 | [Bravo Server] Received: episode_4_startRecordingPhase (no listeners)
+2025-11-11 23:05:16.300 | [sendToOtherBot] teleportPhase end: Sending episode_4_startRecordingPhase via client connection
+2025-11-11 23:05:16.300 | [Bravo Server] Received: episode_4_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:05:16.300 | [sendToOtherBot] startRecordingPhase end: Sending episode_4_startRecordingPhase via client connection
+2025-11-11 23:05:16.300 | [Bravo] starting episode recording
+2025-11-11 23:05:16.300 | [headless] starting episode - connecting to receiver, episode number 4
+2025-11-11 23:05:16.300 | [headless] creating new connection
+2025-11-11 23:05:16.301 | [headless] Connected to server
+2025-11-11 23:05:17.301 | [sendToOtherBot] entryPoint end: Sending episode_4_structureEvalPhase_0 via client connection
+2025-11-11 23:05:17.302 | [Bravo Server] Received: episode_4_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:05:17.302 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_4_structureEvalPhase_0 via client connection
+2025-11-11 23:05:17.302 | [Bravo] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:05:17.302 | [Bravo] 📍 Spawn position: (658.5, 64, 537.5)
+2025-11-11 23:05:17.302 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-11 23:05:17.302 | [Bravo] 🎭 Role mode: bravo_builds, Role: BUILDER
+2025-11-11 23:05:17.302 | [Bravo] 🔧 STEP 1b-pre: Equipping stone in hand...
+2025-11-11 23:05:17.302 | [Bravo] ✅ Equipped stone in hand
+2025-11-11 23:05:17.302 | [Bravo Server] Received: episode_4_structureEvalPhase_0 (no listeners)
+2025-11-11 23:05:17.606 | [Bravo] 🤫 STEP 1b-sneak: Sneaking for 0.75s...
+2025-11-11 23:05:17.606 | [Bravo] 🎬 FRAME COUNTING START at 1762920317606
+2025-11-11 23:05:18.347 | [Bravo] ✅ Sneak complete
+2025-11-11 23:05:18.546 | [Bravo] 👀 STEP 2: Making eye contact with Alpha...
+2025-11-11 23:05:19.847 | [Bravo] 📐 STEP 3: Planning structure...
+2025-11-11 23:05:19.847 | [Bravo] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:05:19.847 | [Bravo] 📋 Building 2 blocks with stone
+2025-11-11 23:05:19.847 | [Bravo] 🏗️ STEP 4: Building structure...
+2025-11-11 23:05:19.847 | [Bravo] 🏗️ Starting to build 2 blocks...
+2025-11-11 23:05:19.850 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: true, dig: true, entityDetection: true }
+2025-11-11 23:05:19.853 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: false, dig: false, entityDetection: true }
+2025-11-11 23:05:19.853 | [Bravo] 🚶 Moving to adjacent position (659.0, 64, 536.0) before placing at (661, 64, 537)
+2025-11-11 23:05:20.756 | [Bravo] 👁️ Looking at reference face at (661, 63, 537) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:05:20.759 | [Bravo] ✅ Placed block at (661, 64, 537)
+2025-11-11 23:05:22.159 | [Bravo] 🚶 Moving to adjacent position (659.0, 65, 536.0) before placing at (661, 65, 537)
+2025-11-11 23:05:22.760 | [Bravo] 👁️ Looking at reference face at (661, 64, 537) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:05:22.762 | [Bravo] ✅ Placed block at (661, 65, 537)
+2025-11-11 23:05:24.162 | [Bravo] 🏁 Build complete!
+2025-11-11 23:05:24.162 | [Bravo]    Success: 2/2
+2025-11-11 23:05:24.162 | [Bravo]    Failed: 0/2
+2025-11-11 23:05:24.162 | [Bravo] 🚶 STEP 5: Moving to stand next to observer...
+2025-11-11 23:05:24.166 | [Bravo] Pathfinder initialized with settings: { sprint: true, parkour: true, dig: false, entityDetection: true }
+2025-11-11 23:05:24.166 | [Bravo] 📐 Observer yaw: 6.19, moving to side position (657.7, 549.5)
+2025-11-11 23:05:26.508 | [Bravo] ✅ Moved next to observer (side position)
+2025-11-11 23:05:26.508 | [Bravo] 👁️ Looking at structure together...
+2025-11-11 23:05:26.508 | [Bravo] Looking at (661.00, 65.00, 537.00) at 90°/s over 1.67s
+2025-11-11 23:05:30.590 | [Bravo Server] Received: episode_4_stopPhase (no listeners)
+2025-11-11 23:05:31.422 | [Bravo] ✅ Admired structure from observer position
+2025-11-11 23:05:31.422 | [Bravo] 🎬 FRAME COUNTING END at 1762920331422
+2025-11-11 23:05:31.422 | [Bravo] ⏱️  ML Training Segment Duration: 13.82s
+2025-11-11 23:05:31.422 | [Bravo] 🎞️  Estimated Frames (at 20 FPS): 276 frames
+2025-11-11 23:05:31.422 | [Bravo] 📊 Target: 300 frames | Actual: 276 | Difference: -24 frames
+2025-11-11 23:05:31.422 | [Bravo] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:05:31.423 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_4_stopPhase via client connection
+2025-11-11 23:05:31.423 | [Bravo Server] Received: episode_4_stopPhase (1 listeners) - emitting
+2025-11-11 23:05:31.423 | [sendToOtherBot] stopPhase beginning: Sending episode_4_stopPhase via client connection
+2025-11-11 23:05:31.423 | [Bravo] stops recording
+2025-11-11 23:05:31.423 | [headless] ending episode
+2025-11-11 23:05:31.423 | [Bravo] waiting for episode recording to end...
+2025-11-11 23:05:31.431 | [headless] sending zero end of stream
+2025-11-11 23:05:31.456 | [headless] Socket ended
+2025-11-11 23:05:31.457 | [headless] Socket state at end: {
+2025-11-11 23:05:31.457 |   writable: false,
+2025-11-11 23:05:31.457 |   destroyed: false,
+2025-11-11 23:05:31.457 |   connecting: false,
+2025-11-11 23:05:31.457 |   bytesWritten: 116804,
+2025-11-11 23:05:31.457 |   bytesRead: 0
+2025-11-11 23:05:31.457 | }
+2025-11-11 23:05:31.457 | [headless] Socket closed
+2025-11-11 23:05:31.457 | [headless] connection closed, firing episodeended event
+2025-11-11 23:05:31.457 | [Bravo] episode recording ended, connection closed
+2025-11-11 23:05:32.457 | [sendToOtherBot] StopPhase end: Sending episode_4_stoppedPhase via client connection
+2025-11-11 23:05:32.458 | [Bravo Server] Received: episode_4_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:05:32.458 | [sendToOtherBot] stoppedPhase beginning: Sending episode_4_stoppedPhase via client connection
+2025-11-11 23:05:32.458 | [Bravo] stopped
+2025-11-11 23:05:32.458 | [Bravo] All event handlers finished
+2025-11-11 23:05:32.459 | [Bravo] Stopped PVP for episode 4
+2025-11-11 23:05:32.459 | [Bravo] Stopped pathfinder navigation for episode 4
+2025-11-11 23:05:32.459 | [Bravo] tearing down episode 4
+2025-11-11 23:05:32.459 | [Bravo] Episode 4 completed
+2025-11-11 23:05:32.459 | [Bravo Server] Received: episode_4_stoppedPhase (no listeners)
+2025-11-11 23:05:32.463 | [Bravo Server] Received: episode_4_syncBots (no listeners)
+2025-11-11 23:05:32.467 | [Bravo] Saved episode info to /output/20251112_040532_000004_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:05:32.467 | [Bravo] Syncing bots for episode 4
+2025-11-11 23:05:32.467 | [sendToOtherBot] syncBots outer: Sending episode_4_syncBots via client connection
+2025-11-11 23:05:32.467 | [Bravo Server] Received: episode_4_syncBots (1 listeners) - emitting
+2025-11-11 23:05:32.467 | [sendToOtherBot] syncBots beginning: Sending episode_4_syncBots via client connection
+2025-11-11 23:05:32.467 | [Bravo] Syncing bots...
+2025-11-11 23:05:32.467 | [Bravo] Synced bots for episode 4
+2025-11-11 23:05:32.467 | [Bravo] Selected episode type: structureEval
+2025-11-11 23:05:32.467 | [Bravo] Created StructureEvalEpisode instance for episode 5
+2025-11-11 23:05:33.468 | [Bravo] Starting episode 5
+2025-11-11 23:05:33.468 | [Bravo] episode 5 at (657.50, 64.00, 548.30)
+2025-11-11 23:05:33.468 | [sendToOtherBot] spawnPhase end: Sending episode_5_teleportPhase via client connection
+2025-11-11 23:05:33.469 | [Bravo Server] Received: episode_5_teleportPhase (1 listeners) - emitting
+2025-11-11 23:05:33.469 | [sendToOtherBot] teleportPhase beginning: Sending episode_5_teleportPhase via client connection
+2025-11-11 23:05:33.469 | [Bravo] teleport radius: 3000
+2025-11-11 23:05:33.469 | [Bravo] picked random center at (2110.56, 333.94)
+2025-11-11 23:05:33.469 | [sendToOtherBot] teleportPhase end: Sending episode_5_postTeleportPhase via client connection
+2025-11-11 23:05:33.469 | [Bravo Server] Received: episode_5_teleportPhase (no listeners)
+2025-11-11 23:05:34.512 | [Bravo Server] Received: episode_5_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:05:34.512 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_5_postTeleportPhase via client connection
+2025-11-11 23:05:34.512 | [Bravo] our position after teleport: {"position":{"x":2117.5,"y":64,"z":330.5}}
+2025-11-11 23:05:34.512 | [sendToOtherBot] postTeleportPhase end: Sending episode_5_beforeStartRecordingPhase via client connection
+2025-11-11 23:05:34.512 | [Bravo Server] Received: episode_5_postTeleportPhase (no listeners)
+2025-11-11 23:05:34.512 | [Bravo Server] Received: episode_5_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:05:34.512 | [Bravo] other position before start recording: {"position":{"x":2110.5,"y":64,"z":336.5}}
+2025-11-11 23:05:34.512 | [Bravo] Looking at (2110.50, 64.00, 336.50) at 30°/s over 4.93s
+2025-11-11 23:05:38.026 | [Bravo Server] Received: episode_5_startRecordingPhase (no listeners)
+2025-11-11 23:05:39.483 | [Bravo] setting up episode 5
+2025-11-11 23:05:39.483 | [Bravo] inventory stone: have=126, target=128, need=2
+2025-11-11 23:05:39.486 | [Bravo] ensureBotHasEnough: give Bravo minecraft:stone 2 -> Gave 2 [Stone] to Bravo
+2025-11-11 23:05:40.286 | [Bravo] inventory stone: now 128/128
+2025-11-11 23:05:40.288 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-11 23:05:40.289 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-11 23:05:41.290 | [Bravo] unequipping hand before episode
+2025-11-11 23:05:41.290 | [Bravo] Unequipped stone from main hand
+2025-11-11 23:05:42.291 | [sendToOtherBot] teleportPhase end: Sending episode_5_startRecordingPhase via client connection
+2025-11-11 23:05:42.291 | [Bravo Server] Received: episode_5_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:05:42.291 | [sendToOtherBot] startRecordingPhase end: Sending episode_5_startRecordingPhase via client connection
+2025-11-11 23:05:42.291 | [Bravo] starting episode recording
+2025-11-11 23:05:42.292 | [headless] starting episode - connecting to receiver, episode number 5
+2025-11-11 23:05:42.292 | [headless] creating new connection
+2025-11-11 23:05:42.294 | [headless] Connected to server
+2025-11-11 23:05:43.292 | [Bravo Server] Received: episode_5_structureEvalPhase_0 (no listeners)
+2025-11-11 23:05:43.293 | [sendToOtherBot] entryPoint end: Sending episode_5_structureEvalPhase_0 via client connection
+2025-11-11 23:05:43.294 | [Bravo Server] Received: episode_5_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:05:43.295 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_5_structureEvalPhase_0 via client connection
+2025-11-11 23:05:43.295 | [Bravo] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:05:43.295 | [Bravo] 📍 Spawn position: (2117.5, 64, 330.5)
+2025-11-11 23:05:43.295 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-11 23:05:43.295 | [Bravo] 🎭 Role mode: bravo_builds, Role: BUILDER
+2025-11-11 23:05:43.295 | [Bravo] 🔧 STEP 1b-pre: Equipping stone in hand...
+2025-11-11 23:05:43.295 | [Bravo] ✅ Equipped stone in hand
+2025-11-11 23:05:43.595 | [Bravo] 🤫 STEP 1b-sneak: Sneaking for 0.75s...
+2025-11-11 23:05:43.595 | [Bravo] 🎬 FRAME COUNTING START at 1762920343595
+2025-11-11 23:05:44.330 | [Bravo] ✅ Sneak complete
+2025-11-11 23:05:44.530 | [Bravo] 👀 STEP 2: Making eye contact with Alpha...
+2025-11-11 23:05:45.830 | [Bravo] 📐 STEP 3: Planning structure...
+2025-11-11 23:05:45.830 | [Bravo] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:05:45.830 | [Bravo] 📋 Building 2 blocks with stone
+2025-11-11 23:05:45.830 | [Bravo] 🏗️ STEP 4: Building structure...
+2025-11-11 23:05:45.830 | [Bravo] 🏗️ Starting to build 2 blocks...
+2025-11-11 23:05:45.834 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: true, dig: true, entityDetection: true }
+2025-11-11 23:05:45.836 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: false, dig: false, entityDetection: true }
+2025-11-11 23:05:45.836 | [Bravo] 🚶 Moving to adjacent position (2118.0, 64, 329.0) before placing at (2120, 64, 330)
+2025-11-11 23:05:47.690 | [Bravo] 👁️ Looking at reference face at (2120, 63, 330) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:05:47.692 | [Bravo] ✅ Placed block at (2120, 64, 330)
+2025-11-11 23:05:49.093 | [Bravo] 🚶 Moving to adjacent position (2118.0, 65, 329.0) before placing at (2120, 65, 330)
+2025-11-11 23:05:49.644 | [Bravo] 👁️ Looking at reference face at (2120, 64, 330) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:05:49.645 | [Bravo] ✅ Placed block at (2120, 65, 330)
+2025-11-11 23:05:51.046 | [Bravo] 🏁 Build complete!
+2025-11-11 23:05:51.046 | [Bravo]    Success: 2/2
+2025-11-11 23:05:51.046 | [Bravo]    Failed: 0/2
+2025-11-11 23:05:51.046 | [Bravo] 🚶 STEP 5: Moving to stand next to observer...
+2025-11-11 23:05:51.048 | [Bravo] Pathfinder initialized with settings: { sprint: true, parkour: true, dig: false, entityDetection: true }
+2025-11-11 23:05:51.048 | [Bravo] 📐 Observer yaw: 5.42, moving to side position (2112.0, 337.8)
+2025-11-11 23:05:52.756 | [Bravo] ✅ Moved next to observer (side position)
+2025-11-11 23:05:52.757 | [Bravo] 👁️ Looking at structure together...
+2025-11-11 23:05:52.757 | [Bravo] Looking at (2120.00, 65.00, 330.00) at 90°/s over 1.45s
+2025-11-11 23:05:56.604 | [Bravo Server] Received: episode_5_stopPhase (no listeners)
+2025-11-11 23:05:57.491 | [Bravo] ✅ Admired structure from observer position
+2025-11-11 23:05:57.491 | [Bravo] 🎬 FRAME COUNTING END at 1762920357491
+2025-11-11 23:05:57.491 | [Bravo] ⏱️  ML Training Segment Duration: 13.90s
+2025-11-11 23:05:57.491 | [Bravo] 🎞️  Estimated Frames (at 20 FPS): 278 frames
+2025-11-11 23:05:57.491 | [Bravo] 📊 Target: 300 frames | Actual: 278 | Difference: -22 frames
+2025-11-11 23:05:57.491 | [Bravo] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:05:57.491 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_5_stopPhase via client connection
+2025-11-11 23:05:57.492 | [Bravo Server] Received: episode_5_stopPhase (1 listeners) - emitting
+2025-11-11 23:05:57.492 | [sendToOtherBot] stopPhase beginning: Sending episode_5_stopPhase via client connection
+2025-11-11 23:05:57.492 | [Bravo] stops recording
+2025-11-11 23:05:57.492 | [headless] ending episode
+2025-11-11 23:05:57.492 | [Bravo] waiting for episode recording to end...
+2025-11-11 23:05:57.502 | [headless] sending zero end of stream
+2025-11-11 23:05:57.528 | [headless] Socket ended
+2025-11-11 23:05:57.528 | [headless] Socket state at end: {
+2025-11-11 23:05:57.528 |   writable: false,
+2025-11-11 23:05:57.528 |   destroyed: false,
+2025-11-11 23:05:57.528 |   connecting: false,
+2025-11-11 23:05:57.528 |   bytesWritten: 117961,
+2025-11-11 23:05:57.528 |   bytesRead: 0
+2025-11-11 23:05:57.528 | }
+2025-11-11 23:05:57.528 | [headless] Socket closed
+2025-11-11 23:05:57.528 | [headless] connection closed, firing episodeended event
+2025-11-11 23:05:57.528 | [Bravo] episode recording ended, connection closed
+2025-11-11 23:05:58.529 | [sendToOtherBot] StopPhase end: Sending episode_5_stoppedPhase via client connection
+2025-11-11 23:05:58.530 | [Bravo Server] Received: episode_5_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:05:58.530 | [sendToOtherBot] stoppedPhase beginning: Sending episode_5_stoppedPhase via client connection
+2025-11-11 23:05:58.530 | [Bravo] stopped
+2025-11-11 23:05:58.530 | [Bravo] All event handlers finished
+2025-11-11 23:05:58.530 | [Bravo] Stopped PVP for episode 5
+2025-11-11 23:05:58.530 | [Bravo] Stopped pathfinder navigation for episode 5
+2025-11-11 23:05:58.530 | [Bravo] tearing down episode 5
+2025-11-11 23:05:58.530 | [Bravo] Episode 5 completed
+2025-11-11 23:05:58.530 | [Bravo Server] Received: episode_5_stoppedPhase (no listeners)
+2025-11-11 23:05:58.535 | [Bravo] Saved episode info to /output/20251112_040558_000005_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:05:58.535 | [Bravo] Syncing bots for episode 5
+2025-11-11 23:05:58.535 | [sendToOtherBot] syncBots outer: Sending episode_5_syncBots via client connection
+2025-11-11 23:05:58.538 | [Bravo Server] Received: episode_5_syncBots (1 listeners) - emitting
+2025-11-11 23:05:58.538 | [sendToOtherBot] syncBots beginning: Sending episode_5_syncBots via client connection
+2025-11-11 23:05:58.538 | [Bravo] Syncing bots...
+2025-11-11 23:05:58.538 | [Bravo] Synced bots for episode 5
+2025-11-11 23:05:58.538 | [Bravo] Selected episode type: structureEval
+2025-11-11 23:05:58.538 | [Bravo] Created StructureEvalEpisode instance for episode 6
+2025-11-11 23:05:58.538 | [Bravo Server] Received: episode_5_syncBots (no listeners)
+2025-11-11 23:05:59.537 | [Bravo Server] Received: episode_6_teleportPhase (no listeners)
+2025-11-11 23:05:59.537 | [Bravo] Starting episode 6
+2025-11-11 23:05:59.537 | [Bravo] episode 6 at (2112.47, 64.00, 336.50)
+2025-11-11 23:05:59.537 | [sendToOtherBot] spawnPhase end: Sending episode_6_teleportPhase via client connection
+2025-11-11 23:05:59.538 | [Bravo Server] Received: episode_6_teleportPhase (1 listeners) - emitting
+2025-11-11 23:05:59.538 | [sendToOtherBot] teleportPhase beginning: Sending episode_6_teleportPhase via client connection
+2025-11-11 23:05:59.538 | [Bravo] teleport radius: 3000
+2025-11-11 23:05:59.538 | [Bravo] picked random center at (2795.15, -355.31)
+2025-11-11 23:05:59.538 | [sendToOtherBot] teleportPhase end: Sending episode_6_postTeleportPhase via client connection
+2025-11-11 23:06:00.570 | [Bravo Server] Received: episode_6_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:06:00.570 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_6_postTeleportPhase via client connection
+2025-11-11 23:06:00.570 | [Bravo] our position after teleport: {"position":{"x":2790.5,"y":64,"z":-350.5}}
+2025-11-11 23:06:00.570 | [sendToOtherBot] postTeleportPhase end: Sending episode_6_beforeStartRecordingPhase via client connection
+2025-11-11 23:06:00.570 | [Bravo Server] Received: episode_6_postTeleportPhase (no listeners)
+2025-11-11 23:06:00.570 | [Bravo Server] Received: episode_6_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:00.570 | [Bravo] other position before start recording: {"position":{"x":2792.5,"y":64,"z":-358.5}}
+2025-11-11 23:06:00.570 | [Bravo] Looking at (2792.50, 64.00, -358.50) at 30°/s over 1.19s
+2025-11-11 23:06:01.775 | [Bravo] setting up episode 6
+2025-11-11 23:06:01.775 | [Bravo] inventory stone: have=126, target=128, need=2
+2025-11-11 23:06:01.778 | [Bravo] ensureBotHasEnough: give Bravo minecraft:stone 2 -> Gave 2 [Stone] to Bravo
+2025-11-11 23:06:02.579 | [Bravo] inventory stone: now 128/128
+2025-11-11 23:06:02.581 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-11 23:06:02.583 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-11 23:06:03.583 | [Bravo] unequipping hand before episode
+2025-11-11 23:06:03.584 | [Bravo] Unequipped stone from main hand
+2025-11-11 23:06:04.584 | [sendToOtherBot] teleportPhase end: Sending episode_6_startRecordingPhase via client connection
+2025-11-11 23:06:07.405 | [Bravo Server] Received: episode_6_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:07.405 | [sendToOtherBot] startRecordingPhase end: Sending episode_6_startRecordingPhase via client connection
+2025-11-11 23:06:07.405 | [Bravo] starting episode recording
+2025-11-11 23:06:07.405 | [headless] starting episode - connecting to receiver, episode number 6
+2025-11-11 23:06:07.405 | [headless] creating new connection
+2025-11-11 23:06:07.406 | [Bravo Server] Received: episode_6_startRecordingPhase (no listeners)
+2025-11-11 23:06:07.406 | [headless] Connected to server
+2025-11-11 23:06:08.406 | [sendToOtherBot] entryPoint end: Sending episode_6_structureEvalPhase_0 via client connection
+2025-11-11 23:06:08.406 | [Bravo Server] Received: episode_6_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:06:08.406 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_6_structureEvalPhase_0 via client connection
+2025-11-11 23:06:08.406 | [Bravo] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:06:08.406 | [Bravo] 📍 Spawn position: (2790.5, 64, -350.5)
+2025-11-11 23:06:08.406 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-11 23:06:08.406 | [Bravo] 🎭 Role mode: alpha_builds, Role: OBSERVER
+2025-11-11 23:06:08.407 | [Bravo] 🧍 STEP 1b-sneak: Remaining stationary (observer role)
+2025-11-11 23:06:08.407 | [Bravo Server] Received: episode_6_structureEvalPhase_0 (no listeners)
+2025-11-11 23:06:09.345 | [Bravo] 🧍 STEP 2: Remaining stationary (observer role)...
+2025-11-11 23:06:10.645 | [Bravo] 📐 STEP 3: Planning structure...
+2025-11-11 23:06:10.645 | [Bravo] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:06:10.645 | [Bravo] 📋 Observing 2 blocks with stone
+2025-11-11 23:06:10.645 | [Bravo] 🧍 STEP 4: Remaining stationary (observer role)...
+2025-11-11 23:06:13.445 | [Bravo] ✅ Finished waiting (stationary)
+2025-11-11 23:06:13.445 | [Bravo] 🧍 STEP 5: Remaining stationary (observer role)...
+2025-11-11 23:06:21.645 | [Bravo] ✅ Finished waiting (stationary)
+2025-11-11 23:06:21.645 | [Bravo] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:06:21.645 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_6_stopPhase via client connection
+2025-11-11 23:06:22.393 | [Bravo Server] Received: episode_6_stopPhase (1 listeners) - emitting
+2025-11-11 23:06:22.393 | [sendToOtherBot] stopPhase beginning: Sending episode_6_stopPhase via client connection
+2025-11-11 23:06:22.393 | [Bravo] stops recording
+2025-11-11 23:06:22.393 | [headless] ending episode
+2025-11-11 23:06:22.393 | [Bravo] waiting for episode recording to end...
+2025-11-11 23:06:22.393 | [Bravo Server] Received: episode_6_stopPhase (no listeners)
+2025-11-11 23:06:22.411 | [headless] sending zero end of stream
+2025-11-11 23:06:22.434 | [headless] Socket ended
+2025-11-11 23:06:22.434 | [headless] Socket state at end: {
+2025-11-11 23:06:22.434 |   writable: false,
+2025-11-11 23:06:22.434 |   destroyed: false,
+2025-11-11 23:06:22.434 |   connecting: false,
+2025-11-11 23:06:22.434 |   bytesWritten: 113827,
+2025-11-11 23:06:22.434 |   bytesRead: 0
+2025-11-11 23:06:22.434 | }
+2025-11-11 23:06:22.434 | [headless] Socket closed
+2025-11-11 23:06:22.435 | [headless] connection closed, firing episodeended event
+2025-11-11 23:06:22.435 | [Bravo] episode recording ended, connection closed
+2025-11-11 23:06:23.435 | [sendToOtherBot] StopPhase end: Sending episode_6_stoppedPhase via client connection
+2025-11-11 23:06:23.439 | [Bravo Server] Received: episode_6_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:06:23.439 | [sendToOtherBot] stoppedPhase beginning: Sending episode_6_stoppedPhase via client connection
+2025-11-11 23:06:23.439 | [Bravo] stopped
+2025-11-11 23:06:23.439 | [Bravo] All event handlers finished
+2025-11-11 23:06:23.439 | [Bravo] Stopped PVP for episode 6
+2025-11-11 23:06:23.439 | [Bravo] Stopped pathfinder navigation for episode 6
+2025-11-11 23:06:23.439 | [Bravo] tearing down episode 6
+2025-11-11 23:06:23.439 | [Bravo] Episode 6 completed
+2025-11-11 23:06:23.439 | [Bravo Server] Received: episode_6_stoppedPhase (no listeners)
+2025-11-11 23:06:23.443 | [Bravo Server] Received: episode_6_syncBots (no listeners)
+2025-11-11 23:06:23.444 | [Bravo] Saved episode info to /output/20251112_040623_000006_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:06:23.444 | [Bravo] Syncing bots for episode 6
+2025-11-11 23:06:23.444 | [sendToOtherBot] syncBots outer: Sending episode_6_syncBots via client connection
+2025-11-11 23:06:23.444 | [Bravo Server] Received: episode_6_syncBots (1 listeners) - emitting
+2025-11-11 23:06:23.444 | [sendToOtherBot] syncBots beginning: Sending episode_6_syncBots via client connection
+2025-11-11 23:06:23.444 | [Bravo] Syncing bots...
+2025-11-11 23:06:23.444 | [Bravo] Synced bots for episode 6
+2025-11-11 23:06:23.445 | [Bravo] Selected episode type: structureEval
+2025-11-11 23:06:23.445 | [Bravo] Created StructureEvalEpisode instance for episode 7
+2025-11-11 23:06:24.444 | [Bravo] Starting episode 7
+2025-11-11 23:06:24.445 | [Bravo] episode 7 at (2790.50, 64.00, -350.50)
+2025-11-11 23:06:24.445 | [sendToOtherBot] spawnPhase end: Sending episode_7_teleportPhase via client connection
+2025-11-11 23:06:24.445 | [Bravo Server] Received: episode_7_teleportPhase (1 listeners) - emitting
+2025-11-11 23:06:24.445 | [sendToOtherBot] teleportPhase beginning: Sending episode_7_teleportPhase via client connection
+2025-11-11 23:06:24.445 | [Bravo] teleport radius: 3000
+2025-11-11 23:06:24.445 | [Bravo] picked random center at (108.81, 238.90)
+2025-11-11 23:06:24.445 | [sendToOtherBot] teleportPhase end: Sending episode_7_postTeleportPhase via client connection
+2025-11-11 23:06:24.445 | [Bravo Server] Received: episode_7_teleportPhase (no listeners)
+2025-11-11 23:06:25.544 | [Bravo Server] Received: episode_7_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:06:25.544 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_7_postTeleportPhase via client connection
+2025-11-11 23:06:25.545 | [Bravo] our position after teleport: {"position":{"x":105.5,"y":64,"z":242.5}}
+2025-11-11 23:06:25.545 | [sendToOtherBot] postTeleportPhase end: Sending episode_7_beforeStartRecordingPhase via client connection
+2025-11-11 23:06:25.545 | [Bravo Server] Received: episode_7_postTeleportPhase (no listeners)
+2025-11-11 23:06:25.545 | [Bravo Server] Received: episode_7_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:25.545 | [Bravo] other position before start recording: {"position":{"x":111.5,"y":64,"z":236.5}}
+2025-11-11 23:06:25.545 | [Bravo] Looking at (111.50, 64.00, 236.50) at 30°/s over 1.03s
+2025-11-11 23:06:26.596 | [Bravo] setting up episode 7
+2025-11-11 23:06:26.597 | [Bravo] inventory stone: have=128, target=128, need=0
+2025-11-11 23:06:26.600 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-11 23:06:26.601 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-11 23:06:27.602 | [Bravo] unequipping hand before episode
+2025-11-11 23:06:27.602 | [Bravo] No item equipped in hand
+2025-11-11 23:06:28.604 | [sendToOtherBot] teleportPhase end: Sending episode_7_startRecordingPhase via client connection
+2025-11-11 23:06:33.684 | [Bravo Server] Received: episode_7_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:33.684 | [sendToOtherBot] startRecordingPhase end: Sending episode_7_startRecordingPhase via client connection
+2025-11-11 23:06:33.684 | [Bravo] starting episode recording
+2025-11-11 23:06:33.684 | [headless] starting episode - connecting to receiver, episode number 7
+2025-11-11 23:06:33.684 | [headless] creating new connection
+2025-11-11 23:06:33.685 | [Bravo Server] Received: episode_7_startRecordingPhase (no listeners)
+2025-11-11 23:06:33.685 | [headless] Connected to server
+2025-11-11 23:06:34.684 | [sendToOtherBot] entryPoint end: Sending episode_7_structureEvalPhase_0 via client connection
+2025-11-11 23:06:34.684 | [Bravo Server] Received: episode_7_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:06:34.684 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_7_structureEvalPhase_0 via client connection
+2025-11-11 23:06:34.684 | [Bravo] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:06:34.684 | [Bravo] 📍 Spawn position: (105.5, 64, 242.5)
+2025-11-11 23:06:34.684 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-11 23:06:34.685 | [Bravo] 🎭 Role mode: alpha_builds, Role: OBSERVER
+2025-11-11 23:06:34.685 | [Bravo] 🧍 STEP 1b-sneak: Remaining stationary (observer role)
+2025-11-11 23:06:34.685 | [Bravo Server] Received: episode_7_structureEvalPhase_0 (no listeners)
+2025-11-11 23:06:35.597 | [Bravo] 🧍 STEP 2: Remaining stationary (observer role)...
+2025-11-11 23:06:36.897 | [Bravo] 📐 STEP 3: Planning structure...
+2025-11-11 23:06:36.897 | [Bravo] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:06:36.897 | [Bravo] 📋 Observing 2 blocks with stone
+2025-11-11 23:06:36.897 | [Bravo] 🧍 STEP 4: Remaining stationary (observer role)...
+2025-11-11 23:06:39.698 | [Bravo] ✅ Finished waiting (stationary)
+2025-11-11 23:06:39.698 | [Bravo] 🧍 STEP 5: Remaining stationary (observer role)...
+2025-11-11 23:06:47.898 | [Bravo] ✅ Finished waiting (stationary)
+2025-11-11 23:06:47.898 | [Bravo] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:06:47.898 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_7_stopPhase via client connection
+2025-11-11 23:06:48.760 | [Bravo Server] Received: episode_7_stopPhase (1 listeners) - emitting
+2025-11-11 23:06:48.760 | [sendToOtherBot] stopPhase beginning: Sending episode_7_stopPhase via client connection
+2025-11-11 23:06:48.760 | [Bravo] stops recording
+2025-11-11 23:06:48.760 | [headless] ending episode
+2025-11-11 23:06:48.760 | [Bravo] waiting for episode recording to end...
+2025-11-11 23:06:48.760 | [Bravo Server] Received: episode_7_stopPhase (no listeners)
+2025-11-11 23:06:48.766 | [headless] sending zero end of stream
+2025-11-11 23:06:48.793 | [headless] Socket ended
+2025-11-11 23:06:48.793 | [headless] Socket state at end: {
+2025-11-11 23:06:48.793 |   writable: false,
+2025-11-11 23:06:48.793 |   destroyed: false,
+2025-11-11 23:06:48.793 |   connecting: false,
+2025-11-11 23:06:48.793 |   bytesWritten: 113094,
+2025-11-11 23:06:48.793 |   bytesRead: 0
+2025-11-11 23:06:48.793 | }
+2025-11-11 23:06:48.793 | [headless] Socket closed
+2025-11-11 23:06:48.793 | [headless] connection closed, firing episodeended event
+2025-11-11 23:06:48.793 | [Bravo] episode recording ended, connection closed
+2025-11-11 23:06:49.793 | [sendToOtherBot] StopPhase end: Sending episode_7_stoppedPhase via client connection
+2025-11-11 23:06:49.793 | [Bravo Server] Received: episode_7_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:06:49.794 | [sendToOtherBot] stoppedPhase beginning: Sending episode_7_stoppedPhase via client connection
+2025-11-11 23:06:49.794 | [Bravo] stopped
+2025-11-11 23:06:49.794 | [Bravo] All event handlers finished
+2025-11-11 23:06:49.794 | [Bravo] Stopped PVP for episode 7
+2025-11-11 23:06:49.794 | [Bravo] Stopped pathfinder navigation for episode 7
+2025-11-11 23:06:49.794 | [Bravo] tearing down episode 7
+2025-11-11 23:06:49.794 | [Bravo] Episode 7 completed
+2025-11-11 23:06:49.794 | [Bravo Server] Received: episode_7_stoppedPhase (no listeners)
+2025-11-11 23:06:49.797 | [Bravo Server] Received: episode_7_syncBots (no listeners)
+2025-11-11 23:06:49.799 | [Bravo] Saved episode info to /output/20251112_040649_000007_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:06:49.799 | [Bravo] Syncing bots for episode 7
+2025-11-11 23:06:49.799 | [sendToOtherBot] syncBots outer: Sending episode_7_syncBots via client connection
+2025-11-11 23:06:49.799 | [Bravo Server] Received: episode_7_syncBots (1 listeners) - emitting
+2025-11-11 23:06:49.799 | [sendToOtherBot] syncBots beginning: Sending episode_7_syncBots via client connection
+2025-11-11 23:06:49.799 | [Bravo] Syncing bots...
+2025-11-11 23:06:49.799 | [Bravo] Synced bots for episode 7
+2025-11-11 23:06:49.799 | [Bravo] Selected episode type: structureEval
+2025-11-11 23:06:49.799 | [Bravo] Created StructureEvalEpisode instance for episode 8
+2025-11-11 23:06:50.799 | [Bravo] Starting episode 8
+2025-11-11 23:06:50.799 | [Bravo] episode 8 at (105.50, 64.00, 242.50)
+2025-11-11 23:06:50.799 | [sendToOtherBot] spawnPhase end: Sending episode_8_teleportPhase via client connection
+2025-11-11 23:06:50.800 | [Bravo Server] Received: episode_8_teleportPhase (1 listeners) - emitting
+2025-11-11 23:06:50.800 | [sendToOtherBot] teleportPhase beginning: Sending episode_8_teleportPhase via client connection
+2025-11-11 23:06:50.800 | [Bravo] teleport radius: 3000
+2025-11-11 23:06:50.800 | [Bravo] picked random center at (671.32, -612.15)
+2025-11-11 23:06:50.801 | [sendToOtherBot] teleportPhase end: Sending episode_8_postTeleportPhase via client connection
+2025-11-11 23:06:50.801 | [Bravo Server] Received: episode_8_teleportPhase (no listeners)
+2025-11-11 23:06:51.870 | [Bravo Server] Received: episode_8_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:06:51.872 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_8_postTeleportPhase via client connection
+2025-11-11 23:06:51.872 | [Bravo] our position after teleport: {"position":{"x":678.5,"y":64,"z":-608.5}}
+2025-11-11 23:06:51.872 | [sendToOtherBot] postTeleportPhase end: Sending episode_8_beforeStartRecordingPhase via client connection
+2025-11-11 23:06:51.872 | [Bravo Server] Received: episode_8_postTeleportPhase (no listeners)
+2025-11-11 23:06:51.872 | [Bravo Server] Received: episode_8_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:51.872 | [Bravo] other position before start recording: {"position":{"x":670.5,"y":64,"z":-608.5}}
+2025-11-11 23:06:51.872 | [Bravo] Looking at (670.50, 64.00, -608.50) at 30°/s over 4.50s
+2025-11-11 23:06:56.168 | [Bravo Server] Received: episode_8_startRecordingPhase (no listeners)
+2025-11-11 23:06:56.375 | [Bravo] setting up episode 8
+2025-11-11 23:06:56.375 | [Bravo] inventory stone: have=128, target=128, need=0
+2025-11-11 23:06:56.377 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-11 23:06:56.378 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-11 23:06:57.378 | [Bravo] unequipping hand before episode
+2025-11-11 23:06:57.378 | [Bravo] No item equipped in hand
+2025-11-11 23:06:58.379 | [sendToOtherBot] teleportPhase end: Sending episode_8_startRecordingPhase via client connection
+2025-11-11 23:06:58.379 | [Bravo Server] Received: episode_8_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:06:58.379 | [sendToOtherBot] startRecordingPhase end: Sending episode_8_startRecordingPhase via client connection
+2025-11-11 23:06:58.379 | [Bravo] starting episode recording
+2025-11-11 23:06:58.379 | [headless] starting episode - connecting to receiver, episode number 8
+2025-11-11 23:06:58.379 | [headless] creating new connection
+2025-11-11 23:06:58.380 | [headless] Connected to server
+2025-11-11 23:06:59.380 | [sendToOtherBot] entryPoint end: Sending episode_8_structureEvalPhase_0 via client connection
+2025-11-11 23:06:59.380 | [Bravo Server] Received: episode_8_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:06:59.380 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_8_structureEvalPhase_0 via client connection
+2025-11-11 23:06:59.380 | [Bravo] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:06:59.380 | [Bravo] 📍 Spawn position: (678.5, 64, -608.5)
+2025-11-11 23:06:59.380 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-11 23:06:59.380 | [Bravo] 🎭 Role mode: bravo_builds, Role: BUILDER
+2025-11-11 23:06:59.380 | [Bravo] 🔧 STEP 1b-pre: Equipping stone in hand...
+2025-11-11 23:06:59.381 | [Bravo] ✅ Equipped stone in hand
+2025-11-11 23:06:59.381 | [Bravo Server] Received: episode_8_structureEvalPhase_0 (no listeners)
+2025-11-11 23:06:59.681 | [Bravo] 🤫 STEP 1b-sneak: Sneaking for 0.75s...
+2025-11-11 23:06:59.681 | [Bravo] 🎬 FRAME COUNTING START at 1762920419681
+2025-11-11 23:07:00.394 | [Bravo] ✅ Sneak complete
+2025-11-11 23:07:00.595 | [Bravo] 👀 STEP 2: Making eye contact with Alpha...
+2025-11-11 23:07:01.944 | [Bravo] 📐 STEP 3: Planning structure...
+2025-11-11 23:07:01.944 | [Bravo] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:07:01.944 | [Bravo] 📋 Building 2 blocks with stone
+2025-11-11 23:07:01.944 | [Bravo] 🏗️ STEP 4: Building structure...
+2025-11-11 23:07:01.944 | [Bravo] 🏗️ Starting to build 2 blocks...
+2025-11-11 23:07:01.947 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: true, dig: true, entityDetection: true }
+2025-11-11 23:07:01.949 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: false, dig: false, entityDetection: true }
+2025-11-11 23:07:01.949 | [Bravo] 🚶 Moving to adjacent position (679.0, 64, -610.0) before placing at (681, 64, -609)
+2025-11-11 23:07:03.658 | [Bravo] 👁️ Looking at reference face at (681, 63, -609) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:07:03.661 | [Bravo] ✅ Placed block at (681, 64, -609)
+2025-11-11 23:07:05.061 | [Bravo] 🚶 Moving to adjacent position (679.0, 65, -610.0) before placing at (681, 65, -609)
+2025-11-11 23:07:05.618 | [Bravo] 👁️ Looking at reference face at (681, 64, -609) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:07:05.620 | [Bravo] ✅ Placed block at (681, 65, -609)
+2025-11-11 23:07:07.021 | [Bravo] 🏁 Build complete!
+2025-11-11 23:07:07.021 | [Bravo]    Success: 2/2
+2025-11-11 23:07:07.021 | [Bravo]    Failed: 0/2
+2025-11-11 23:07:07.021 | [Bravo] 🚶 STEP 5: Moving to stand next to observer...
+2025-11-11 23:07:07.023 | [Bravo] Pathfinder initialized with settings: { sprint: true, parkour: true, dig: false, entityDetection: true }
+2025-11-11 23:07:07.023 | [Bravo] 📐 Observer yaw: 4.74, moving to side position (672.5, -608.5)
+2025-11-11 23:07:08.136 | [Bravo] ✅ Moved next to observer (side position)
+2025-11-11 23:07:08.136 | [Bravo] 👁️ Looking at structure together...
+2025-11-11 23:07:08.136 | [Bravo] Looking at (681.00, 65.00, -609.00) at 90°/s over 1.49s
+2025-11-11 23:07:12.591 | [Bravo Server] Received: episode_8_stopPhase (no listeners)
+2025-11-11 23:07:12.844 | [Bravo] ✅ Admired structure from observer position
+2025-11-11 23:07:12.845 | [Bravo] 🎬 FRAME COUNTING END at 1762920432844
+2025-11-11 23:07:12.845 | [Bravo] ⏱️  ML Training Segment Duration: 13.16s
+2025-11-11 23:07:12.845 | [Bravo] 🎞️  Estimated Frames (at 20 FPS): 263 frames
+2025-11-11 23:07:12.845 | [Bravo] 📊 Target: 300 frames | Actual: 263 | Difference: -37 frames
+2025-11-11 23:07:12.845 | [Bravo] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:07:12.845 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_8_stopPhase via client connection
+2025-11-11 23:07:12.846 | [Bravo Server] Received: episode_8_stopPhase (1 listeners) - emitting
+2025-11-11 23:07:12.846 | [sendToOtherBot] stopPhase beginning: Sending episode_8_stopPhase via client connection
+2025-11-11 23:07:12.846 | [Bravo] stops recording
+2025-11-11 23:07:12.846 | [headless] ending episode
+2025-11-11 23:07:12.846 | [Bravo] waiting for episode recording to end...
+2025-11-11 23:07:12.857 | [headless] sending zero end of stream
+2025-11-11 23:07:12.879 | [headless] Socket ended
+2025-11-11 23:07:12.879 | [headless] Socket state at end: {
+2025-11-11 23:07:12.879 |   writable: false,
+2025-11-11 23:07:12.879 |   destroyed: false,
+2025-11-11 23:07:12.879 |   connecting: false,
+2025-11-11 23:07:12.879 |   bytesWritten: 112857,
+2025-11-11 23:07:12.879 |   bytesRead: 0
+2025-11-11 23:07:12.879 | }
+2025-11-11 23:07:12.879 | [headless] Socket closed
+2025-11-11 23:07:12.879 | [headless] connection closed, firing episodeended event
+2025-11-11 23:07:12.879 | [Bravo] episode recording ended, connection closed
+2025-11-11 23:07:13.879 | [sendToOtherBot] StopPhase end: Sending episode_8_stoppedPhase via client connection
+2025-11-11 23:07:13.885 | [Bravo Server] Received: episode_8_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:07:13.886 | [sendToOtherBot] stoppedPhase beginning: Sending episode_8_stoppedPhase via client connection
+2025-11-11 23:07:13.886 | [Bravo] stopped
+2025-11-11 23:07:13.886 | [Bravo] All event handlers finished
+2025-11-11 23:07:13.886 | [Bravo] Stopped PVP for episode 8
+2025-11-11 23:07:13.886 | [Bravo] Stopped pathfinder navigation for episode 8
+2025-11-11 23:07:13.886 | [Bravo] tearing down episode 8
+2025-11-11 23:07:13.886 | [Bravo] Episode 8 completed
+2025-11-11 23:07:13.886 | [Bravo Server] Received: episode_8_stoppedPhase (no listeners)
+2025-11-11 23:07:13.890 | [Bravo Server] Received: episode_8_syncBots (no listeners)
+2025-11-11 23:07:13.892 | [Bravo] Saved episode info to /output/20251112_040713_000008_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:07:13.892 | [Bravo] Syncing bots for episode 8
+2025-11-11 23:07:13.892 | [sendToOtherBot] syncBots outer: Sending episode_8_syncBots via client connection
+2025-11-11 23:07:13.892 | [Bravo Server] Received: episode_8_syncBots (1 listeners) - emitting
+2025-11-11 23:07:13.892 | [sendToOtherBot] syncBots beginning: Sending episode_8_syncBots via client connection
+2025-11-11 23:07:13.892 | [Bravo] Syncing bots...
+2025-11-11 23:07:13.892 | [Bravo] Synced bots for episode 8
+2025-11-11 23:07:13.892 | [Bravo] Selected episode type: structureEval
+2025-11-11 23:07:13.892 | [Bravo] Created StructureEvalEpisode instance for episode 9
+2025-11-11 23:07:14.892 | [Bravo] Starting episode 9
+2025-11-11 23:07:14.892 | [Bravo] episode 9 at (673.68, 64.00, -608.50)
+2025-11-11 23:07:14.892 | [sendToOtherBot] spawnPhase end: Sending episode_9_teleportPhase via client connection
+2025-11-11 23:07:14.892 | [Bravo Server] Received: episode_9_teleportPhase (1 listeners) - emitting
+2025-11-11 23:07:14.892 | [sendToOtherBot] teleportPhase beginning: Sending episode_9_teleportPhase via client connection
+2025-11-11 23:07:14.893 | [Bravo] teleport radius: 3000
+2025-11-11 23:07:14.893 | [Bravo] picked random center at (-851.23, 1078.73)
+2025-11-11 23:07:14.893 | [sendToOtherBot] teleportPhase end: Sending episode_9_postTeleportPhase via client connection
+2025-11-11 23:07:14.893 | [Bravo Server] Received: episode_9_teleportPhase (no listeners)
+2025-11-11 23:07:15.924 | [Bravo Server] Received: episode_9_postTeleportPhase (1 listeners) - emitting
+2025-11-11 23:07:15.924 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_9_postTeleportPhase via client connection
+2025-11-11 23:07:15.924 | [Bravo] our position after teleport: {"position":{"x":-850.5,"y":64,"z":1082.5}}
+2025-11-11 23:07:15.924 | [sendToOtherBot] postTeleportPhase end: Sending episode_9_beforeStartRecordingPhase via client connection
+2025-11-11 23:07:15.924 | [Bravo Server] Received: episode_9_postTeleportPhase (no listeners)
+2025-11-11 23:07:15.924 | [Bravo Server] Received: episode_9_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-11 23:07:15.924 | [Bravo] other position before start recording: {"position":{"x":-852.5,"y":64,"z":1074.5}}
+2025-11-11 23:07:15.924 | [Bravo] Looking at (-852.50, 64.00, 1074.50) at 30°/s over 3.35s
+2025-11-11 23:07:19.296 | [Bravo] setting up episode 9
+2025-11-11 23:07:19.296 | [Bravo] inventory stone: have=126, target=128, need=2
+2025-11-11 23:07:19.299 | [Bravo] ensureBotHasEnough: give Bravo minecraft:stone 2 -> Gave 2 [Stone] to Bravo
+2025-11-11 23:07:20.098 | [Bravo] inventory stone: now 128/128
+2025-11-11 23:07:20.100 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-11 23:07:20.102 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-11 23:07:20.487 | [Bravo Server] Received: episode_9_startRecordingPhase (no listeners)
+2025-11-11 23:07:21.102 | [Bravo] unequipping hand before episode
+2025-11-11 23:07:21.102 | [Bravo] Unequipped stone from main hand
+2025-11-11 23:07:22.102 | [sendToOtherBot] teleportPhase end: Sending episode_9_startRecordingPhase via client connection
+2025-11-11 23:07:22.103 | [Bravo Server] Received: episode_9_startRecordingPhase (1 listeners) - emitting
+2025-11-11 23:07:22.103 | [sendToOtherBot] startRecordingPhase end: Sending episode_9_startRecordingPhase via client connection
+2025-11-11 23:07:22.103 | [Bravo] starting episode recording
+2025-11-11 23:07:22.103 | [headless] starting episode - connecting to receiver, episode number 9
+2025-11-11 23:07:22.103 | [headless] creating new connection
+2025-11-11 23:07:22.104 | [headless] Connected to server
+2025-11-11 23:07:23.103 | [sendToOtherBot] entryPoint end: Sending episode_9_structureEvalPhase_0 via client connection
+2025-11-11 23:07:23.104 | [Bravo Server] Received: episode_9_structureEvalPhase_0 (1 listeners) - emitting
+2025-11-11 23:07:23.104 | [sendToOtherBot] structureEvalPhase_0 beginning: Sending episode_9_structureEvalPhase_0 via client connection
+2025-11-11 23:07:23.104 | [Bravo] 🚀 Starting STRUCTURE EVAL phase 0
+2025-11-11 23:07:23.104 | [Bravo] 📍 Spawn position: (-850.5, 64, 1082.5)
+2025-11-11 23:07:23.104 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-11 23:07:23.104 | [Bravo] 🎭 Role mode: bravo_builds, Role: BUILDER
+2025-11-11 23:07:23.104 | [Bravo] 🔧 STEP 1b-pre: Equipping stone in hand...
+2025-11-11 23:07:23.104 | [Bravo] ✅ Equipped stone in hand
+2025-11-11 23:07:23.105 | [Bravo Server] Received: episode_9_structureEvalPhase_0 (no listeners)
+2025-11-11 23:07:23.405 | [Bravo] 🤫 STEP 1b-sneak: Sneaking for 0.75s...
+2025-11-11 23:07:23.405 | [Bravo] 🎬 FRAME COUNTING START at 1762920443404
+2025-11-11 23:07:24.150 | [Bravo] ✅ Sneak complete
+2025-11-11 23:07:24.350 | [Bravo] 👀 STEP 2: Making eye contact with Alpha...
+2025-11-11 23:07:25.784 | [Bravo] 📐 STEP 3: Planning structure...
+2025-11-11 23:07:25.784 | [Bravo] 🎲 Randomly selected: tower_2 with stone
+2025-11-11 23:07:25.784 | [Bravo] 📋 Building 2 blocks with stone
+2025-11-11 23:07:25.784 | [Bravo] 🏗️ STEP 4: Building structure...
+2025-11-11 23:07:25.784 | [Bravo] 🏗️ Starting to build 2 blocks...
+2025-11-11 23:07:25.787 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: true, dig: true, entityDetection: true }
+2025-11-11 23:07:25.788 | [Bravo] Pathfinder initialized with settings: { sprint: false, parkour: false, dig: false, entityDetection: true }
+2025-11-11 23:07:25.788 | [Bravo] 🚶 Moving to adjacent position (-850.0, 64, 1081.0) before placing at (-848, 64, 1082)
+2025-11-11 23:07:27.043 | [Bravo] 👁️ Looking at reference face at (-848, 63, 1082) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:07:27.046 | [Bravo] ✅ Placed block at (-848, 64, 1082)
+2025-11-11 23:07:28.446 | [Bravo] 🚶 Moving to adjacent position (-850.0, 65, 1081.0) before placing at (-848, 65, 1082)
+2025-11-11 23:07:29.003 | [Bravo] 👁️ Looking at reference face at (-848, 64, 1082) (face: 0,1,0) [visible+reachable]
+2025-11-11 23:07:29.005 | [Bravo] ✅ Placed block at (-848, 65, 1082)
+2025-11-11 23:07:30.406 | [Bravo] 🏁 Build complete!
+2025-11-11 23:07:30.406 | [Bravo]    Success: 2/2
+2025-11-11 23:07:30.406 | [Bravo]    Failed: 0/2
+2025-11-11 23:07:30.406 | [Bravo] 🚶 STEP 5: Moving to stand next to observer...
+2025-11-11 23:07:30.408 | [Bravo] Pathfinder initialized with settings: { sprint: true, parkour: true, dig: false, entityDetection: true }
+2025-11-11 23:07:30.408 | [Bravo] 📐 Observer yaw: 3.41, moving to side position (-852.0, 1072.6)
+2025-11-11 23:07:32.017 | [Bravo] ✅ Moved next to observer (side position)
+2025-11-11 23:07:32.017 | [Bravo] 👁️ Looking at structure together...
+2025-11-11 23:07:32.017 | [Bravo] Looking at (-848.00, 65.00, 1082.00) at 90°/s over 1.69s
+2025-11-11 23:07:36.406 | [Bravo Server] Received: episode_9_stopPhase (no listeners)
+2025-11-11 23:07:36.923 | [Bravo] ✅ Admired structure from observer position
+2025-11-11 23:07:36.923 | [Bravo] 🎬 FRAME COUNTING END at 1762920456923
+2025-11-11 23:07:36.923 | [Bravo] ⏱️  ML Training Segment Duration: 13.52s
+2025-11-11 23:07:36.923 | [Bravo] 🎞️  Estimated Frames (at 20 FPS): 270 frames
+2025-11-11 23:07:36.923 | [Bravo] 📊 Target: 300 frames | Actual: 270 | Difference: -30 frames
+2025-11-11 23:07:36.923 | [Bravo] ✅ STRUCTURE EVAL phase complete!
+2025-11-11 23:07:36.923 | [sendToOtherBot] structureEvalPhase_0 end: Sending episode_9_stopPhase via client connection
+2025-11-11 23:07:36.923 | [Bravo Server] Received: episode_9_stopPhase (1 listeners) - emitting
+2025-11-11 23:07:36.923 | [sendToOtherBot] stopPhase beginning: Sending episode_9_stopPhase via client connection
+2025-11-11 23:07:36.923 | [Bravo] stops recording
+2025-11-11 23:07:36.923 | [headless] ending episode
+2025-11-11 23:07:36.923 | [Bravo] waiting for episode recording to end...
+2025-11-11 23:07:36.941 | [headless] sending zero end of stream
+2025-11-11 23:07:36.966 | [headless] Socket ended
+2025-11-11 23:07:36.966 | [headless] Socket state at end: {
+2025-11-11 23:07:36.966 |   writable: false,
+2025-11-11 23:07:36.966 |   destroyed: false,
+2025-11-11 23:07:36.966 |   connecting: false,
+2025-11-11 23:07:36.966 |   bytesWritten: 115499,
+2025-11-11 23:07:36.966 |   bytesRead: 0
+2025-11-11 23:07:36.966 | }
+2025-11-11 23:07:36.966 | [headless] Socket closed
+2025-11-11 23:07:36.966 | [headless] connection closed, firing episodeended event
+2025-11-11 23:07:36.966 | [Bravo] episode recording ended, connection closed
+2025-11-11 23:07:37.967 | [sendToOtherBot] StopPhase end: Sending episode_9_stoppedPhase via client connection
+2025-11-11 23:07:37.992 | [Bravo Server] Received: episode_9_stoppedPhase (1 listeners) - emitting
+2025-11-11 23:07:37.992 | [sendToOtherBot] stoppedPhase beginning: Sending episode_9_stoppedPhase via client connection
+2025-11-11 23:07:37.992 | [Bravo] stopped
+2025-11-11 23:07:37.992 | [Bravo] All event handlers finished
+2025-11-11 23:07:37.992 | [Bravo] Stopped PVP for episode 9
+2025-11-11 23:07:37.992 | [Bravo] Stopped pathfinder navigation for episode 9
+2025-11-11 23:07:37.992 | [Bravo] tearing down episode 9
+2025-11-11 23:07:37.992 | [Bravo] Episode 9 completed
+2025-11-11 23:07:37.993 | [Bravo Server] Received: episode_9_stoppedPhase (no listeners)
+2025-11-11 23:07:37.998 | [Bravo Server] Received: episode_9_syncBots (no listeners)
+2025-11-11 23:07:37.999 | [Bravo] Saved episode info to /output/20251112_040737_000009_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-11 23:07:37.999 | [Bravo] Syncing bots for episode 9
+2025-11-11 23:07:37.999 | [sendToOtherBot] syncBots outer: Sending episode_9_syncBots via client connection
+2025-11-11 23:07:38.000 | [Bravo Server] Received: episode_9_syncBots (1 listeners) - emitting
+2025-11-11 23:07:38.000 | [sendToOtherBot] syncBots beginning: Sending episode_9_syncBots via client connection
+2025-11-11 23:07:38.000 | [Bravo] Syncing bots...
+2025-11-11 23:07:38.000 | [Bravo] Synced bots for episode 9
+2025-11-11 23:07:38.001 | [Bravo] All 10 episodes completed

@@ -14,13 +14,34 @@ const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
 // const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2"];
-const ALL_STRUCTURE_TYPES = ["wall_2x2"];
-const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
-const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
+const ALL_STRUCTURE_TYPES = ["tower_2"];
+
+// Dynamic timing functions based on block count
+const getInitialEyeContactMs = (blockCount) => {
+  if (blockCount === 2) return 2500;    // tower: 2.5 seconds eye contact
+  if (blockCount === 4) return 1300;    // wall: 1.3 seconds eye contact (reduced from 1500)
+  return 1300; // Default: 1.3 seconds
+};
+
+const getStructureGazeMs = (blockCount) => {
+  if (blockCount === 2) return 3400;    // tower: 3.4 seconds gaze
+  if (blockCount === 4) return 2000;    // wall: 2 seconds gaze
+  return 2000; // Default: 2 seconds
+};
+
+const getBlockPlaceDelayMs = (blockCount) => {
+  if (blockCount === 2) return 1400;    // tower: 1.4 seconds between blocks
+  if (blockCount === 4) return 900;     // wall: 0.9 seconds between blocks (reduced from 1000)
+  return 900; // Default: 0.9 seconds
+};
+
+const getBuilderAdmireMs = (blockCount) => {
+  if (blockCount === 2) return 3200;    // tower: 3.2 seconds admire
+  if (blockCount === 4) return 1750;    // wall: 1.75 seconds admire (tiny increase from 1700)
+  return 2800; // Default: 2.8 seconds
+};
+
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
-const BLOCK_PLACE_DELAY_MS = 1000; // Delay between placing blocks (more human-like)
-const BUILDER_ADMIRE_MS = 2875; // Time for builder to admire structure with observer
-// Placement stance tuning (keep distance from structure and relax adjacency strictness)
 const PLACEMENT_STANDOFF_BLOCKS = 2; // Stand 2 blocks away from the structure while placing
 const ADJACENT_GOAL_RADIUS = 1.0; // Relaxed tolerance to avoid micro-jitter at the target point
 
@@ -290,7 +311,12 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
         const distanceToAdjacent = currentBotPos.distanceTo(adjacentPos);
         if (distanceToAdjacent > ADJACENT_GOAL_RADIUS && !skip4BlockMovement) {
           console.log(`[${bot.username}] 🚶 Moving to adjacent position (${adjacentPos.x.toFixed(1)}, ${adjacentPos.y}, ${adjacentPos.z.toFixed(1)}) before placing at ${pos}`);
-          const adjacentGoal = new GoalNear(adjacentPos.x, adjacentPos.y, adjacentPos.z, ADJACENT_GOAL_RADIUS);
+          const adjacentGoal = new GoalNear(
+            adjacentPos.x,
+            adjacentPos.y,
+            adjacentPos.z,
+            ADJACENT_GOAL_RADIUS
+          );
           
           try {
             await gotoWithTimeout(bot, adjacentGoal, { timeoutMs: 3000 });
@@ -411,7 +437,7 @@ async function buildStructure(bot, positions, blockType, args) {
       useSneak: true,
       tries: 5,
       args: args,
-      delayMs: BLOCK_PLACE_DELAY_MS, // Add delay between blocks
+      delayMs: getBlockPlaceDelayMs(positions.length), // Add delay between blocks
     });
 
     console.log(`[${bot.username}] 🏁 Build complete!`);
@@ -548,7 +574,7 @@ function getOnStructureEvalPhaseFn(
         if (otherEntity) {
           const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
           await bot.lookAt(targetPos);
-          await sleep(INITIAL_EYE_CONTACT_MS);
+          await sleep(getInitialEyeContactMs(ALL_STRUCTURE_TYPES.length));
         }
       } catch (lookError) {
         console.log(
@@ -559,7 +585,7 @@ function getOnStructureEvalPhaseFn(
       console.log(
         `[${bot.username}] 🧍 STEP 2: Remaining stationary (observer role)...`
       );
-      await sleep(INITIAL_EYE_CONTACT_MS);
+      await sleep(getInitialEyeContactMs(ALL_STRUCTURE_TYPES.length));
     }
 
     // STEP 3: Determine build positions based on bot role
@@ -627,7 +653,7 @@ function getOnStructureEvalPhaseFn(
     } else {
       console.log(`[${bot.username}] 🧍 STEP 4: Remaining stationary (observer role)...`);
       // Observer remains completely stationary - no looking, no movement
-      const totalWatchTime = positions.length * BLOCK_PLACE_DELAY_MS;
+      const totalWatchTime = positions.length * getBlockPlaceDelayMs(positions.length);
       await sleep(totalWatchTime);
       console.log(`[${bot.username}] ✅ Finished waiting (stationary)`);
     }
@@ -686,7 +712,7 @@ function getOnStructureEvalPhaseFn(
           if (structureCenter) {
             console.log(`[${bot.username}] 👁️ Looking at structure together...`);
             await lookAtSmooth(bot, structureCenter, 90);
-            await sleep(BUILDER_ADMIRE_MS);
+            await sleep(getBuilderAdmireMs(positions.length));
             console.log(`[${bot.username}] ✅ Admired structure from observer position`);
           }
         }
@@ -715,7 +741,7 @@ function getOnStructureEvalPhaseFn(
         `[${bot.username}] 🧍 STEP 5: Remaining stationary (observer role)...`
       );
       // Observer waits while builder moves and looks
-      await sleep(BUILDER_ADMIRE_MS + 5000); // Extra time for builder to pathfind
+      await sleep(getBuilderAdmireMs(positions.length) + 5000); // Extra time for builder to pathfind
       console.log(`[${bot.username}] ✅ Finished waiting (stationary)`);
     }
 
