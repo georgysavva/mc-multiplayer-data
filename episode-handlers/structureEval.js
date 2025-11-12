@@ -14,12 +14,12 @@ const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
 // const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2"];
-const ALL_STRUCTURE_TYPES = ["tower_2"];
-const INITIAL_EYE_CONTACT_MS = 1000; // Initial look duration
+const ALL_STRUCTURE_TYPES = ["wall_2x2"];
+const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const STRUCTURE_GAZE_MS = 2000; // How long to look at structures
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
-const BLOCK_PLACE_DELAY_MS = 750; // Delay between placing blocks (more human-like)
-const BUILDER_ADMIRE_MS = 2000; // Time for builder to admire structure with observer
+const BLOCK_PLACE_DELAY_MS = 1000; // Delay between placing blocks (more human-like)
+const BUILDER_ADMIRE_MS = 2875; // Time for builder to admire structure with observer
 // Placement stance tuning (keep distance from structure and relax adjacency strictness)
 const PLACEMENT_STANDOFF_BLOCKS = 2; // Stand 2 blocks away from the structure while placing
 const ADJACENT_GOAL_RADIUS = 1.0; // Relaxed tolerance to avoid micro-jitter at the target point
