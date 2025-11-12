@@ -233,12 +233,6 @@ services:
     volumes:
       - ./camera/data_alpha:/root
       - ./camera/output_alpha:/output
-    extra_hosts:
-      - "sessionserver.mojang.com:127.0.0.1"
-      - "api.minecraftservices.com:127.0.0.1"
-      - "authserver.mojang.com:127.0.0.1"
-      - "textures.minecraft.net:127.0.0.1"
-      - "pc.realms.minecraft.net:127.0.0.1"
 
   episode_starter:
     image: node:20
@@ -293,9 +287,3 @@ services:
     volumes:
       - ./camera/data_bravo:/root
       - ./camera/output_bravo:/output
-    extra_hosts:
-      - "sessionserver.mojang.com:127.0.0.1"
-      - "api.minecraftservices.com:127.0.0.1"
-      - "authserver.mojang.com:127.0.0.1"
-      - "textures.minecraft.net:127.0.0.1"
-      - "pc.realms.minecraft.net:127.0.0.1"

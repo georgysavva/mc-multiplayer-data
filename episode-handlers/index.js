@@ -35,6 +35,7 @@ const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 // const { CollectorEpisode } = require("./collector-episode");
 const { TranslationEvalEpisode } = require("./translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
+const { TurnToLookEpisode } = require("./turn-to-look-episode");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -52,6 +53,7 @@ const episodeClassMap = {
   // collector: CollectorEpisode,
   translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
+  turnToLook: TurnToLookEpisode,
 };
 
 // Import episode-specific handlers
