@@ -2,7 +2,7 @@ const { lookAtSmooth, lookSmooth, sneak } = require("../utils/movement");
 const { sleep } = require("../utils/helpers");
 const { BaseEpisode } = require("./base-episode");
 
-const CAMERA_SPEED_DEGREES_PER_SEC = 30;
+const CAMERA_SPEED_DEGREES_PER_SEC = 90;
 const ITERATIONS_NUM_PER_EPISODE = 1;
 const MIN_LOOK_AWAY_DURATION_SEC = 1.0;
 const MAX_LOOK_AWAY_DURATION_SEC = 1.0;
@@ -33,6 +33,7 @@ function getOnLookAwayPhaseFn(
       "both_look_away",
     ];
     const selectedMode = walkingModes[episodeNum % 3];
+    selectedMode = "both_look_away";
 
     console.log(
       `[iter ${iterationID}] [${bot.username}] starting look away phase - mode: ${selectedMode}`
@@ -102,7 +103,7 @@ function getOnLookAwayPhaseFn(
       console.log(
         `[iter ${iterationID}] [${bot.username}] looking back at other bot`
       );
-      await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+      await lookSmooth(bot, originalYaw, originalPitch, CAMERA_SPEED_DEGREES_PER_SEC);
       
       // Record tick number
       const endTick = bot.time.age;

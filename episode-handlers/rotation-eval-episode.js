@@ -1,9 +1,10 @@
 const { lookAtSmooth, sneak, lookSmooth } = require("../utils/movement");
 const { BaseEpisode } = require("./base-episode");
 
-const {
-  DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
-} = require("../utils/constants");
+// const {
+//   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
+// } = require("../utils/constants");
+const THIS_CAMERA_SPEED_DEGREES_PER_SEC = 90;
 const EPISODE_MIN_TICKS = 300;
 
 function getOnRotatePhaseFn(
@@ -24,7 +25,7 @@ function getOnRotatePhaseFn(
     );
 
     // Look at the other bot smoothly at the start of the phase
-    await lookAtSmooth(bot, otherBotPosition, DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC * 4);
+    await lookAtSmooth(bot, otherBotPosition, 120);
 
     // Determine which bot rotates and by how much based on episodeNum % 6
     // 0: Alpha +45, 1: Alpha -45, 2: Alpha 180
@@ -49,7 +50,7 @@ function getOnRotatePhaseFn(
     episodeInstance._evalMetadata = {
       bots_chosen: [botChosen],
       rotation_degrees: rotationDegrees,
-      camera_speed_degrees_per_sec: DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
+      camera_speed_degrees_per_sec: THIS_CAMERA_SPEED_DEGREES_PER_SEC,
       case_num: caseNum,
     };
 
