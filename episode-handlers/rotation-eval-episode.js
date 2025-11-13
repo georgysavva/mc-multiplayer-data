@@ -4,7 +4,7 @@ const { BaseEpisode } = require("./base-episode");
 // const {
 //   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
 // } = require("../utils/constants");
-const THIS_CAMERA_SPEED_DEGREES_PER_SEC = 90;
+const THIS_CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const EPISODE_MIN_TICKS = 300;
 
 function getOnRotatePhaseFn(
