@@ -33,7 +33,6 @@ function getOnLookAwayPhaseFn(
       "both_look_away",
     ];
     const selectedMode = walkingModes[episodeNum % 3];
-    selectedMode = "both_look_away";
 
     console.log(
       `[iter ${iterationID}] [${bot.username}] starting look away phase - mode: ${selectedMode}`
