@@ -1,11 +1,12 @@
-const { lookAtSmooth, lookSmooth } = require("../utils/movement");
+const { lookAtSmooth, lookSmooth, sneak } = require("../utils/movement");
 const { sleep } = require("../utils/helpers");
 const { BaseEpisode } = require("./base-episode");
 
-const CAMERA_SPEED_DEGREES_PER_SEC = 30;
+const CAMERA_SPEED_DEGREES_PER_SEC = 90;
 const ITERATIONS_NUM_PER_EPISODE = 1;
 const MIN_LOOK_AWAY_DURATION_SEC = 1.0;
 const MAX_LOOK_AWAY_DURATION_SEC = 1.0;
+const EPISODE_MIN_TICKS = 300;
 
 function getOnLookAwayPhaseFn(
   bot,
@@ -18,8 +19,6 @@ function getOnLookAwayPhaseFn(
   args
 ) {
   return async (otherBotPosition) => {
-    // Add a small 1s delay at the start of each iteration for both bots
-    await bot.waitForTicks(20);
     coordinator.sendToOtherBot(
       `lookAwayPhase_${iterationID}`,
       bot.entity.position.clone(),
@@ -41,18 +40,39 @@ function getOnLookAwayPhaseFn(
 
     // Determine if this bot should look away based on the selected mode
     let shouldThisBotLookAway = false;
+    let botsChosen = [];
 
     switch (selectedMode) {
       case "lower_name_looks_away":
         shouldThisBotLookAway = bot.username < args.other_bot_name;
+        botsChosen = [bot.username < args.other_bot_name ? bot.username : args.other_bot_name];
         break;
       case "bigger_name_looks_away":
         shouldThisBotLookAway = bot.username > args.other_bot_name;
+        botsChosen = [bot.username > args.other_bot_name ? bot.username : args.other_bot_name];
         break;
       case "both_look_away":
         shouldThisBotLookAway = true;
+        botsChosen = [bot.username, args.other_bot_name].sort();
         break;
     }
+
+    // Look at the other bot smoothly at the start of the phase
+    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+    // pick a look away direction randomly. -1 means left, 1 means right.
+    const lookAwayDirection = Math.random() < 0.5 ? -1 : 1;
+    // pick a look away offset randomly between 90 +/- 22.5 degrees.
+    const lookAwayOffsetDeg = 90 * lookAwayDirection + sharedBotRng() * 45 - 22.5;
+    const freezeTicks = 20;
+    
+    episodeInstance._evalMetadata = {
+      bots_chosen: botsChosen,
+      mode: selectedMode,
+      camera_speed_degrees_per_sec: CAMERA_SPEED_DEGREES_PER_SEC,
+      look_away_offset_deg: lookAwayOffsetDeg,
+      look_away_direction: lookAwayDirection,
+      freeze_ticks: freezeTicks,
+    };
 
     console.log(
       `[iter ${iterationID}] [${bot.username}] will ${
@@ -60,60 +80,41 @@ function getOnLookAwayPhaseFn(
       } during this phase`
     );
 
-    // Look at the other bot smoothly at the start of the phase
-    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
-
     // Either look away or stay looking based on the mode
     if (shouldThisBotLookAway) {
+      // sneak to signal evaluation start
+      await sneak(bot);
+      // Record tick number
+      const startTick = bot.time.age;
+      
       // Save bot's original pitch and yaw
       const originalYaw = bot.entity.yaw;
       const originalPitch = bot.entity.pitch;
-
-      // Pick a random angle between -90 and +90 degrees behind the bot's current yaw
-      // "Behind" means add 180 degrees (π radians), then offset by [-90, +90] degrees
-      const behindOffsetDeg = sharedBotRng() * 180 - 90; // [-90, +90]
-      const behindOffsetRad = (behindOffsetDeg * Math.PI) / 180;
-      const newYaw = originalYaw + Math.PI + behindOffsetRad;
+      const newYaw = originalYaw + Math.PI + lookAwayOffsetDeg * Math.PI / 180;
 
       console.log(
-        `[iter ${iterationID}] [${bot.username}] looking away (offset: ${behindOffsetDeg.toFixed(1)}°)`
+        `[iter ${iterationID}] [${bot.username}] looking away (offset: ${lookAwayOffsetDeg.toFixed(1)}°)`
       );
-
-      // Look away
-      await lookSmooth(
-        bot,
-        newYaw,
-        originalPitch,
-        CAMERA_SPEED_DEGREES_PER_SEC
-      );
-
-      // Stay looking away for a duration
-      const lookAwayDuration =
-        MIN_LOOK_AWAY_DURATION_SEC +
-        sharedBotRng() * (MAX_LOOK_AWAY_DURATION_SEC - MIN_LOOK_AWAY_DURATION_SEC);
-      const lookAwayDurationMs = Math.floor(lookAwayDuration * 1000);
-
-      console.log(
-        `[iter ${iterationID}] [${bot.username}] staying looking away for ${lookAwayDuration.toFixed(2)}s`
-      );
-      await sleep(lookAwayDurationMs);
+      await lookSmooth(bot, newYaw, originalPitch, CAMERA_SPEED_DEGREES_PER_SEC);
+      await bot.waitForTicks(freezeTicks);
 
       // Look back at the other bot
       console.log(
         `[iter ${iterationID}] [${bot.username}] looking back at other bot`
       );
-      await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
+      await lookSmooth(bot, originalYaw, originalPitch, CAMERA_SPEED_DEGREES_PER_SEC);
+      
+      // Record tick number
+      const endTick = bot.time.age;
+      const remainingTicks = EPISODE_MIN_TICKS - (endTick - startTick);
+      if (remainingTicks > 0) {
+        console.log(`[${bot.username}] Waiting ${remainingTicks} more ticks to reach ${EPISODE_MIN_TICKS} total ticks`);
+        await bot.waitForTicks(remainingTicks);
+      } else {
+        console.log(`[${bot.username}] Already passed ${EPISODE_MIN_TICKS} ticks (elapsed: ${endTick - startTick})`);
+      }
     } else {
-      // Bot keeps looking at the other bot - just wait for the same duration
-      const lookAwayDuration =
-        MIN_LOOK_AWAY_DURATION_SEC +
-        sharedBotRng() * (MAX_LOOK_AWAY_DURATION_SEC - MIN_LOOK_AWAY_DURATION_SEC);
-      const lookAwayDurationMs = Math.floor(lookAwayDuration * 1000);
-
-      console.log(
-        `[iter ${iterationID}] [${bot.username}] keeping looking at other bot for ${lookAwayDuration.toFixed(2)}s`
-      );
-      await sleep(lookAwayDurationMs);
+        // Do nothing
     }
 
     if (iterationID == ITERATIONS_NUM_PER_EPISODE - 1) {
@@ -200,17 +201,6 @@ class LookAwayEvalEpisode extends BaseEpisode {
       episodeNum,
       "teleportPhase end"
     );
-  }
-
-  async tearDownEpisode(
-    bot,
-    rcon,
-    sharedBotRng,
-    coordinator,
-    episodeNum,
-    args
-  ) {
-    // optional teardown
   }
 }
 
