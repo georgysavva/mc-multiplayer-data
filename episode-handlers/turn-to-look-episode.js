@@ -1,73 +1,159 @@
 const { BaseEpisode } = require("./base-episode");
 const { GoalNear } = require("../utils/bot-factory");
-const { lookAtSmooth } = require("../utils/movement");
+const { lookAtSmooth, sneak } = require("../utils/movement");
 
-class TurnToLookEpisode extends BaseEpisode {
-  static WORKS_IN_NON_FLAT_WORLD = true;
+const EPISODE_MIN_TICKS = 300;
 
-  async entryPoint(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, args) {
+function getOnTurnToLookPhaseFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  episodeNum,
+  episodeInstance,
+  args
+) {
+  return async (otherBotPosition) => {
+    coordinator.sendToOtherBot(
+      "turnToLookPhase",
+      bot.entity.position.clone(),
+      episodeNum,
+      "turnToLookPhase beginning"
+    );
+
     const otherName = args.other_bot_name;
     const other = bot.players[otherName]?.entity;
     if (!other) {
-      console.log(`[${bot.username}] Other bot missing, ending episode.`);
-      return this.endEpisode();
+      console.log(`[${bot.username}] Other bot missing, skipping.`);
+      coordinator.sendToOtherBot(
+        "stopPhase",
+        bot.entity.position.clone(),
+        episodeNum,
+        "missing other bot"
+      );
+      return;
     }
 
+    const startTick = bot.time.age;
     const me = bot.entity.position;
     const them = other.position;
+
+    // ---- Phase 1: Look at each other ----
+    console.log(`[${bot.username}] Looking at ${otherName}`);
+    await lookAtSmooth(bot, them, 60);
+    await bot.waitForTicks(20);
+
+    // ---- Phase 2: Walk toward midpoint with directional offset ----
     const midX = (me.x + them.x) / 2;
     const midZ = (me.z + them.z) / 2;
+    const yLevel = me.y;
 
-    const dx = Math.abs(me.x - them.x);
-    const dz = Math.abs(me.z - them.z);
-
-    const isAlpha = bot.username < otherName;
-    const offset = isAlpha ? 1 : -1;
+    // Determine primary axis of separation
+    const dx = them.x - me.x;
+    const dz = them.z - me.z;
 
     let targetX = midX;
     let targetZ = midZ;
 
-    if (dx >= dz) {
-      targetZ += offset * 1.2;
+    // Offset along whichever axis is greater in magnitude
+    if (Math.abs(dx) > Math.abs(dz)) {
+      // Bots are more separated along X
+      targetX += me.x > them.x ? 1 : -1;
     } else {
-      targetX += offset * 1.2;
+      // Bots are more separated along Z
+      targetZ += me.z > them.z ? 1 : -1;
     }
 
-    console.log(`[${bot.username}] Moving to (${targetX.toFixed(2)}, ${targetZ.toFixed(2)})`);
+    console.log(
+      `[${bot.username}] Walking toward (${targetX.toFixed(1)}, ${yLevel.toFixed(1)}, ${targetZ.toFixed(1)})`
+    );
 
-    let radius = 1.2;
-    let success = false;
-    for (let attempt = 0; attempt < 5 && !success; attempt++) {
-      try {
-        await bot.pathfinder.goto(new GoalNear(targetX, me.y, targetZ, 1));
-        success = true;
-      } catch (_) {
-        radius += 0.8;
-        if (dx >= dz) targetZ = midZ + offset * radius;
-        else targetX = midX + offset * radius;
-        console.log(`[${bot.username}] Re-adjusting position radius → ${radius.toFixed(1)}`);
-      }
+    try {
+      await bot.pathfinder.goto(new GoalNear(targetX, yLevel, targetZ, 1));
+      console.log(`[${bot.username}] Reached offset midpoint.`);
+    } catch (err) {
+      console.log(`[${bot.username}] Pathfinding failed: ${err.message}`);
     }
 
+    // ---- Phase 3: Face a random direction ----
     const COMPASS = [
       { name: "north", x: 0, z: -1 },
       { name: "east", x: 1, z: 0 },
       { name: "south", x: 0, z: 1 },
       { name: "west", x: -1, z: 0 },
     ];
-
     const i = Math.floor(sharedBotRng() * COMPASS.length);
     const chosen = COMPASS[i];
-
     console.log(`[${bot.username}] Facing ${chosen.name}`);
 
     const pos = bot.entity.position.clone();
     const faceTarget = pos.offset(chosen.x, 0, chosen.z);
     await lookAtSmooth(bot, faceTarget, 60);
 
-    await bot.waitForTicks(40); 
-    this.endEpisode();
+    // ---- Phase 4: Sneak + ensure minimum ticks ----
+    console.log(`[${bot.username}] Sneaking to signal completion`);
+    await sneak(bot);
+
+    const endTick = bot.time.age;
+    const elapsed = endTick - startTick;
+    const remaining = EPISODE_MIN_TICKS - elapsed;
+    if (remaining > 0) {
+      console.log(`[${bot.username}] Waiting ${remaining} ticks to reach ${EPISODE_MIN_TICKS}`);
+      await bot.waitForTicks(remaining);
+    }
+
+    // ---- Phase 5: Stop phase ----
+    coordinator.onceEvent(
+      "stopPhase",
+      episodeNum,
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args
+      )
+    );
+
+    coordinator.sendToOtherBot(
+      "stopPhase",
+      bot.entity.position.clone(),
+      episodeNum,
+      "turnToLookPhase end"
+    );
+  };
+}
+
+class TurnToLookEpisode extends BaseEpisode {
+  static WORKS_IN_NON_FLAT_WORLD = true;
+
+  async entryPoint(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, args) {
+    coordinator.onceEvent(
+      "turnToLookPhase",
+      episodeNum,
+      getOnTurnToLookPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        this,
+        args
+      )
+    );
+
+    coordinator.sendToOtherBot(
+      "turnToLookPhase",
+      bot.entity.position.clone(),
+      episodeNum,
+      "teleportPhase end"
+    );
   }
 }
 
-module.exports = { TurnToLookEpisode };
+module.exports = {
+  getOnTurnToLookPhaseFn,
+  TurnToLookEpisode,
+};
