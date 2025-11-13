@@ -44,7 +44,8 @@ services:
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
       # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
-      LEVEL_TYPE: minecraft:${LEVEL_TYPE:-flat}
+      LEVEL_TYPE: "minecraft:single_biome_surface"
+      GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
       # below should be irrelevant if LEVEL_TYPE is not minecraft:flat
       GENERATOR_SETTINGS: >-
         {

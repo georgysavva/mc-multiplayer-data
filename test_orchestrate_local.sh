@@ -18,9 +18,9 @@ python3 $PROJECT_ROOT/generate_compose.py --instances 2 \
  --camera_data_alpha_base $PROJECT_ROOT/camera/data_alpha \
  --camera_data_bravo_base $PROJECT_ROOT/camera/data_bravo \
  --smoke_test 0 \
- --num_flatland_world 0 \
- --num_normal_world 1 \
- --num_episodes 1 \
+ --num_flatland_world 4 \
+ --num_normal_world 0 \
+ --num_episodes 8 \
  --episode_types turnToLook \
  --iterations_num_per_episode 1 \
  --viewer_rendering_disabled 1

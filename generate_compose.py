@@ -193,8 +193,9 @@ def generate_compose_config(
                         "BROADCAST_RCON_TO_OPS": True,
                         **(
                             {
-                                "LEVEL_TYPE": "minecraft:flat",
-                                "GENERATOR_SETTINGS": "TERRAIN_SETTINGS_PLACEHOLDER",
+                                "LEVEL_TYPE": "minecraft:single_biome_surface",
+                                "GENERATOR_SETTINGS": '{"biome":"minecraft:plains", "disable_vegetation": true}',
+                                
                             }
                             if str(world_type).lower() == "flat"
                             else {}

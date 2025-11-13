@@ -13,3 +13,5 @@ plugins/SkinsRestorer/players/*
 plugins/SkinsRestorer/skins/*.playerskin
 plugins/SkinsRestorer/recommendations.json
 postprocess/__pycache__/
+mc_multiplayer_eval_co_observation*/
+final/*

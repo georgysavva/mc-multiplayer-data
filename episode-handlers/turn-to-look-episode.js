@@ -1,6 +1,7 @@
 const { BaseEpisode } = require("./base-episode");
 const { GoalNear } = require("../utils/bot-factory");
 const { lookAtSmooth, sneak } = require("../utils/movement");
+const { GoalXZ } = require("../utils/bot-factory");
 
 const EPISODE_MIN_TICKS = 300;
 
@@ -14,6 +15,10 @@ function getOnTurnToLookPhaseFn(
   args
 ) {
   return async (otherBotPosition) => {
+    bot.pathfinder.setGoal(null);
+    bot.clearControlStates();
+    await bot.waitForTicks(2);
+
     coordinator.sendToOtherBot(
       "turnToLookPhase",
       bot.entity.position.clone(),
@@ -69,26 +74,33 @@ function getOnTurnToLookPhaseFn(
     );
 
     try {
-      await bot.pathfinder.goto(new GoalNear(targetX, yLevel, targetZ, 1));
+      await bot.pathfinder.goto(new GoalXZ(targetX, targetZ));
       console.log(`[${bot.username}] Reached offset midpoint.`);
     } catch (err) {
       console.log(`[${bot.username}] Pathfinding failed: ${err.message}`);
     }
 
     // ---- Phase 3: Face a random direction ----
-    const COMPASS = [
-      { name: "north", x: 0, z: -1 },
-      { name: "east", x: 1, z: 0 },
-      { name: "south", x: 0, z: 1 },
-      { name: "west", x: -1, z: 0 },
-    ];
-    const i = Math.floor(sharedBotRng() * COMPASS.length);
-    const chosen = COMPASS[i];
-    console.log(`[${bot.username}] Facing ${chosen.name}`);
+    const vx = them.x - me.x;
+    const vz = them.z - me.z;
 
-    const pos = bot.entity.position.clone();
-    const faceTarget = pos.offset(chosen.x, 0, chosen.z);
-    await lookAtSmooth(bot, faceTarget, 60);
+    // Normalize horizontal vector
+    const mag = Math.sqrt(vx*vx + vz*vz) || 1;
+    const nx = vx / mag;
+    const nz = vz / mag;
+
+    // Rotate 90 degrees left or right
+    // direction = +1 or -1 chosen from sharedRng so both bots choose opposite sides deterministically
+    const dir = bot.username < otherName ? 1 : -1;
+
+    // rotated vector
+    const sideX = -nz * dir;
+    const sideZ = nx * dir;
+
+    const facePos = bot.entity.position.offset(sideX, 0, sideZ);
+    console.log(`[${bot.username}] Facing sideways (${sideX.toFixed(2)}, ${sideZ.toFixed(2)})`);
+
+    await lookAtSmooth(bot, facePos, 60);
 
     // ---- Phase 4: Sneak + ensure minimum ticks ----
     console.log(`[${bot.username}] Sneaking to signal completion`);

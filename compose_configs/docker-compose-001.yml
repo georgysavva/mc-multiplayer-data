@@ -34,10 +34,12 @@ services:
       ALLOW_FLIGHT: true
       ONLINE_MODE: false
       SPAWN_PROTECTION: 0
-      SEED: '11762995105'
+      SEED: '11763048015'
       ENFORCE_SECURE_PROFILE: false
       RCON_PASSWORD: research
       BROADCAST_RCON_TO_OPS: true
+      LEVEL_TYPE: minecraft:single_biome_surface
+      GENERATOR_SETTINGS: '{"biome":"minecraft:plains", "disable_vegetation": true}'
     volumes:
     - /home/tmeehan/snap/snapd-desktop-integration/315/Repos/mc-multiplayer-data/data/1:/data
     healthcheck:
@@ -68,7 +70,7 @@ services:
       OTHER_COORD_HOST: sender_bravo_instance_1
       OTHER_COORD_PORT: 8220
       BOT_RNG_SEED: '12346'
-      EPISODES_NUM: 2
+      EPISODES_NUM: 8
       EPISODE_START_ID: 0
       EPISODE_TYPES: turnToLook
       MC_HOST: host.docker.internal
@@ -87,7 +89,7 @@ services:
       WALK_TIMEOUT: 5
       TELEPORT: 1
       TELEPORT_RADIUS: 250
-      WORLD_TYPE: normal
+      WORLD_TYPE: flat
       SMOKE_TEST: 0
       INSTANCE_ID: 1
       OUTPUT_DIR: /output
@@ -119,7 +121,7 @@ services:
       OTHER_COORD_HOST: sender_alpha_instance_1
       OTHER_COORD_PORT: 8220
       BOT_RNG_SEED: '12346'
-      EPISODES_NUM: 2
+      EPISODES_NUM: 8
       EPISODE_START_ID: 0
       EPISODE_TYPES: turnToLook
       MC_HOST: host.docker.internal
@@ -138,7 +140,7 @@ services:
       WALK_TIMEOUT: 5
       TELEPORT: 1
       TELEPORT_RADIUS: 250
-      WORLD_TYPE: normal
+      WORLD_TYPE: flat
       SMOKE_TEST: 0
       INSTANCE_ID: 1
       OUTPUT_DIR: /output
