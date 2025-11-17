@@ -51,18 +51,31 @@ function getOnWalkLookPhaseFn(
 
     // Determine if this bot should walk based on the selected mode
     let shouldThisBotWalk = false;
+    let botsChosen = [];
 
     switch (selectedMode) {
       case "both_bots_walk":
         shouldThisBotWalk = true;
+        botsChosen = [bot.username, args.other_bot_name].sort();
         break;
       case "lower_name_walks":
         shouldThisBotWalk = bot.username < args.other_bot_name;
+        botsChosen = [bot.username < args.other_bot_name ? bot.username : args.other_bot_name];
         break;
       case "bigger_name_walks":
         shouldThisBotWalk = bot.username > args.other_bot_name;
+        botsChosen = [bot.username > args.other_bot_name ? bot.username : args.other_bot_name];
         break;
     }
+    
+    episodeInstance._evalMetadata = {
+      bots_chosen: botsChosen,
+      mode: selectedMode,
+      camera_speed_degrees_per_sec: CAMERA_SPEED_DEGREES_PER_SEC,
+      min_run_actions: MIN_RUN_ACTIONS,
+      max_run_actions: MAX_RUN_ACTIONS,
+      min_episode_ticks: MIN_EPISODE_TICKS,
+    };
 
     console.log(
       `[iter ${iterationID}] [${bot.username}] will ${
@@ -76,7 +89,6 @@ function getOnWalkLookPhaseFn(
     // Either run() or sleep() based on the mode
     if (shouldThisBotWalk) {
       // Sneak to signal that eval should start, and which bot is walking.
-      bot.waitForTicks(10);
       await sneak(bot);
       
       await run(bot, actionCount, /*lookAway*/ false, args, episodeInstance.constructor.MOVEMENT_CONSTANTS);
@@ -223,7 +235,7 @@ class TranslationEvalEpisode extends BaseEpisode {
       } catch (err) {
         console.log(`[iter ${iterationID}] [${bot.username}] alignment error: ${err.message}`);
       }
-      bot.waitForTicks(10);
+      await bot.waitForTicks(5);
       coordinator.sendToOtherBot(
         `walkLookPhase_${iterationID}`,
         bot.entity.position.clone(),
@@ -233,19 +245,7 @@ class TranslationEvalEpisode extends BaseEpisode {
     } else {
       // For the bot not aligning, do nothing.
       // The episode will start after signaled by the other bot.
-      bot.waitForTicks(100);
     }
-  }
-
-  async tearDownEpisode(
-    bot,
-    rcon,
-    sharedBotRng,
-    coordinator,
-    episodeNum,
-    args
-  ) {
-    // optional teardown
   }
 }
 
