@@ -492,7 +492,7 @@ class InstanceManager:
         else:
             print("  (none)")
 
-    def _process_single_recording(self, job, comparison_video, eval_mode, output_dir=None):
+    def _process_single_recording(self, job, comparison_video, output_dir=None):
         """Process a single episode recording."""
         script_path = Path(__file__).parent / "postprocess" / "process_recordings.py"
         
@@ -508,9 +508,6 @@ class InstanceManager:
 
         if comparison_video:
             cmd.append("--comparison-video")
-        
-        if eval_mode:
-            cmd.append("--eval")
         
         try:
             result = subprocess.run(
@@ -533,7 +530,7 @@ class InstanceManager:
             print(f"  Error processing {job['episode_file'].name}: {e}")
             return False
 
-    def postprocess_recordings(self, workers=4, comparison_video=False, eval_mode=False, debug=False, output_dir=None):
+    def postprocess_recordings(self, workers=4, comparison_video=False, debug=False, output_dir=None):
         """Process camera recordings for all instances in parallel."""
         print(f"Discovering episodes from orchestrated instances...")
         
@@ -641,7 +638,6 @@ class InstanceManager:
                     self._process_single_recording,
                     job,
                     comparison_video,
-                    eval_mode,
                     output_dir
                 ): job
                 for job in jobs
@@ -725,11 +721,6 @@ def main():
         type=str,
         help="Directory for processed video outputs (default: batch1/aligned)",
     )
-    parser.add_argument(
-        "--eval",
-        action="store_true",
-        help="Eval mode for postprocess: crop video to start 5 frames after last sneak action",
-    )
 
     args = parser.parse_args()
 
@@ -746,7 +737,7 @@ def main():
     elif args.command == "recordings":
         manager.recordings()
     elif args.command == "postprocess":
-        manager.postprocess_recordings(args.workers, args.comparison_video, args.eval, args.debug, args.output_dir)
+        manager.postprocess_recordings(args.workers, args.comparison_video, args.debug, args.output_dir)
 
 
 if __name__ == "__main__":
