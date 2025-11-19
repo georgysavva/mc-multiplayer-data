@@ -4,28 +4,22 @@ const {
   stopAll,
   lookAtBot,
   sleep,
-  initializePathfinder,
-  stopPathfinder,
   land_pos,
 } = require("../utils/movement");
 const { BaseEpisode } = require("./base-episode");
 const Lock = require("../utils/lock");
 
 // Constants for collector behavior
-const HANDSHAKE_INTERVAL_MS = 500; // Send handshake signals every 500ms
-const HANDSHAKE_TIMEOUT_MS = 30000; // Timeout handshake after 30 seconds
-const MEETUP_TIMEOUT_MS = 15000; // 15 seconds to meet up
-const CHECKPOINT_POLL_INTERVAL_MS = 100; // Poll for checkpoint signals every 100ms
-const CHECKPOINT_TIMEOUT_MS = 60000; // Timeout checkpoints after 60 seconds
-const LEADER_FOLLOWER_PROBABILITY = 0.66; // 66% chance of leader-follower mode
-const FOLLOWER_NEAR_DISTANCE = 4; // Distance to maintain while following
-const FOLLOWER_FAR_DISTANCE = 7; // Distance before resuming following
-const RANDOM_MOTION_TIMEOUT_MS = 8000; // Stop task after 8 seconds
+const MEETUP_TIMEOUT_MS = 4000; // 15 seconds to meet up
+const LEADER_FOLLOWER_PROBABILITY = 3 / 3; // 100% chance of leader-follower mode
+const FOLLOWER_NEAR_DISTANCE = 2; // Distance to maintain while following
+const FOLLOWER_FAR_DISTANCE = 6; // Distance before resuming following
+const RANDOM_MOTION_TIMEOUT_MS = 10000; // Stop task after 8 seconds
 const ORE_MINING_TIMEOUT_MS = 8000; // Wait 8 seconds to mine an ore
 const TASK_CHECK_INTERVAL_MS = 500; // Check task status every 500ms
 const MAX_ORES_TO_MINE = 8; // Maximum ores to mine per cycle
 const MAX_TORCH_DISTANCE = 2; // Maximum distance to place torch
-const MAX_MINING_CYCLES = 10; // Maximum number of mining cycles before stopping
+const MAX_MINING_CYCLES = 20; // Maximum number of mining cycles before stopping
 
 // Valuable ore types (by block name)
 const VALUABLE_ORES = [
@@ -50,129 +44,6 @@ const VALUABLE_ORES = [
 // ============================================================================
 // SYNCHRONIZATION PRIMITIVES
 // ============================================================================
-
-/**
- * Perform initial handshake between bots to ensure both are ready
- * Both bots continuously send handshake signals until they receive the other's
- * This ensures no messages are lost due to listeners not being set up yet
- *
- * @param {Bot} bot - Mineflayer bot instance
- * @param {BotCoordinator} coordinator - Bot coordinator
- * @param {number} episodeNum - Episode number
- * @returns {Promise<boolean>} True if handshake succeeded, false if timeout
- */
-async function performHandshake(bot, coordinator, episodeNum) {
-  console.log(`[${bot.username}] Starting handshake...`);
-
-  let otherBotReady = false;
-  const startTime = Date.now();
-
-  // Set up recurring listener for other bot's handshake signal
-  const handshakeHandler = () => {
-    console.log(`[${bot.username}] Received handshake from other bot`);
-    otherBotReady = true;
-  };
-
-  // We need a recurring listener since we don't know when the signal will arrive
-  const setupListener = () => {
-    coordinator.onceEvent('handshake', episodeNum, () => {
-      handshakeHandler();
-      if (!otherBotReady) {
-        setupListener(); // Re-setup if somehow still not ready
-      }
-    });
-  };
-  setupListener();
-
-  // Continuously send handshake signals until we receive one back
-  while (!otherBotReady) {
-    if (Date.now() - startTime > HANDSHAKE_TIMEOUT_MS) {
-      console.log(`[${bot.username}] Handshake timeout!`);
-      return false;
-    }
-
-    coordinator.sendToOtherBot('handshake', null, episodeNum, 'handshake');
-    await sleep(HANDSHAKE_INTERVAL_MS);
-  }
-
-  // Send one final handshake to ensure other bot received ours
-  coordinator.sendToOtherBot('handshake', null, episodeNum, 'handshake');
-
-  console.log(`[${bot.username}] Handshake complete!`);
-  return true;
-}
-
-/**
- * Set up signal registry to track received checkpoint signals
- * Sets up listeners for all possible checkpoints in advance
- *
- * @param {BotCoordinator} coordinator - Bot coordinator
- * @param {number} episodeNum - Episode number
- * @param {number} maxCycles - Maximum number of mining cycles
- * @returns {Object} Signal registry object
- */
-function setupSignalRegistry(coordinator, episodeNum, maxCycles) {
-  const signals = {};
-
-  // Define all checkpoints
-  const checkpoints = [];
-  for (let cycle = 1; cycle <= maxCycles; cycle++) {
-    checkpoints.push(`meetup_ready_${cycle}`);
-    checkpoints.push(`mining_ready_${cycle}`);
-    // Also set up listener for leader/follower done signal
-    checkpoints.push(`done_${cycle}`);
-  }
-
-  // Set up persistent listeners for all checkpoints
-  for (const checkpoint of checkpoints) {
-    signals[checkpoint] = false;
-
-    // Set up recurring listener
-    const setupListener = () => {
-      coordinator.onceEvent(checkpoint, episodeNum, () => {
-        console.log(`[SIGNAL REGISTRY] Received signal: ${checkpoint}`);
-        signals[checkpoint] = true;
-        // Re-setup listener in case of multiple signals
-        setupListener();
-      });
-    };
-    setupListener();
-  }
-
-  return signals;
-}
-
-/**
- * Wait for a checkpoint synchronization point
- * Sends our ready signal and waits for other bot's ready signal
- * Both bots must reach this point before either proceeds
- *
- * @param {Bot} bot - Mineflayer bot instance
- * @param {BotCoordinator} coordinator - Bot coordinator
- * @param {string} checkpointName - Name of the checkpoint
- * @param {number} episodeNum - Episode number
- * @param {Object} signals - Signal registry object
- * @returns {Promise<boolean>} True if sync succeeded, false if timeout
- */
-async function syncCheckpoint(bot, coordinator, checkpointName, episodeNum, signals) {
-  console.log(`[${bot.username}] Syncing at checkpoint: ${checkpointName}`);
-
-  // Send our ready signal
-  coordinator.sendToOtherBot(checkpointName, null, episodeNum, 'checkpoint');
-
-  // Wait for other bot's ready signal (poll the signal registry)
-  const startTime = Date.now();
-  while (!signals[checkpointName]) {
-    if (Date.now() - startTime > CHECKPOINT_TIMEOUT_MS) {
-      console.log(`[${bot.username}] Checkpoint timeout: ${checkpointName}`);
-      return false;
-    }
-    await sleep(CHECKPOINT_POLL_INTERVAL_MS);
-  }
-
-  console.log(`[${bot.username}] Checkpoint synchronized: ${checkpointName}`);
-  return true;
-}
 
 /**
  * Determine if this bot should take a specific role
@@ -271,8 +142,10 @@ function canPlaceTorch(bot, pos) {
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Object} mcData - Minecraft data
  * @param {Array} oreIds - Array of ore block IDs to avoid
+ * @param {number} maxTryTime - Maximum time to try placing torch (default 6 seconds)
+ * @param {Function} stopRetryCondition - Function to check if torch placement should stop (default false)
  */
-async function placeTorch(bot, mcData, oreIds) {
+async function placeTorch(bot, mcData, oreIds, maxTryTime = 6000, stopRetryCondition = () => false) {
   const isSolid = (b) =>
     b && b.boundingBox === "block" && !b.name.includes("leaves");
   try {
@@ -307,11 +180,17 @@ async function placeTorch(bot, mcData, oreIds) {
       return distA - distB;
     });
 
-    // Try placing torch sequentially until one succeeds, up to a total of 6 seconds
+    // Try placing torch sequentially until one succeeds, up to maxTryTime
     const startTime = Date.now();
     for (const blockPos of sortedPositions) {
-      if (Date.now() - startTime > 6000) {
-        console.log(`[${bot.username}] Torch placement timed out after 6 seconds`);
+      // Check stop condition first
+      if (stopRetryCondition()) {
+        console.log(`[${bot.username}] Torch placement stopped due to stopRetryCondition`);
+        return;
+      }
+
+      if (Date.now() - startTime > maxTryTime) {
+        console.log(`[${bot.username}] Torch placement loop timed out after ${maxTryTime}ms`);
         return;
       }
 
@@ -319,7 +198,7 @@ async function placeTorch(bot, mcData, oreIds) {
       if (distance > MAX_TORCH_DISTANCE) continue;
 
       const block = bot.blockAt(blockPos);
-      // if it's an ore block, continue
+      // if it's an ore block, skip
       if (!block || oreIds.includes(block.type)) continue;
 
       const [canPlace, faceVector] = canPlaceTorch(bot, blockPos);
@@ -329,12 +208,15 @@ async function placeTorch(bot, mcData, oreIds) {
 
       try {
         await bot.waitForTicks(2);
+        console.log(`[${bot.username}] Attempting to place torch at ${blockPos}`);
+        // this may block up to 800ms 
         await bot.placeBlock(block, faceVector);
         await bot.waitForTicks(2);
         console.log(`[${bot.username}] Torch placed at ${blockPos}`);
         return;
       } catch (error) {
-        // Continue to next position
+        // Print Error and continue to next position
+        console.log(`[${bot.username}] Failed to place torch at ${blockPos}:`, error.message);
       }
     }
   } catch (error) {
@@ -355,7 +237,6 @@ function findVisibleOres(bot, oreIds) {
     maxDistance: 16,
     count: 20,
   });
-  console.log(`[${bot.username}] Found ${oreBlocks.length} valuable ores nearby`);
   const botPosition = bot.entity.position;
   for (const blockPos of oreBlocks) {
     const block = bot.blockAt(blockPos);
@@ -368,6 +249,7 @@ function findVisibleOres(bot, oreIds) {
       console.log(`[${bot.username}] Found visible ${block.name} at ${block.position}`);
     }
   }
+  console.log(`[${bot.username}] Found ${visibleOres.length} visible ores out of ${oreBlocks.length} nearby ores`);
   return visibleOres;
 }
 
@@ -383,6 +265,44 @@ function getRandomDirection() {
     { name: "west", offset: new Vec3(-1, 0, 0) },
   ];
   return directions[Math.floor(Math.random() * directions.length)];
+}
+
+/**
+ * Get next task specification with repeat tracking
+ * @param {string} botUsername - Bot username for logging
+ * @param {Object|null} lastTaskSpec - Last task specification (or null)
+ * @param {number} taskRepeatCount - Current repeat count (0, 1, or 2)
+ * @returns {Object} Object with taskSpec and newRepeatCount
+ */
+function getNextTaskSpec(botUsername, lastTaskSpec, taskRepeatCount) {
+  let taskSpec;
+  let newRepeatCount;
+
+  // Check if we need to repeat the last task
+  if (lastTaskSpec && taskRepeatCount === 1) {
+    // Repeat the last task (second execution)
+    taskSpec = lastTaskSpec;
+    newRepeatCount = 2;
+    console.log(
+      `[${botUsername}] Task 2/2: ${taskSpec.type} ${taskSpec.direction.name} (repeat)`
+    );
+  } else {
+    // Create new random task specification (first execution)
+    const taskType = Math.random() < 0.6 ? "directional" : "staircase";
+    const direction = getRandomDirection();
+    const distance =
+      taskType === "directional"
+        ? Math.floor(Math.random() * 4) + 5
+        : Math.floor(Math.random() * 4) + 5;
+
+    taskSpec = { type: taskType, direction: direction, distance: distance };
+    newRepeatCount = 1;
+    console.log(
+      `[${botUsername}] Task 1/2: ${taskSpec.type} ${taskSpec.direction.name}`
+    );
+  }
+
+  return { taskSpec, newRepeatCount };
 }
 
 /**
@@ -419,7 +339,7 @@ function performStaircaseMining(bot, direction, depth) {
   const targetZ = startPos.z + direction.offset.z * horizontalDistance;
 
   // Set pathfinding goal
-  bot.pathfinder.setGoal(new GoalNear(targetX, targetY, targetZ, 2));
+  bot.pathfinder.setGoal(new GoalNear(targetX, targetY, targetZ, 1));
 }
 
 /**
@@ -428,16 +348,15 @@ function performStaircaseMining(bot, direction, depth) {
  * @param {Object} mcData - Minecraft data
  * @param {Array} oreIds - Array of ore block IDs
  * @param {Object} taskSpec - Task specification {type, direction, distance}
- * @param {Lock} taskLock - Lock for task synchronization
  * @returns {Promise} Promise that resolves when task completes
  */
-async function executeMiningTask(bot, mcData, oreIds, taskSpec, taskLock) {
+async function executeMiningTask(bot, mcData, oreIds, taskSpec) {
   console.log(
     `[${bot.username}] Executing task: ${taskSpec.type} ${taskSpec.direction.name}`
   );
 
   // Place torch before mining
-  await placeTorch(bot, mcData, oreIds);
+  await placeTorch(bot, mcData, oreIds, 2400);
 
   // Collect visible ores
   const visibleOres = findVisibleOres(bot, oreIds);
@@ -481,14 +400,14 @@ async function executeMiningTask(bot, mcData, oreIds, taskSpec, taskLock) {
       if (Date.now() - taskStartTime > RANDOM_MOTION_TIMEOUT_MS) {
         clearInterval(checkInterval);
         bot.pathfinder.setGoal(null);
-        console.log(`[${bot.username}] Task timeout reached`);
+        console.log(`[${bot.username}] Random motion timeout reached`);
         resolve();
       }
     }, TASK_CHECK_INTERVAL_MS);
 
     bot.once("goal_reached", () => {
       clearInterval(checkInterval);
-      console.log(`[${bot.username}] Task goal reached`);
+      console.log(`[${bot.username}] Random motion goal reached`);
       resolve();
     });
   });
@@ -519,71 +438,43 @@ async function mineAsLeader(
 
   let lastTaskSpec = null;
   let taskRepeatCount = 0;
-  const taskLock = new Lock();
 
   while (taskRepeatCount < 2) {
-    await taskLock.acquire();
-
-    let taskSpec;
-
-    // Check if we need to repeat the last task
-    if (lastTaskSpec && taskRepeatCount === 1) {
-      // Repeat the last task (second execution)
-      taskSpec = lastTaskSpec;
-      taskRepeatCount = 2;
-      console.log(
-        `[${bot.username}] Task 2/2: ${taskSpec.type} ${taskSpec.direction.name} (repeat)`
-      );
-    } else {
-      // Create new random task specification (first execution)
-      const taskType = Math.random() < 0.7 ? "directional" : "staircase";
-      const direction = getRandomDirection();
-      const distance =
-        taskType === "directional"
-          ? Math.floor(Math.random() * 7) + 2
-          : Math.floor(Math.random() * 4) + 5;
-
-      taskSpec = { type: taskType, direction: direction, distance: distance };
-      lastTaskSpec = taskSpec;
-      taskRepeatCount = 1;
-      console.log(
-        `[${bot.username}] Task 1/2: ${taskSpec.type} ${taskSpec.direction.name}`
-      );
-    }
+    // Get next task specification
+    const { taskSpec, newRepeatCount } = getNextTaskSpec(
+      bot.username,
+      lastTaskSpec,
+      taskRepeatCount
+    );
+    lastTaskSpec = taskSpec;
+    taskRepeatCount = newRepeatCount;
 
     // Execute the mining task
-    await executeMiningTask(bot, mcData, oreIds, taskSpec, taskLock);
-    taskLock.release();
+    await executeMiningTask(bot, mcData, oreIds, taskSpec);
 
     // Small tick wait between tasks
     await bot.waitForTicks(10);
   }
 
   console.log(`[${bot.username}] Leader mining complete - 2 repetitions done`);
-  stopPathfinder(bot);
+  bot.pathfinder.setGoal(null);
 }
 
 /**
  * Follow leader and place torches
  * @param {Bot} bot - Mineflayer bot instance (follower)
- * @param {BotCoordinator} coordinator - Bot coordinator
  * @param {string} leaderName - Name of the leader bot
  * @param {Object} mcData - Minecraft data
  * @param {Array} oreIds - Array of ore block IDs
- * @param {number} episodeNum - Episode number
- * @param {number} cycle - Current cycle number
- * @param {Object} signals - Signal registry object
+ * @param {Function} isLeaderDone - Function that returns true when leader is done
  * @returns {Promise} Promise that resolves when following completes
  */
 async function followAndPlaceTorches(
   bot,
-  coordinator,
   leaderName,
   mcData,
   oreIds,
-  episodeNum,
-  cycle,
-  signals
+  isLeaderDone
 ) {
   console.log(`[${bot.username}] Starting follower mode - following ${leaderName}`);
 
@@ -593,53 +484,31 @@ async function followAndPlaceTorches(
   const MIN_TORCH_INTERVAL = 5000; // Place torch at most every 5 seconds
 
   // Continuous following with dynamic torch placement
-  // Continue until leader signals completion via done_${cycle}
-  while (!signals[`done_${cycle}`]) {
-    const leaderBot = bot.players[leaderName];
-    if (leaderBot && leaderBot.entity) {
-      const leaderPos = leaderBot.entity.position;
-      const myPos = bot.entity.position;
-      const distance = myPos.distanceTo(leaderPos);
-
-      // Dynamically follow leader using GoalFollow
-      if (distance >= FOLLOWER_FAR_DISTANCE) {
-        console.log(
-          `[${bot.username}] Following ${leaderName} (distance: ${distance.toFixed(1)})`
-        );
-
-        // Use GoalFollow for continuous following
-        bot.pathfinder.setGoal(
-          new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE),
-          true // dynamic goal
-        );
-
-        // Place torch periodically while following
-        // Check signal before attempting to place torch (torch placement can be slow)
-        const now = Date.now();
-        if (!signals[`done_${cycle}`] && now - lastTorchPlaceTime > MIN_TORCH_INTERVAL) {
-          console.log(`[${bot.username}] [DEBUG] About to place torch, signal=${signals[`done_${cycle}`]}`);
-          await placeTorch(bot, mcData, oreIds);
-          console.log(`[${bot.username}] [DEBUG] Torch placement done, signal=${signals[`done_${cycle}`]}`);
-          lastTorchPlaceTime = now;
-          // Check signal again after torch placement
-          if (signals[`done_${cycle}`]) {
-            console.log(`[${bot.username}] [DEBUG] Signal detected after torch placement, breaking`);
-            break;
-          }
-        }
-      } else if (bot.pathfinder.goal) {
-        // Close enough, stop following
-        bot.pathfinder.setGoal(null);
+  // Continue until leader signals completion
+  const leaderBot = bot.players[leaderName];
+  // dynamic goal to follow leader
+  bot.pathfinder.setGoal(new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE), true);
+  while (!isLeaderDone()) {
+    // Place torch periodically while following
+    const now = Date.now();
+    if (!isLeaderDone() && now - lastTorchPlaceTime > MIN_TORCH_INTERVAL) {
+      // Stop to place torch, for up to 2.4 seconds or until leader is done
+      bot.pathfinder.setGoal(null);
+      await placeTorch(bot, mcData, oreIds, 2400, () => isLeaderDone());
+      lastTorchPlaceTime = now;
+      await bot.lookAt(leaderBot.entity.position.offset(0, leaderBot.entity.height, 0));
+      bot.pathfinder.setGoal(new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE), true);
+      // Check if leader finished while placing torch
+      if (isLeaderDone()) {
+        break;
       }
     }
-
     // Small tick wait to prevent busy loop
-    await bot.waitForTicks(10);
+    await bot.waitForTicks(5);
   }
 
-  console.log(`[${bot.username}] [DEBUG] Exited follower loop, signal=${signals[`done_${cycle}`]}`);
   console.log(`[${bot.username}] Leader finished mining, follower mode complete`);
-  stopPathfinder(bot);
+  bot.pathfinder.setGoal(null);
 }
 
 /**
@@ -657,48 +526,26 @@ async function independentMining(bot, mcData, oreIds) {
 
   let lastTaskSpec = null;
   let taskRepeatCount = 0;
-  const taskLock = new Lock();
 
   while (taskRepeatCount < 2) {
-    await taskLock.acquire();
-
-    let taskSpec;
-
-    // Check if we need to repeat the last task
-    if (lastTaskSpec && taskRepeatCount === 1) {
-      // Repeat the last task (second execution)
-      taskSpec = lastTaskSpec;
-      taskRepeatCount = 2;
-      console.log(
-        `[${bot.username}] Task 2/2: ${taskSpec.type} ${taskSpec.direction.name} (repeat)`
-      );
-    } else {
-      // Create new random task specification (first execution)
-      const taskType = Math.random() < 0.7 ? "directional" : "staircase";
-      const direction = getRandomDirection();
-      const distance =
-        taskType === "directional"
-          ? Math.floor(Math.random() * 7) + 2
-          : Math.floor(Math.random() * 4) + 5;
-
-      taskSpec = { type: taskType, direction: direction, distance: distance };
-      lastTaskSpec = taskSpec;
-      taskRepeatCount = 1;
-      console.log(
-        `[${bot.username}] Task 1/2: ${taskSpec.type} ${taskSpec.direction.name}`
-      );
-    }
+    // Get next task specification
+    const { taskSpec, newRepeatCount } = getNextTaskSpec(
+      bot.username,
+      lastTaskSpec,
+      taskRepeatCount
+    );
+    lastTaskSpec = taskSpec;
+    taskRepeatCount = newRepeatCount;
 
     // Execute the mining task
-    await executeMiningTask(bot, mcData, oreIds, taskSpec, taskLock);
-    taskLock.release();
+    await executeMiningTask(bot, mcData, oreIds, taskSpec);
 
     // Small tick wait between tasks
     await bot.waitForTicks(10);
   }
 
   console.log(`[${bot.username}] Independent mining complete - 2 repetitions done`);
-  stopPathfinder(bot);
+  bot.pathfinder.setGoal(null);
 }
 
 // ============================================================================
@@ -710,15 +557,10 @@ async function independentMining(bot, mcData, oreIds) {
  * This is completely symmetric - both bots execute the same code
  *
  * @param {Bot} bot - Mineflayer bot instance
- * @param {BotCoordinator} coordinator - Bot coordinator
  * @param {string} otherBotName - Name of the other bot
- * @param {number} episodeNum - Episode number
- * @param {number} cycle - Current cycle number
  */
-async function meetupPhase(bot, coordinator, otherBotName, episodeNum, cycle) {
-  console.log(
-    `[${bot.username}] MEETUP PHASE (Cycle ${cycle}/${MAX_MINING_CYCLES})`
-  );
+async function meetupPhase(bot, otherBotName) {
+  console.log(`[${bot.username}] MEETUP PHASE`);
 
   // Initialize pathfinder
   setMovementsForCollector(bot);
@@ -759,7 +601,7 @@ async function meetupPhase(bot, coordinator, otherBotName, episodeNum, cycle) {
     await sleep(MEETUP_TIMEOUT_MS / 2);
   }
 
-  stopPathfinder(bot);
+  bot.pathfinder.setGoal(null);
   console.log(`[${bot.username}] Meetup phase complete`);
 }
 
@@ -775,7 +617,6 @@ async function meetupPhase(bot, coordinator, otherBotName, episodeNum, cycle) {
  * @param {number} episodeNum - Episode number
  * @param {number} cycle - Current cycle number
  * @param {Object} args - Episode arguments
- * @param {Object} signals - Signal registry object
  */
 async function miningPhase(
   bot,
@@ -784,12 +625,9 @@ async function miningPhase(
   otherBotName,
   episodeNum,
   cycle,
-  args,
-  signals
+  args
 ) {
-  console.log(
-    `[${bot.username}] MINING PHASE (Cycle ${cycle}/${MAX_MINING_CYCLES})`
-  );
+  console.log(`[${bot.username}] MINING PHASE`);
 
   // Get minecraft data and ore IDs
   const mcData = require("minecraft-data")(bot.version);
@@ -823,16 +661,20 @@ async function miningPhase(
         "leader_done"
       );
     } else {
+      // Set up listener for leader done signal
+      let leaderDone = false;
+      coordinator.onceEvent(`done_${cycle}`, episodeNum, () => {
+        console.log(`[${bot.username}] Leader signaled completion`);
+        leaderDone = true;
+      });
+
       // Follow and place torches
       await followAndPlaceTorches(
         bot,
-        coordinator,
         otherBotName,
         mcData,
         oreIds,
-        episodeNum,
-        cycle,
-        signals
+        () => leaderDone
       );
     }
   } else {
@@ -844,10 +686,129 @@ async function miningPhase(
 }
 
 /**
+ * Get the phase function for a specific cycle
+ * This follows the coordinator pattern: set up listener, then send message
+ *
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Object} rcon - RCON instance
+ * @param {Function} sharedBotRng - Shared RNG function
+ * @param {BotCoordinator} coordinator - Bot coordinator
+ * @param {number} cycle - Current cycle number
+ * @param {number} episodeNum - Episode number
+ * @param {CollectorEpisode} episodeInstance - Episode instance
+ * @param {Object} args - Episode arguments
+ * @returns {Function} Phase function for this cycle
+ */
+function getCyclePhaseFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  cycle,
+  episodeNum,
+  episodeInstance,
+  args
+) {
+  return async (otherBotPosition) => {
+    console.log(
+      `[${bot.username}] ========================================`
+    );
+    console.log(
+      `[${bot.username}] Cycle ${cycle}/${MAX_MINING_CYCLES}`
+    );
+    console.log(
+      `[${bot.username}] ========================================`
+    );
+
+    // Send acknowledgment
+    coordinator.sendToOtherBot(
+      `cycle_${cycle}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      `cycle_${cycle} beginning`
+    );
+
+    // Meetup phase
+    // await meetupPhase(bot, args.other_bot_name);
+
+    // Mining phase
+    await miningPhase(
+      bot,
+      coordinator,
+      sharedBotRng,
+      args.other_bot_name,
+      episodeNum,
+      cycle,
+      args
+    );
+
+    // Set up next phase
+    if (cycle < MAX_MINING_CYCLES) {
+      const nextCycle = cycle + 1;
+      coordinator.onceEvent(
+        `cycle_${nextCycle}`,
+        episodeNum,
+        getCyclePhaseFn(
+          bot,
+          rcon,
+          sharedBotRng,
+          coordinator,
+          nextCycle,
+          episodeNum,
+          episodeInstance,
+          args
+        )
+      );
+      coordinator.sendToOtherBot(
+        `cycle_${nextCycle}`,
+        bot.entity.position.clone(),
+        episodeNum,
+        `cycle_${cycle} end`
+      );
+    } else {
+      // Last cycle, set up stop phase
+      coordinator.onceEvent(
+        "stopPhase",
+        episodeNum,
+        episodeInstance.getOnStopPhaseFn(
+          bot,
+          rcon,
+          sharedBotRng,
+          coordinator,
+          args.other_bot_name,
+          episodeNum,
+          args
+        )
+      );
+      coordinator.sendToOtherBot(
+        "stopPhase",
+        bot.entity.position.clone(),
+        episodeNum,
+        `cycle_${cycle} end`
+      );
+
+      console.log(
+        `[${bot.username}] ========================================`
+      );
+      console.log(
+        `[${bot.username}] COLLECTOR EPISODE COMPLETE`
+      );
+      console.log(
+        `[${bot.username}] Completed ${MAX_MINING_CYCLES} cycles successfully`
+      );
+      console.log(
+        `[${bot.username}] ========================================`
+      );
+    }
+  };
+}
+
+/**
  * Collector Episode Class
  */
 class CollectorEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
+  static INIT_MIN_BOTS_DISTANCE = 3;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     console.log(`[${bot.username}] Setting up collector episode`);
@@ -856,8 +817,8 @@ class CollectorEpisode extends BaseEpisode {
     await rcon.send(`clear ${bot.username}`);
     await rcon.send(`give ${bot.username} diamond_pickaxe 1`);
     await rcon.send(`give ${bot.username} diamond_shovel 1`);
-    await rcon.send(`give ${bot.username} torch 256`);
-    await rcon.send(`give ${bot.username} minecraft:dirt 256`);
+    await rcon.send(`give ${bot.username} torch 128`);
+    await rcon.send(`give ${bot.username} minecraft:dirt 64`);
 
     console.log(`[${bot.username}] Mining tools and torches provided`);
     await bot.waitForTicks(10);
@@ -882,119 +843,27 @@ class CollectorEpisode extends BaseEpisode {
       `[${bot.username}] ========================================`
     );
 
-    const otherBotName = args.other_bot_name;
-
-    // ========================================================================
-    // PHASE 1: HANDSHAKE
-    // Both bots continuously signal until both are ready
-    // This prevents any messages from being lost
-    // ========================================================================
-    const handshakeSuccess = await performHandshake(bot, coordinator, episodeNum);
-    if (!handshakeSuccess) {
-      console.log(`[${bot.username}] Handshake failed, aborting episode`);
-      return;
-    }
-
-    // ========================================================================
-    // PHASE 2: SET UP SIGNAL REGISTRY
-    // Set up all checkpoint listeners in advance
-    // This ensures no checkpoint signals are lost
-    // ========================================================================
-    const signals = setupSignalRegistry(coordinator, episodeNum, MAX_MINING_CYCLES);
-    console.log(`[${bot.username}] Signal registry set up for ${MAX_MINING_CYCLES} cycles`);
-
-    // ========================================================================
-    // PHASE 3: MAIN EPISODE LOOP
-    // Both bots execute the exact same loop symmetrically
-    // ========================================================================
-    for (let cycle = 1; cycle <= MAX_MINING_CYCLES; cycle++) {
-      console.log(
-        `[${bot.username}] ----------------------------------------`
-      );
-      console.log(
-        `[${bot.username}] Starting Cycle ${cycle}/${MAX_MINING_CYCLES}`
-      );
-      console.log(
-        `[${bot.username}] ----------------------------------------`
-      );
-
-      // Meetup sub-phase: Both bots move toward each other
-      await meetupPhase(bot, coordinator, otherBotName, episodeNum, cycle);
-
-      // Meetup checkpoint: Wait for both bots to complete meetup
-      const meetupSync = await syncCheckpoint(
-        bot,
-        coordinator,
-        `meetup_ready_${cycle}`,
-        episodeNum,
-        signals
-      );
-      if (!meetupSync) {
-        console.log(`[${bot.username}] Meetup sync failed, aborting episode`);
-        return;
-      }
-
-      // Mining sub-phase: Both bots mine for ores
-      await miningPhase(
-        bot,
-        coordinator,
-        sharedBotRng,
-        otherBotName,
-        episodeNum,
-        cycle,
-        args,
-        signals
-      );
-
-      // Mining checkpoint: Wait for both bots to complete mining
-      const miningSync = await syncCheckpoint(
-        bot,
-        coordinator,
-        `mining_ready_${cycle}`,
-        episodeNum,
-        signals
-      );
-      if (!miningSync) {
-        console.log(`[${bot.username}] Mining sync failed, aborting episode`);
-        return;
-      }
-    }
-
-    // ========================================================================
-    // PHASE 4: EPISODE COMPLETE
-    // ========================================================================
-    console.log(
-      `[${bot.username}] ========================================`
-    );
-    console.log(
-      `[${bot.username}] COLLECTOR EPISODE COMPLETE`
-    );
-    console.log(
-      `[${bot.username}] Completed ${MAX_MINING_CYCLES} cycles successfully`
-    );
-    console.log(
-      `[${bot.username}] ========================================`
-    );
-
-    // Transition to stop phase to properly end the episode
+    // Set up listener for first cycle, then send message to start
+    // This follows the coordinator pattern from coordinator_readme.md
     coordinator.onceEvent(
-      "stopPhase",
+      `cycle_1`,
       episodeNum,
-      this.getOnStopPhaseFn(
+      getCyclePhaseFn(
         bot,
         rcon,
         sharedBotRng,
         coordinator,
-        args.other_bot_name,
+        1, // cycle number
         episodeNum,
+        this,
         args
       )
     );
     coordinator.sendToOtherBot(
-      "stopPhase",
+      `cycle_1`,
       bot.entity.position.clone(),
       episodeNum,
-      `collector entryPoint end`
+      "entryPoint end"
     );
   }
 
