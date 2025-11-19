@@ -19,7 +19,7 @@ const LOCK_EYE_DURATION_MIN = 1000;
 const LOCK_EYE_DURATION_MAX = 3000;
 const FOV_DEGREES = 90; // total FOV in front of the bot
 const MIN_MOBS = 2;
-const MAX_MOBS = 5;
+const MAX_MOBS = 2;
 
 // Hostile mobs we allow for spawning and targeting
 const HOSTILE_MOBS_SUMMON_IDS = [
@@ -384,6 +384,44 @@ function getOnPVEPhaseFn(
     const nextPhaseDataOur = {
       guardPosition: bot.entity.position.clone(),
     };
+    const swords = [
+      "minecraft:wooden_sword",
+      "minecraft:stone_sword",
+      "minecraft:iron_sword",
+      "minecraft:golden_sword",
+      "minecraft:diamond_sword",
+      "minecraft:netherite_sword",
+    ];
+    for (const sword of swords) {
+      const randomSword = swords[Math.floor(Math.random() * swords.length)];
+      const giveSwordRes = await rcon.send(
+        `give ${bot.username} ${randomSword} 1`
+      );
+      console.log(
+        `[${bot.username}] Gave random sword: ${randomSword}, response=${giveSwordRes}`
+      );
+
+      // Wait for the item to be added to inventory
+      await sleep(500);
+
+      // Find and equip the sword
+      const swordName = randomSword.split(":")[1]; // e.g., "diamond_sword"
+      const swordItem = bot.inventory
+        .items()
+        .find((item) => item.name === swordName);
+      if (swordItem) {
+        await bot.equip(swordItem, "hand");
+        console.log(`[${bot.username}] Equipped ${swordName} to hand`);
+      } else {
+        console.log(
+          `[${bot.username}] Warning: Could not find ${swordName} in inventory to equip`
+        );
+      }
+    }
+    for (const sword of swords) {
+      await unequipHand(bot);
+      await sleep(500);
+    }
     coordinator.onceEvent(
       `pvePhase_fight_${iterationID}`,
       episodeNum,
