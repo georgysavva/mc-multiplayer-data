@@ -16,7 +16,12 @@ const TOOL_TYPE = "diamond_pickaxe"; // Tool for mining
 const PATHFIND_TIMEOUT_MS = 60000; // 60 second timeout for pathfinding with mining
 const UNDERGROUND_DEPTH = 1; // How many blocks to dig down before horizontal mining
 const TORCH_TYPE = "torch"; // Torch item
-const TORCH_PLACEMENT_INTERVAL = 2; // Place torches every 2 blocks
+const TORCH_PLACEMENT_INTERVAL = 999; // Place torches every 999 blocks (effectively disabled for short episodes)
+const LOOK_DELAY_MS = 500; // Delay after looking to make camera movement visible
+const FALL_DELAY_MS = 800; // Delay to wait for falling after digging down
+const TORCH_EQUIP_DELAY_MS = 500; // Delay after equipping torch
+const TORCH_LOOK_DELAY_MS = 800; // Delay after looking at floor for torch placement
+const TORCH_PLACE_DELAY_MS = 1200; // Delay after placing torch to make it visible
 
 /**
  * Dig straight down to get underground before starting horizontal mining
@@ -62,15 +67,15 @@ async function digDownToUnderground(bot, depth = UNDERGROUND_DEPTH) {
 
     try {
       // Look down (negative pitch looks down in Minecraft)
-      await bot.look(bot.entity.yaw, -1.57, true); // -1.57 radians = 90 degrees down
-      await sleep(100);
+      await bot.look(bot.entity.yaw, -1.57, false); // -1.57 radians = 90 degrees down, smooth camera
+      await sleep(LOOK_DELAY_MS);
 
       // Dig the block
       await digWithTimeout(bot, block);
       console.log(`[${bot.username}] ✅ Dug block ${i + 1}/${depth}`);
 
       // Wait to fall down
-      await sleep(400);
+      await sleep(FALL_DELAY_MS);
     } catch (error) {
       console.log(`[${bot.username}] ❌ Failed to dig down: ${error.message}`);
       break;
@@ -138,22 +143,22 @@ async function placeTorchOnFloor(bot, movementDirection = null) {
     
     console.log(`[${bot.username}] ✅ Found torch: ${torch.name} (${torch.count} remaining)`);
     await bot.equip(torch, 'hand');
-    await sleep(300);
+    await sleep(TORCH_EQUIP_DELAY_MS);
     
     // Look down at the floor block where torch will be placed
     console.log(`[${bot.username}] 👀 Looking at floor block ${floorPos}`);
-    await bot.lookAt(floorBlock.position.offset(0.5, 1, 0.5), true);
-    await sleep(500);
+    await bot.lookAt(floorBlock.position.offset(0.5, 1, 0.5), false);
+    await sleep(TORCH_LOOK_DELAY_MS);
     
     // Place torch on floor
     try {
       await bot.placeBlock(floorBlock, new Vec3(0, 1, 0)); // Place on top face of floor block
-      await sleep(800); // Wait longer to make placement visible
+      await sleep(TORCH_PLACE_DELAY_MS); // Wait longer to make placement visible
       console.log(`[${bot.username}] ✅ Torch successfully placed on floor`);
       
       // Look back up/forward
-      await bot.look(0, 0, true); // Look straight ahead
-      await sleep(300);
+      await bot.look(0, 0, false); // Look straight ahead
+      await sleep(LOOK_DELAY_MS);
       
       return true;
     } catch (placeError) {
@@ -189,7 +194,7 @@ async function mineTowardsTargetWithTorchPlacement(bot, targetPos) {
   // Configure movements to allow mining
   const movements = new Movements(bot, mcData);
   movements.canDig = true;
-  movements.digCost = 0.05; // Very cheap mining to prefer digging over surface walking
+  movements.digCost = 0.5; // Slow down mining while still preferring it over surface walking
   movements.placeCost = 100; // Very expensive placing to discourage vertical movement
   movements.allowParkour = false;
   movements.allowSprinting = false; // Disable sprinting to prevent jumping out
@@ -197,6 +202,7 @@ async function mineTowardsTargetWithTorchPlacement(bot, targetPos) {
   movements.scafoldingBlocks = [];
   movements.dontCreateFlow = true; // Safety: don't create water/lava flow
   movements.dontMineUnderFallingBlock = true; // Safety: avoid sand/gravel
+  movements.blocksCost = 2; // Increase cost per block to slow down movement
 
   bot.pathfinder.setMovements(movements);
 
@@ -315,7 +321,8 @@ async function mineTowardsTarget(bot, targetPos) {
   // Configure movements to allow mining
   const movements = new Movements(bot, mcData);
   movements.canDig = true; // Enable block breaking
-  movements.digCost = 0.05; // Very cheap mining to prefer digging over surface walking
+  movements.digCost = 0.5; // Slow down mining while still preferring it over surface walking
+  movements.blocksCost = 2;
   movements.placeCost = 100; // Very expensive placing to discourage vertical movement
   movements.allowParkour = false; // Disable parkour for safer mining
   movements.allowSprinting = false; // Disable sprinting to prevent jumping out
@@ -323,6 +330,7 @@ async function mineTowardsTarget(bot, targetPos) {
   movements.scafoldingBlocks = []; // Don't place scaffolding blocks
   movements.dontCreateFlow = true; // Safety: don't create water/lava flow
   movements.dontMineUnderFallingBlock = true; // Safety: avoid sand/gravel
+  movements.blocksCost = 2; // Increase cost per block to slow down movement
 
   bot.pathfinder.setMovements(movements);
 
@@ -429,7 +437,7 @@ function getOnMinePhaseFn(
       if (otherEntity) {
         actualOtherBotPosition = otherEntity.position.clone();
         const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(INITIAL_EYE_CONTACT_MS);
       } else {
         console.log(
@@ -538,7 +546,7 @@ function getOnMinePhaseFn(
           otherEntity2.height,
           0
         );
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(FINAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {
