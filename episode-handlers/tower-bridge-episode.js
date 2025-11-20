@@ -8,7 +8,7 @@ const {
   buildTowerUnderneath,
 } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
-const { ensureBotHasEnough } = require("../utils/items");
+const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 
 // Constants for tower-bridge behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
@@ -557,6 +557,7 @@ class TowerBridgeEpisode extends BaseEpisode {
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     await ensureBotHasEnough(bot, rcon, BRIDGE_BLOCK_TYPE, 64);
+    await unequipHand(bot);
   }
 
   async entryPoint(

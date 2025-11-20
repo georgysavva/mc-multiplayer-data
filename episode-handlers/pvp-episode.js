@@ -253,12 +253,8 @@ function getOnPvpPhaseFn(
 
     // STEP 4: Equip random sword
     console.log(`[${bot.username}] 🗡️ STEP 4: Equipping sword...`);
-    const equippedSword = await equipSword(bot);
+    await equipSword(bot);
 
-    if (!equippedSword) {
-      console.log(`[${bot.username}] ❌ Failed to equip sword - aborting PVP`);
-      throw new Error("Failed to equip sword, aborting PVP episode...");
-    }
 
     await sleep(500); // Brief pause after equipping
 

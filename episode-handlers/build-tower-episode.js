@@ -166,6 +166,7 @@ class BuildTowerEpisode extends BaseEpisode {
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     // Give tower building blocks via RCON
     await ensureBotHasEnough(bot, rcon, TOWER_BLOCK_TYPE, 64);
+    await unequipHand(bot);
   }
 
   async entryPoint(
