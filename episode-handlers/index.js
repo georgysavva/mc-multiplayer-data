@@ -32,6 +32,7 @@ const { BuildTowerEpisode } = require("./build-tower-episode");
 const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
+const { StructureEvalEpisode } = require("./structureEval");
 // const { CollectorEpisode } = require("./collector-episode");
 const { TranslationEvalEpisode } = require("./translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
@@ -50,6 +51,7 @@ const episodeClassMap = {
   buildTower: BuildTowerEpisode,
   mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
+  structureEval: StructureEvalEpisode,
   // collector: CollectorEpisode,
   translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
@@ -72,6 +74,8 @@ const defaultEpisodeTypes = [
   "buildTower",
   "mine",
   "towerBridge",
+  "structureEval",
+  "collector",
   "translationEval",
   "lookAwayEval",
   "rotationEval",
