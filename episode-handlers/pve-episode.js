@@ -20,7 +20,7 @@ const LOCK_EYE_DURATION_MIN = 1000;
 const LOCK_EYE_DURATION_MAX = 3000;
 const FOV_DEGREES = 90; // total FOV in front of the bot
 const MIN_MOBS = 2;
-const MAX_MOBS = 2;
+const MAX_MOBS = 5;
 
 // Hostile mobs we allow for spawning and targeting
 const HOSTILE_MOBS_SUMMON_IDS = [
