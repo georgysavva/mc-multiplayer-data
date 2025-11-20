@@ -14,7 +14,7 @@ const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const FINAL_EYE_CONTACT_MS = 1500; // Final look duration
 const TOOL_TYPE = "diamond_pickaxe"; // Tool for mining
 const PATHFIND_TIMEOUT_MS = 60000; // 60 second timeout for pathfinding with mining
-const UNDERGROUND_DEPTH = 5; // How many blocks to dig down before horizontal mining
+const UNDERGROUND_DEPTH = 1; // How many blocks to dig down before horizontal mining
 const TORCH_TYPE = "torch"; // Torch item
 const TORCH_PLACEMENT_INTERVAL = 2; // Place torches every 2 blocks
 
@@ -189,12 +189,14 @@ async function mineTowardsTargetWithTorchPlacement(bot, targetPos) {
   // Configure movements to allow mining
   const movements = new Movements(bot, mcData);
   movements.canDig = true;
-  movements.digCost = 1;
-  movements.placeCost = 10;
+  movements.digCost = 0.05; // Very cheap mining to prefer digging over surface walking
+  movements.placeCost = 100; // Very expensive placing to discourage vertical movement
   movements.allowParkour = false;
-  movements.allowSprinting = true;
-  movements.maxDropDown = 4;
+  movements.allowSprinting = false; // Disable sprinting to prevent jumping out
+  movements.maxDropDown = 0; // No vertical drops - stay at same Y level
   movements.scafoldingBlocks = [];
+  movements.dontCreateFlow = true; // Safety: don't create water/lava flow
+  movements.dontMineUnderFallingBlock = true; // Safety: avoid sand/gravel
 
   bot.pathfinder.setMovements(movements);
 
@@ -313,12 +315,14 @@ async function mineTowardsTarget(bot, targetPos) {
   // Configure movements to allow mining
   const movements = new Movements(bot, mcData);
   movements.canDig = true; // Enable block breaking
-  movements.digCost = 1; // Low cost for digging (prefer digging over long detours)
-  movements.placeCost = 10; // Higher cost for placing blocks (avoid if possible)
+  movements.digCost = 0.05; // Very cheap mining to prefer digging over surface walking
+  movements.placeCost = 100; // Very expensive placing to discourage vertical movement
   movements.allowParkour = false; // Disable parkour for safer mining
-  movements.allowSprinting = true; // Allow sprinting
-  movements.maxDropDown = 4; // Allow dropping down up to 4 blocks
+  movements.allowSprinting = false; // Disable sprinting to prevent jumping out
+  movements.maxDropDown = 0; // No vertical drops - stay at same Y level
   movements.scafoldingBlocks = []; // Don't place scaffolding blocks
+  movements.dontCreateFlow = true; // Safety: don't create water/lava flow
+  movements.dontMineUnderFallingBlock = true; // Safety: avoid sand/gravel
 
   bot.pathfinder.setMovements(movements);
 
@@ -471,7 +475,7 @@ function getOnMinePhaseFn(
 
     // STEP 4: Dig down to underground
     console.log(`[${bot.username}] ⬇️ STEP 4: Digging down to underground...`);
-    const dugDown = await digDownToUnderground(bot, Math.floor(Math.random() * 3) + 5);
+    const dugDown = await digDownToUnderground(bot, UNDERGROUND_DEPTH);
     if (!dugDown) {
       console.log(`[${bot.username}] ⚠️ Failed to dig down, aborting episode`);
       return {

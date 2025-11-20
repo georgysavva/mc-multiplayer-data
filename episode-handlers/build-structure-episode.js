@@ -13,7 +13,7 @@ const { pickRandom } = require("../utils/coordination");
 const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const BUILD_BLOCK_TYPES = ["stone", "cobblestone", "oak_planks", "bricks"];
-const BLOCK_PLACE_DELAY_MS = 400; // Delay between placing blocks (more human-like)
+const BLOCK_PLACE_DELAY_MS = 1500; // Delay between placing blocks (1.5 seconds for more visible building)
 
 /**
  * Generate positions for a simple wall structure

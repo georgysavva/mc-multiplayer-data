@@ -1,0 +1,30 @@
+﻿version: '3.8'
+
+services:
+  sender_alpha_instance_0:
+    image: placeholder
+    volumes:
+      - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\output:/output
+    environment:
+      BOT_NAME: Alpha
+
+  sender_bravo_instance_0:
+    image: placeholder
+    volumes:
+      - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\output:/output
+    environment:
+      BOT_NAME: Bravo
+
+  camera_alpha_instance_0:
+    image: placeholder
+    volumes:
+      - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\camera\output_alpha:/output
+    environment:
+      NOVNC_PORT: 6901
+
+  camera_bravo_instance_0:
+    image: placeholder
+    volumes:
+      - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\camera\output_bravo:/output
+    environment:
+      NOVNC_PORT: 6902

@@ -63,14 +63,14 @@ const defaultEpisodeTypes = [
   // "chase",
   // "orbit",
   // "walkLook",
-  "buildHouse",
+  // "buildHouse",
   // "walkLookAway",
   // "pvp",
   // "pve",
   // "buildStructure",
   // "buildTower",
   // // "mine", //older episode, use mine2 instead for enahnced version with pathfinder
-  // "mine2",
+  "mine2",
   // "towerBridge",
   // "collector",
 ];
@@ -491,13 +491,17 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
         `[${bot.username}] SMOKE TEST MODE: Running ${episodesToRun.length} eligible episode types (world_type=${worldType}) in alphabetical order`
       );
     } else {
-      // Normal mode: use the configured episodes_num, episode type picked at random from eligible
+      // Normal mode: cycle through eligible episode types in alphabetical order
       for (let i = 0; i < args.episodes_num; i++) {
+        const episodeTypeIndex = i % sortedEligible.length;
         episodesToRun.push({
           episodeNum: args.start_episode_id + i,
-          episodeType: null, // Will be randomly selected
+          episodeType: sortedEligible[episodeTypeIndex], // Sequential selection
         });
       }
+      console.log(
+        `[${bot.username}] SEQUENTIAL MODE: Running ${episodesToRun.length} episodes cycling through ${sortedEligible.length} eligible episode types (world_type=${worldType}) in alphabetical order`
+      );
     }
 
     for (const episodeConfig of episodesToRun) {
@@ -507,11 +511,8 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       const botsRngSeedWithEpisode = `${botsRngBaseSeed}_${episodeNum}`;
       const sharedBotRng = seedrandom(botsRngSeedWithEpisode);
 
-      // Select episode type
-      const selectedEpisodeType =
-        args.smoke_test === 1
-          ? episodeConfig.episodeType
-          : sortedEligible[Math.floor(sharedBotRng() * sortedEligible.length)];
+      // Select episode type (already determined in episodesToRun)
+      const selectedEpisodeType = episodeConfig.episodeType;
 
       console.log(
         `[${bot.username}] Selected episode type: ${selectedEpisodeType}`

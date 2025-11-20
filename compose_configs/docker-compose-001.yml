@@ -1,0 +1,267 @@
+networks:
+  mc_network_1:
+    driver: bridge
+services:
+  prep_data_instance_1:
+    image: busybox:latest
+    command:
+    - sh
+    - -c
+    - mkdir -p /data /data/plugins /data/skins && chmod 777 /data /data/plugins /data/skins
+      && if [ -d /source_plugins ] && [ -n "$(ls -A /source_plugins 2>/dev/null)"
+      ]; then   cp -r /source_plugins/. /data/plugins/; fi; if [ -d /source_skins
+      ] && [ -n "$(ls -A /source_skins 2>/dev/null)" ]; then   cp -r /source_skins/.
+      /data/skins/; fi; chmod -R 777 /data/plugins /data/skins
+    volumes:
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\data/1:/data
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data/plugins:/source_plugins:ro
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data/skins:/source_skins:ro
+    restart: 'no'
+  mc_instance_1:
+    depends_on:
+      prep_data_instance_1:
+        condition: service_completed_successfully
+    image: itzg/minecraft-server
+    tty: true
+    network_mode: host
+    environment:
+      EULA: 'TRUE'
+      VERSION: 1.20.4
+      TYPE: PAPER
+      MODE: survival
+      RCON_PORT: 25676
+      SERVER_PORT: 25566
+      ALLOW_FLIGHT: true
+      ONLINE_MODE: false
+      SPAWN_PROTECTION: 0
+      SEED: '11762979740'
+      ENFORCE_SECURE_PROFILE: false
+      RCON_PASSWORD: research
+      BROADCAST_RCON_TO_OPS: true
+    volumes:
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\data/1:/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - mc-monitor status --host localhost --port 25566
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  sender_alpha_instance_1:
+    image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data
+      dockerfile: Dockerfile
+    depends_on:
+      mc_instance_1:
+        condition: service_healthy
+      receiver_alpha_instance_1:
+        condition: service_started
+    volumes:
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\output:/output
+    environment:
+      BOT_NAME: Alpha
+      OTHER_BOT_NAME: Bravo
+      RECEIVER_HOST: receiver_alpha_instance_1
+      RECEIVER_PORT: 8090
+      COORD_PORT: 8100
+      OTHER_COORD_HOST: sender_bravo_instance_1
+      OTHER_COORD_PORT: 8100
+      BOT_RNG_SEED: '12346'
+      EPISODES_NUM: 5
+      EPISODE_START_ID: 0
+      EPISODE_TYPES: structureEval
+      MC_HOST: host.docker.internal
+      MC_PORT: 25566
+      RCON_HOST: host.docker.internal
+      RCON_PORT: 25676
+      RCON_PASSWORD: research
+      BOOTSTRAP_WAIT_TIME: 60
+      ENABLE_CAMERA_WAIT: 1
+      CAMERA_READY_RETRIES: 300
+      CAMERA_READY_CHECK_INTERVAL: 2000
+      ITERATIONS_NUM_PER_EPISODE: 5
+      MC_VERSION: 1.20.4
+      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RECORDING_INTERVAL: 50
+      WALK_TIMEOUT: 5
+      TELEPORT: 1
+      TELEPORT_RADIUS: 250
+      WORLD_TYPE: normal
+      SMOKE_TEST: 0
+      INSTANCE_ID: 1
+      OUTPUT_DIR: /output
+    extra_hosts:
+    - host.docker.internal:host-gateway
+    networks:
+    - mc_network_1
+    command: ./entrypoint_senders.sh
+  sender_bravo_instance_1:
+    image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data
+      dockerfile: Dockerfile
+    depends_on:
+      mc_instance_1:
+        condition: service_healthy
+      receiver_bravo_instance_1:
+        condition: service_started
+      sender_alpha_instance_1:
+        condition: service_started
+    volumes:
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\output:/output
+    environment:
+      BOT_NAME: Bravo
+      OTHER_BOT_NAME: Alpha
+      RECEIVER_HOST: receiver_bravo_instance_1
+      RECEIVER_PORT: 8090
+      COORD_PORT: 8100
+      OTHER_COORD_HOST: sender_alpha_instance_1
+      OTHER_COORD_PORT: 8100
+      BOT_RNG_SEED: '12346'
+      EPISODES_NUM: 5
+      EPISODE_START_ID: 0
+      EPISODE_TYPES: structureEval
+      MC_HOST: host.docker.internal
+      MC_PORT: 25566
+      RCON_HOST: host.docker.internal
+      RCON_PORT: 25676
+      RCON_PASSWORD: research
+      BOOTSTRAP_WAIT_TIME: 60
+      ENABLE_CAMERA_WAIT: 1
+      CAMERA_READY_RETRIES: 300
+      CAMERA_READY_CHECK_INTERVAL: 2000
+      ITERATIONS_NUM_PER_EPISODE: 5
+      MC_VERSION: 1.20.4
+      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RECORDING_INTERVAL: 50
+      WALK_TIMEOUT: 5
+      TELEPORT: 1
+      TELEPORT_RADIUS: 250
+      WORLD_TYPE: normal
+      SMOKE_TEST: 0
+      INSTANCE_ID: 1
+      OUTPUT_DIR: /output
+    extra_hosts:
+    - host.docker.internal:host-gateway
+    networks:
+    - mc_network_1
+    command: ./entrypoint_senders.sh
+  receiver_alpha_instance_1:
+    image: ojmichel/mc-multiplayer-base:latest
+    environment:
+      PORT: 8090
+      NAME: Alpha
+      INSTANCE_ID: 1
+      EPISODE_START_ID: 0
+      VIEWER_RENDERING_DISABLED: 1
+    tty: true
+    volumes:
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\output:/output
+    networks:
+    - mc_network_1
+    command: ./entrypoint_receiver.sh
+  receiver_bravo_instance_1:
+    image: ojmichel/mc-multiplayer-base:latest
+    environment:
+      PORT: 8090
+      NAME: Bravo
+      INSTANCE_ID: 1
+      EPISODE_START_ID: 0
+      VIEWER_RENDERING_DISABLED: 1
+    tty: true
+    volumes:
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\output:/output
+    networks:
+    - mc_network_1
+    command: ./entrypoint_receiver.sh
+  camera_alpha_instance_1:
+    image: ojmichel/mineflayer-spectator-client:latest
+    build:
+      context: C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\camera
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      mc_instance_1:
+        condition: service_healthy
+    environment:
+      MC_VERSION: 1.20.4
+      MC_HOST: 127.0.0.1
+      MC_PORT: 25566
+      CAMERA_NAME: CameraAlpha
+      DISPLAY: :101
+      VNC_PORT: '5903'
+      NOVNC_PORT: '6903'
+      WIDTH: '1280'
+      HEIGHT: '720'
+      FPS: '20'
+      VNC_PASSWORD: research
+      ENABLE_RECORDING: '1'
+      RECORDING_PATH: /output/camera_alpha.mp4
+    volumes:
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\camera\data_alpha\1:/root
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\camera\output_alpha\1:/output
+    extra_hosts:
+    - sessionserver.mojang.com:127.0.0.1
+    - api.minecraftservices.com:127.0.0.1
+    - authserver.mojang.com:127.0.0.1
+    - textures.minecraft.net:127.0.0.1
+    - pc.realms.minecraft.net:127.0.0.1
+  episode_starter_instance_1:
+    image: node:20
+    network_mode: host
+    depends_on:
+      mc_instance_1:
+        condition: service_healthy
+      camera_alpha_instance_1:
+        condition: service_started
+    working_dir: /app
+    environment:
+      RCON_HOST: 127.0.0.1
+      RCON_PORT: 25676
+      RCON_PASSWORD: research
+      EPISODE_START_RETRIES: '60'
+      EPISODE_REQUIRED_PLAYERS: Alpha,CameraAlpha,Bravo,CameraBravo
+      EPISODE_START_COMMAND: episode start Alpha CameraAlpha technoblade.png Bravo
+        CameraBravo test.png
+    volumes:
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\camera\episode_starter.js:/app/episode_starter.js:ro
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\camera\package.json:/app/package.json:ro
+    command:
+    - sh
+    - -c
+    - npm install --omit=dev --no-progress && node episode_starter.js
+  camera_bravo_instance_1:
+    image: ojmichel/mineflayer-spectator-client:latest
+    build:
+      context: C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\camera
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      mc_instance_1:
+        condition: service_healthy
+    environment:
+      MC_VERSION: 1.20.4
+      MC_HOST: 127.0.0.1
+      MC_PORT: 25566
+      CAMERA_NAME: CameraBravo
+      DISPLAY: :102
+      VNC_PORT: '5904'
+      NOVNC_PORT: '6904'
+      WIDTH: '1280'
+      HEIGHT: '720'
+      FPS: '20'
+      VNC_PASSWORD: research
+      ENABLE_RECORDING: '1'
+      RECORDING_PATH: /output/camera_bravo.mp4
+    volumes:
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\camera\data_bravo\1:/root
+    - C:\--DPM-MAIN-DIR--\windsurf_projects\mc-multiplayer-data\camera\output_bravo\1:/output
+    extra_hosts:
+    - sessionserver.mojang.com:127.0.0.1
+    - api.minecraftservices.com:127.0.0.1
+    - authserver.mojang.com:127.0.0.1
+    - textures.minecraft.net:127.0.0.1
+    - pc.realms.minecraft.net:127.0.0.1

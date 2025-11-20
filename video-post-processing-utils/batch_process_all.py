@@ -4,12 +4,13 @@ Enhanced batch processing script that processes episodes one by one,
 moving raw files to done/ and creating final products in aligned-annotated/.
 
 Workflow:
-1. Find all Alpha-Bravo episode pairs in output directory
-2. For each episode:
+1. Extract episodes from camera recordings (process_recordings.py)
+2. Find all Alpha-Bravo episode pairs in output directory
+3. For each episode:
    a. Annotate Alpha and Bravo videos (outputs to done/)
    b. Move raw Alpha/Bravo videos and JSONs to done/
    c. Align the annotated videos (output to aligned-annotated/)
-3. Keep output/ directory clean with only unprocessed episodes
+4. Keep output/ directory clean with only unprocessed episodes
 """
 
 import argparse
@@ -256,10 +257,8 @@ def find_episode_pairs(output_dir: str) -> List[Dict[str, str]]:
     # Parse meta JSON files
     for meta_path in meta_files:
         filename = os.path.basename(meta_path)
-        # Updated regex to handle both _meta.json and _camera_meta.json patterns
-        # Supports: YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id_meta.json
-        #       OR: YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id_camera_meta.json
-        match = re.match(r'(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})(?:_camera)?_meta\.json$', filename)
+        # Updated regex to handle timestamp prefix: YYYYMMDD_HHMMSS_episode_id_bot_name_instance_id_meta.json
+        match = re.match(r'(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})_meta\.json$', filename)
         if match:
             timestamp, episode_id, bot_name, instance_id = match.groups()
 
@@ -300,16 +299,93 @@ def get_annotated_path(original_video_path: str, done_dir: str) -> str:
     return os.path.join(done_dir, annotated_filename)
 
 
+def extract_episodes_from_recordings(output_dir: str, camera_prefix: str, script_dir: str) -> bool:
+    """
+    Extract individual episodes from camera recordings using process_recordings.py.
+    
+    Args:
+        output_dir: Base output directory containing action JSONs
+        camera_prefix: Directory containing camera recordings
+        script_dir: Directory containing the processing scripts
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    # Find process_recordings.py in the parent directory (postprocess/)
+    parent_dir = os.path.dirname(script_dir)
+    process_script = os.path.join(parent_dir, "postprocess", "process_recordings.py")
+    
+    if not os.path.exists(process_script):
+        print(f"ERROR: process_recordings.py not found at {process_script}")
+        return False
+    
+    print("\n" + "="*60)
+    print("STEP 1: Extracting episodes from camera recordings")
+    print("="*60)
+    
+    # Process Alpha recordings
+    print("\nProcessing Alpha recordings...")
+    alpha_cmd = [
+        sys.executable, process_script,
+        "--bot", "Alpha",
+        "--actions-dir", output_dir,
+        "--camera-prefix", camera_prefix,
+        "--output-dir", output_dir
+    ]
+    
+    print(f"Running: {' '.join(alpha_cmd)}")
+    try:
+        result = subprocess.run(alpha_cmd, capture_output=True, text=True, check=True)
+        print("✓ Alpha episodes extracted successfully")
+        if result.stdout:
+            print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"✗ Alpha extraction failed with return code {e.returncode}")
+        if e.stdout:
+            print(f"STDOUT: {e.stdout}")
+        if e.stderr:
+            print(f"STDERR: {e.stderr}")
+        return False
+    
+    # Process Bravo recordings
+    print("\nProcessing Bravo recordings...")
+    bravo_cmd = [
+        sys.executable, process_script,
+        "--bot", "Bravo",
+        "--actions-dir", output_dir,
+        "--camera-prefix", camera_prefix,
+        "--output-dir", output_dir
+    ]
+    
+    print(f"Running: {' '.join(bravo_cmd)}")
+    try:
+        result = subprocess.run(bravo_cmd, capture_output=True, text=True, check=True)
+        print("✓ Bravo episodes extracted successfully")
+        if result.stdout:
+            print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"✗ Bravo extraction failed with return code {e.returncode}")
+        if e.stdout:
+            print(f"STDOUT: {e.stdout}")
+        if e.stderr:
+            print(f"STDERR: {e.stderr}")
+        return False
+    
+    print("\n✓ Episode extraction completed successfully")
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Enhanced batch processing with file organization",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 This script processes episodes one by one:
-1. Finds Alpha-Bravo pairs in output directory
-2. Annotates videos (outputs to done/)
-3. Moves raw files to done/
-4. Aligns annotated videos (outputs to aligned-annotated/)
+1. Extracts episodes from camera recordings (process_recordings.py)
+2. Finds Alpha-Bravo pairs in output directory
+3. Annotates videos (outputs to done/)
+4. Moves raw files to done/
+5. Aligns annotated videos (outputs to aligned-annotated/)
 
 Directory structure after processing:
   output/
@@ -321,8 +397,9 @@ Directory structure after processing:
       └── (final aligned videos)
 
 Examples:
-  python batch_process_all.py --output-dir ../output
-  python batch_process_all.py --output-dir ../output --annotation-only
+  python batch_process_all.py --output-dir ../output --camera-prefix ../camera
+  python batch_process_all.py --output-dir ../output --camera-prefix ../camera --annotation-only
+  python batch_process_all.py --output-dir ../output --camera-prefix ../camera --skip-extraction
         """
     )
 
@@ -330,6 +407,16 @@ Examples:
         "--output-dir",
         required=True,
         help="Directory containing episode files"
+    )
+    parser.add_argument(
+        "--camera-prefix",
+        default=None,
+        help="Directory containing camera recordings (default: ../camera relative to output-dir)"
+    )
+    parser.add_argument(
+        "--skip-extraction",
+        action="store_true",
+        help="Skip episode extraction from camera recordings"
     )
     parser.add_argument(
         "--annotation-only",
@@ -352,9 +439,30 @@ Examples:
     # Resolve paths
     output_dir = os.path.abspath(args.output_dir)
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Determine camera prefix path
+    if args.camera_prefix:
+        camera_prefix = os.path.abspath(args.camera_prefix)
+    else:
+        # Default: ../camera relative to output directory
+        camera_prefix = os.path.abspath(os.path.join(output_dir, "..", "camera"))
+    
+    print(f"Output directory: {output_dir}")
+    print(f"Camera directory: {camera_prefix}")
+    print(f"Script directory: {script_dir}")
 
-    print(f"Processing episodes in: {output_dir}")
-    print(f"Using scripts from: {script_dir}")
+    # Step 1: Extract episodes from camera recordings (unless skipped)
+    if not args.skip_extraction and not args.alignment_only:
+        if not extract_episodes_from_recordings(output_dir, camera_prefix, script_dir):
+            print("\nERROR: Episode extraction failed. Aborting.")
+            sys.exit(1)
+    else:
+        print("\nSkipping episode extraction (--skip-extraction or --alignment-only flag)")
+
+    # Step 2: Batch process extracted episodes
+    print("\n" + "="*60)
+    print("STEP 2: Batch processing extracted episodes")
+    print("="*60)
 
     # Create directories
     done_dir = os.path.join(output_dir, "done")
