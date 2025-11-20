@@ -9,6 +9,7 @@ const {
 const { placeAt, findPlaceReference, ensureItemInHand } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");
+const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
@@ -802,7 +803,12 @@ class StructureEvalEpisode extends BaseEpisode {
     super();
   }
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+    for (const blockType of BUILD_BLOCK_TYPES) {
+      await ensureBotHasEnough(bot, rcon, blockType, 64);
+    }
+    await unequipHand(bot);
+  }
 
   async entryPoint(
     bot,
