@@ -8,6 +8,7 @@ const {
 const { placeAt, placeMultiple } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");
+const { ensureBotHasEnough } = require("../utils/items");
 
 // Constants for building behavior
 const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
@@ -271,7 +272,11 @@ class BuildStructureEpisode extends BaseEpisode {
     this.structureType = pickRandom(ALL_STRUCTURE_TYPES, sharedBotRng);
   }
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+    for (const blockType of BUILD_BLOCK_TYPES) {
+      await ensureBotHasEnough(bot, rcon, blockType, 64);
+    }
+  }
 
   async entryPoint(
     bot,
