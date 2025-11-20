@@ -32,7 +32,11 @@ const { BuildTowerEpisode } = require("./build-tower-episode");
 const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
+const { StructureEvalEpisode } = require("./structureEval");
 // const { CollectorEpisode } = require("./collector-episode");
+const { TranslationEvalEpisode } = require("./translation-eval-episode");
+const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
+const { RotationEvalEpisode } = require("./rotation-eval-episode");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -47,7 +51,11 @@ const episodeClassMap = {
   buildTower: BuildTowerEpisode,
   mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
+  structureEval: StructureEvalEpisode,
   // collector: CollectorEpisode,
+  translationEval: TranslationEvalEpisode,
+  lookAwayEval: LookAwayEvalEpisode,
+  rotationEval: RotationEvalEpisode,
 };
 
 // Import episode-specific handlers
@@ -66,7 +74,11 @@ const defaultEpisodeTypes = [
   "buildTower",
   "mine",
   "towerBridge",
-  // "collector",
+  "structureEval",
+  "collector",
+  "translationEval",
+  "lookAwayEval",
+  "rotationEval",
 ];
 
 // Load episode types from environment variable or use default
@@ -115,6 +127,7 @@ async function saveEpisodeInfo({
     episode_recording_started: Boolean(
       episodeInstance?._episodeRecordingStarted
     ),
+    eval_metadata: episodeInstance?._evalMetadata || {},
   };
 
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2));
@@ -516,7 +529,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
 
       if (!EpisodeClass) {
         throw new Error(
-          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${sortedEligible.join(
+          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${Object.keys(episodeClassMap).sort().join(
             ", "
           )}`
         );
