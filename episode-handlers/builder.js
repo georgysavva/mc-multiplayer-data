@@ -794,7 +794,16 @@ async function placeAt(
           // Debug: Log camera before placement
           console.log(`[${bot.username}] 📷 [BEFORE-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
           
-          await bot.placeBlock(refBlock, faceVec);
+          // Temporarily disable lookAt to prevent placeBlock's internal lookAt from snapping camera
+          const originalLookAt = bot.lookAt;
+          bot.lookAt = async () => {}; // No-op
+          
+          try {
+            await bot.placeBlock(refBlock, faceVec);
+          } finally {
+            // Restore original lookAt
+            bot.lookAt = originalLookAt;
+          }
           
           // Debug: Log camera immediately after placement
           console.log(`[${bot.username}] 📷 [AFTER-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
