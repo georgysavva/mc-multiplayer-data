@@ -98,7 +98,7 @@ async function buildStructure(bot, positions, blockType, args) {
       delayMs: BLOCK_PLACE_DELAY_MS,
       useBuildOrder: true, // Enable intelligent build order
       useSmartPositioning: false, // Keep disabled for performance
-      prePlacementDelay: 150, // Natural pause before placement
+      prePlacementDelay: 500, // Natural pause before placement
     });
 
     console.log(`[${bot.username}] 🏁 Build complete!`);

@@ -630,7 +630,7 @@ function sortByBuildability(positions, bot) {
  * @param {number} delayMs - Delay after looking (default: 250ms)
  * @returns {Promise<Object>} {ready: boolean, reason: string}
  */
-async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 250) {
+async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
   // Calculate face center point
   const faceCenter = refBlock.position.offset(
     0.5 + faceVec.x * 0.5,
@@ -651,7 +651,7 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 250) {
     } catch (lookError) {
       // If smooth look fails, try forced look
       try {
-        await bot.lookAt(faceCenter, true);
+        await bot.lookAt(faceCenter, false);
       } catch (forcedLookError) {
         return {
           ready: false,
@@ -780,7 +780,7 @@ async function ensureReachAndSight(bot, refBlock, faceVec, maxTries = 3) {
   for (let i = 0; i < maxTries; i++) {
     // Try to look at the face
     try {
-      await bot.lookAt(lookAtPos, true);
+      await bot.lookAt(lookAtPos, false);
     } catch (e) {
       // Ignore look errors
     }
