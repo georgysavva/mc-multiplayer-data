@@ -886,6 +886,9 @@ async function placeAt(
         // Attempt placement
         try {
           await bot.placeBlock(refBlock, faceVec);
+          
+          // Wait 500ms after placement without moving camera
+          await new Promise((res) => setTimeout(res, 500));
         } catch (e) {
           console.log(`[${bot.username}] ⚠️ Placement failed: ${e.message}`);
           await new Promise((res) => setTimeout(res, 120));
