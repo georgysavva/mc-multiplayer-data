@@ -575,7 +575,7 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
 
     // Natural pause after looking (makes movement more human-like)
     if (delayMs > 0) {
-      await new Promise(res => setTimeout(res, delayMs));
+      await new Promise((res) => setTimeout(res, delayMs));
     }
 
     // Debug: Log camera after delay
@@ -794,9 +794,7 @@ async function placeAt(
           // Debug: Log camera before placement
           console.log(`[${bot.username}] 📷 [BEFORE-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
           
-          // Use activateBlock instead of placeBlock to avoid internal camera snap
-          // activateBlock sends the placement packet directly without calling lookAt()
-          await bot.activateBlock(refBlock, faceVec, new Vec3(0.5, 0.5, 0.5));
+          await bot.placeBlock(refBlock, faceVec);
           
           // Debug: Log camera immediately after placement
           console.log(`[${bot.username}] 📷 [AFTER-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
@@ -965,8 +963,7 @@ async function placeMultiple(bot, positions, itemName, options = {}) {
 async function fastPlaceBlock(bot, referenceBlock) {
   try {
     const faceVector = new Vec3(0, 1, 0); // Top face
-    // Use activateBlock to avoid camera snap during fast placement
-    await bot.activateBlock(referenceBlock, faceVector, new Vec3(0.5, 0.5, 0.5));
+    await bot.placeBlock(referenceBlock, faceVector);
     return true;
   } catch (error) {
     // Don't log here - too noisy during spam attempts
