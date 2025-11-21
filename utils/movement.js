@@ -291,7 +291,7 @@ function moveAway(bot, avoidPosition, sprint = false) {
  * @param {Vec3} targetPosition - Position to look at
  * @param {number} degreesPerSecond - Rotation speed in degrees per second
  */
-async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90) {
+async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, useEasing=false) {
   const botPosition = bot.entity.position;
 
   // Calculate the vector from bot to target
@@ -306,43 +306,12 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90) {
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
   const targetPitch = -Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
 
-  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, {
-    logTarget: `[${bot.username}] Looking at (${targetPosition.x.toFixed(
-      2
-    )}, ${targetPosition.y.toFixed(2)}, ${targetPosition.z.toFixed(2)})`,
-  });
+  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, useEasing);
 }
 
 
-async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, opts = {}) {
-const waitTick = () => bot.waitForTicks(1);
-  const startYaw = bot.entity.yaw;
-  const startPitch = bot.entity.pitch;
-
-  // shortest-path yaw
-  let yawDiff = targetYaw - startYaw;
-  while (yawDiff > Math.PI) yawDiff -= 2 * Math.PI;
-  while (yawDiff < -Math.PI) yawDiff += 2 * Math.PI;
-  const pitchDiff = targetPitch - startPitch;
-
-  const radiansPerSecond = (degreesPerSecond * Math.PI) / 180;
-  const totalAngleDistance = Math.hypot(yawDiff, pitchDiff);
-  const totalTimeMs = (totalAngleDistance / radiansPerSecond) * 1000;
-
-  const start = Date.now();
-  while (true) {
-    const t = Math.min((Date.now() - start) / totalTimeMs, 1);
-    const eased = 1 - Math.pow(1 - t, 2); // ease-out
-    const y = startYaw + yawDiff * eased;
-    const p = startPitch + pitchDiff * eased;
-
-    // no force: let physics tick send packets at its per-tick limit
-    await bot.look(y, p, /*force=*/false);
-    if (t >= 1) break;
-    await waitTick(); // sync with 20 Hz physics / recorder
-  }
-
-  await bot.look(targetYaw, targetPitch, false);
+async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, useEasing=false) {
+  await bot.look(targetYaw, targetPitch, false, degreesPerSecond, degreesPerSecond, useEasing);
 }
 
 /**
