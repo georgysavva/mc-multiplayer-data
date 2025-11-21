@@ -211,6 +211,15 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         }
         event.setCancelled(true);
     }
+    @EventHandler(ignoreCancelled = true)
+    public void onMobTargetCamera(EntityTargetLivingEntityEvent event) {
+        if (!(event.getTarget() instanceof Player target)) return;
+        if (!isCamera(target)) return;
+
+        // Completely stop target assignment
+        event.setCancelled(true);
+        event.setTarget(null);
+    }
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
