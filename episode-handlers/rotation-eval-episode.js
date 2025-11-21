@@ -1,5 +1,6 @@
 const { lookAtSmooth, sneak, lookSmooth } = require("../utils/movement");
 const { BaseEpisode } = require("./base-episode");
+const { Vec3 } = require("vec3");
 
 // const {
 //   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
@@ -24,8 +25,22 @@ function getOnRotatePhaseFn(
       "rotatePhase beginning"
     );
 
+    // Determine which rotation method to use based on episode number
+    // Episodes 0-5: lookAtSmooth/lookSmooth
+    // Episodes 6-11: bot.lookAt/bot.look without easing
+    // Episodes 12+: bot.lookAt/bot.look with easing
+    const rotationMethod = episodeNum < 6 ? 'smooth' : (episodeNum < 12 ? 'bot_look_no_easing' : 'bot_look_with_easing');
+    const useBotLookMethod = episodeNum >= 6;
+    const useEasing = episodeNum >= 12;
+
     // Look at the other bot smoothly at the start of the phase
-    await lookAtSmooth(bot, otherBotPosition, 120);
+    if (useBotLookMethod) {
+      // bot.lookAt requires a Vec3 object with a .minus method
+      const targetVec3 = new Vec3(otherBotPosition.x, otherBotPosition.y + bot.entity.eyeHeight, otherBotPosition.z);
+      await bot.lookAt(targetVec3, false, THIS_CAMERA_SPEED_DEGREES_PER_SEC, THIS_CAMERA_SPEED_DEGREES_PER_SEC, useEasing);
+    } else {
+      await lookAtSmooth(bot, otherBotPosition, THIS_CAMERA_SPEED_DEGREES_PER_SEC);
+    }
 
     // Determine which bot rotates and by how much based on episodeNum % 6
     // 0: Alpha +45, 1: Alpha -45, 2: Alpha 180
@@ -52,12 +67,19 @@ function getOnRotatePhaseFn(
       rotation_degrees: rotationDegrees,
       camera_speed_degrees_per_sec: THIS_CAMERA_SPEED_DEGREES_PER_SEC,
       case_num: caseNum,
+      rotation_method: rotationMethod,
     };
+
+    const methodDescription = rotationMethod === 'smooth' 
+      ? 'lookSmooth' 
+      : (rotationMethod === 'bot_look_no_easing' 
+        ? 'bot.look/lookAt without easing' 
+        : 'bot.look/lookAt with easing');
 
     console.log(
       `[${bot.username}] Episode ${episodeNum} case ${caseNum}: will ${
         shouldThisBotRotate ? `rotate ${rotationDegrees} degrees` : "stay still"
-      }`
+      } (using ${methodDescription})`
     );
 
     if (shouldThisBotRotate) {
@@ -72,7 +94,13 @@ function getOnRotatePhaseFn(
       const newYaw = originalYaw + (rotationDegrees * Math.PI / 180);
       
       console.log(`[${bot.username}] Rotating from ${(originalYaw * 180 / Math.PI).toFixed(1)}° to ${(newYaw * 180 / Math.PI).toFixed(1)}°`);
-      await lookSmooth(bot, newYaw, originalPitch, THIS_CAMERA_SPEED_DEGREES_PER_SEC);
+      
+      if (useBotLookMethod) {
+        await bot.look(newYaw, originalPitch, false, THIS_CAMERA_SPEED_DEGREES_PER_SEC, THIS_CAMERA_SPEED_DEGREES_PER_SEC, useEasing);
+      } else {
+        await lookSmooth(bot, newYaw, originalPitch, THIS_CAMERA_SPEED_DEGREES_PER_SEC);
+      }
+      
       // Record tick number
       const endTick = bot.time.age;
       const remainingTicks = EPISODE_MIN_TICKS - (endTick - startTick);
