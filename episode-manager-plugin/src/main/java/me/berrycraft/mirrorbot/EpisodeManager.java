@@ -228,6 +228,15 @@ public class EpisodeManager extends JavaPlugin implements Listener {
 
         return true;
     }
+    @EventHandler(ignoreCancelled = true)
+    public void onMobTargetCamera(EntityTargetLivingEntityEvent event) {
+        if (!(event.getTarget() instanceof Player target)) return;
+        if (!isCamera(target)) return;
+
+        // Completely stop target assignment
+        event.setCancelled(true);
+        event.setTarget(null);
+    }
 
     private void sendUsage(CommandSender sender) {
         sender.sendMessage(ChatColor.YELLOW + "Usage:");
