@@ -843,10 +843,9 @@ async function teleport(
     episodeInstance.constructor.INIT_MAX_BOTS_DISTANCE / 2
   );
   if (bot.username < args.other_bot_name) {
-    const targets = `${bot.username} ${args.other_bot_name}`;
     const cmd = `spreadplayers ${centerX} ${centerZ} ${minDistance} ${maxRange} false @a[tag=minebot]`;
     console.log(
-      `[${bot.username}] spreadplayers args: center=(${centerX}, ${centerZ}), min=${minDistance}, max=${maxRange}, targets=[${targets}]`
+      `[${bot.username}] spreadplayers command: ${cmd}`
     );
     const result = await rcon.send(cmd);
     console.log(`[${bot.username}] spreadplayers result: ${result}`);
