@@ -36,9 +36,9 @@ COPY package.json ./
 RUN npm install 
 RUN npm i rcon-client
 # These echo numbers are needed to trigger a rebuild of this image in the case a downstream dependency has changed.
-RUN echo "44" && npm install github:georgysavva/mineflayer
+RUN echo "43" && npm install github:georgysavva/mineflayer
 RUN echo "48" && npm install github:daohanlu/mineflayer-pathfinder
-RUN echo "46" && npm install github:georgysavva/prismarine-viewer-colalab
+RUN echo "44" && npm install github:georgysavva/prismarine-viewer-colalab
 RUN echo "50" && npm install minecraft-data
 RUN npm install --save mineflayer-pvp
 RUN set -eux; \

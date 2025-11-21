@@ -337,6 +337,14 @@ async function setupBotAndWorldOnce(bot, rcon) {
   console.log(
     `[${bot.username}] set showDeathMessages gamerule to false, showDeathMessagesRes=${showDeathMessagesRes}`
   );
+  const givePickaxeRes = await rcon.send(
+    `give ${bot.username} minecraft:diamond_pickaxe 1`
+  );
+  console.log(`[${bot.username}] givePickaxeRes=${givePickaxeRes}`);
+  const giveShovelRes = await rcon.send(
+    `give ${bot.username} minecraft:diamond_shovel 1`
+  );
+  console.log(`[${bot.username}] giveShovelRes=${giveShovelRes}`);
   const tagResult = await rcon.send(`tag ${bot.username} add minebot`);
   console.log(
     `[${bot.username}] tag ${bot.username} add minebot result: ${tagResult}`
@@ -373,6 +381,7 @@ async function setupCameraPlayerOnce(bot, rcon) {
  * @param {Object} args - Configuration arguments
  */
 async function setupBotAndCameraForEpisode(bot, rcon, args) {
+  await ensureBotHasEnough(bot, rcon, "stone", 128);
   const saturationEffectRes = await rcon.send(
     `effect give ${bot.username} minecraft:saturation 999999 255 true`
   );
@@ -385,25 +394,7 @@ async function setupBotAndCameraForEpisode(bot, rcon, args) {
   }
   await sleep(1000);
   console.log(`[${bot.username}] unequipping hand before episode`);
-  await clearBotInventory(bot, rcon);
-  await sleep(500);
-  await ensureBotHasEnough(bot, rcon, "stone", 64);
-  const givePickaxeRes = await rcon.send(
-    `give ${bot.username} minecraft:diamond_pickaxe 1`
-  );
-  console.log(`[${bot.username}] givePickaxeRes=${givePickaxeRes}`);
-  const giveShovelRes = await rcon.send(
-    `give ${bot.username} minecraft:diamond_shovel 1`
-  );
-  console.log(`[${bot.username}] giveShovelRes=${giveShovelRes}`);
   await unequipHand(bot);
-}
-
-async function clearBotInventory(bot, rcon) {
-  // /clear <name> with no item argument deletes ALL items
-  const cmd = `clear ${bot.username}`;
-  const response = await rcon.send(cmd);
-  console.log(`[${bot.username}] clearBotInventory response: ${response}`);
 }
 
 /**

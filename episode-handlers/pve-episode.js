@@ -11,7 +11,6 @@ const {
 const { GoalNear, Movements } = require("../utils/bot-factory");
 const { BaseEpisode } = require("./base-episode");
 const { unequipHand } = require("../utils/items");
-const { giveRandomSword, equipSword } = require("../utils/fighting");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 
@@ -296,8 +295,6 @@ function getOnPVEFightPhaseFn(
       `pvePhase_fight_${iterationID} beginning`
     );
     let mob = null;
-    await equipSword(bot);
-    await sleep(1000);
     const distToOther = horizontalDistanceTo(
       phaseDataOur.guardPosition,
       phaseDataOther.guardPosition
@@ -422,12 +419,38 @@ class PveEpisode extends BaseEpisode {
     console.log(
       `[${bot.username}] set difficulty to easy, difficultyRes=${difficultyRes}`
     );
+    const swords = [
+      "minecraft:wooden_sword",
+      "minecraft:stone_sword",
+      "minecraft:iron_sword",
+      "minecraft:golden_sword",
+      "minecraft:diamond_sword",
+      "minecraft:netherite_sword",
+    ];
+    const randomSword = swords[Math.floor(Math.random() * swords.length)];
+    const giveSwordRes = await rcon.send(
+      `give ${bot.username} ${randomSword} 1`
+    );
+    console.log(
+      `[${bot.username}] Gave random sword: ${randomSword}, response=${giveSwordRes}`
+    );
 
     // Wait for the item to be added to inventory
-    await giveRandomSword(bot, rcon);
     await sleep(500);
-    await unequipHand(bot);
-    await sleep(500);
+
+    // Find and equip the sword
+    const swordName = randomSword.split(":")[1]; // e.g., "diamond_sword"
+    const swordItem = bot.inventory
+      .items()
+      .find((item) => item.name === swordName);
+    if (swordItem) {
+      await bot.equip(swordItem, "hand");
+      console.log(`[${bot.username}] Equipped ${swordName} to hand`);
+    } else {
+      console.log(
+        `[${bot.username}] Warning: Could not find ${swordName} in inventory to equip`
+      );
+    }
   }
 
   async entryPoint(
@@ -473,6 +496,8 @@ class PveEpisode extends BaseEpisode {
     console.log(
       `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`
     );
+    // Make the bot unequip the sword (from main hand)
+    await unequipHand(bot);
   }
 }
 module.exports = {

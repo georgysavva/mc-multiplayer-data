@@ -48,6 +48,50 @@ async function ensureItemInHand(bot, itemName, args = null) {
   let item = bot.inventory.items().find((i) => i.type === id);
 
   // If not found, try to get it
+  if (!item) {
+    if (bot.game.gameMode === 1) {
+      // Creative mode: spawn it directly
+      const Item = require("prismarine-item")(bot.version);
+      await bot.creative.setInventorySlot(36, new Item(id, 64));
+      item = bot.inventory.slots[36];
+    } else if (args && args.rcon_host) {
+      // Survival mode: use RCON to give items
+      console.log(`[${bot.username}] 📦 Giving ${itemName} via RCON...`);
+      const { Rcon } = require("rcon-client");
+      const rcon = await Rcon.connect({
+        host: args.rcon_host,
+        port: args.rcon_port,
+        password: args.rcon_password,
+      });
+      await rcon.send(`give ${bot.username} ${itemName} 64`);
+      await rcon.end();
+
+      // Wait for item to arrive
+      await new Promise((resolve, reject) => {
+        const maxAttempts = 50;
+        let attempts = 0;
+        const checkItem = () => {
+          attempts += 1;
+          const found = bot.inventory.items().find((i) => i.type === id);
+          if (found) {
+            item = found;
+            resolve();
+            return;
+          }
+          if (attempts >= maxAttempts) {
+            reject(
+              new Error(
+                `Item ${itemName} not received after ${maxAttempts} attempts`
+              )
+            );
+            return;
+          }
+          setTimeout(checkItem, 200);
+        };
+        checkItem();
+      });
+    }
+  }
 
   if (!item) throw new Error(`Item ${itemName} not in inventory`);
 

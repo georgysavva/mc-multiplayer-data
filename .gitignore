@@ -7,7 +7,6 @@ aligned/*
 aligned/alpha/
 aligned/beta/
 __pycache__/
-final/*
 .env
 plugins/SkinsRestorer/cache/*
 plugins/SkinsRestorer/players/*

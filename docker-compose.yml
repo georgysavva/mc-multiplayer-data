@@ -37,7 +37,6 @@ services:
       SERVER_PORT: ${MC_SERVER_PORT:-25565}
       RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
-      OPS: Pengulu,timwm
       BROADCAST_RCON_TO_OPS: true
       SPAWN_PROTECTION: 0
       ALLOW_FLIGHT: true
