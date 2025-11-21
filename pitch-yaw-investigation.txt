@@ -1,0 +1,983 @@
+2025-11-21 13:28:51.260 | [entrypoint] Starting Xvfb on :99 ...
+2025-11-21 13:28:51.556 | [entrypoint] Xvfb is up
+2025-11-21 13:28:51.556 | [entrypoint] GLX sanity check:
+2025-11-21 13:28:51.646 | name of display: :99
+2025-11-21 13:28:51.646 | display: :99  screen: 0
+2025-11-21 13:28:51.646 | direct rendering: Yes
+2025-11-21 13:28:51.646 | Extended renderer info (GLX_MESA_query_renderer):
+2025-11-21 13:28:51.646 |     Vendor: Mesa/X.org (0xffffffff)
+2025-11-21 13:28:51.646 |     Device: llvmpipe (LLVM 15.0.6, 256 bits) (0xffffffff)
+2025-11-21 13:28:51.646 |     Version: 22.3.6
+2025-11-21 13:28:51.646 |     Accelerated: no
+2025-11-21 13:28:51.646 |     Video memory: 15801MB
+2025-11-21 13:28:51.646 |     Unified memory: yes
+2025-11-21 13:28:51.646 |     Preferred profile: core (0x1)
+2025-11-21 13:28:51.646 |     Max core profile version: 3.3
+2025-11-21 13:28:51.646 |     Max compat profile version: 3.3
+2025-11-21 13:28:51.646 |     Max GLES1 profile version: 1.1
+2025-11-21 13:28:51.646 |     Max GLES[23] profile version: 3.2
+2025-11-21 13:28:51.646 | OpenGL vendor string: Mesa/X.org
+2025-11-21 13:28:51.646 | OpenGL renderer string: llvmpipe (LLVM 15.0.6, 256 bits)
+2025-11-21 13:28:51.646 | OpenGL core profile version string: 3.3 (Core Profile) Mesa 22.3.6
+2025-11-21 13:28:51.646 | OpenGL core profile shading language version string: 3.30
+2025-11-21 13:28:51.646 | OpenGL core profile context flags: (none)
+2025-11-21 13:28:51.646 | OpenGL core profile profile mask: core profile
+2025-11-21 13:28:51.646 | 
+2025-11-21 13:28:51.646 | OpenGL version string: 3.3 (Compatibility Profile) Mesa 22.3.6
+2025-11-21 13:28:51.646 | OpenGL shading language version string: 3.30
+2025-11-21 13:28:51.646 | OpenGL context flags: (none)
+2025-11-21 13:28:51.646 | OpenGL profile mask: compatibility profile
+2025-11-21 13:28:51.646 | 
+2025-11-21 13:28:51.646 | OpenGL ES profile version string: OpenGL ES 3.2 Mesa 22.3.6
+2025-11-21 13:28:51.646 | OpenGL ES profile shading language version string: OpenGL ES GLSL ES 3.20
+2025-11-21 13:28:51.646 | 
+2025-11-21 13:28:51.649 | [entrypoint] Launching app...
+2025-11-21 13:28:51.649 | [entrypoint] Bot config: Alpha <-> Bravo, Ports: 8100/8100, Instance: 0
+2025-11-21 13:28:52.836 | DEBUG environment variable: undefined
+2025-11-21 13:28:52.839 | Starting bot: Alpha
+2025-11-21 13:28:52.839 | Coordinator: Alpha, Ports: 8100/8100
+2025-11-21 13:28:52.839 | [Alpha] Waiting 1 seconds before creating bot...
+2025-11-21 13:28:53.922 | [undefined] ✅ Loaded pathfinder plugin
+2025-11-21 13:28:53.922 | [undefined] ✅ Loaded PvP plugin
+2025-11-21 13:28:53.997 | Mineflayer detected that you are using a deprecated event (physicTick)! Please use this event (physicsTick) instead.
+2025-11-21 13:28:58.744 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"Alpha"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell Alpha "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-722440118,978075440,-2132448932,485658594]},"name":{"type":"string","value":"Alpha"}}}}},"text":{"type":"string","value":"Alpha"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-21 13:28:58.844 | [Alpha] 🎮 Spawned in world at (8.5, 64.0, 9.5)
+2025-11-21 13:28:58.844 | [Alpha] 🎯 Game mode: Spectator
+2025-11-21 13:28:58.894 | [Alpha] resistEffectRes=Applied effect Resistance to Alpha
+2025-11-21 13:28:58.941 | [Alpha] waterBreathingEffectRes=Applied effect Water Breathing to Alpha
+2025-11-21 13:28:58.960 | [Alpha] fallDamageRes=Can't find element 'minecraft:fall_damage_multiplier' of type 'minecraft:attribute'
+2025-11-21 13:28:58.971 | [Alpha] set difficulty to peaceful, difficultyRes=The difficulty has been set to Peaceful
+2025-11-21 13:28:58.991 | [Alpha] set fallDamage gamerule to false, fallDamageGameruleRes=Gamerule fallDamage is now set to: false
+2025-11-21 13:28:59.011 | [Alpha] set doImmediateRespawn gamerule to true, doImmediateRespawnRes=Gamerule doImmediateRespawn is now set to: true
+2025-11-21 13:28:59.024 | [Alpha] set keepInventory gamerule to true, keepInventoryRes=Gamerule keepInventory is now set to: true
+2025-11-21 13:28:59.026 | [Alpha] set showDeathMessages gamerule to false, showDeathMessagesRes=Gamerule showDeathMessages is now set to: false
+2025-11-21 13:28:59.052 | [Alpha] givePickaxeRes=Gave 1 [Diamond Pickaxe] to Alpha
+2025-11-21 13:28:59.082 | [Alpha] giveShovelRes=Gave 1 [Diamond Shovel] to Alpha
+2025-11-21 13:28:59.093 | [Alpha] tag Alpha add minebot result: Added tag 'minebot' to Alpha
+2025-11-21 13:28:59.093 | Setting up coordinator connections...
+2025-11-21 13:28:59.093 | [Alpha] Setting up connections...
+2025-11-21 13:28:59.097 | [Alpha Server] Listening on port 8100, waiting for other bot to connect...
+2025-11-21 13:28:59.099 | [Alpha Client] Connection failed, retrying in 2s: connect ECONNREFUSED 172.18.0.9:8100
+2025-11-21 13:28:59.100 | [Alpha Client] Disconnected from other bot
+2025-11-21 13:28:59.183 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"Bravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell Bravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[743612312,1992048000,-1359440332,-1270157749]},"name":{"type":"string","value":"Bravo"}}}}},"text":{"type":"string","value":"Bravo"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-21 13:28:59.272 | [Alpha Server] Other bot connected
+2025-11-21 13:29:01.102 | [Alpha Client] Connected to other bot's server at sender_bravo:8100
+2025-11-21 13:29:01.102 | [Alpha] All connections established - server ready: true, client ready: true
+2025-11-21 13:29:01.102 | All coordinator connections ready, proceeding with bot spawn...
+2025-11-21 13:29:01.102 | [Alpha] spawned at (8.50, 64.00, 9.50)
+2025-11-21 13:29:01.102 | [Alpha] Waiting for cameras to join server...
+2025-11-21 13:29:01.102 | [camera-ready] Waiting for cameras: CameraAlpha, CameraBravo
+2025-11-21 13:29:01.102 | [camera-ready] Max retries: 300, check interval: 2000ms
+2025-11-21 13:29:01.103 | [Alpha Client] Connected to other bot's server at sender_bravo:8100
+2025-11-21 13:29:01.106 | [camera-ready] Attempt 1/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:03.112 | [camera-ready] Attempt 2/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:05.116 | [camera-ready] Attempt 3/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:07.122 | [camera-ready] Attempt 4/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:09.126 | [camera-ready] Attempt 5/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:11.129 | [camera-ready] Attempt 6/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:13.136 | [camera-ready] Attempt 7/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:13.719 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraAlpha"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraAlpha "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-654309493,1385970675,-1573190332,1256197083]},"name":{"type":"string","value":"CameraAlpha"}}}}},"text":{"type":"string","value":"CameraAlpha"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-21 13:29:14.670 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraBravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraBravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-299957078,-211471048,-1986246765,220115609]},"name":{"type":"string","value":"CameraBravo"}}}}},"text":{"type":"string","value":"CameraBravo"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-21 13:29:15.142 | [camera-ready] All cameras present: CameraAlpha, CameraBravo
+2025-11-21 13:29:15.145 | [CameraAlpha] resistEffectRes=Applied effect Resistance to CameraAlpha
+2025-11-21 13:29:15.146 | [CameraAlpha] waterBreathingEffectRes=Applied effect Water Breathing to CameraAlpha
+2025-11-21 13:29:15.148 | [CameraAlpha] fallDamageRes=Can't find element 'minecraft:fall_damage_multiplier' of type 'minecraft:attribute'
+2025-11-21 13:29:15.148 | [Alpha] Cameras detected, waiting 1s for popups to clear...
+2025-11-21 13:29:15.646 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"green"},"text":{"type":"string","value":"[Episode] Episode started!"}}}
+2025-11-21 13:29:15.969 | [Alpha] ♻️ Respawned
+2025-11-21 13:29:15.970 | [Alpha] 🎮 Spawned in world at (8.5, 64.0, 9.5)
+2025-11-21 13:29:15.970 | [Alpha] 🎯 Game mode: Spectator
+2025-11-21 13:29:16.148 | disableRendering 1
+2025-11-21 13:29:16.148 | [Alpha] SEQUENTIAL MODE: Running 2 episodes cycling through 1 eligible episode types (world_type=flat) in alphabetical order
+2025-11-21 13:29:16.148 | [Alpha] Selected episode type: buildStructure
+2025-11-21 13:29:16.149 | [Alpha] Created BuildStructureEpisode instance for episode 0
+2025-11-21 13:29:16.945 | [sendToOtherBot] teleportPhase end: Sending episode_0_postTeleportPhase via client connection
+2025-11-21 13:29:16.946 | [Alpha Server] Received: episode_0_postTeleportPhase (1 listeners) - emitting
+2025-11-21 13:29:16.946 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_0_postTeleportPhase via client connection
+2025-11-21 13:29:16.946 | [Alpha] our position after teleport: {"position":{"x":1210.5,"y":64,"z":-714.5}}
+2025-11-21 13:29:16.946 | [sendToOtherBot] postTeleportPhase end: Sending episode_0_beforeStartRecordingPhase via client connection
+2025-11-21 13:29:16.946 | [Alpha Server] Received: episode_0_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-21 13:29:16.946 | [Alpha] other position before start recording: {"position":{"x":1210.5,"y":64,"z":-722.5}}
+2025-11-21 13:29:16.947 | [Alpha] Looking at (1210.50, 64.00, -722.50) at 30°/s over 6.00s
+2025-11-21 13:29:17.146 | [Alpha Server] Received: episode_0_teleportPhase (no listeners)
+2025-11-21 13:29:17.149 | [Alpha] Starting episode 0
+2025-11-21 13:29:17.149 | [Alpha] episode 0 at (8.50, 64.00, 9.50)
+2025-11-21 13:29:17.149 | [sendToOtherBot] spawnPhase end: Sending episode_0_teleportPhase via client connection
+2025-11-21 13:29:17.151 | [Alpha Server] Received: episode_0_teleportPhase (1 listeners) - emitting
+2025-11-21 13:29:17.151 | [sendToOtherBot] teleportPhase beginning: Sending episode_0_teleportPhase via client connection
+2025-11-21 13:29:17.151 | [Alpha] initializing teleport center
+2025-11-21 13:29:17.151 | [Alpha] teleport radius: 3000
+2025-11-21 13:29:17.151 | [Alpha] picked random center at (1217.98, -721.47)
+2025-11-21 13:29:17.151 | [Alpha] spreadplayers args: center=(1217, -722), min=8, max=7, targets=[Alpha Bravo]
+2025-11-21 13:29:17.152 | [Alpha Server] Received: episode_0_postTeleportPhase (no listeners)
+2025-11-21 13:29:17.333 | [Alpha] spreadplayers result: Spread 2 player(s) around 1217.5, -721.5 with an average distance of 8.02 blocks apart
+2025-11-21 13:29:19.762 | [Alpha Server] Received: episode_0_startRecordingPhase (no listeners)
+2025-11-21 13:29:22.988 | [Alpha] setting up episode 0
+2025-11-21 13:29:22.988 | [Alpha] inventory stone: have=0, target=128, need=128
+2025-11-21 13:29:22.995 | [Alpha] ensureBotHasEnough: give Alpha minecraft:stone 128 -> Gave 128 [Stone] to Alpha
+2025-11-21 13:29:23.795 | [Alpha] inventory stone: now 128/128
+2025-11-21 13:29:23.798 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-21 13:29:23.801 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-21 13:29:24.801 | [Alpha] unequipping hand before episode
+2025-11-21 13:29:24.801 | [Alpha] Unequipped diamond_pickaxe from main hand
+2025-11-21 13:29:25.803 | [sendToOtherBot] teleportPhase end: Sending episode_0_startRecordingPhase via client connection
+2025-11-21 13:29:25.804 | [Alpha Server] Received: episode_0_startRecordingPhase (1 listeners) - emitting
+2025-11-21 13:29:25.804 | [sendToOtherBot] startRecordingPhase end: Sending episode_0_startRecordingPhase via client connection
+2025-11-21 13:29:25.804 | [Alpha] starting episode recording
+2025-11-21 13:29:25.804 | [headless] starting episode - connecting to receiver, episode number 0
+2025-11-21 13:29:25.804 | [headless] creating new connection
+2025-11-21 13:29:25.806 | [headless] Connected to server
+2025-11-21 13:29:26.806 | [sendToOtherBot] entryPoint end: Sending episode_0_buildPhase_0 via client connection
+2025-11-21 13:29:26.806 | [Alpha Server] Received: episode_0_buildPhase_0 (1 listeners) - emitting
+2025-11-21 13:29:26.806 | [sendToOtherBot] buildPhase_0 beginning: Sending episode_0_buildPhase_0 via client connection
+2025-11-21 13:29:26.806 | [Alpha] 🚀 Starting BUILD phase 0
+2025-11-21 13:29:26.806 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-21 13:29:26.806 | [Alpha] 👀 STEP 2: Making eye contact with Bravo...
+2025-11-21 13:29:26.807 | [Alpha Server] Received: episode_0_buildPhase_0 (no listeners)
+2025-11-21 13:29:28.340 | [Alpha] 📐 STEP 3: Planning structure wall...
+2025-11-21 13:29:28.340 | [Alpha] 📋 Building 15 blocks with oak_planks
+2025-11-21 13:29:28.340 | [Alpha] 🏗️ STEP 4: Building structure...
+2025-11-21 13:29:28.341 | [Alpha] 🏗️ Starting to build 15 blocks with oak_planks...
+2025-11-21 13:29:28.349 | [Alpha] Pathfinder initialized with full capabilities: {
+2025-11-21 13:29:28.349 |   sprint: false,
+2025-11-21 13:29:28.349 |   parkour: true,
+2025-11-21 13:29:28.349 |   dig: false,
+2025-11-21 13:29:28.349 |   placeBlocks: true,
+2025-11-21 13:29:28.349 |   entityDetection: true,
+2025-11-21 13:29:28.349 |   maxDropDown: 4
+2025-11-21 13:29:28.349 | }
+2025-11-21 13:29:28.349 | [Alpha] 🏗️ Starting to place 15 blocks...
+2025-11-21 13:29:28.350 | [Alpha] 📋 Build order: OPTIMIZED
+2025-11-21 13:29:28.350 | [Alpha] 🎯 Smart positioning: DISABLED
+2025-11-21 13:29:28.351 | [Alpha] 📦 Giving oak_planks via RCON...
+2025-11-21 13:29:28.364 | [Alpha] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:28.365 | [Alpha] 🎯 Trying face 1/1 (score: 64.5, attempt: 1/5)
+2025-11-21 13:29:28.365 | [Alpha] 📷 [PREP-START] yaw=0.0°, pitch=1.3°
+2025-11-21 13:29:28.908 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-15.1°
+2025-11-21 13:29:29.409 | [Alpha] ❌ Failed to place block at (1216, 64, -715) after 1 attempts across 1 face(s)
+2025-11-21 13:29:29.409 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-15.1°
+2025-11-21 13:29:29.409 | [Alpha] ⚠️ Not ready: Target out of reach after looking
+2025-11-21 13:29:30.911 | [Alpha] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:30.911 | [Alpha] 🎯 Trying face 1/1 (score: 72.8, attempt: 1/5)
+2025-11-21 13:29:30.911 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-15.1°
+2025-11-21 13:29:30.922 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-18.0°
+2025-11-21 13:29:31.422 | [Alpha] ❌ Failed to place block at (1215, 64, -715) after 1 attempts across 1 face(s)
+2025-11-21 13:29:31.422 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-18.0°
+2025-11-21 13:29:31.422 | [Alpha] ⚠️ Not ready: Target out of reach after looking
+2025-11-21 13:29:32.923 | [Alpha] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:32.923 | [Alpha] 🎯 Trying face 1/1 (score: 76.1, attempt: 1/5)
+2025-11-21 13:29:32.923 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-18.0°
+2025-11-21 13:29:32.936 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-22.0°
+2025-11-21 13:29:33.437 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-22.0°
+2025-11-21 13:29:33.439 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-17.5°
+2025-11-21 13:29:33.440 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-17.5°
+2025-11-21 13:29:33.942 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-17.5°
+2025-11-21 13:29:33.993 | [Alpha] ✅ Successfully placed oak_planks at (1214, 64, -715) (face 1, attempt 1)
+2025-11-21 13:29:33.993 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-17.5°
+2025-11-21 13:29:35.494 | [Alpha] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:29:35.494 | [Alpha] 🎯 Trying face 1/2 (score: 78.0, attempt: 1/10)
+2025-11-21 13:29:35.494 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-17.5°
+2025-11-21 13:29:35.512 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-28.3°
+2025-11-21 13:29:36.013 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-28.3°
+2025-11-21 13:29:36.019 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-22.9°
+2025-11-21 13:29:36.021 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-22.9°
+2025-11-21 13:29:36.520 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-22.9°
+2025-11-21 13:29:36.571 | [Alpha] ✅ Successfully placed oak_planks at (1213, 64, -715) (face 1, attempt 1)
+2025-11-21 13:29:36.571 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-22.9°
+2025-11-21 13:29:38.073 | [Alpha] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:29:38.073 | [Alpha] 🎯 Trying face 1/2 (score: 82.5, attempt: 1/10)
+2025-11-21 13:29:38.073 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-22.9°
+2025-11-21 13:29:38.098 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-39.0°
+2025-11-21 13:29:38.599 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-39.0°
+2025-11-21 13:29:38.605 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-32.4°
+2025-11-21 13:29:38.607 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-32.4°
+2025-11-21 13:29:39.108 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-32.4°
+2025-11-21 13:29:39.159 | [Alpha] ✅ Successfully placed oak_planks at (1212, 64, -715) (face 1, attempt 1)
+2025-11-21 13:29:39.159 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-32.4°
+2025-11-21 13:29:40.661 | [Alpha] ❌ No valid faces found for (1216, 65, -715)
+2025-11-21 13:29:42.161 | [Alpha] ❌ No valid faces found for (1215, 65, -715)
+2025-11-21 13:29:43.663 | [Alpha] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:43.663 | [Alpha] 🎯 Trying face 1/1 (score: 83.2, attempt: 1/5)
+2025-11-21 13:29:43.664 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-32.4°
+2025-11-21 13:29:43.666 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-8.8°
+2025-11-21 13:29:44.167 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-8.8°
+2025-11-21 13:29:44.170 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-3.9°
+2025-11-21 13:29:44.171 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-3.9°
+2025-11-21 13:29:44.672 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-3.9°
+2025-11-21 13:29:44.723 | [Alpha] ✅ Successfully placed oak_planks at (1214, 65, -715) (face 1, attempt 1)
+2025-11-21 13:29:44.723 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-3.9°
+2025-11-21 13:29:45.455 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-11.7°
+2025-11-21 13:29:45.463 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-5.1°
+2025-11-21 13:29:45.465 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-5.1°
+2025-11-21 13:29:45.966 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-5.1°
+2025-11-21 13:29:46.017 | [Alpha] ✅ Successfully placed oak_planks at (1213, 65, -715) (face 1, attempt 1)
+2025-11-21 13:29:46.017 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-5.1°
+2025-11-21 13:29:46.224 | [Alpha] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:29:46.224 | [Alpha] 🎯 Trying face 1/2 (score: 71.4, attempt: 1/10)
+2025-11-21 13:29:46.224 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-3.9°
+2025-11-21 13:29:46.249 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-11.7°
+2025-11-21 13:29:47.518 | [Alpha] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:29:47.519 | [Alpha] 🎯 Trying face 1/2 (score: 74.2, attempt: 1/10)
+2025-11-21 13:29:47.519 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-5.1°
+2025-11-21 13:29:47.540 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-17.2°
+2025-11-21 13:29:48.041 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-17.2°
+2025-11-21 13:29:48.047 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-7.6°
+2025-11-21 13:29:48.050 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-7.6°
+2025-11-21 13:29:48.550 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-7.6°
+2025-11-21 13:29:48.601 | [Alpha] ✅ Successfully placed oak_planks at (1212, 65, -715) (face 1, attempt 1)
+2025-11-21 13:29:48.601 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-7.6°
+2025-11-21 13:29:50.102 | [Alpha] ❌ No valid faces found for (1216, 66, -715)
+2025-11-21 13:29:51.602 | [Alpha] ❌ No valid faces found for (1215, 66, -715)
+2025-11-21 13:29:53.102 | [Alpha] ❌ No valid faces found for (1214, 66, -715)
+2025-11-21 13:29:54.604 | [Alpha] ❌ No valid faces found for (1213, 66, -715)
+2025-11-21 13:29:56.104 | [Alpha] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:56.105 | [Alpha] 🎯 Trying face 1/1 (score: 74.8, attempt: 1/5)
+2025-11-21 13:29:56.105 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-7.6°
+2025-11-21 13:29:56.141 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=10.8°
+2025-11-21 13:29:56.643 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=10.8°
+2025-11-21 13:29:56.643 | [Alpha] ⚠️ Not ready: Lost line of sight after looking
+2025-11-21 13:29:56.643 | [Alpha] 🏁 Placement complete!
+2025-11-21 13:29:56.643 | [Alpha]    ✅ Success: 6/15
+2025-11-21 13:29:56.643 | [Alpha]    ❌ Failed: 9/15
+2025-11-21 13:29:56.643 | [Alpha]    ⏭️ Skipped: 0/15
+2025-11-21 13:29:56.643 | [Alpha] 🏁 Build complete!
+2025-11-21 13:29:56.643 | [Alpha]    ✅ Success: 6/15 (40.0%)
+2025-11-21 13:29:56.643 | [Alpha]    ❌ Failed: 9/15
+2025-11-21 13:29:56.643 | [Alpha] 👀 STEP 5: Final eye contact...
+2025-11-21 13:29:56.643 | [Alpha] ❌ Failed to place block at (1212, 66, -715) after 1 attempts across 1 face(s)
+2025-11-21 13:29:56.643 | [Alpha] ⚠️ Low success rate: 40.0%
+2025-11-21 13:29:58.653 | [Alpha] ✅ BUILD phase complete!
+2025-11-21 13:29:58.653 | [sendToOtherBot] buildPhase_0 end: Sending episode_0_stopPhase via client connection
+2025-11-21 13:29:59.761 | [Alpha Server] Received: episode_0_stopPhase (1 listeners) - emitting
+2025-11-21 13:29:59.762 | [sendToOtherBot] stopPhase beginning: Sending episode_0_stopPhase via client connection
+2025-11-21 13:29:59.762 | [Alpha] stops recording
+2025-11-21 13:29:59.762 | [headless] ending episode
+2025-11-21 13:29:59.762 | [Alpha] waiting for episode recording to end...
+2025-11-21 13:29:59.762 | [Alpha Server] Received: episode_0_stopPhase (no listeners)
+2025-11-21 13:29:59.779 | [headless] sending zero end of stream
+2025-11-21 13:29:59.827 | [headless] Socket ended
+2025-11-21 13:29:59.827 | [headless] Socket state at end: {
+2025-11-21 13:29:59.827 |   writable: false,
+2025-11-21 13:29:59.827 |   destroyed: false,
+2025-11-21 13:29:59.827 |   connecting: false,
+2025-11-21 13:29:59.827 |   bytesWritten: 370913,
+2025-11-21 13:29:59.827 |   bytesRead: 0
+2025-11-21 13:29:59.827 | }
+2025-11-21 13:29:59.827 | [headless] Socket closed
+2025-11-21 13:29:59.827 | [headless] connection closed, firing episodeended event
+2025-11-21 13:29:59.827 | [Alpha] episode recording ended, connection closed
+2025-11-21 13:30:00.828 | [sendToOtherBot] StopPhase end: Sending episode_0_stoppedPhase via client connection
+2025-11-21 13:30:00.829 | [Alpha Server] Received: episode_0_stoppedPhase (1 listeners) - emitting
+2025-11-21 13:30:00.829 | [sendToOtherBot] stoppedPhase beginning: Sending episode_0_stoppedPhase via client connection
+2025-11-21 13:30:00.829 | [Alpha] stopped
+2025-11-21 13:30:00.829 | [Alpha] All event handlers finished
+2025-11-21 13:30:00.829 | [Alpha] Stopped PVP for episode 0
+2025-11-21 13:30:00.829 | [Alpha] Stopped pathfinder navigation for episode 0
+2025-11-21 13:30:00.829 | [Alpha] tearing down episode 0
+2025-11-21 13:30:00.829 | [Alpha] Episode 0 completed
+2025-11-21 13:30:00.833 | [Alpha Server] Received: episode_0_stoppedPhase (no listeners)
+2025-11-21 13:30:00.841 | [Alpha] Saved episode info to /output/20251121_183000_000000_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-21 13:30:00.841 | [Alpha] Syncing bots for episode 0
+2025-11-21 13:30:00.841 | [sendToOtherBot] syncBots outer: Sending episode_0_syncBots via client connection
+2025-11-21 13:30:00.843 | [Alpha Server] Received: episode_0_syncBots (1 listeners) - emitting
+2025-11-21 13:30:00.843 | [sendToOtherBot] syncBots beginning: Sending episode_0_syncBots via client connection
+2025-11-21 13:30:00.844 | [Alpha] Syncing bots...
+2025-11-21 13:30:00.844 | [Alpha] Synced bots for episode 0
+2025-11-21 13:30:00.844 | [Alpha] Selected episode type: buildStructure
+2025-11-21 13:30:00.844 | [Alpha] Created BuildStructureEpisode instance for episode 1
+2025-11-21 13:30:00.844 | [Alpha Server] Received: episode_0_syncBots (no listeners)
+2025-11-21 13:30:01.844 | [Alpha Server] Received: episode_1_teleportPhase (no listeners)
+2025-11-21 13:30:01.844 | [Alpha] Starting episode 1
+2025-11-21 13:30:01.845 | [Alpha] episode 1 at (1210.50, 64.00, -714.50)
+2025-11-21 13:30:01.845 | [sendToOtherBot] spawnPhase end: Sending episode_1_teleportPhase via client connection
+2025-11-21 13:30:01.846 | [Alpha Server] Received: episode_1_teleportPhase (1 listeners) - emitting
+2025-11-21 13:30:01.846 | [sendToOtherBot] teleportPhase beginning: Sending episode_1_teleportPhase via client connection
+2025-11-21 13:30:01.846 | [Alpha] teleport radius: 3000
+2025-11-21 13:30:01.846 | [Alpha] picked random center at (-2007.84, 225.93)
+2025-11-21 13:30:01.846 | [Alpha] spreadplayers args: center=(-2008, 225), min=8, max=7, targets=[Alpha Bravo]
+2025-11-21 13:30:01.846 | [Alpha Server] Received: episode_1_postTeleportPhase (no listeners)
+2025-11-21 13:30:01.885 | [Alpha] spreadplayers result: Spread 2 player(s) around -2007.5, 225.5 with an average distance of 8.66 blocks apart
+2025-11-21 13:30:02.886 | [sendToOtherBot] teleportPhase end: Sending episode_1_postTeleportPhase via client connection
+2025-11-21 13:30:02.887 | [Alpha Server] Received: episode_1_postTeleportPhase (1 listeners) - emitting
+2025-11-21 13:30:02.887 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_1_postTeleportPhase via client connection
+2025-11-21 13:30:02.887 | [Alpha] our position after teleport: {"position":{"x":-2014.5,"y":64,"z":220.5}}
+2025-11-21 13:30:02.887 | [sendToOtherBot] postTeleportPhase end: Sending episode_1_beforeStartRecordingPhase via client connection
+2025-11-21 13:30:02.888 | [Alpha Server] Received: episode_1_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-21 13:30:02.888 | [Alpha] other position before start recording: {"position":{"x":-2005.5,"y":64,"z":221.5}}
+2025-11-21 13:30:02.888 | [Alpha] Looking at (-2005.50, 64.00, 221.50) at 30°/s over 3.21s
+2025-11-21 13:30:06.107 | [Alpha] setting up episode 1
+2025-11-21 13:30:06.107 | [Alpha] inventory stone: have=128, target=128, need=0
+2025-11-21 13:30:06.111 | [Alpha] saturationEffectRes=Applied effect Saturation to Alpha
+2025-11-21 13:30:06.114 | [Alpha] Camera saturationEffectRes=Applied effect Saturation to CameraAlpha
+2025-11-21 13:30:07.114 | [Alpha] unequipping hand before episode
+2025-11-21 13:30:07.114 | [Alpha] Unequipped oak_planks from main hand
+2025-11-21 13:30:08.115 | [sendToOtherBot] teleportPhase end: Sending episode_1_startRecordingPhase via client connection
+2025-11-21 13:30:08.122 | [Alpha Server] Received: episode_1_startRecordingPhase (1 listeners) - emitting
+2025-11-21 13:30:08.122 | [sendToOtherBot] startRecordingPhase end: Sending episode_1_startRecordingPhase via client connection
+2025-11-21 13:30:08.122 | [Alpha] starting episode recording
+2025-11-21 13:30:08.122 | [headless] starting episode - connecting to receiver, episode number 1
+2025-11-21 13:30:08.122 | [headless] creating new connection
+2025-11-21 13:30:08.123 | [Alpha Server] Received: episode_1_startRecordingPhase (no listeners)
+2025-11-21 13:30:08.124 | [headless] Connected to server
+2025-11-21 13:30:09.123 | [Alpha Server] Received: episode_1_buildPhase_0 (no listeners)
+2025-11-21 13:30:09.123 | [sendToOtherBot] entryPoint end: Sending episode_1_buildPhase_0 via client connection
+2025-11-21 13:30:09.123 | [Alpha Server] Received: episode_1_buildPhase_0 (1 listeners) - emitting
+2025-11-21 13:30:09.124 | [sendToOtherBot] buildPhase_0 beginning: Sending episode_1_buildPhase_0 via client connection
+2025-11-21 13:30:09.124 | [Alpha] 🚀 Starting BUILD phase 0
+2025-11-21 13:30:09.124 | [Alpha] ✅ STEP 1: Bot spawned
+2025-11-21 13:30:09.124 | [Alpha] 👀 STEP 2: Making eye contact with Bravo...
+2025-11-21 13:30:10.631 | [Alpha] 📐 STEP 3: Planning structure wall...
+2025-11-21 13:30:10.631 | [Alpha] 📋 Building 15 blocks with cobblestone
+2025-11-21 13:30:10.631 | [Alpha] 🏗️ STEP 4: Building structure...
+2025-11-21 13:30:10.631 | [Alpha] 🏗️ Starting to build 15 blocks with cobblestone...
+2025-11-21 13:30:10.637 | [Alpha] Pathfinder initialized with full capabilities: {
+2025-11-21 13:30:10.637 |   sprint: false,
+2025-11-21 13:30:10.637 |   parkour: true,
+2025-11-21 13:30:10.637 |   dig: false,
+2025-11-21 13:30:10.637 |   placeBlocks: true,
+2025-11-21 13:30:10.637 |   entityDetection: true,
+2025-11-21 13:30:10.637 |   maxDropDown: 4
+2025-11-21 13:30:10.637 | }
+2025-11-21 13:30:10.637 | [Alpha] 🏗️ Starting to place 15 blocks...
+2025-11-21 13:30:10.637 | [Alpha] 📋 Build order: OPTIMIZED
+2025-11-21 13:30:10.637 | [Alpha] 🎯 Smart positioning: DISABLED
+2025-11-21 13:30:10.637 | [Alpha] 📦 Giving cobblestone via RCON...
+2025-11-21 13:30:10.646 | SYSTEM: {"type":"compound","value":{"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"Alpha"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell Alpha "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-722440118,978075440,-2132448932,485658594]},"name":{"type":"string","value":"Alpha"}}}}},"text":{"type":"string","value":"Alpha"}},{"color":{"type":"string","value":"green"},"with":{"type":"list","value":{"type":"compound","value":[{"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_text"},"contents":{"type":"compound","value":{"color":{"type":"string","value":"green"},"extra":{"type":"list","value":{"type":"compound","value":[{"":{"type":"string","value":"\n"}},{"translate":{"type":"string","value":"advancements.story.mine_stone.description"}}]}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}}}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}]}},"translate":{"type":"string","value":"chat.square_brackets"}}]}},"translate":{"type":"string","value":"chat.type.advancement.task"}}}
+2025-11-21 13:30:10.656 | SYSTEM: {"type":"compound","value":{"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraAlpha"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraAlpha "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-654309493,1385970675,-1573190332,1256197083]},"name":{"type":"string","value":"CameraAlpha"}}}}},"text":{"type":"string","value":"CameraAlpha"}},{"color":{"type":"string","value":"green"},"with":{"type":"list","value":{"type":"compound","value":[{"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_text"},"contents":{"type":"compound","value":{"color":{"type":"string","value":"green"},"extra":{"type":"list","value":{"type":"compound","value":[{"":{"type":"string","value":"\n"}},{"translate":{"type":"string","value":"advancements.story.mine_stone.description"}}]}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}}}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}]}},"translate":{"type":"string","value":"chat.square_brackets"}}]}},"translate":{"type":"string","value":"chat.type.advancement.task"}}}
+2025-11-21 13:30:10.658 | SYSTEM: {"type":"compound","value":{"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"Bravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell Bravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[743612312,1992048000,-1359440332,-1270157749]},"name":{"type":"string","value":"Bravo"}}}}},"text":{"type":"string","value":"Bravo"}},{"color":{"type":"string","value":"green"},"with":{"type":"list","value":{"type":"compound","value":[{"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_text"},"contents":{"type":"compound","value":{"color":{"type":"string","value":"green"},"extra":{"type":"list","value":{"type":"compound","value":[{"":{"type":"string","value":"\n"}},{"translate":{"type":"string","value":"advancements.story.mine_stone.description"}}]}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}}}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}]}},"translate":{"type":"string","value":"chat.square_brackets"}}]}},"translate":{"type":"string","value":"chat.type.advancement.task"}}}
+2025-11-21 13:30:10.704 | SYSTEM: {"type":"compound","value":{"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraBravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraBravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-299957078,-211471048,-1986246765,220115609]},"name":{"type":"string","value":"CameraBravo"}}}}},"text":{"type":"string","value":"CameraBravo"}},{"color":{"type":"string","value":"green"},"with":{"type":"list","value":{"type":"compound","value":[{"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_text"},"contents":{"type":"compound","value":{"color":{"type":"string","value":"green"},"extra":{"type":"list","value":{"type":"compound","value":[{"":{"type":"string","value":"\n"}},{"translate":{"type":"string","value":"advancements.story.mine_stone.description"}}]}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}}}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}]}},"translate":{"type":"string","value":"chat.square_brackets"}}]}},"translate":{"type":"string","value":"chat.type.advancement.task"}}}
+2025-11-21 13:30:10.846 | [Alpha] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:10.846 | [Alpha] 🎯 Trying face 1/1 (score: 64.6, attempt: 1/5)
+2025-11-21 13:30:10.846 | [Alpha] 📷 [PREP-START] yaw=-96.3°, pitch=1.2°
+2025-11-21 13:30:10.892 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-15.1°
+2025-11-21 13:30:11.393 | [Alpha] ❌ Failed to place block at (-2009, 64, 220) after 1 attempts across 1 face(s)
+2025-11-21 13:30:11.393 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-15.1°
+2025-11-21 13:30:11.393 | [Alpha] ⚠️ Not ready: Target out of reach after looking
+2025-11-21 13:30:12.894 | [Alpha] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:12.894 | [Alpha] 🎯 Trying face 1/1 (score: 72.8, attempt: 1/5)
+2025-11-21 13:30:12.894 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-15.1°
+2025-11-21 13:30:12.904 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-18.0°
+2025-11-21 13:30:13.404 | [Alpha] ❌ Failed to place block at (-2010, 64, 220) after 1 attempts across 1 face(s)
+2025-11-21 13:30:13.404 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-18.0°
+2025-11-21 13:30:13.404 | [Alpha] ⚠️ Not ready: Target out of reach after looking
+2025-11-21 13:30:14.078 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-22.0°
+2025-11-21 13:30:14.079 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-17.5°
+2025-11-21 13:30:14.081 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-17.5°
+2025-11-21 13:30:14.582 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-17.5°
+2025-11-21 13:30:14.632 | [Alpha] ✅ Successfully placed cobblestone at (-2011, 64, 220) (face 1, attempt 1)
+2025-11-21 13:30:14.632 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-17.5°
+2025-11-21 13:30:14.905 | [Alpha] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:14.906 | [Alpha] 🎯 Trying face 1/1 (score: 76.1, attempt: 1/5)
+2025-11-21 13:30:14.906 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-18.0°
+2025-11-21 13:30:14.921 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-22.0°
+2025-11-21 13:30:16.133 | [Alpha] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:30:16.133 | [Alpha] 🎯 Trying face 1/2 (score: 78.0, attempt: 1/10)
+2025-11-21 13:30:16.133 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-17.5°
+2025-11-21 13:30:16.142 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-28.3°
+2025-11-21 13:30:16.642 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-28.3°
+2025-11-21 13:30:16.643 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-22.9°
+2025-11-21 13:30:16.645 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-22.9°
+2025-11-21 13:30:17.146 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-22.9°
+2025-11-21 13:30:17.197 | [Alpha] ✅ Successfully placed cobblestone at (-2012, 64, 220) (face 1, attempt 1)
+2025-11-21 13:30:17.197 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-22.9°
+2025-11-21 13:30:18.698 | [Alpha] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:30:18.699 | [Alpha] 🎯 Trying face 1/2 (score: 82.5, attempt: 1/10)
+2025-11-21 13:30:18.699 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-22.9°
+2025-11-21 13:30:18.708 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-39.0°
+2025-11-21 13:30:19.208 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-39.0°
+2025-11-21 13:30:19.214 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-32.4°
+2025-11-21 13:30:19.216 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-32.4°
+2025-11-21 13:30:19.717 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-32.4°
+2025-11-21 13:30:19.767 | [Alpha] ✅ Successfully placed cobblestone at (-2013, 64, 220) (face 1, attempt 1)
+2025-11-21 13:30:19.767 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-32.4°
+2025-11-21 13:30:21.267 | [Alpha] ❌ No valid faces found for (-2009, 65, 220)
+2025-11-21 13:30:22.768 | [Alpha] ❌ No valid faces found for (-2010, 65, 220)
+2025-11-21 13:30:24.268 | [Alpha] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:24.268 | [Alpha] 🎯 Trying face 1/1 (score: 83.2, attempt: 1/5)
+2025-11-21 13:30:24.268 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-32.4°
+2025-11-21 13:30:24.317 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-8.8°
+2025-11-21 13:30:24.817 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-8.8°
+2025-11-21 13:30:24.824 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-3.9°
+2025-11-21 13:30:24.826 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-3.9°
+2025-11-21 13:30:25.327 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-3.9°
+2025-11-21 13:30:25.378 | [Alpha] ✅ Successfully placed cobblestone at (-2011, 65, 220) (face 1, attempt 1)
+2025-11-21 13:30:25.378 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-3.9°
+2025-11-21 13:30:26.879 | [Alpha] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:30:26.880 | [Alpha] 🎯 Trying face 1/2 (score: 71.4, attempt: 1/10)
+2025-11-21 13:30:26.880 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-3.9°
+2025-11-21 13:30:26.899 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-11.7°
+2025-11-21 13:30:27.399 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-11.7°
+2025-11-21 13:30:27.406 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-5.1°
+2025-11-21 13:30:27.407 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-5.1°
+2025-11-21 13:30:27.908 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-5.1°
+2025-11-21 13:30:27.957 | [Alpha] ✅ Successfully placed cobblestone at (-2012, 65, 220) (face 1, attempt 1)
+2025-11-21 13:30:27.957 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-5.1°
+2025-11-21 13:30:29.458 | [Alpha] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:30:29.458 | [Alpha] 🎯 Trying face 1/2 (score: 74.2, attempt: 1/10)
+2025-11-21 13:30:29.458 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-5.1°
+2025-11-21 13:30:29.485 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=-17.2°
+2025-11-21 13:30:29.986 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=-17.2°
+2025-11-21 13:30:29.991 | [Alpha] 📷 [BEFORE-PLACE] yaw=-90.0°, pitch=-7.6°
+2025-11-21 13:30:29.993 | [Alpha] 📷 [AFTER-PLACE] yaw=-90.0°, pitch=-7.6°
+2025-11-21 13:30:30.494 | [Alpha] 📷 [AFTER-WAIT] yaw=-90.0°, pitch=-7.6°
+2025-11-21 13:30:30.545 | [Alpha] ✅ Successfully placed cobblestone at (-2013, 65, 220) (face 1, attempt 1)
+2025-11-21 13:30:30.545 | [Alpha] 📷 [RETURN-SUCCESS] yaw=-90.0°, pitch=-7.6°
+2025-11-21 13:30:32.046 | [Alpha] ❌ No valid faces found for (-2009, 66, 220)
+2025-11-21 13:30:33.547 | [Alpha] ❌ No valid faces found for (-2010, 66, 220)
+2025-11-21 13:30:35.049 | [Alpha] ❌ No valid faces found for (-2011, 66, 220)
+2025-11-21 13:30:36.549 | [Alpha] ❌ No valid faces found for (-2012, 66, 220)
+2025-11-21 13:30:38.050 | [Alpha] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:38.050 | [Alpha] 🎯 Trying face 1/1 (score: 74.8, attempt: 1/5)
+2025-11-21 13:30:38.050 | [Alpha] 📷 [PREP-START] yaw=-90.0°, pitch=-7.6°
+2025-11-21 13:30:38.088 | [Alpha] 📷 [PREP-AFTER-LOOK] yaw=-90.0°, pitch=10.8°
+2025-11-21 13:30:38.588 | [Alpha] ❌ Failed to place block at (-2013, 66, 220) after 1 attempts across 1 face(s)
+2025-11-21 13:30:38.588 | [Alpha] ⚠️ Low success rate: 40.0%
+2025-11-21 13:30:38.588 | [Alpha] 📷 [PREP-AFTER-DELAY] yaw=-90.0°, pitch=10.8°
+2025-11-21 13:30:38.588 | [Alpha] ⚠️ Not ready: Lost line of sight after looking
+2025-11-21 13:30:38.588 | [Alpha] 🏁 Placement complete!
+2025-11-21 13:30:38.588 | [Alpha]    ✅ Success: 6/15
+2025-11-21 13:30:38.588 | [Alpha]    ❌ Failed: 9/15
+2025-11-21 13:30:38.588 | [Alpha]    ⏭️ Skipped: 0/15
+2025-11-21 13:30:38.588 | [Alpha] 🏁 Build complete!
+2025-11-21 13:30:38.588 | [Alpha]    ✅ Success: 6/15 (40.0%)
+2025-11-21 13:30:38.588 | [Alpha]    ❌ Failed: 9/15
+2025-11-21 13:30:38.588 | [Alpha] 👀 STEP 5: Final eye contact...
+2025-11-21 13:30:40.096 | [Alpha] ✅ BUILD phase complete!
+2025-11-21 13:30:40.096 | [sendToOtherBot] buildPhase_0 end: Sending episode_1_stopPhase via client connection
+2025-11-21 13:30:42.542 | [Alpha Server] Received: episode_1_stoppedPhase (no listeners)
+2025-11-21 13:30:42.543 | [sendToOtherBot] StopPhase end: Sending episode_1_stoppedPhase via client connection
+2025-11-21 13:30:42.544 | [Alpha Server] Received: episode_1_stoppedPhase (1 listeners) - emitting
+2025-11-21 13:30:42.544 | [sendToOtherBot] stoppedPhase beginning: Sending episode_1_stoppedPhase via client connection
+2025-11-21 13:30:42.544 | [Alpha] stopped
+2025-11-21 13:30:42.544 | [Alpha] All event handlers finished
+2025-11-21 13:30:42.544 | [Alpha] Stopped PVP for episode 1
+2025-11-21 13:30:42.544 | [Alpha] Stopped pathfinder navigation for episode 1
+2025-11-21 13:30:42.545 | [Alpha] tearing down episode 1
+2025-11-21 13:30:42.545 | [Alpha] Episode 1 completed
+2025-11-21 13:30:42.550 | [Alpha Server] Received: episode_1_syncBots (no listeners)
+2025-11-21 13:30:42.553 | [Alpha] Saved episode info to /output/20251121_183042_000001_Alpha_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-21 13:30:42.553 | [Alpha] Syncing bots for episode 1
+2025-11-21 13:30:42.554 | [sendToOtherBot] syncBots outer: Sending episode_1_syncBots via client connection
+2025-11-21 13:30:42.554 | [Alpha Server] Received: episode_1_syncBots (1 listeners) - emitting
+2025-11-21 13:30:42.555 | [sendToOtherBot] syncBots beginning: Sending episode_1_syncBots via client connection
+2025-11-21 13:30:42.555 | [Alpha] Syncing bots...
+2025-11-21 13:30:42.557 | [Alpha] Synced bots for episode 1
+2025-11-21 13:30:42.559 | [Alpha] All 2 episodes completed
+2025-11-21 13:30:43.123 | [Alpha Server] Received: episode_1_stopPhase (1 listeners) - emitting
+2025-11-21 13:30:43.123 | [sendToOtherBot] stopPhase beginning: Sending episode_1_stopPhase via client connection
+2025-11-21 13:30:43.123 | [Alpha] stops recording
+2025-11-21 13:30:43.123 | [headless] ending episode
+2025-11-21 13:30:43.123 | [Alpha] waiting for episode recording to end...
+2025-11-21 13:30:43.123 | [Alpha Server] Received: episode_1_stopPhase (no listeners)
+2025-11-21 13:30:43.137 | [headless] sending zero end of stream
+2025-11-21 13:30:43.186 | [headless] Socket ended
+2025-11-21 13:30:43.186 | [headless] Socket state at end: {
+2025-11-21 13:30:43.186 |   writable: false,
+2025-11-21 13:30:43.186 |   destroyed: false,
+2025-11-21 13:30:43.186 |   connecting: false,
+2025-11-21 13:30:43.186 |   bytesWritten: 382502,
+2025-11-21 13:30:43.186 |   bytesRead: 0
+2025-11-21 13:30:43.186 | }
+2025-11-21 13:30:43.186 | [headless] Socket closed
+2025-11-21 13:30:43.186 | [headless] connection closed, firing episodeended event
+2025-11-21 13:30:43.186 | [Alpha] episode recording ended, connection closed
+2025-11-21 13:28:52.076 | [entrypoint] Starting Xvfb on :99 ...
+2025-11-21 13:28:52.177 | [entrypoint] Xvfb is up
+2025-11-21 13:28:52.177 | [entrypoint] GLX sanity check:
+2025-11-21 13:28:52.246 | name of display: :99
+2025-11-21 13:28:52.246 | display: :99  screen: 0
+2025-11-21 13:28:52.246 | direct rendering: Yes
+2025-11-21 13:28:52.246 | Extended renderer info (GLX_MESA_query_renderer):
+2025-11-21 13:28:52.246 |     Vendor: Mesa/X.org (0xffffffff)
+2025-11-21 13:28:52.246 |     Device: llvmpipe (LLVM 15.0.6, 256 bits) (0xffffffff)
+2025-11-21 13:28:52.246 |     Version: 22.3.6
+2025-11-21 13:28:52.246 |     Accelerated: no
+2025-11-21 13:28:52.246 |     Video memory: 15801MB
+2025-11-21 13:28:52.246 |     Unified memory: yes
+2025-11-21 13:28:52.246 |     Preferred profile: core (0x1)
+2025-11-21 13:28:52.246 |     Max core profile version: 3.3
+2025-11-21 13:28:52.246 |     Max compat profile version: 3.3
+2025-11-21 13:28:52.246 |     Max GLES1 profile version: 1.1
+2025-11-21 13:28:52.246 |     Max GLES[23] profile version: 3.2
+2025-11-21 13:28:52.246 | OpenGL vendor string: Mesa/X.org
+2025-11-21 13:28:52.246 | OpenGL renderer string: llvmpipe (LLVM 15.0.6, 256 bits)
+2025-11-21 13:28:52.246 | OpenGL core profile version string: 3.3 (Core Profile) Mesa 22.3.6
+2025-11-21 13:28:52.246 | OpenGL core profile shading language version string: 3.30
+2025-11-21 13:28:52.246 | OpenGL core profile context flags: (none)
+2025-11-21 13:28:52.246 | OpenGL core profile profile mask: core profile
+2025-11-21 13:28:52.246 | 
+2025-11-21 13:28:52.246 | OpenGL version string: 3.3 (Compatibility Profile) Mesa 22.3.6
+2025-11-21 13:28:52.246 | OpenGL shading language version string: 3.30
+2025-11-21 13:28:52.246 | OpenGL context flags: (none)
+2025-11-21 13:28:52.246 | OpenGL profile mask: compatibility profile
+2025-11-21 13:28:52.246 | 
+2025-11-21 13:28:52.246 | OpenGL ES profile version string: OpenGL ES 3.2 Mesa 22.3.6
+2025-11-21 13:28:52.246 | OpenGL ES profile shading language version string: OpenGL ES GLSL ES 3.20
+2025-11-21 13:28:52.246 | 
+2025-11-21 13:28:52.250 | [entrypoint] Launching app...
+2025-11-21 13:28:52.250 | [entrypoint] Bot config: Bravo <-> Alpha, Ports: 8100/8100, Instance: 0
+2025-11-21 13:28:52.834 | DEBUG environment variable: undefined
+2025-11-21 13:28:52.835 | Starting bot: Bravo
+2025-11-21 13:28:52.835 | Coordinator: Bravo, Ports: 8100/8100
+2025-11-21 13:28:52.835 | [Bravo] Waiting 1 seconds before creating bot...
+2025-11-21 13:28:53.923 | [undefined] ✅ Loaded pathfinder plugin
+2025-11-21 13:28:53.923 | [undefined] ✅ Loaded PvP plugin
+2025-11-21 13:28:53.998 | Mineflayer detected that you are using a deprecated event (physicTick)! Please use this event (physicsTick) instead.
+2025-11-21 13:28:59.239 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"Bravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell Bravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[743612312,1992048000,-1359440332,-1270157749]},"name":{"type":"string","value":"Bravo"}}}}},"text":{"type":"string","value":"Bravo"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-21 13:28:59.244 | [Bravo] 🎮 Spawned in world at (4.5, 64.0, 10.5)
+2025-11-21 13:28:59.244 | [Bravo] 🎯 Game mode: Spectator
+2025-11-21 13:28:59.249 | [Bravo] resistEffectRes=Applied effect Resistance to Bravo
+2025-11-21 13:28:59.252 | [Bravo] waterBreathingEffectRes=Applied effect Water Breathing to Bravo
+2025-11-21 13:28:59.253 | [Bravo] fallDamageRes=Can't find element 'minecraft:fall_damage_multiplier' of type 'minecraft:attribute'
+2025-11-21 13:28:59.253 | [Bravo] set difficulty to peaceful, difficultyRes=The difficulty did not change; it is already set to peaceful
+2025-11-21 13:28:59.255 | [Bravo] set fallDamage gamerule to false, fallDamageGameruleRes=Gamerule fallDamage is now set to: false
+2025-11-21 13:28:59.256 | [Bravo] set doImmediateRespawn gamerule to true, doImmediateRespawnRes=Gamerule doImmediateRespawn is now set to: true
+2025-11-21 13:28:59.257 | [Bravo] set keepInventory gamerule to true, keepInventoryRes=Gamerule keepInventory is now set to: true
+2025-11-21 13:28:59.258 | [Bravo] set showDeathMessages gamerule to false, showDeathMessagesRes=Gamerule showDeathMessages is now set to: false
+2025-11-21 13:28:59.261 | [Bravo] givePickaxeRes=Gave 1 [Diamond Pickaxe] to Bravo
+2025-11-21 13:28:59.265 | [Bravo] giveShovelRes=Gave 1 [Diamond Shovel] to Bravo
+2025-11-21 13:28:59.269 | [Bravo] tag Bravo add minebot result: Added tag 'minebot' to Bravo
+2025-11-21 13:28:59.269 | Setting up coordinator connections...
+2025-11-21 13:28:59.269 | [Bravo] Setting up connections...
+2025-11-21 13:28:59.270 | [Bravo Server] Listening on port 8100, waiting for other bot to connect...
+2025-11-21 13:28:59.271 | [Bravo Client] Connected to other bot's server at sender_alpha:8100
+2025-11-21 13:29:01.102 | [Bravo Server] Other bot connected
+2025-11-21 13:29:01.102 | [Bravo] All connections established - server ready: true, client ready: true
+2025-11-21 13:29:01.102 | All coordinator connections ready, proceeding with bot spawn...
+2025-11-21 13:29:01.102 | [Bravo] spawned at (4.50, 64.00, 10.50)
+2025-11-21 13:29:01.102 | [Bravo] Waiting for cameras to join server...
+2025-11-21 13:29:01.102 | [camera-ready] Waiting for cameras: CameraAlpha, CameraBravo
+2025-11-21 13:29:01.102 | [camera-ready] Max retries: 300, check interval: 2000ms
+2025-11-21 13:29:01.103 | [Bravo Server] Other bot connected
+2025-11-21 13:29:01.106 | [camera-ready] Attempt 1/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:03.112 | [camera-ready] Attempt 2/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:05.115 | [camera-ready] Attempt 3/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:07.117 | [camera-ready] Attempt 4/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:09.120 | [camera-ready] Attempt 5/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:11.124 | [camera-ready] Attempt 6/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:13.127 | [camera-ready] Attempt 7/300: Found [none], Missing [CameraAlpha, CameraBravo], All players: [Alpha, Bravo]
+2025-11-21 13:29:13.714 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraAlpha"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraAlpha "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-654309493,1385970675,-1573190332,1256197083]},"name":{"type":"string","value":"CameraAlpha"}}}}},"text":{"type":"string","value":"CameraAlpha"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-21 13:29:14.676 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"yellow"},"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraBravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraBravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-299957078,-211471048,-1986246765,220115609]},"name":{"type":"string","value":"CameraBravo"}}}}},"text":{"type":"string","value":"CameraBravo"}}]}},"translate":{"type":"string","value":"multiplayer.player.joined"}}}
+2025-11-21 13:29:15.136 | [camera-ready] All cameras present: CameraAlpha, CameraBravo
+2025-11-21 13:29:15.138 | [CameraBravo] resistEffectRes=Applied effect Resistance to CameraBravo
+2025-11-21 13:29:15.141 | [CameraBravo] waterBreathingEffectRes=Applied effect Water Breathing to CameraBravo
+2025-11-21 13:29:15.143 | [CameraBravo] fallDamageRes=Can't find element 'minecraft:fall_damage_multiplier' of type 'minecraft:attribute'
+2025-11-21 13:29:15.143 | [Bravo] Cameras detected, waiting 1s for popups to clear...
+2025-11-21 13:29:15.646 | SYSTEM: {"type":"compound","value":{"color":{"type":"string","value":"green"},"text":{"type":"string","value":"[Episode] Episode started!"}}}
+2025-11-21 13:29:15.969 | [Bravo] ♻️ Respawned
+2025-11-21 13:29:15.970 | [Bravo] 🎮 Spawned in world at (4.5, 64.0, 10.5)
+2025-11-21 13:29:15.970 | [Bravo] 🎯 Game mode: Spectator
+2025-11-21 13:29:16.143 | disableRendering 1
+2025-11-21 13:29:16.143 | [Bravo] SEQUENTIAL MODE: Running 2 episodes cycling through 1 eligible episode types (world_type=flat) in alphabetical order
+2025-11-21 13:29:16.145 | [Bravo] Selected episode type: buildStructure
+2025-11-21 13:29:16.145 | [Bravo] Created BuildStructureEpisode instance for episode 0
+2025-11-21 13:29:16.945 | [Bravo Server] Received: episode_0_postTeleportPhase (1 listeners) - emitting
+2025-11-21 13:29:16.945 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_0_postTeleportPhase via client connection
+2025-11-21 13:29:16.946 | [Bravo] our position after teleport: {"position":{"x":1210.5,"y":64,"z":-722.5}}
+2025-11-21 13:29:16.946 | [sendToOtherBot] postTeleportPhase end: Sending episode_0_beforeStartRecordingPhase via client connection
+2025-11-21 13:29:16.946 | [Bravo Server] Received: episode_0_postTeleportPhase (no listeners)
+2025-11-21 13:29:16.946 | [Bravo Server] Received: episode_0_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-21 13:29:16.946 | [Bravo] other position before start recording: {"position":{"x":1210.5,"y":64,"z":-714.5}}
+2025-11-21 13:29:16.947 | [Bravo] Looking at (1210.50, 64.00, -714.50) at 30°/s over 0.00s
+2025-11-21 13:29:16.947 | [Bravo] setting up episode 0
+2025-11-21 13:29:16.947 | [Bravo] inventory stone: have=0, target=128, need=128
+2025-11-21 13:29:16.955 | [Bravo] ensureBotHasEnough: give Bravo minecraft:stone 128 -> Gave 128 [Stone] to Bravo
+2025-11-21 13:29:17.145 | [Bravo] Starting episode 0
+2025-11-21 13:29:17.145 | [Bravo] episode 0 at (4.50, 64.00, 10.50)
+2025-11-21 13:29:17.145 | [sendToOtherBot] spawnPhase end: Sending episode_0_teleportPhase via client connection
+2025-11-21 13:29:17.150 | [Bravo Server] Received: episode_0_teleportPhase (1 listeners) - emitting
+2025-11-21 13:29:17.150 | [sendToOtherBot] teleportPhase beginning: Sending episode_0_teleportPhase via client connection
+2025-11-21 13:29:17.151 | [Bravo] initializing teleport center
+2025-11-21 13:29:17.151 | [Bravo] teleport radius: 3000
+2025-11-21 13:29:17.151 | [Bravo] picked random center at (1217.98, -721.47)
+2025-11-21 13:29:17.151 | [sendToOtherBot] teleportPhase end: Sending episode_0_postTeleportPhase via client connection
+2025-11-21 13:29:17.152 | [Bravo Server] Received: episode_0_teleportPhase (no listeners)
+2025-11-21 13:29:17.755 | [Bravo] inventory stone: now 128/128
+2025-11-21 13:29:17.759 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-21 13:29:17.762 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-21 13:29:18.761 | [Bravo] unequipping hand before episode
+2025-11-21 13:29:18.762 | [Bravo] Unequipped diamond_pickaxe from main hand
+2025-11-21 13:29:19.762 | [sendToOtherBot] teleportPhase end: Sending episode_0_startRecordingPhase via client connection
+2025-11-21 13:29:25.803 | [Bravo Server] Received: episode_0_startRecordingPhase (1 listeners) - emitting
+2025-11-21 13:29:25.804 | [sendToOtherBot] startRecordingPhase end: Sending episode_0_startRecordingPhase via client connection
+2025-11-21 13:29:25.804 | [Bravo] starting episode recording
+2025-11-21 13:29:25.804 | [headless] starting episode - connecting to receiver, episode number 0
+2025-11-21 13:29:25.804 | [headless] creating new connection
+2025-11-21 13:29:25.805 | [Bravo Server] Received: episode_0_startRecordingPhase (no listeners)
+2025-11-21 13:29:25.806 | [headless] Connected to server
+2025-11-21 13:29:26.805 | [sendToOtherBot] entryPoint end: Sending episode_0_buildPhase_0 via client connection
+2025-11-21 13:29:26.806 | [Bravo Server] Received: episode_0_buildPhase_0 (1 listeners) - emitting
+2025-11-21 13:29:26.806 | [sendToOtherBot] buildPhase_0 beginning: Sending episode_0_buildPhase_0 via client connection
+2025-11-21 13:29:26.806 | [Bravo] 🚀 Starting BUILD phase 0
+2025-11-21 13:29:26.806 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-21 13:29:26.806 | [Bravo] 👀 STEP 2: Making eye contact with Alpha...
+2025-11-21 13:29:26.807 | [Bravo Server] Received: episode_0_buildPhase_0 (no listeners)
+2025-11-21 13:29:28.309 | [Bravo] 📐 STEP 3: Planning structure wall...
+2025-11-21 13:29:28.310 | [Bravo] 📋 Building 15 blocks with oak_planks
+2025-11-21 13:29:28.310 | [Bravo] 🏗️ STEP 4: Building structure...
+2025-11-21 13:29:28.311 | [Bravo] 🏗️ Starting to build 15 blocks with oak_planks...
+2025-11-21 13:29:28.322 | [Bravo] Pathfinder initialized with full capabilities: {
+2025-11-21 13:29:28.322 |   sprint: false,
+2025-11-21 13:29:28.322 |   parkour: true,
+2025-11-21 13:29:28.322 |   dig: false,
+2025-11-21 13:29:28.322 |   placeBlocks: true,
+2025-11-21 13:29:28.322 |   entityDetection: true,
+2025-11-21 13:29:28.322 |   maxDropDown: 4
+2025-11-21 13:29:28.322 | }
+2025-11-21 13:29:28.323 | [Bravo] 🏗️ Starting to place 15 blocks...
+2025-11-21 13:29:28.323 | [Bravo] 📋 Build order: OPTIMIZED
+2025-11-21 13:29:28.323 | [Bravo] 🎯 Smart positioning: DISABLED
+2025-11-21 13:29:28.324 | [Bravo] 📦 Giving oak_planks via RCON...
+2025-11-21 13:29:28.339 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:28.340 | [Bravo] 🎯 Trying face 1/1 (score: 64.5, attempt: 1/5)
+2025-11-21 13:29:28.340 | [Bravo] 📷 [PREP-START] yaw=-180.0°, pitch=1.3°
+2025-11-21 13:29:28.779 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-108.4°, pitch=-14.4°
+2025-11-21 13:29:29.280 | [Bravo] ❌ Failed to place block at (1216, 64, -721) after 1 attempts across 1 face(s)
+2025-11-21 13:29:29.280 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-108.4°, pitch=-14.4°
+2025-11-21 13:29:29.280 | [Bravo] ⚠️ Not ready: Target out of reach after looking
+2025-11-21 13:29:30.782 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:30.782 | [Bravo] 🎯 Trying face 1/1 (score: 72.5, attempt: 1/5)
+2025-11-21 13:29:30.782 | [Bravo] 📷 [PREP-START] yaw=-108.4°, pitch=-14.4°
+2025-11-21 13:29:30.793 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-111.7°, pitch=-16.8°
+2025-11-21 13:29:31.295 | [Bravo] ❌ Failed to place block at (1215, 64, -721) after 1 attempts across 1 face(s)
+2025-11-21 13:29:31.295 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-111.7°, pitch=-16.8°
+2025-11-21 13:29:31.295 | [Bravo] ⚠️ Not ready: Target out of reach after looking
+2025-11-21 13:29:32.796 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:32.797 | [Bravo] 🎯 Trying face 1/1 (score: 74.9, attempt: 1/5)
+2025-11-21 13:29:32.797 | [Bravo] 📷 [PREP-START] yaw=-111.7°, pitch=-16.8°
+2025-11-21 13:29:32.812 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-116.5°, pitch=-19.9°
+2025-11-21 13:29:33.312 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-116.5°, pitch=-19.9°
+2025-11-21 13:29:33.317 | [Bravo] 📷 [BEFORE-PLACE] yaw=-116.5°, pitch=-15.9°
+2025-11-21 13:29:33.329 | [Bravo] 📷 [AFTER-PLACE] yaw=-116.5°, pitch=-15.9°
+2025-11-21 13:29:33.830 | [Bravo] 📷 [AFTER-WAIT] yaw=-116.5°, pitch=-15.9°
+2025-11-21 13:29:33.880 | [Bravo] ✅ Successfully placed oak_planks at (1214, 64, -721) (face 1, attempt 1)
+2025-11-21 13:29:33.880 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-116.5°, pitch=-15.9°
+2025-11-21 13:29:35.383 | [Bravo] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:29:35.383 | [Bravo] 🎯 Trying face 1/2 (score: 76.4, attempt: 1/10)
+2025-11-21 13:29:35.383 | [Bravo] 📷 [PREP-START] yaw=-116.5°, pitch=-15.9°
+2025-11-21 13:29:35.431 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-123.7°, pitch=-24.1°
+2025-11-21 13:29:35.931 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-123.7°, pitch=-24.1°
+2025-11-21 13:29:35.981 | [Bravo] 📷 [BEFORE-PLACE] yaw=-123.7°, pitch=-19.3°
+2025-11-21 13:29:35.983 | [Bravo] 📷 [AFTER-PLACE] yaw=-123.7°, pitch=-19.3°
+2025-11-21 13:29:36.484 | [Bravo] 📷 [AFTER-WAIT] yaw=-123.7°, pitch=-19.3°
+2025-11-21 13:29:36.536 | [Bravo] ✅ Successfully placed oak_planks at (1213, 64, -721) (face 1, attempt 1)
+2025-11-21 13:29:36.536 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-123.7°, pitch=-19.3°
+2025-11-21 13:29:38.037 | [Bravo] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:29:38.037 | [Bravo] 🎯 Trying face 1/2 (score: 79.7, attempt: 1/10)
+2025-11-21 13:29:38.037 | [Bravo] 📷 [PREP-START] yaw=-123.7°, pitch=-19.3°
+2025-11-21 13:29:38.108 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-135.0°, pitch=-29.8°
+2025-11-21 13:29:38.608 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-135.0°, pitch=-29.8°
+2025-11-21 13:29:38.614 | [Bravo] 📷 [BEFORE-PLACE] yaw=-135.0°, pitch=-24.1°
+2025-11-21 13:29:38.616 | [Bravo] 📷 [AFTER-PLACE] yaw=-135.0°, pitch=-24.1°
+2025-11-21 13:29:39.117 | [Bravo] 📷 [AFTER-WAIT] yaw=-135.0°, pitch=-24.1°
+2025-11-21 13:29:39.167 | [Bravo] ✅ Successfully placed oak_planks at (1212, 64, -721) (face 1, attempt 1)
+2025-11-21 13:29:39.167 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-135.0°, pitch=-24.1°
+2025-11-21 13:29:40.668 | [Bravo] ❌ No valid faces found for (1216, 65, -721)
+2025-11-21 13:29:42.169 | [Bravo] ❌ No valid faces found for (1215, 65, -721)
+2025-11-21 13:29:43.669 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:43.669 | [Bravo] 🎯 Trying face 1/1 (score: 78.8, attempt: 1/5)
+2025-11-21 13:29:43.669 | [Bravo] 📷 [PREP-START] yaw=-135.0°, pitch=-24.1°
+2025-11-21 13:29:43.819 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-116.5°, pitch=-7.9°
+2025-11-21 13:29:44.320 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-116.5°, pitch=-7.9°
+2025-11-21 13:29:44.324 | [Bravo] 📷 [BEFORE-PLACE] yaw=-116.5°, pitch=-3.4°
+2025-11-21 13:29:44.326 | [Bravo] 📷 [AFTER-PLACE] yaw=-116.5°, pitch=-3.4°
+2025-11-21 13:29:44.826 | [Bravo] 📷 [AFTER-WAIT] yaw=-116.5°, pitch=-3.4°
+2025-11-21 13:29:44.876 | [Bravo] ✅ Successfully placed oak_planks at (1214, 65, -721) (face 1, attempt 1)
+2025-11-21 13:29:44.876 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-116.5°, pitch=-3.4°
+2025-11-21 13:29:45.605 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-123.7°, pitch=-9.7°
+2025-11-21 13:29:45.613 | [Bravo] 📷 [BEFORE-PLACE] yaw=-123.7°, pitch=-4.3°
+2025-11-21 13:29:45.615 | [Bravo] 📷 [AFTER-PLACE] yaw=-123.7°, pitch=-4.3°
+2025-11-21 13:29:46.116 | [Bravo] 📷 [AFTER-WAIT] yaw=-123.7°, pitch=-4.3°
+2025-11-21 13:29:46.166 | [Bravo] ✅ Successfully placed oak_planks at (1213, 65, -721) (face 1, attempt 1)
+2025-11-21 13:29:46.166 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-123.7°, pitch=-4.3°
+2025-11-21 13:29:46.378 | [Bravo] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:29:46.379 | [Bravo] 🎯 Trying face 1/2 (score: 70.3, attempt: 1/10)
+2025-11-21 13:29:46.379 | [Bravo] 📷 [PREP-START] yaw=-116.5°, pitch=-3.4°
+2025-11-21 13:29:46.399 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-123.7°, pitch=-9.7°
+2025-11-21 13:29:47.668 | [Bravo] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:29:47.668 | [Bravo] 🎯 Trying face 1/2 (score: 72.6, attempt: 1/10)
+2025-11-21 13:29:47.668 | [Bravo] 📷 [PREP-START] yaw=-123.7°, pitch=-4.3°
+2025-11-21 13:29:47.743 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-135.0°, pitch=-12.3°
+2025-11-21 13:29:48.243 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-135.0°, pitch=-12.3°
+2025-11-21 13:29:48.247 | [Bravo] 📷 [BEFORE-PLACE] yaw=-135.0°, pitch=-5.4°
+2025-11-21 13:29:48.252 | [Bravo] 📷 [AFTER-PLACE] yaw=-135.0°, pitch=-5.4°
+2025-11-21 13:29:48.753 | [Bravo] 📷 [AFTER-WAIT] yaw=-135.0°, pitch=-5.4°
+2025-11-21 13:29:48.803 | [Bravo] ✅ Successfully placed oak_planks at (1212, 65, -721) (face 1, attempt 1)
+2025-11-21 13:29:48.803 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-135.0°, pitch=-5.4°
+2025-11-21 13:29:50.304 | [Bravo] ❌ No valid faces found for (1216, 66, -721)
+2025-11-21 13:29:51.805 | [Bravo] ❌ No valid faces found for (1215, 66, -721)
+2025-11-21 13:29:53.305 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:53.306 | [Bravo] 🎯 Trying face 1/1 (score: 69.1, attempt: 1/5)
+2025-11-21 13:29:53.306 | [Bravo] 📷 [PREP-START] yaw=-135.0°, pitch=-5.4°
+2025-11-21 13:29:53.410 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-116.5°, pitch=4.8°
+2025-11-21 13:29:53.911 | [Bravo] ❌ Failed to place block at (1214, 66, -721) after 1 attempts across 1 face(s)
+2025-11-21 13:29:53.911 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-116.5°, pitch=4.8°
+2025-11-21 13:29:53.911 | [Bravo] ⚠️ Not ready: Target out of reach after looking
+2025-11-21 13:29:55.412 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:55.413 | [Bravo] 🎯 Trying face 1/1 (score: 66.5, attempt: 1/5)
+2025-11-21 13:29:55.413 | [Bravo] 📷 [PREP-START] yaw=-116.5°, pitch=4.8°
+2025-11-21 13:29:55.433 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-123.7°, pitch=6.0°
+2025-11-21 13:29:55.934 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-123.7°, pitch=6.0°
+2025-11-21 13:29:55.935 | [Bravo] ❌ Failed to place block at (1213, 66, -721) after 1 attempts across 1 face(s)
+2025-11-21 13:29:55.935 | [Bravo] ⚠️ Not ready: Lost line of sight after looking
+2025-11-21 13:29:57.435 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:29:57.435 | [Bravo] 🎯 Trying face 1/1 (score: 67.7, attempt: 1/5)
+2025-11-21 13:29:57.435 | [Bravo] 📷 [PREP-START] yaw=-123.7°, pitch=6.0°
+2025-11-21 13:29:57.503 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-135.0°, pitch=7.6°
+2025-11-21 13:29:58.003 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-135.0°, pitch=7.6°
+2025-11-21 13:29:58.004 | [Bravo] ❌ Failed to place block at (1212, 66, -721) after 1 attempts across 1 face(s)
+2025-11-21 13:29:58.004 | [Bravo] ⚠️ Low success rate: 40.0%
+2025-11-21 13:29:58.004 | [Bravo] ⚠️ Not ready: Lost line of sight after looking
+2025-11-21 13:29:58.004 | [Bravo] 🏁 Placement complete!
+2025-11-21 13:29:58.004 | [Bravo]    ✅ Success: 6/15
+2025-11-21 13:29:58.004 | [Bravo]    ❌ Failed: 9/15
+2025-11-21 13:29:58.004 | [Bravo]    ⏭️ Skipped: 0/15
+2025-11-21 13:29:58.004 | [Bravo] 🏁 Build complete!
+2025-11-21 13:29:58.004 | [Bravo]    ✅ Success: 6/15 (40.0%)
+2025-11-21 13:29:58.004 | [Bravo]    ❌ Failed: 9/15
+2025-11-21 13:29:58.004 | [Bravo] 👀 STEP 5: Final eye contact...
+2025-11-21 13:29:58.653 | [Bravo Server] Received: episode_0_stopPhase (no listeners)
+2025-11-21 13:29:59.761 | [Bravo] ✅ BUILD phase complete!
+2025-11-21 13:29:59.761 | [sendToOtherBot] buildPhase_0 end: Sending episode_0_stopPhase via client connection
+2025-11-21 13:29:59.762 | [Bravo Server] Received: episode_0_stopPhase (1 listeners) - emitting
+2025-11-21 13:29:59.762 | [sendToOtherBot] stopPhase beginning: Sending episode_0_stopPhase via client connection
+2025-11-21 13:29:59.762 | [Bravo] stops recording
+2025-11-21 13:29:59.762 | [headless] ending episode
+2025-11-21 13:29:59.762 | [Bravo] waiting for episode recording to end...
+2025-11-21 13:29:59.776 | [headless] sending zero end of stream
+2025-11-21 13:29:59.828 | [headless] Socket ended
+2025-11-21 13:29:59.828 | [headless] Socket state at end: {
+2025-11-21 13:29:59.828 |   writable: false,
+2025-11-21 13:29:59.828 |   destroyed: false,
+2025-11-21 13:29:59.828 |   connecting: false,
+2025-11-21 13:29:59.828 |   bytesWritten: 370222,
+2025-11-21 13:29:59.828 |   bytesRead: 0
+2025-11-21 13:29:59.828 | }
+2025-11-21 13:29:59.829 | [headless] Socket closed
+2025-11-21 13:29:59.829 | [headless] connection closed, firing episodeended event
+2025-11-21 13:29:59.829 | [Bravo] episode recording ended, connection closed
+2025-11-21 13:30:00.828 | [Bravo Server] Received: episode_0_stoppedPhase (no listeners)
+2025-11-21 13:30:00.829 | [sendToOtherBot] StopPhase end: Sending episode_0_stoppedPhase via client connection
+2025-11-21 13:30:00.829 | [Bravo Server] Received: episode_0_stoppedPhase (1 listeners) - emitting
+2025-11-21 13:30:00.829 | [sendToOtherBot] stoppedPhase beginning: Sending episode_0_stoppedPhase via client connection
+2025-11-21 13:30:00.829 | [Bravo] stopped
+2025-11-21 13:30:00.829 | [Bravo] All event handlers finished
+2025-11-21 13:30:00.829 | [Bravo] Stopped PVP for episode 0
+2025-11-21 13:30:00.830 | [Bravo] Stopped pathfinder navigation for episode 0
+2025-11-21 13:30:00.830 | [Bravo] tearing down episode 0
+2025-11-21 13:30:00.830 | [Bravo] Episode 0 completed
+2025-11-21 13:30:00.841 | [Bravo Server] Received: episode_0_syncBots (no listeners)
+2025-11-21 13:30:00.843 | [Bravo] Saved episode info to /output/20251121_183000_000000_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-21 13:30:00.843 | [Bravo] Syncing bots for episode 0
+2025-11-21 13:30:00.843 | [sendToOtherBot] syncBots outer: Sending episode_0_syncBots via client connection
+2025-11-21 13:30:00.844 | [Bravo Server] Received: episode_0_syncBots (1 listeners) - emitting
+2025-11-21 13:30:00.844 | [sendToOtherBot] syncBots beginning: Sending episode_0_syncBots via client connection
+2025-11-21 13:30:00.844 | [Bravo] Syncing bots...
+2025-11-21 13:30:00.844 | [Bravo] Synced bots for episode 0
+2025-11-21 13:30:00.844 | [Bravo] Selected episode type: buildStructure
+2025-11-21 13:30:00.844 | [Bravo] Created BuildStructureEpisode instance for episode 1
+2025-11-21 13:30:01.844 | [Bravo] Starting episode 1
+2025-11-21 13:30:01.844 | [Bravo] episode 1 at (1210.50, 64.00, -722.50)
+2025-11-21 13:30:01.844 | [sendToOtherBot] spawnPhase end: Sending episode_1_teleportPhase via client connection
+2025-11-21 13:30:01.845 | [Bravo Server] Received: episode_1_teleportPhase (1 listeners) - emitting
+2025-11-21 13:30:01.846 | [sendToOtherBot] teleportPhase beginning: Sending episode_1_teleportPhase via client connection
+2025-11-21 13:30:01.846 | [Bravo] teleport radius: 3000
+2025-11-21 13:30:01.846 | [Bravo] picked random center at (-2007.84, 225.93)
+2025-11-21 13:30:01.846 | [sendToOtherBot] teleportPhase end: Sending episode_1_postTeleportPhase via client connection
+2025-11-21 13:30:01.846 | [Bravo Server] Received: episode_1_teleportPhase (no listeners)
+2025-11-21 13:30:02.886 | [Bravo Server] Received: episode_1_postTeleportPhase (1 listeners) - emitting
+2025-11-21 13:30:02.887 | [sendToOtherBot] postTeleportPhase beginning: Sending episode_1_postTeleportPhase via client connection
+2025-11-21 13:30:02.887 | [Bravo] our position after teleport: {"position":{"x":-2005.5,"y":64,"z":221.5}}
+2025-11-21 13:30:02.887 | [sendToOtherBot] postTeleportPhase end: Sending episode_1_beforeStartRecordingPhase via client connection
+2025-11-21 13:30:02.887 | [Bravo Server] Received: episode_1_postTeleportPhase (no listeners)
+2025-11-21 13:30:02.888 | [Bravo Server] Received: episode_1_beforeStartRecordingPhase (1 listeners) - emitting
+2025-11-21 13:30:02.888 | [Bravo] other position before start recording: {"position":{"x":-2014.5,"y":64,"z":220.5}}
+2025-11-21 13:30:02.888 | [Bravo] Looking at (-2014.50, 64.00, 220.50) at 30°/s over 3.21s
+2025-11-21 13:30:06.112 | [Bravo] setting up episode 1
+2025-11-21 13:30:06.114 | [Bravo] inventory stone: have=128, target=128, need=0
+2025-11-21 13:30:06.117 | [Bravo] saturationEffectRes=Applied effect Saturation to Bravo
+2025-11-21 13:30:06.120 | [Bravo] Camera saturationEffectRes=Applied effect Saturation to CameraBravo
+2025-11-21 13:30:07.120 | [Bravo] unequipping hand before episode
+2025-11-21 13:30:07.121 | [Bravo] Unequipped oak_planks from main hand
+2025-11-21 13:30:08.116 | [Bravo Server] Received: episode_1_startRecordingPhase (no listeners)
+2025-11-21 13:30:08.121 | [sendToOtherBot] teleportPhase end: Sending episode_1_startRecordingPhase via client connection
+2025-11-21 13:30:08.122 | [Bravo Server] Received: episode_1_startRecordingPhase (1 listeners) - emitting
+2025-11-21 13:30:08.122 | [sendToOtherBot] startRecordingPhase end: Sending episode_1_startRecordingPhase via client connection
+2025-11-21 13:30:08.122 | [Bravo] starting episode recording
+2025-11-21 13:30:08.122 | [headless] starting episode - connecting to receiver, episode number 1
+2025-11-21 13:30:08.122 | [headless] creating new connection
+2025-11-21 13:30:08.123 | [headless] Connected to server
+2025-11-21 13:30:09.122 | [sendToOtherBot] entryPoint end: Sending episode_1_buildPhase_0 via client connection
+2025-11-21 13:30:09.123 | [Bravo Server] Received: episode_1_buildPhase_0 (1 listeners) - emitting
+2025-11-21 13:30:09.123 | [sendToOtherBot] buildPhase_0 beginning: Sending episode_1_buildPhase_0 via client connection
+2025-11-21 13:30:09.123 | [Bravo] 🚀 Starting BUILD phase 0
+2025-11-21 13:30:09.123 | [Bravo] ✅ STEP 1: Bot spawned
+2025-11-21 13:30:09.123 | [Bravo] 👀 STEP 2: Making eye contact with Alpha...
+2025-11-21 13:30:09.124 | [Bravo Server] Received: episode_1_buildPhase_0 (no listeners)
+2025-11-21 13:30:10.646 | SYSTEM: {"type":"compound","value":{"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"Alpha"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell Alpha "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-722440118,978075440,-2132448932,485658594]},"name":{"type":"string","value":"Alpha"}}}}},"text":{"type":"string","value":"Alpha"}},{"color":{"type":"string","value":"green"},"with":{"type":"list","value":{"type":"compound","value":[{"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_text"},"contents":{"type":"compound","value":{"color":{"type":"string","value":"green"},"extra":{"type":"list","value":{"type":"compound","value":[{"":{"type":"string","value":"\n"}},{"translate":{"type":"string","value":"advancements.story.mine_stone.description"}}]}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}}}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}]}},"translate":{"type":"string","value":"chat.square_brackets"}}]}},"translate":{"type":"string","value":"chat.type.advancement.task"}}}
+2025-11-21 13:30:10.647 | [Bravo] 📐 STEP 3: Planning structure wall...
+2025-11-21 13:30:10.647 | [Bravo] 📋 Building 15 blocks with cobblestone
+2025-11-21 13:30:10.647 | [Bravo] 🏗️ STEP 4: Building structure...
+2025-11-21 13:30:10.647 | [Bravo] 🏗️ Starting to build 15 blocks with cobblestone...
+2025-11-21 13:30:10.651 | [Bravo] Pathfinder initialized with full capabilities: {
+2025-11-21 13:30:10.651 |   sprint: false,
+2025-11-21 13:30:10.651 |   parkour: true,
+2025-11-21 13:30:10.651 |   dig: false,
+2025-11-21 13:30:10.651 |   placeBlocks: true,
+2025-11-21 13:30:10.651 |   entityDetection: true,
+2025-11-21 13:30:10.651 |   maxDropDown: 4
+2025-11-21 13:30:10.651 | }
+2025-11-21 13:30:10.651 | [Bravo] 🏗️ Starting to place 15 blocks...
+2025-11-21 13:30:10.651 | [Bravo] 📋 Build order: OPTIMIZED
+2025-11-21 13:30:10.651 | [Bravo] 🎯 Smart positioning: DISABLED
+2025-11-21 13:30:10.651 | [Bravo] 📦 Giving cobblestone via RCON...
+2025-11-21 13:30:10.655 | SYSTEM: {"type":"compound","value":{"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraAlpha"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraAlpha "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-654309493,1385970675,-1573190332,1256197083]},"name":{"type":"string","value":"CameraAlpha"}}}}},"text":{"type":"string","value":"CameraAlpha"}},{"color":{"type":"string","value":"green"},"with":{"type":"list","value":{"type":"compound","value":[{"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_text"},"contents":{"type":"compound","value":{"color":{"type":"string","value":"green"},"extra":{"type":"list","value":{"type":"compound","value":[{"":{"type":"string","value":"\n"}},{"translate":{"type":"string","value":"advancements.story.mine_stone.description"}}]}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}}}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}]}},"translate":{"type":"string","value":"chat.square_brackets"}}]}},"translate":{"type":"string","value":"chat.type.advancement.task"}}}
+2025-11-21 13:30:10.658 | SYSTEM: {"type":"compound","value":{"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"Bravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell Bravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[743612312,1992048000,-1359440332,-1270157749]},"name":{"type":"string","value":"Bravo"}}}}},"text":{"type":"string","value":"Bravo"}},{"color":{"type":"string","value":"green"},"with":{"type":"list","value":{"type":"compound","value":[{"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_text"},"contents":{"type":"compound","value":{"color":{"type":"string","value":"green"},"extra":{"type":"list","value":{"type":"compound","value":[{"":{"type":"string","value":"\n"}},{"translate":{"type":"string","value":"advancements.story.mine_stone.description"}}]}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}}}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}]}},"translate":{"type":"string","value":"chat.square_brackets"}}]}},"translate":{"type":"string","value":"chat.type.advancement.task"}}}
+2025-11-21 13:30:10.659 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:10.659 | [Bravo] 🎯 Trying face 1/1 (score: 64.6, attempt: 1/5)
+2025-11-21 13:30:10.659 | [Bravo] 📷 [PREP-START] yaw=83.7°, pitch=1.2°
+2025-11-21 13:30:10.705 | SYSTEM: {"type":"compound","value":{"with":{"type":"list","value":{"type":"compound","value":[{"insertion":{"type":"string","value":"CameraBravo"},"clickEvent":{"type":"compound","value":{"action":{"type":"string","value":"suggest_command"},"value":{"type":"string","value":"/tell CameraBravo "}}},"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_entity"},"contents":{"type":"compound","value":{"type":{"type":"string","value":"minecraft:player"},"id":{"type":"intArray","value":[-299957078,-211471048,-1986246765,220115609]},"name":{"type":"string","value":"CameraBravo"}}}}},"text":{"type":"string","value":"CameraBravo"}},{"color":{"type":"string","value":"green"},"with":{"type":"list","value":{"type":"compound","value":[{"hoverEvent":{"type":"compound","value":{"action":{"type":"string","value":"show_text"},"contents":{"type":"compound","value":{"color":{"type":"string","value":"green"},"extra":{"type":"list","value":{"type":"compound","value":[{"":{"type":"string","value":"\n"}},{"translate":{"type":"string","value":"advancements.story.mine_stone.description"}}]}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}}}},"translate":{"type":"string","value":"advancements.story.mine_stone.title"}}]}},"translate":{"type":"string","value":"chat.square_brackets"}}]}},"translate":{"type":"string","value":"chat.type.advancement.task"}}}
+2025-11-21 13:30:11.661 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-108.4°, pitch=-14.4°
+2025-11-21 13:30:12.161 | [Bravo] ❌ Failed to place block at (-2000, 64, 223) after 1 attempts across 1 face(s)
+2025-11-21 13:30:12.161 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-108.4°, pitch=-14.4°
+2025-11-21 13:30:12.161 | [Bravo] ⚠️ Not ready: Target out of reach after looking
+2025-11-21 13:30:13.662 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:13.662 | [Bravo] 🎯 Trying face 1/1 (score: 72.5, attempt: 1/5)
+2025-11-21 13:30:13.662 | [Bravo] 📷 [PREP-START] yaw=-108.4°, pitch=-14.4°
+2025-11-21 13:30:13.683 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-111.7°, pitch=-16.8°
+2025-11-21 13:30:14.183 | [Bravo] ❌ Failed to place block at (-2001, 64, 223) after 1 attempts across 1 face(s)
+2025-11-21 13:30:14.183 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-111.7°, pitch=-16.8°
+2025-11-21 13:30:14.183 | [Bravo] ⚠️ Not ready: Target out of reach after looking
+2025-11-21 13:30:14.341 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:14.341 | [Bravo] 🎯 Trying face 1/1 (score: 74.9, attempt: 1/5)
+2025-11-21 13:30:14.341 | [Bravo] 📷 [PREP-START] yaw=-111.7°, pitch=-16.8°
+2025-11-21 13:30:14.360 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-116.5°, pitch=-19.9°
+2025-11-21 13:30:14.860 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-116.5°, pitch=-19.9°
+2025-11-21 13:30:14.864 | [Bravo] 📷 [BEFORE-PLACE] yaw=-116.5°, pitch=-15.9°
+2025-11-21 13:30:14.866 | [Bravo] 📷 [AFTER-PLACE] yaw=-116.5°, pitch=-15.9°
+2025-11-21 13:30:15.366 | [Bravo] 📷 [AFTER-WAIT] yaw=-116.5°, pitch=-15.9°
+2025-11-21 13:30:15.416 | [Bravo] ✅ Successfully placed cobblestone at (-2002, 64, 223) (face 1, attempt 1)
+2025-11-21 13:30:15.416 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-116.5°, pitch=-15.9°
+2025-11-21 13:30:16.917 | [Bravo] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:30:16.917 | [Bravo] 🎯 Trying face 1/2 (score: 76.4, attempt: 1/10)
+2025-11-21 13:30:16.917 | [Bravo] 📷 [PREP-START] yaw=-116.5°, pitch=-15.9°
+2025-11-21 13:30:16.941 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-123.7°, pitch=-24.1°
+2025-11-21 13:30:17.442 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-123.7°, pitch=-24.1°
+2025-11-21 13:30:17.447 | [Bravo] 📷 [BEFORE-PLACE] yaw=-123.7°, pitch=-19.3°
+2025-11-21 13:30:17.449 | [Bravo] 📷 [AFTER-PLACE] yaw=-123.7°, pitch=-19.3°
+2025-11-21 13:30:17.949 | [Bravo] 📷 [AFTER-WAIT] yaw=-123.7°, pitch=-19.3°
+2025-11-21 13:30:18.001 | [Bravo] ✅ Successfully placed cobblestone at (-2003, 64, 223) (face 1, attempt 1)
+2025-11-21 13:30:18.001 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-123.7°, pitch=-19.3°
+2025-11-21 13:30:19.502 | [Bravo] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:30:19.502 | [Bravo] 🎯 Trying face 1/2 (score: 79.7, attempt: 1/10)
+2025-11-21 13:30:19.502 | [Bravo] 📷 [PREP-START] yaw=-123.7°, pitch=-19.3°
+2025-11-21 13:30:19.566 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-135.0°, pitch=-29.8°
+2025-11-21 13:30:20.067 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-135.0°, pitch=-29.8°
+2025-11-21 13:30:20.073 | [Bravo] 📷 [BEFORE-PLACE] yaw=-135.0°, pitch=-24.1°
+2025-11-21 13:30:20.075 | [Bravo] 📷 [AFTER-PLACE] yaw=-135.0°, pitch=-24.1°
+2025-11-21 13:30:20.576 | [Bravo] 📷 [AFTER-WAIT] yaw=-135.0°, pitch=-24.1°
+2025-11-21 13:30:20.626 | [Bravo] ✅ Successfully placed cobblestone at (-2004, 64, 223) (face 1, attempt 1)
+2025-11-21 13:30:20.626 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-135.0°, pitch=-24.1°
+2025-11-21 13:30:22.127 | [Bravo] ❌ No valid faces found for (-2000, 65, 223)
+2025-11-21 13:30:23.628 | [Bravo] ❌ No valid faces found for (-2001, 65, 223)
+2025-11-21 13:30:25.130 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:25.130 | [Bravo] 🎯 Trying face 1/1 (score: 78.8, attempt: 1/5)
+2025-11-21 13:30:25.130 | [Bravo] 📷 [PREP-START] yaw=-135.0°, pitch=-24.1°
+2025-11-21 13:30:25.275 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-116.5°, pitch=-7.9°
+2025-11-21 13:30:25.776 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-116.5°, pitch=-7.9°
+2025-11-21 13:30:25.781 | [Bravo] 📷 [BEFORE-PLACE] yaw=-116.5°, pitch=-3.4°
+2025-11-21 13:30:25.782 | [Bravo] 📷 [AFTER-PLACE] yaw=-116.5°, pitch=-3.4°
+2025-11-21 13:30:26.283 | [Bravo] 📷 [AFTER-WAIT] yaw=-116.5°, pitch=-3.4°
+2025-11-21 13:30:26.334 | [Bravo] ✅ Successfully placed cobblestone at (-2002, 65, 223) (face 1, attempt 1)
+2025-11-21 13:30:26.334 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-116.5°, pitch=-3.4°
+2025-11-21 13:30:27.836 | [Bravo] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:30:27.836 | [Bravo] 🎯 Trying face 1/2 (score: 70.3, attempt: 1/10)
+2025-11-21 13:30:27.836 | [Bravo] 📷 [PREP-START] yaw=-116.5°, pitch=-3.4°
+2025-11-21 13:30:27.868 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-123.7°, pitch=-9.7°
+2025-11-21 13:30:28.368 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-123.7°, pitch=-9.7°
+2025-11-21 13:30:28.374 | [Bravo] 📷 [BEFORE-PLACE] yaw=-123.7°, pitch=-4.3°
+2025-11-21 13:30:28.377 | [Bravo] 📷 [AFTER-PLACE] yaw=-123.7°, pitch=-4.3°
+2025-11-21 13:30:28.877 | [Bravo] 📷 [AFTER-WAIT] yaw=-123.7°, pitch=-4.3°
+2025-11-21 13:30:28.928 | [Bravo] ✅ Successfully placed cobblestone at (-2003, 65, 223) (face 1, attempt 1)
+2025-11-21 13:30:28.928 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-123.7°, pitch=-4.3°
+2025-11-21 13:30:30.429 | [Bravo] 📋 Found 2 viable face(s) for placement
+2025-11-21 13:30:30.430 | [Bravo] 🎯 Trying face 1/2 (score: 72.6, attempt: 1/10)
+2025-11-21 13:30:30.430 | [Bravo] 📷 [PREP-START] yaw=-123.7°, pitch=-4.3°
+2025-11-21 13:30:30.501 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-135.0°, pitch=-12.3°
+2025-11-21 13:30:31.002 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-135.0°, pitch=-12.3°
+2025-11-21 13:30:31.006 | [Bravo] 📷 [BEFORE-PLACE] yaw=-135.0°, pitch=-5.4°
+2025-11-21 13:30:31.008 | [Bravo] 📷 [AFTER-PLACE] yaw=-135.0°, pitch=-5.4°
+2025-11-21 13:30:31.509 | [Bravo] 📷 [AFTER-WAIT] yaw=-135.0°, pitch=-5.4°
+2025-11-21 13:30:31.562 | [Bravo] ✅ Successfully placed cobblestone at (-2004, 65, 223) (face 1, attempt 1)
+2025-11-21 13:30:31.562 | [Bravo] 📷 [RETURN-SUCCESS] yaw=-135.0°, pitch=-5.4°
+2025-11-21 13:30:33.063 | [Bravo] ❌ No valid faces found for (-2000, 66, 223)
+2025-11-21 13:30:34.564 | [Bravo] ❌ No valid faces found for (-2001, 66, 223)
+2025-11-21 13:30:36.065 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:36.066 | [Bravo] 🎯 Trying face 1/1 (score: 69.1, attempt: 1/5)
+2025-11-21 13:30:36.066 | [Bravo] 📷 [PREP-START] yaw=-135.0°, pitch=-5.4°
+2025-11-21 13:30:36.207 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-116.5°, pitch=4.8°
+2025-11-21 13:30:36.707 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-116.5°, pitch=4.8°
+2025-11-21 13:30:36.707 | [Bravo] ⚠️ Not ready: Target out of reach after looking
+2025-11-21 13:30:36.707 | [Bravo] ❌ Failed to place block at (-2002, 66, 223) after 1 attempts across 1 face(s)
+2025-11-21 13:30:38.208 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:38.208 | [Bravo] 🎯 Trying face 1/1 (score: 66.5, attempt: 1/5)
+2025-11-21 13:30:38.208 | [Bravo] 📷 [PREP-START] yaw=-116.5°, pitch=4.8°
+2025-11-21 13:30:38.235 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-123.7°, pitch=6.0°
+2025-11-21 13:30:38.735 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-123.7°, pitch=6.0°
+2025-11-21 13:30:38.735 | [Bravo] ⚠️ Not ready: Lost line of sight after looking
+2025-11-21 13:30:38.735 | [Bravo] ❌ Failed to place block at (-2003, 66, 223) after 1 attempts across 1 face(s)
+2025-11-21 13:30:40.096 | [Bravo Server] Received: episode_1_stopPhase (no listeners)
+2025-11-21 13:30:40.237 | [Bravo] 📋 Found 1 viable face(s) for placement
+2025-11-21 13:30:40.237 | [Bravo] 🎯 Trying face 1/1 (score: 67.7, attempt: 1/5)
+2025-11-21 13:30:40.237 | [Bravo] 📷 [PREP-START] yaw=-123.7°, pitch=6.0°
+2025-11-21 13:30:40.307 | [Bravo] 📷 [PREP-AFTER-LOOK] yaw=-135.0°, pitch=7.6°
+2025-11-21 13:30:40.807 | [Bravo] 📷 [PREP-AFTER-DELAY] yaw=-135.0°, pitch=7.6°
+2025-11-21 13:30:40.807 | [Bravo] ⚠️ Not ready: Lost line of sight after looking
+2025-11-21 13:30:40.807 | [Bravo] 🏁 Placement complete!
+2025-11-21 13:30:40.807 | [Bravo]    ✅ Success: 6/15
+2025-11-21 13:30:40.807 | [Bravo]    ❌ Failed: 9/15
+2025-11-21 13:30:40.807 | [Bravo]    ⏭️ Skipped: 0/15
+2025-11-21 13:30:40.807 | [Bravo] 🏁 Build complete!
+2025-11-21 13:30:40.807 | [Bravo]    ✅ Success: 6/15 (40.0%)
+2025-11-21 13:30:40.807 | [Bravo]    ❌ Failed: 9/15
+2025-11-21 13:30:40.807 | [Bravo] 👀 STEP 5: Final eye contact...
+2025-11-21 13:30:40.807 | [Bravo] ❌ Failed to place block at (-2004, 66, 223) after 1 attempts across 1 face(s)
+2025-11-21 13:30:40.807 | [Bravo] ⚠️ Low success rate: 40.0%
+2025-11-21 13:30:42.541 | [sendToOtherBot] StopPhase end: Sending episode_1_stoppedPhase via client connection
+2025-11-21 13:30:42.543 | [Bravo Server] Received: episode_1_stoppedPhase (1 listeners) - emitting
+2025-11-21 13:30:42.543 | [sendToOtherBot] stoppedPhase beginning: Sending episode_1_stoppedPhase via client connection
+2025-11-21 13:30:42.544 | [Bravo] stopped
+2025-11-21 13:30:42.544 | [Bravo] All event handlers finished
+2025-11-21 13:30:42.544 | [Bravo] Stopped PVP for episode 1
+2025-11-21 13:30:42.544 | [Bravo] Stopped pathfinder navigation for episode 1
+2025-11-21 13:30:42.544 | [Bravo] tearing down episode 1
+2025-11-21 13:30:42.544 | [Bravo] Episode 1 completed
+2025-11-21 13:30:42.544 | [Bravo Server] Received: episode_1_stoppedPhase (no listeners)
+2025-11-21 13:30:42.550 | [Bravo] Saved episode info to /output/20251121_183042_000001_Bravo_instance_000_episode_info.json (encountered_error=false, peer_encountered_error=false, bot_died=false)
+2025-11-21 13:30:42.550 | [Bravo] Syncing bots for episode 1
+2025-11-21 13:30:42.550 | [sendToOtherBot] syncBots outer: Sending episode_1_syncBots via client connection
+2025-11-21 13:30:42.554 | [Bravo Server] Received: episode_1_syncBots (1 listeners) - emitting
+2025-11-21 13:30:42.554 | [sendToOtherBot] syncBots beginning: Sending episode_1_syncBots via client connection
+2025-11-21 13:30:42.554 | [Bravo] Syncing bots...
+2025-11-21 13:30:42.554 | [Bravo] Synced bots for episode 1
+2025-11-21 13:30:42.555 | [Bravo Server] Received: episode_1_syncBots (no listeners)
+2025-11-21 13:30:42.555 | [Bravo] All 2 episodes completed
+2025-11-21 13:30:43.122 | [Bravo] ✅ BUILD phase complete!
+2025-11-21 13:30:43.122 | [sendToOtherBot] buildPhase_0 end: Sending episode_1_stopPhase via client connection
+2025-11-21 13:30:43.123 | [Bravo Server] Received: episode_1_stopPhase (1 listeners) - emitting
+2025-11-21 13:30:43.123 | [sendToOtherBot] stopPhase beginning: Sending episode_1_stopPhase via client connection
+2025-11-21 13:30:43.123 | [Bravo] stops recording
+2025-11-21 13:30:43.123 | [headless] ending episode
+2025-11-21 13:30:43.123 | [Bravo] waiting for episode recording to end...
+2025-11-21 13:30:43.136 | [headless] sending zero end of stream
+2025-11-21 13:30:43.184 | [headless] Socket ended
+2025-11-21 13:30:43.184 | [headless] Socket state at end: {
+2025-11-21 13:30:43.184 |   writable: false,
+2025-11-21 13:30:43.184 |   destroyed: false,
+2025-11-21 13:30:43.184 |   connecting: false,
+2025-11-21 13:30:43.184 |   bytesWritten: 383091,
+2025-11-21 13:30:43.184 |   bytesRead: 0
+2025-11-21 13:30:43.184 | }
+2025-11-21 13:30:43.184 | [headless] Socket closed
+2025-11-21 13:30:43.184 | [headless] connection closed, firing episodeended event
+2025-11-21 13:30:43.184 | [Bravo] episode recording ended, connection closed

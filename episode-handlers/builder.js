@@ -529,104 +529,11 @@ async function moveToPlacementPosition(bot, refBlock, faceVec, targetPos, timeou
 }
 
 /**
- * Check if a target position has adjacent support for placement
- * A block can only be placed if at least one adjacent block exists
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Vec3} targetPos - Position to check for support
- * @param {Set<string>} placedBlocks - Set of already placed block positions (as "x,y,z" strings)
- * @returns {boolean} True if position has at least one adjacent solid block
- */
-function hasAdjacentSupport(bot, targetPos, placedBlocks = new Set()) {
-  // Special case: Ground level (Y <= 0) always has support from bedrock/ground
-  if (targetPos.y <= 0) {
-    return true;
-  }
-
-  // Check all 6 adjacent positions for solid blocks
-  for (const face of CARDINALS) {
-    const adjacentPos = targetPos.plus(face);
-    const adjacentBlock = bot.blockAt(adjacentPos);
-    
-    // Check if there's a solid block in the world
-    if (adjacentBlock && adjacentBlock.boundingBox === "block") {
-      return true;
-    }
-    
-    // Check if we've already placed a block at this position
-    const posKey = `${adjacentPos.x},${adjacentPos.y},${adjacentPos.z}`;
-    if (placedBlocks.has(posKey)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Sort block positions by buildability
- * Ensures blocks are placed in a valid order with proper support
- * @param {Array<Vec3>} positions - Array of positions to sort
- * @param {Bot} bot - Mineflayer bot instance
- * @returns {Array<Vec3>} Sorted array of positions (buildable order)
- */
-function sortByBuildability(positions, bot) {
-  if (positions.length === 0) return [];
-
-  const sorted = [];
-  const remaining = positions.slice(); // Copy array
-  const placedSet = new Set(); // Track placed positions
-  let maxIterations = positions.length * 2; // Prevent infinite loops
-  let iterations = 0;
-
-  // Group positions by Y level for initial sorting
-  remaining.sort((a, b) => {
-    if (a.y !== b.y) return a.y - b.y; // Bottom to top
-    // Within same Y level, sort by distance to bot
-    const distA = bot.entity.position.distanceTo(a);
-    const distB = bot.entity.position.distanceTo(b);
-    return distA - distB;
-  });
-
-  // Build in order, ensuring each block has support
-  while (remaining.length > 0 && iterations < maxIterations) {
-    iterations++;
-    let placedThisIteration = false;
-
-    for (let i = remaining.length - 1; i >= 0; i--) {
-      const pos = remaining[i];
-      
-      // Check if this position has adjacent support
-      if (hasAdjacentSupport(bot, pos, placedSet)) {
-        // This block can be placed now
-        sorted.push(pos);
-        placedSet.add(`${pos.x},${pos.y},${pos.z}`);
-        remaining.splice(i, 1);
-        placedThisIteration = true;
-      }
-    }
-
-    // If we couldn't place any blocks this iteration, we have a problem
-    if (!placedThisIteration && remaining.length > 0) {
-      console.warn(
-        `[sortByBuildability] Warning: ${remaining.length} blocks have no support. ` +
-        `Adding them anyway to prevent deadlock.`
-      );
-      // Add remaining blocks in Y-order as fallback
-      remaining.sort((a, b) => a.y - b.y);
-      sorted.push(...remaining);
-      break;
-    }
-  }
-
-  return sorted;
-}
-
-/**
  * Prepare the bot for block placement with natural-looking behavior
  * Looks at the target face, validates reach and sight line
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Block} refBlock - Reference block to place on
- * @param {Vec3} faceVec - Face vector (normal direction)
+ * @param {Vec3} faceVec - Face vector
  * @param {number} delayMs - Delay after looking (default: 250ms)
  * @returns {Promise<Object>} {ready: boolean, reason: string}
  */
@@ -637,6 +544,9 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
     0.5 + faceVec.y * 0.5,
     0.5 + faceVec.z * 0.5
   );
+
+  // Debug: Log camera at start
+  console.log(`[${bot.username}] 📷 [PREP-START] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
 
   // Disable pathfinder auto-look temporarily to prevent interference
   const pathfinderEnableLook = bot.pathfinder ? bot.pathfinder.enableLook : null;
@@ -660,10 +570,16 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
       }
     }
 
+    // Debug: Log camera after lookAt
+    console.log(`[${bot.username}] 📷 [PREP-AFTER-LOOK] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
+
     // Natural pause after looking (makes movement more human-like)
     if (delayMs > 0) {
       await new Promise(res => setTimeout(res, delayMs));
     }
+
+    // Debug: Log camera after delay
+    console.log(`[${bot.username}] 📷 [PREP-AFTER-DELAY] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
 
     // Verify bot is still in reach
     const maxReach = bot.game.gameMode === 1 ? 6 : 4.5;
@@ -771,20 +687,10 @@ async function ensureItemInHand(bot, itemName, args = null) {
  * @returns {Promise<boolean>} True if in reach
  */
 async function ensureReachAndSight(bot, refBlock, faceVec, maxTries = 3) {
-  const lookAtPos = refBlock.position.offset(
-    0.5 + faceVec.x * 0.5,
-    0.5 + faceVec.y * 0.5,
-    0.5 + faceVec.z * 0.5
-  );
-
+  // NOTE: Camera aiming is already done by prepareForPlacement()
+  // We only need to verify reach, not re-aim the camera
+  
   for (let i = 0; i < maxTries; i++) {
-    // Try to look at the face
-    try {
-      await bot.lookAt(lookAtPos, false);
-    } catch (e) {
-      // Ignore look errors
-    }
-
     const maxReach = bot.game.gameMode === 1 ? 6 : 4.5;
     if (inReach(bot, refBlock.position, maxReach)) return true;
 
@@ -811,7 +717,7 @@ async function ensureReachAndSight(bot, refBlock, faceVec, maxTries = 3) {
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Target position to place block
  * @param {string} itemName - Name of block/item to place
- * @param {Object} options - Options {useSneak, tries, args, prePlacementDelay, maxRetries}
+ * @param {Object} options - Options for placement {useSneak, tries, args, prePlacementDelay, maxRetries}
  * @returns {Promise<boolean>} True if successfully placed
  */
 async function placeAt(
@@ -885,10 +791,21 @@ async function placeAt(
 
         // Attempt placement
         try {
-          await bot.placeBlock(refBlock, faceVec);
+          // Debug: Log camera before placement
+          console.log(`[${bot.username}] 📷 [BEFORE-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
+          
+          // Use activateBlock instead of placeBlock to avoid internal camera snap
+          // activateBlock sends the placement packet directly without calling lookAt()
+          await bot.activateBlock(refBlock, faceVec, new Vec3(0.5, 0.5, 0.5));
+          
+          // Debug: Log camera immediately after placement
+          console.log(`[${bot.username}] 📷 [AFTER-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
           
           // Wait 500ms after placement without moving camera
           await new Promise((res) => setTimeout(res, 500));
+          
+          // Debug: Log camera after wait
+          console.log(`[${bot.username}] 📷 [AFTER-WAIT] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
         } catch (e) {
           console.log(`[${bot.username}] ⚠️ Placement failed: ${e.message}`);
           await new Promise((res) => setTimeout(res, 120));
@@ -905,6 +822,8 @@ async function placeAt(
             `[${bot.username}] ✅ Successfully placed ${placedBlock?.name || itemName} at ${targetPos} ` +
             `(face ${candidateIndex + 1}, attempt ${totalAttempts})`
           );
+          // Debug: Log camera when returning success
+          console.log(`[${bot.username}] 📷 [RETURN-SUCCESS] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
           return true;
         }
 
@@ -1046,7 +965,8 @@ async function placeMultiple(bot, positions, itemName, options = {}) {
 async function fastPlaceBlock(bot, referenceBlock) {
   try {
     const faceVector = new Vec3(0, 1, 0); // Top face
-    await bot.placeBlock(referenceBlock, faceVector);
+    // Use activateBlock to avoid camera snap during fast placement
+    await bot.activateBlock(referenceBlock, faceVector, new Vec3(0.5, 0.5, 0.5));
     return true;
   } catch (error) {
     // Don't log here - too noisy during spam attempts
@@ -1268,6 +1188,99 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
   );
 
   return { success, failed, heightGained: totalHeight };
+}
+
+/**
+ * Check if a target position has adjacent support for placement
+ * A block can only be placed if at least one adjacent block exists
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Vec3} targetPos - Position to check for support
+ * @param {Set<string>} placedBlocks - Set of already placed block positions (as "x,y,z" strings)
+ * @returns {boolean} True if position has at least one adjacent solid block
+ */
+function hasAdjacentSupport(bot, targetPos, placedBlocks = new Set()) {
+  // Special case: Ground level (Y <= 0) always has support from bedrock/ground
+  if (targetPos.y <= 0) {
+    return true;
+  }
+
+  // Check all 6 adjacent positions for solid blocks
+  for (const face of CARDINALS) {
+    const adjacentPos = targetPos.plus(face);
+    const adjacentBlock = bot.blockAt(adjacentPos);
+    
+    // Check if there's a solid block in the world
+    if (adjacentBlock && adjacentBlock.boundingBox === "block") {
+      return true;
+    }
+    
+    // Check if we've already placed a block at this position
+    const posKey = `${adjacentPos.x},${adjacentPos.y},${adjacentPos.z}`;
+    if (placedBlocks.has(posKey)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Sort block positions by buildability
+ * Ensures blocks are placed in a valid order with proper support
+ * @param {Array<Vec3>} positions - Array of positions to sort
+ * @param {Bot} bot - Mineflayer bot instance
+ * @returns {Array<Vec3>} Sorted array of positions (buildable order)
+ */
+function sortByBuildability(positions, bot) {
+  if (positions.length === 0) return [];
+
+  const sorted = [];
+  const remaining = positions.slice(); // Copy array
+  const placedSet = new Set(); // Track placed positions
+  let maxIterations = positions.length * 2; // Prevent infinite loops
+  let iterations = 0;
+
+  // Group positions by Y level for initial sorting
+  remaining.sort((a, b) => {
+    if (a.y !== b.y) return a.y - b.y; // Bottom to top
+    // Within same Y level, sort by distance to bot
+    const distA = bot.entity.position.distanceTo(a);
+    const distB = bot.entity.position.distanceTo(b);
+    return distA - distB;
+  });
+
+  // Build in order, ensuring each block has support
+  while (remaining.length > 0 && iterations < maxIterations) {
+    iterations++;
+    let placedThisIteration = false;
+
+    for (let i = remaining.length - 1; i >= 0; i--) {
+      const pos = remaining[i];
+      
+      // Check if this position has adjacent support
+      if (hasAdjacentSupport(bot, pos, placedSet)) {
+        // This block can be placed now
+        sorted.push(pos);
+        placedSet.add(`${pos.x},${pos.y},${pos.z}`);
+        remaining.splice(i, 1);
+        placedThisIteration = true;
+      }
+    }
+
+    // If we couldn't place any blocks this iteration, we have a problem
+    if (!placedThisIteration && remaining.length > 0) {
+      console.warn(
+        `[sortByBuildability] Warning: ${remaining.length} blocks have no support. ` +
+        `Adding them anyway to prevent deadlock.`
+      );
+      // Add remaining blocks in Y-order as fallback
+      remaining.sort((a, b) => a.y - b.y);
+      sorted.push(...remaining);
+      break;
+    }
+  }
+
+  return sorted;
 }
 
 module.exports = {
