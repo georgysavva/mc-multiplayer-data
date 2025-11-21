@@ -70,6 +70,7 @@ function generatePlatformPositions(startPos, width, depth) {
 
 /**
  * Main building loop - bot builds assigned structure
+ * Enhanced with intelligent build order and comprehensive logging
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Array<Vec3>} positions - Positions to build at
  * @param {string} blockType - Type of block to place
@@ -78,14 +79,14 @@ function generatePlatformPositions(startPos, width, depth) {
  */
 async function buildStructure(bot, positions, blockType, args) {
   console.log(
-    `[${bot.username}] 🏗️ Starting to build ${positions.length} blocks...`
+    `[${bot.username}] 🏗️ Starting to build ${positions.length} blocks with ${blockType}...`
   );
 
-  // Initialize pathfinder for movement
+  // Initialize pathfinder for movement with appropriate settings
   initializePathfinder(bot, {
     allowSprinting: false,
     allowParkour: true,
-    canDig: true,
+    canDig: false, // Don't dig during building
     allowEntityDetection: true,
   });
 
@@ -94,18 +95,38 @@ async function buildStructure(bot, positions, blockType, args) {
       useSneak: true,
       tries: 5,
       args: args,
-      delayMs: BLOCK_PLACE_DELAY_MS, // Add delay between blocks
+      delayMs: BLOCK_PLACE_DELAY_MS,
+      useBuildOrder: true, // Enable intelligent build order
+      useSmartPositioning: false, // Keep disabled for performance
+      prePlacementDelay: 150, // Natural pause before placement
     });
 
     console.log(`[${bot.username}] 🏁 Build complete!`);
     console.log(
-      `[${bot.username}]    Success: ${result.success}/${positions.length}`
+      `[${bot.username}]    ✅ Success: ${result.success}/${positions.length} ` +
+      `(${((result.success / positions.length) * 100).toFixed(1)}%)`
     );
     console.log(
-      `[${bot.username}]    Failed: ${result.failed}/${positions.length}`
+      `[${bot.username}]    ❌ Failed: ${result.failed}/${positions.length}`
     );
+    if (result.skipped > 0) {
+      console.log(
+        `[${bot.username}]    ⏭️ Skipped: ${result.skipped}/${positions.length}`
+      );
+    }
+
+    // Check if build was successful enough (>50% success rate)
+    const successRate = result.success / positions.length;
+    if (successRate < 0.5) {
+      console.warn(
+        `[${bot.username}] ⚠️ Low success rate: ${(successRate * 100).toFixed(1)}%`
+      );
+    }
 
     return result;
+  } catch (error) {
+    console.error(`[${bot.username}] ❌ Build error: ${error.message}`);
+    throw error;
   } finally {
     stopPathfinder(bot);
   }

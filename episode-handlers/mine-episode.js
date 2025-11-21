@@ -1,9 +1,8 @@
-// mine-episode.js - Mining episode where bots dig down and mine towards each other
+// mine-episode.js - Simplified mining episode using pathfinder with mining enabled
 const { Vec3 } = require("vec3");
 const {
   sleep,
-  initializePathfinder,
-  stopPathfinder,
+  gotoWithTimeout,
   digWithTimeout,
 } = require("../utils/movement");
 const { ensureItemInHand } = require("./builder");
@@ -13,255 +12,381 @@ const { unequipHand } = require("../utils/items");
 // Constants for mining behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const FINAL_EYE_CONTACT_MS = 1500; // Final look duration
-const DIG_DELAY_MS = 100; // Delay between dig attempts
 const TOOL_TYPE = "diamond_pickaxe"; // Tool for mining
-const PATHFIND_TIMEOUT_MS = 30000; // 30 second timeout for pathfinding
+const PATHFIND_TIMEOUT_MS = 60000; // 60 second timeout for pathfinding with mining
+const UNDERGROUND_DEPTH = 1; // How many blocks to dig down before horizontal mining
+const TORCH_TYPE = "torch"; // Torch item
+const TORCH_PLACEMENT_INTERVAL = 999; // Place torches every 999 blocks (effectively disabled for short episodes)
+const LOOK_DELAY_MS = 500; // Delay after looking to make camera movement visible
+const FALL_DELAY_MS = 800; // Delay to wait for falling after digging down
+const TORCH_EQUIP_DELAY_MS = 500; // Delay after equipping torch
+const TORCH_LOOK_DELAY_MS = 800; // Delay after looking at floor for torch placement
+const TORCH_PLACE_DELAY_MS = 1200; // Delay after placing torch to make it visible
 
 /**
- * Dig a single block at a specific position
+ * Dig straight down to get underground before starting horizontal mining
  * @param {Bot} bot - Mineflayer bot instance
- * @param {Vec3} blockPos - Position of block to dig
- * @returns {Promise<boolean>} True if successfully dug
- */
-async function digBlock(bot, blockPos) {
-  try {
-    const block = bot.blockAt(blockPos);
-
-    if (!block || block.name === "air" || block.name === "cave_air") {
-      console.log(`[${bot.username}] ✅ Block at ${blockPos} is already air`);
-
-      return true;
-    }
-
-    console.log(`[${bot.username}] ⛏️ Digging ${block.name} at ${blockPos}`);
-
-    // Look at the block
-    const blockCenter = blockPos.offset(0.5, 0.5, 0.5);
-    await bot.lookAt(blockCenter);
-    await sleep(50);
-
-    // Dig the block
-    await digWithTimeout(bot, block);
-    console.log(`[${bot.username}] ✅ Successfully dug ${block.name}`);
-
-    return true;
-  } catch (error) {
-    console.log(
-      `[${bot.username}] ❌ Error digging block at ${blockPos}: ${error.message}`
-    );
-    return false;
-  }
-}
-
-/**
- * Dig down one block directly underneath the bot
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} depth - Number of blocks to dig down
  * @returns {Promise<boolean>} True if successfully dug down
  */
-async function digDownOneBlock(bot) {
-  console.log(`[${bot.username}] 👇 Digging down one block...`);
+async function digDownToUnderground(bot, depth = UNDERGROUND_DEPTH) {
+  console.log(`[${bot.username}] ⬇️ Digging down ${depth} blocks to start underground mining...`);
 
-  const currentPos = bot.entity.position.clone();
-  const blockBelowPos = new Vec3(
-    Math.floor(currentPos.x),
-    Math.floor(currentPos.y) - 1,
-    Math.floor(currentPos.z)
-  );
-
-  console.log(
-    `[${bot.username}] 📍 Current position: ${currentPos.x.toFixed(
-      2
-    )}, ${currentPos.y.toFixed(2)}, ${currentPos.z.toFixed(2)}`
-  );
-  console.log(`[${bot.username}] 🎯 Target block below: ${blockBelowPos}`);
-
-  // Look down (negative pitch looks down in Minecraft)
-  await bot.look(bot.entity.yaw, -1.57, true); // -1.57 radians = 90 degrees down
-  await sleep(200);
-
-  // Dig the block below
-  const success = await digBlock(bot, blockBelowPos);
-
-  if (success) {
-    // Wait for bot to fall
-    console.log(`[${bot.username}] ⬇️ Falling down...`);
-    await sleep(500);
-
-    const newPos = bot.entity.position.clone();
-    console.log(
-      `[${bot.username}] 📍 New position: ${newPos.x.toFixed(
-        2
-      )}, ${newPos.y.toFixed(2)}, ${newPos.z.toFixed(2)}`
-    );
-    console.log(
-      `[${bot.username}] 📏 Y-level change: ${(newPos.y - currentPos.y).toFixed(
-        2
-      )}`
-    );
-  }
-
-  return success;
-}
-
-/**
- * Dig a 2x1 tunnel (2 blocks high, 1 wide) in a specific direction
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Vec3} targetPos - Target position to mine towards
- * @param {number} maxBlocks - Maximum number of blocks to mine
- * @returns {Promise<Object>} Mining statistics
- */
-async function mineTunnelTowards(bot, targetPos, maxBlocks = 20) {
-  console.log(`[${bot.username}] 🚇 Mining 2x1 tunnel towards ${targetPos}`);
-
-  let blocksMined = 0;
   const startPos = bot.entity.position.clone();
-  const miningStartTime = Date.now();
+  const startY = Math.floor(startPos.y);
 
-  // Calculate direction to target
-  const currentPos = bot.entity.position.clone();
-  const dx = targetPos.x - currentPos.x;
-  const dz = targetPos.z - currentPos.z;
-  const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
-
-  console.log(
-    `[${bot.username}] 📐 Direction to target: dx=${dx.toFixed(
-      2
-    )}, dz=${dz.toFixed(2)}, distance=${horizontalDistance.toFixed(2)}`
-  );
-
-  // Normalize direction
-  const dirX = dx / horizontalDistance;
-  const dirZ = dz / horizontalDistance;
-
-  // Calculate yaw to face the target
-  const targetYaw = Math.atan2(-dirX, -dirZ);
-  console.log(
-    `[${bot.username}] 🧭 Facing target at yaw: ${targetYaw.toFixed(2)} radians`
-  );
-
-  // Look towards the target horizontally
-  await bot.look(targetYaw, 0, true);
-  await sleep(500);
-
-  // Mine blocks one at a time, moving forward
-  let distanceTraveled = 0;
-  const stepSize = 1.0; // Move 1 block at a time
-
-  while (
-    distanceTraveled < horizontalDistance - 1.5 &&
-    blocksMined < maxBlocks
-  ) {
-    // Timeout guard to prevent infinite mining loop
-    if (Date.now() - miningStartTime > 60000) {
-      throw new Error(
-        `Mining loop timed out after 60 seconds (distanceTraveled=${distanceTraveled.toFixed(
-          2
-        )}, ` +
-          `horizontalDistance=${horizontalDistance.toFixed(
-            2
-          )}, blocksMined=${blocksMined}/${maxBlocks})`
-      );
-    }
-    const myPos = bot.entity.position.clone();
-
-    console.log(
-      `[${bot.username}] 📍 Current position: ${myPos.x.toFixed(
-        2
-      )}, ${myPos.y.toFixed(2)}, ${myPos.z.toFixed(2)}`
-    );
-    console.log(
-      `[${bot.username}] 📏 Distance to target: ${myPos
-        .distanceTo(targetPos)
-        .toFixed(2)} blocks`
+  for (let i = 0; i < depth; i++) {
+    const currentPos = bot.entity.position.clone();
+    const blockBelowPos = new Vec3(
+      Math.floor(currentPos.x),
+      Math.floor(currentPos.y) - 1,
+      Math.floor(currentPos.z)
     );
 
-    // Calculate next block position in front of bot
-    const nextBlockX = Math.floor(myPos.x + dirX * 1.2);
-    const nextBlockZ = Math.floor(myPos.z + dirZ * 1.2);
-    const currentY = Math.floor(myPos.y);
+    const block = bot.blockAt(blockBelowPos);
 
-    // Dig 2 blocks high (current level and above)
-    const blocksToDigPositions = [
-      new Vec3(nextBlockX, currentY, nextBlockZ), // Bottom block
-      new Vec3(nextBlockX, currentY + 1, nextBlockZ), // Top block
-    ];
-
-    console.log(
-      `[${bot.username}] ⛏️ Digging 2x1 tunnel at X=${nextBlockX}, Z=${nextBlockZ}`
-    );
-
-    // Dig both blocks
-    for (const blockPos of blocksToDigPositions) {
-      const block = bot.blockAt(blockPos);
-
-      if (block && block.name !== "air" && block.name !== "cave_air") {
-        console.log(
-          `[${bot.username}] 🔨 Digging ${block.name} at ${blockPos}`
-        );
-
-        try {
-          // Look at the block
-          const blockCenter = blockPos.offset(0.5, 0.5, 0.5);
-          await bot.lookAt(blockCenter);
-          await sleep(50);
-
-          // Dig the block
-          await digWithTimeout(bot, block);
-          blocksMined++;
-          console.log(
-            `[${bot.username}] ✅ Mined block ${blocksMined}: ${block.name}`
-          );
-          await sleep(100);
-        } catch (digError) {
-          console.log(
-            `[${bot.username}] ⚠️ Failed to dig block at ${blockPos}: ${digError.message}`
-          );
-        }
-      } else {
-        console.log(`[${bot.username}] ⏭️ Block at ${blockPos} is already air`);
-      }
+    // Check if block exists and is not air
+    if (!block) {
+      console.log(`[${bot.username}] ⚠️ Block below not loaded, stopping dig down`);
+      break;
     }
 
-    // Move forward by setting control states
-    console.log(`[${bot.username}] 🚶 Moving forward...`);
+    if (block.name === 'air' || block.name === 'cave_air') {
+      console.log(`[${bot.username}] 🕳️ Air below (cave detected), falling...`);
+      await sleep(500);
+      continue;
+    }
 
-    // Face the target again
-    await bot.look(targetYaw, 0, true);
+    // Check for dangerous blocks
+    if (block.name.includes('lava')) {
+      console.log(`[${bot.username}] 🛑 Lava detected below! Stopping dig down at depth ${i}`);
+      break;
+    }
 
-    // Walk forward for a short duration
-    bot.setControlState("forward", true);
-    await sleep(800); // Walk for 0.8 seconds
-    bot.setControlState("forward", false);
+    console.log(`[${bot.username}] ⛏️ Digging down: ${block.name} at ${blockBelowPos} (${i + 1}/${depth})`);
 
-    await sleep(200); // Settle
+    try {
+      // Look down (negative pitch looks down in Minecraft)
+      await bot.look(bot.entity.yaw, -1.57, false); // -1.57 radians = 90 degrees down, smooth camera
+      await sleep(LOOK_DELAY_MS);
 
-    // Update distance traveled
-    const newPos = bot.entity.position.clone();
-    distanceTraveled = startPos.distanceTo(newPos);
+      // Dig the block
+      await digWithTimeout(bot, block);
+      console.log(`[${bot.username}] ✅ Dug block ${i + 1}/${depth}`);
 
-    console.log(
-      `[${bot.username}] 📊 Progress: ${distanceTraveled.toFixed(
-        2
-      )}/${horizontalDistance.toFixed(2)} blocks`
-    );
-
-    // Safety check: if we're close enough to target, stop
-    if (newPos.distanceTo(targetPos) < 2.0) {
-      console.log(`[${bot.username}] 🎯 Reached target area!`);
+      // Wait to fall down
+      await sleep(FALL_DELAY_MS);
+    } catch (error) {
+      console.log(`[${bot.username}] ❌ Failed to dig down: ${error.message}`);
       break;
     }
   }
 
   const endPos = bot.entity.position.clone();
-  const finalDistance = startPos.distanceTo(endPos);
+  const actualDepth = startY - Math.floor(endPos.y);
 
-  console.log(`[${bot.username}] 🏁 Mining complete!`);
-  console.log(`[${bot.username}]    Blocks mined: ${blocksMined}`);
+  console.log(`[${bot.username}] ✅ Finished digging down`);
+  console.log(`[${bot.username}]    Start Y: ${startY}`);
+  console.log(`[${bot.username}]    Current Y: ${Math.floor(endPos.y)}`);
+  console.log(`[${bot.username}]    Actual depth: ${actualDepth} blocks`);
+
+  return actualDepth > 0;
+}
+
+/**
+ * Place a torch on the floor at the bot's current feet position
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Vec3} movementDirection - Direction the bot is moving (not used)
+ * @returns {Promise<boolean>} True if torch was placed
+ */
+async function placeTorchOnFloor(bot, movementDirection = null) {
+  try {
+    const currentPos = bot.entity.position.clone();
+    
+    // Place torch at bot's current feet position (not behind)
+    const torchPos = new Vec3(
+      Math.floor(currentPos.x),
+      Math.floor(currentPos.y),
+      Math.floor(currentPos.z)
+    );
+    
+    // Check if the torch position is valid (should be air or replaceable)
+    const torchBlock = bot.blockAt(torchPos);
+    if (!torchBlock) {
+      console.log(`[${bot.username}] ⚠️ Cannot access block at ${torchPos}`);
+      return false;
+    }
+    
+    // Check if a torch is already there (skip if so)
+    if (torchBlock.name === 'torch' || torchBlock.name === 'wall_torch') {
+      console.log(`[${bot.username}] ⚠️ Torch already exists at ${torchPos}, skipping`);
+      return false;
+    }
+    
+    // Find the floor block below torch position to place torch on
+    const floorPos = torchPos.offset(0, -1, 0);
+    const floorBlock = bot.blockAt(floorPos);
+    
+    if (!floorBlock || floorBlock.name === 'air' || floorBlock.name === 'cave_air') {
+      console.log(`[${bot.username}] ⚠️ No floor block at ${floorPos} to place torch on`);
+      return false;
+    }
+    
+    console.log(`[${bot.username}] 🔦 Placing torch on floor at ${torchPos} (on top of ${floorBlock.name})`);
+    
+    // Equip torch
+    const torch = bot.inventory.items().find(item => item.name === TORCH_TYPE);
+    if (!torch) {
+      console.log(`[${bot.username}] ⚠️ No torches in inventory!`);
+      return false;
+    }
+    
+    console.log(`[${bot.username}] ✅ Found torch: ${torch.name} (${torch.count} remaining)`);
+    await bot.equip(torch, 'hand');
+    await sleep(TORCH_EQUIP_DELAY_MS);
+    
+    // Look down at the floor block where torch will be placed
+    console.log(`[${bot.username}] 👀 Looking at floor block ${floorPos}`);
+    await bot.lookAt(floorBlock.position.offset(0.5, 1, 0.5), false);
+    await sleep(TORCH_LOOK_DELAY_MS);
+    
+    // Place torch on floor
+    try {
+      await bot.placeBlock(floorBlock, new Vec3(0, 1, 0)); // Place on top face of floor block
+      await sleep(TORCH_PLACE_DELAY_MS); // Wait longer to make placement visible
+      console.log(`[${bot.username}] ✅ Torch successfully placed on floor`);
+      
+      // Look back up/forward
+      await bot.look(0, 0, false); // Look straight ahead
+      await sleep(LOOK_DELAY_MS);
+      
+      return true;
+    } catch (placeError) {
+      console.log(`[${bot.username}] ⚠️ Failed to place torch block: ${placeError.message}`);
+      return false;
+    }
+  } catch (error) {
+    console.log(`[${bot.username}] ❌ Failed to place torch: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Mine towards a target position using pathfinder with mining enabled and torch placement
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Vec3} targetPos - Target position to mine towards
+ * @returns {Promise<Object>} Mining statistics
+ */
+async function mineTowardsTargetWithTorchPlacement(bot, targetPos) {
+  console.log(`[${bot.username}] 🚇 Mining towards ${targetPos} using pathfinder with torch placement`);
+
+  const startPos = bot.entity.position.clone();
+  const startTime = Date.now();
+  let lastTorchPos = startPos.clone();
+  let torchesPlaced = 0;
+  let intervalStopped = false; // Flag to stop interval callback
+
+  // Initialize pathfinder with mining enabled
+  const mcData = require("minecraft-data")(bot.version);
+  const { Movements, goals } = require("mineflayer-pathfinder");
+  const { GoalNear } = goals;
+
+  // Configure movements to allow mining
+  const movements = new Movements(bot, mcData);
+  movements.canDig = true;
+  movements.digCost = 0.5; // Slow down mining while still preferring it over surface walking
+  movements.placeCost = 100; // Very expensive placing to discourage vertical movement
+  movements.allowParkour = false;
+  movements.allowSprinting = false; // Disable sprinting to prevent jumping out
+  movements.maxDropDown = 0; // No vertical drops - stay at same Y level
+  movements.scafoldingBlocks = [];
+  movements.dontCreateFlow = true; // Safety: don't create water/lava flow
+  movements.dontMineUnderFallingBlock = true; // Safety: avoid sand/gravel
+  movements.blocksCost = 2; // Increase cost per block to slow down movement
+
+  bot.pathfinder.setMovements(movements);
+
+  const initialDistance = startPos.distanceTo(targetPos);
   console.log(
-    `[${bot.username}]    Distance traveled: ${finalDistance.toFixed(2)} blocks`
+    `[${bot.username}] 📐 Distance to target: ${initialDistance.toFixed(2)} blocks`
   );
 
-  return { blocksMined, distanceMined: finalDistance };
+  // Set goal to get very close to the target position
+  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 0.5);
+
+  // Set up periodic torch placement check
+  const torchCheckInterval = setInterval(async () => {
+    if (intervalStopped) return; // Stop executing interval callback
+    
+    const currentPos = bot.entity.position.clone();
+    const distanceSinceLastTorch = currentPos.distanceTo(lastTorchPos);
+    
+    if (distanceSinceLastTorch >= TORCH_PLACEMENT_INTERVAL) {
+      console.log(`[${bot.username}] 📏 Traveled ${distanceSinceLastTorch.toFixed(1)} blocks since last torch`);
+      
+      // Re-equip pickaxe after placing torch
+      const pickaxe = bot.inventory.items().find(item => item.name === TOOL_TYPE);
+      const currentHand = bot.heldItem;
+      
+      const placed = await placeTorchOnFloor(bot);
+      
+      if (placed) {
+        torchesPlaced++;
+        lastTorchPos = currentPos.clone();
+        console.log(`[${bot.username}] ✅ Torch placed! Total: ${torchesPlaced}`);
+      } else {
+        // Update position even if placement failed to prevent distance from growing
+        lastTorchPos = currentPos.clone();
+        console.log(`[${bot.username}] ⚠️ Torch placement failed, will try again in ${TORCH_PLACEMENT_INTERVAL} blocks`);
+      }
+      
+      // Re-equip pickaxe
+      if (pickaxe && (!currentHand || currentHand.name !== TOOL_TYPE)) {
+        await bot.equip(pickaxe, 'hand');
+        await sleep(100);
+      }
+    }
+  }, 2000); // Check every 2 seconds
+
+  try {
+    console.log(`[${bot.username}] 🎯 Starting pathfinder navigation with mining and torch placement...`);
+    
+    // Use pathfinder to navigate to target
+    await gotoWithTimeout(bot, goal, { timeoutMs: PATHFIND_TIMEOUT_MS });
+
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+    const timeElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const finalDistance = endPos.distanceTo(targetPos);
+
+    console.log(`[${bot.username}] 🏁 Mining navigation complete!`);
+    console.log(`[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`);
+    console.log(`[${bot.username}]    Time elapsed: ${timeElapsed}s`);
+    console.log(`[${bot.username}]    Final distance to target: ${finalDistance.toFixed(2)} blocks`);
+    console.log(`[${bot.username}]    Torches placed: ${torchesPlaced} 🔦`);
+
+    return {
+      success: true,
+      distanceTraveled: distanceTraveled,
+      timeElapsed: parseFloat(timeElapsed),
+      reachedTarget: finalDistance < 1.5,
+      finalDistance: finalDistance,
+      torchesPlaced: torchesPlaced,
+    };
+  } catch (error) {
+    console.log(
+      `[${bot.username}] ⚠️ Pathfinder mining failed: ${error.message}`
+    );
+    
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+    const finalDistance = endPos.distanceTo(targetPos);
+    
+    return {
+      success: false,
+      distanceTraveled: distanceTraveled,
+      timeElapsed: ((Date.now() - startTime) / 1000).toFixed(1),
+      reachedTarget: false,
+      finalDistance: finalDistance,
+      torchesPlaced: torchesPlaced,
+      error: error.message,
+    };
+  } finally {
+    // Stop torch placement interval
+    clearInterval(torchCheckInterval);
+    intervalStopped = true; // Set flag to stop interval callback
+    
+    // Stop pathfinder
+    bot.pathfinder.setGoal(null);
+  }
+}
+
+/**
+ * Mine towards a target position using pathfinder with mining enabled
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Vec3} targetPos - Target position to mine towards
+ * @returns {Promise<Object>} Mining statistics
+ */
+async function mineTowardsTarget(bot, targetPos) {
+  console.log(`[${bot.username}] 🚇 Mining towards ${targetPos} using pathfinder`);
+
+  const startPos = bot.entity.position.clone();
+  const startTime = Date.now();
+
+  // Initialize pathfinder with mining enabled
+  const mcData = require("minecraft-data")(bot.version);
+  const { Movements, goals } = require("mineflayer-pathfinder");
+  const { GoalNear } = goals;
+
+  // Configure movements to allow mining
+  const movements = new Movements(bot, mcData);
+  movements.canDig = true; // Enable block breaking
+  movements.digCost = 0.5; // Slow down mining while still preferring it over surface walking
+  movements.blocksCost = 2;
+  movements.placeCost = 100; // Very expensive placing to discourage vertical movement
+  movements.allowParkour = false; // Disable parkour for safer mining
+  movements.allowSprinting = false; // Disable sprinting to prevent jumping out
+  movements.maxDropDown = 0; // No vertical drops - stay at same Y level
+  movements.scafoldingBlocks = []; // Don't place scaffolding blocks
+  movements.dontCreateFlow = true; // Safety: don't create water/lava flow
+  movements.dontMineUnderFallingBlock = true; // Safety: avoid sand/gravel
+  movements.blocksCost = 2; // Increase cost per block to slow down movement
+
+  bot.pathfinder.setMovements(movements);
+
+  const initialDistance = startPos.distanceTo(targetPos);
+  console.log(
+    `[${bot.username}] 📐 Distance to target: ${initialDistance.toFixed(2)} blocks`
+  );
+
+  // Set goal to get very close to the target position (0.5 blocks = almost exact)
+  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 0.5);
+
+  try {
+    console.log(`[${bot.username}] 🎯 Starting pathfinder navigation with mining...`);
+    
+    // Use pathfinder to navigate to target, mining blocks as needed
+    await gotoWithTimeout(bot, goal, { timeoutMs: PATHFIND_TIMEOUT_MS });
+
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+    const timeElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const finalDistance = endPos.distanceTo(targetPos);
+
+    console.log(`[${bot.username}] 🏁 Mining navigation complete!`);
+    console.log(`[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`);
+    console.log(`[${bot.username}]    Time elapsed: ${timeElapsed}s`);
+    console.log(`[${bot.username}]    Final distance to target: ${finalDistance.toFixed(2)} blocks`);
+
+    return {
+      success: true,
+      distanceTraveled: distanceTraveled,
+      timeElapsed: parseFloat(timeElapsed),
+      reachedTarget: finalDistance < 1.5,
+      finalDistance: finalDistance,
+    };
+  } catch (error) {
+    console.log(
+      `[${bot.username}] ⚠️ Pathfinder mining failed: ${error.message}`
+    );
+    
+    // Return partial results
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+    const finalDistance = endPos.distanceTo(targetPos);
+    
+    return {
+      success: false,
+      distanceTraveled: distanceTraveled,
+      timeElapsed: ((Date.now() - startTime) / 1000).toFixed(1),
+      reachedTarget: false,
+      finalDistance: finalDistance,
+      error: error.message,
+    };
+  } finally {
+    // Stop pathfinder
+    bot.pathfinder.setGoal(null);
+  }
 }
 
 /**
@@ -294,9 +419,9 @@ function getOnMinePhaseFn(
       `minePhase_${iterationID} beginning`
     );
 
-    console.log(`[${bot.username}] 🚀 Starting MINE phase ${iterationID}`);
+    console.log(`[${bot.username}] 🚀 Starting MINE2 phase ${iterationID}`);
     console.log(
-      `[${bot.username}] 🎬 MINING EPISODE - Episode ${episodeNum}, Iteration ${iterationID}`
+      `[${bot.username}] 🎬 MINING EPISODE 2 (Pathfinder) - Episode ${episodeNum}, Iteration ${iterationID}`
     );
 
     // STEP 1: Bots spawn (already done by teleport phase)
@@ -312,7 +437,7 @@ function getOnMinePhaseFn(
       if (otherEntity) {
         actualOtherBotPosition = otherEntity.position.clone();
         const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(INITIAL_EYE_CONTACT_MS);
       } else {
         console.log(
@@ -338,51 +463,37 @@ function getOnMinePhaseFn(
       );
     }
 
-    // STEP 4: Dig down one block
-    console.log(`[${bot.username}] ⬇️ STEP 4: Digging down one block...`);
-    const digSuccess = await digDownOneBlock(bot);
-
-    if (!digSuccess) {
-      console.log(`[${bot.username}] ❌ Failed to dig down, aborting episode`);
-      // Transition to stop phase
-      throw new Error("Failed to dig down, aborting episode...");
-    }
-
-    // Wait a moment to ensure both bots are down
-    await sleep(1000);
-
-    // STEP 5: Look towards other bot's direction (horizontally, while staying in hole)
-    console.log(
-      `[${bot.username}] 👀 STEP 5: Looking towards other bot's direction...`
-    );
+    // STEP 3b: Ensure torches are in inventory for illumination
+    console.log(`[${bot.username}] 🔦 STEP 3b: Ensuring torches in inventory...`);
     try {
-      const otherEntity = bot.players[args.other_bot_name]?.entity;
-      if (otherEntity) {
-        actualOtherBotPosition = otherEntity.position.clone();
-
-        // Calculate horizontal direction to other bot
-        const myPos = bot.entity.position.clone();
-        const dx = actualOtherBotPosition.x - myPos.x;
-        const dz = actualOtherBotPosition.z - myPos.z;
-        const targetYaw = Math.atan2(-dx, -dz);
-
-        // Look horizontally towards other bot (pitch = 0 to look straight ahead)
-        await bot.look(targetYaw, 0, true);
-        console.log(
-          `[${
-            bot.username
-          }] ✅ Looking towards other bot at yaw ${targetYaw.toFixed(2)}`
-        );
-        await sleep(1000); // Hold the look for 1 second
+      const torch = bot.inventory.items().find(item => item.name === TORCH_TYPE);
+      if (!torch) {
+        // Give torches via RCON
+        await rcon.send(`give ${bot.username} ${TORCH_TYPE} 64`);
+        await sleep(500);
+        console.log(`[${bot.username}] ✅ Received 64 torches`);
+      } else {
+        console.log(`[${bot.username}] ✅ Already have ${torch.count} torches`);
       }
-    } catch (lookError) {
+    } catch (torchError) {
       console.log(
-        `[${bot.username}] ⚠️ Could not look towards other bot: ${lookError.message}`
+        `[${bot.username}] ⚠️ Could not get torches: ${torchError.message}`
       );
     }
 
-    // STEP 6: Calculate midpoint between bots
-    console.log(`[${bot.username}] 📐 STEP 6: Calculating midpoint...`);
+    // STEP 4: Dig down to underground
+    console.log(`[${bot.username}] ⬇️ STEP 4: Digging down to underground...`);
+    const dugDown = await digDownToUnderground(bot, UNDERGROUND_DEPTH);
+    if (!dugDown) {
+      console.log(`[${bot.username}] ⚠️ Failed to dig down, aborting episode`);
+      return {
+        success: false,
+        error: "Failed to dig down",
+      };
+    }
+
+    // STEP 5: Calculate midpoint between bots
+    console.log(`[${bot.username}] 📐 STEP 5: Calculating midpoint...`);
     const myPos = bot.entity.position.clone();
 
     // Try to get updated other bot position
@@ -393,7 +504,7 @@ function getOnMinePhaseFn(
 
     const midpoint = new Vec3(
       Math.floor((myPos.x + actualOtherBotPosition.x) / 2),
-      Math.floor(myPos.y), // Same Y level (we're both down one block)
+      Math.floor(myPos.y), // Same Y level
       Math.floor((myPos.z + actualOtherBotPosition.z) / 2)
     );
 
@@ -415,18 +526,18 @@ function getOnMinePhaseFn(
       `[${bot.username}] 🎯 Midpoint: ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`
     );
 
-    // STEP 7: Mine towards the midpoint (which will create a tunnel towards the other bot)
+    // STEP 6: Mine towards the midpoint using pathfinder
     console.log(
-      `[${bot.username}] 🚇 STEP 7: Mining 2x1 tunnel towards midpoint...`
+      `[${bot.username}] 🚇 STEP 6: Mining towards midpoint using pathfinder...`
     );
-    const miningResult = await mineTunnelTowards(bot, midpoint, 20);
+    const miningResult = await mineTowardsTargetWithTorchPlacement(bot, midpoint);
 
     console.log(
-      `[${bot.username}] ✅ Mining complete! Mined ${miningResult.blocksMined} blocks`
+      `[${bot.username}] ✅ Mining complete! Result: ${JSON.stringify(miningResult)}`
     );
 
-    // STEP 8: Final eye contact
-    console.log(`[${bot.username}] 👀 STEP 8: Final eye contact...`);
+    // STEP 7: Final eye contact
+    console.log(`[${bot.username}] 👀 STEP 7: Final eye contact...`);
     try {
       const otherEntity2 = bot.players[args.other_bot_name]?.entity;
       if (otherEntity2) {
@@ -435,7 +546,7 @@ function getOnMinePhaseFn(
           otherEntity2.height,
           0
         );
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(FINAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {
@@ -444,14 +555,12 @@ function getOnMinePhaseFn(
       );
     }
 
-    console.log(`[${bot.username}] ✅ MINE phase complete!`);
+    console.log(`[${bot.username}] ✅ MINE2 phase complete!`);
     console.log(
-      `[${bot.username}] 📊 Final stats: ${
-        miningResult.blocksMined
-      } blocks mined, ${miningResult.distanceMined.toFixed(2)} blocks traveled`
+      `[${bot.username}] 📊 Final stats: ${JSON.stringify(miningResult)}`
     );
 
-    // STEP 9: Transition to stop phase (end episode)
+    // STEP 8: Transition to stop phase (end episode)
     coordinator.onceEvent(
       "stopPhase",
       episodeNum,
@@ -477,12 +586,14 @@ function getOnMinePhaseFn(
 }
 
 /**
- * MineEpisode - Episode class for mining towards each other
+ * MineEpisode - Simplified episode class using pathfinder for mining
  */
 class MineEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+    console.log(`[${bot.username}] 🔧 Setting up Mine Episode 2 (Pathfinder)`);
+  }
 
   async entryPoint(
     bot,
@@ -523,6 +634,7 @@ class MineEpisode extends BaseEpisode {
     episodeNum,
     args
   ) {
+    console.log(`[${bot.username}] 🧹 Tearing down Mine Episode 2`);
     // Unequip pickaxe from main hand
     await unequipHand(bot);
   }
@@ -530,9 +642,12 @@ class MineEpisode extends BaseEpisode {
 
 module.exports = {
   getOnMinePhaseFn,
-  digBlock,
-  digDownOneBlock,
-  mineTunnelTowards,
+  mineTowardsTargetWithTorchPlacement,
+  mineTowardsTarget,
   TOOL_TYPE,
+  TORCH_TYPE,
+  TORCH_PLACEMENT_INTERVAL,
   MineEpisode,
+  digDownToUnderground,
+  placeTorchOnFloor,
 };
