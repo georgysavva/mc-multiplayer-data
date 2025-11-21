@@ -34,6 +34,12 @@ import net.skinsrestorer.api.property.SkinVariant;
 import net.skinsrestorer.api.storage.PlayerStorage;
 import net.skinsrestorer.api.storage.SkinStorage;
 
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.events.PacketContainer;
+import com.comphenix.protocol.wrappers.BlockPosition;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -50,6 +56,8 @@ public class EpisodeManager extends JavaPlugin implements Listener {
     private final Map<String, File> activeSkinSelections = new ConcurrentHashMap<>();
     private BukkitTask followTask;
     private boolean testRunning = false;
+    private ProtocolManager protocolManager;
+
 
     private SkinsRestorer skinsRestorer;
     private File skinsDirectory;
@@ -57,6 +65,38 @@ public class EpisodeManager extends JavaPlugin implements Listener {
     @Override
     public void onEnable() {
         Bukkit.getPluginManager().registerEvents(this, this);
+
+        if (Bukkit.getPluginManager().getPlugin("ProtocolLib") == null) {
+            getLogger().severe("ProtocolLib is required for block break forwarding.");
+        } else {
+            protocolManager = ProtocolLibrary.getProtocolManager();
+
+            protocolManager.addPacketListener(new com.comphenix.protocol.events.PacketAdapter(
+                    this, PacketType.Play.Server.BLOCK_BREAK_ANIMATION) {
+
+                @Override
+                public void onPacketSending(com.comphenix.protocol.events.PacketEvent event) {
+                    PacketContainer packet = event.getPacket();
+
+                    if (packet.getMeta("MirrorBotRelay").isPresent()) {
+                        // Already forwarded, ignore
+                        return;
+                    }
+
+                    int stage = packet.getIntegers().read(1);
+                    BlockPosition pos = packet.getBlockPositionModifier().read(0);
+
+                    Player originalViewer = event.getPlayer(); // viewer receiving the normal packet
+                    Player controller = originalViewer;
+
+                    // find camera for this controller
+                    Player camera = activePairs.get(controller);
+                    if (camera == null) return;
+
+                    forwardBlockBreakAnimation(camera, pos, camera.getEntityId(), stage);
+                }
+            });
+        }
 
         if (Bukkit.getPluginManager().getPlugin("SkinsRestorer") != null) {
             skinsRestorer = SkinsRestorerProvider.get();
@@ -443,6 +483,19 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             if (configuredCamera != null && !player.equals(configuredCamera)) {
                 player.hidePlayer(this, configuredCamera);
             }
+        }
+    }
+
+    private void forwardBlockBreakAnimation(Player viewer, BlockPosition pos, int breakerEntityId, int stage) {
+        try {
+            PacketContainer relay = protocolManager.createPacket(PacketType.Play.Server.BLOCK_BREAK_ANIMATION);
+            relay.getBlockPositionModifier().write(0, pos);
+            relay.getIntegers().write(0, breakerEntityId);
+            relay.getIntegers().write(1, stage);
+            relay.setMeta("MirrorBotRelay", true);
+            protocolManager.sendServerPacket(viewer, relay);
+        } catch (Exception ex) {
+            getLogger().warning("Failed to forward break animation: " + ex.getMessage());
         }
     }
 
