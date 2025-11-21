@@ -60,6 +60,123 @@ ensure_directories() {
     "${LOG_DIR}"
 }
 
+check_port_available() {
+  local port=$1
+  local port_name=$2
+  # Try different methods to check port availability
+  if command -v ss >/dev/null 2>&1; then
+    if ss -tlnH "sport = :${port}" 2>/dev/null | grep -q ":${port}"; then
+      return 1
+    fi
+  elif command -v netstat >/dev/null 2>&1; then
+    if netstat -tln 2>/dev/null | grep -q ":${port} "; then
+      return 1
+    fi
+  elif command -v lsof >/dev/null 2>&1; then
+    if lsof -i ":${port}" -sTCP:LISTEN >/dev/null 2>&1; then
+      return 1
+    fi
+  else
+    echo "[run] WARNING: Cannot check port availability (no ss/netstat/lsof found)" >&2
+    return 0
+  fi
+  return 0
+}
+
+check_display_available() {
+  local display=$1
+  local display_num=${display#:}  # Remove leading colon
+  
+  # Check for X11 lock file
+  if [[ -f "/tmp/.X${display_num}-lock" ]]; then
+    # Lock file exists, check if the process is still running
+    local pid
+    pid=$(cat "/tmp/.X${display_num}-lock" 2>/dev/null | tr -d ' ')
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      return 1  # Display is in use
+    fi
+  fi
+  
+  # Check for X11 socket
+  if [[ -S "/tmp/.X11-unix/X${display_num}" ]]; then
+    return 1  # Socket exists, display is likely in use
+  fi
+  
+  # Check if any Xvfb process is using this display
+  if command -v pgrep >/dev/null 2>&1; then
+    if pgrep -f "Xvfb ${display}" >/dev/null 2>&1; then
+      return 1  # Xvfb is running on this display
+    fi
+  fi
+  
+  return 0  # Display is available
+}
+
+check_required_ports() {
+  local ports_in_use=()
+  local displays_in_use=()
+  
+  # Define ports to check with their names
+  local -A ports_to_check=(
+    ["${MC_SERVER_PORT:-25565}"]="MC_SERVER_PORT"
+    ["${MC_RCON_PORT:-25575}"]="MC_RCON_PORT"
+    ["${CAMERA_ALPHA_VNC_PORT:-5901}"]="CAMERA_ALPHA_VNC_PORT"
+    ["${CAMERA_ALPHA_NOVNC_PORT:-6901}"]="CAMERA_ALPHA_NOVNC_PORT"
+    ["${CAMERA_BRAVO_VNC_PORT:-5902}"]="CAMERA_BRAVO_VNC_PORT"
+    ["${CAMERA_BRAVO_NOVNC_PORT:-6902}"]="CAMERA_BRAVO_NOVNC_PORT"
+  )
+  
+  # Define X11 displays to check
+  local -A displays_to_check=(
+    ["${CAMERA_ALPHA_DISPLAY:-:99}"]="CAMERA_ALPHA_DISPLAY"
+    ["${CAMERA_BRAVO_DISPLAY:-:100}"]="CAMERA_BRAVO_DISPLAY"
+  )
+  
+  echo "[run] checking if required ports and displays are available"
+  
+  # Check ports
+  for port in "${!ports_to_check[@]}"; do
+    local port_name="${ports_to_check[$port]}"
+    if ! check_port_available "${port}" "${port_name}"; then
+      ports_in_use+=("${port} (${port_name})")
+    fi
+  done
+  
+  # Check displays
+  for display in "${!displays_to_check[@]}"; do
+    local display_name="${displays_to_check[$display]}"
+    if ! check_display_available "${display}"; then
+      displays_in_use+=("${display} (${display_name})")
+    fi
+  done
+  
+  local has_errors=0
+  
+  if [[ ${#ports_in_use[@]} -gt 0 ]]; then
+    echo "[run] ERROR: The following ports are already in use:" >&2
+    for port_info in "${ports_in_use[@]}"; do
+      echo "  - ${port_info}" >&2
+    done
+    has_errors=1
+  fi
+  
+  if [[ ${#displays_in_use[@]} -gt 0 ]]; then
+    echo "[run] ERROR: The following X11 displays are already in use:" >&2
+    for display_info in "${displays_in_use[@]}"; do
+      echo "  - ${display_info}" >&2
+    done
+    has_errors=1
+  fi
+  
+  if [[ ${has_errors} -eq 1 ]]; then
+    echo "[run] Please stop the services using these resources or change the configuration in .env" >&2
+    return 1
+  fi
+  
+  echo "[run] all required ports and displays are available"
+  return 0
+}
+
 stop_log_capture() {
   if [[ -f "${PID_FILE}" ]]; then
     while IFS=: read -r pid service; do
@@ -91,6 +208,12 @@ cmd_up() {
   local build_images=${2:-}
   local skip_post_process=${3:-}
   local run_alignment=${4:-}
+  
+  # Check port availability before doing anything
+  if ! check_required_ports; then
+    exit 1
+  fi
+  
   ensure_directories
   local running_ids
   running_ids=$(compose_cmd ps -q 2>/dev/null || true)
