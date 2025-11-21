@@ -17,7 +17,7 @@ const TOWER_HEIGHT = 8; // Fixed tower height
 const TOWER_BLOCK_TYPE = "oak_planks"; // Block type for towers
 const BRIDGE_BLOCK_TYPE = "oak_planks"; // Block type for bridge
 const BRIDGE_TIMEOUT_MS = 60000; // 60 seconds max for bridge building
-const BRIDGE_GOAL_DISTANCE = 0.5; // How close to get to midpoint (blocks) - reduced for complete bridge
+const BRIDGE_GOAL_DISTANCE = 1.0; // How close to get to midpoint (blocks) - prevents bot overlap
 
 /**
  * Build a bridge towards a target position using pathfinder with automatic scaffolding
