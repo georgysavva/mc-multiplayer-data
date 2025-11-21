@@ -67,7 +67,7 @@ function getOnBuildTowerPhaseFn(
       const otherEntity = bot.players[args.other_bot_name]?.entity;
       if (otherEntity) {
         const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(INITIAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {
@@ -101,7 +101,7 @@ function getOnBuildTowerPhaseFn(
       const otherEntity = bot.players[args.other_bot_name]?.entity;
       if (otherEntity) {
         const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(FINAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {

@@ -165,7 +165,7 @@ bot.setControlState('jump', true);
 ```javascript
 // Look at position (instant)
 await bot.lookAt(new Vec3(x, y, z));
-await bot.lookAt(position, true); // Force look
+await bot.lookAt(position, false); // Force look
 
 // Look at specific angles
 bot.look(yaw, pitch, force);

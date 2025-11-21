@@ -125,7 +125,7 @@ function getOnPlaceBlockPhaseFn(
       console.log(`[${bot.username}] 🎯 Looking at target: ${lookTarget.x.toFixed(2)}, ${lookTarget.y.toFixed(2)}, ${lookTarget.z.toFixed(2)}`);
       
       // Look at the other bot
-      await bot.lookAt(lookTarget);
+      await bot.lookAt(lookTarget, false);
       console.log(`[${bot.username}] ✅ Successfully looked at other bot`);
       
       // Hold eye contact for a moment
@@ -318,7 +318,7 @@ function getOnPlaceBlockPhaseFn(
       if (targetPos) {
         const lookTarget3 = targetPos.clone();
         lookTarget3.y += 1.6;
-        await bot.lookAt(lookTarget3);
+        await bot.lookAt(lookTarget3, false);
         console.log(`[${bot.username}] ✅ Looked at other bot again`);
         await sleep(1500); // Hold eye contact
       }

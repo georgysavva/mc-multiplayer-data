@@ -524,7 +524,7 @@ async function admireHouse(bot, doorWorldPos, orientation, options = {}) {
   // Step 3: Look at house center
   const houseCenter = doorWorldPos.offset(2, 2, 2); // Center of 5x5 house
   console.log(`[${bot.username}] 👀 Looking at house...`);
-  await bot.lookAt(houseCenter);
+  await bot.lookAt(houseCenter, false);
   await sleep(2000);
 
   console.log(`[${bot.username}] ✅ Admire sequence complete`);

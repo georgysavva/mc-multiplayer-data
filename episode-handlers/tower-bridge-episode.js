@@ -243,7 +243,7 @@ function getOnTowerBridgePhaseFn(
       if (otherEntity) {
         actualOtherBotPosition = otherEntity.position.clone();
         const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(INITIAL_EYE_CONTACT_MS);
       } else {
         console.log(
@@ -344,7 +344,7 @@ function getOnTowerBridgePhaseFn(
           otherEntity2.height,
           0
         );
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(INITIAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {
@@ -448,7 +448,7 @@ function getOnTowerBridgePhaseFn(
           otherEntity4.height,
           0
         );
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(FINAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {
