@@ -282,6 +282,41 @@ function moveAway(bot, avoidPosition, sprint = false) {
 }
 
 // ============================================================================
+// RANDOM SAMPLING UTILITIES
+// ============================================================================
+
+/**
+ * Generate a log-normal random variable with given mu and sigma.
+ * @param {number} mu - Mean of the underlying normal distribution
+ * @param {number} sigma - Standard deviation of the underlying normal distribution
+ * @returns {number} A log-normal random sample
+ */
+function sampleLognormal(mu, sigma) {
+  // Generate Standard Normal Z ~ N(0, 1) using Box-Muller transform
+  let u1 = 0, u2 = 0;
+  // Math.random() is [0, 1), but we need (0, 1) to avoid Math.log(0) = -Infinity
+  while (u1 === 0) u1 = Math.random(); 
+  u2 = Math.random();
+
+  const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+  const normalSample = mu + z * sigma;
+  return Math.exp(normalSample);
+}
+
+/**
+ * Generates a scaling factor with Expected Value = 1.0.
+ * @param {number} volatility - The sigma parameter controlling variance (e.g., 0.5 or 0.8)
+ * @returns {number} A scaling factor R where E[R] = 1
+ */
+function getMeanPreservingScalingFactor(volatility) {
+  if (volatility <= 0) {
+    return 1;
+  }
+  const mu = -volatility * volatility / 2;
+  return sampleLognormal(mu, volatility);
+}
+
+// ============================================================================
 // CAMERA AND LOOKING FUNCTIONS
 // ============================================================================
 
@@ -290,8 +325,12 @@ function moveAway(bot, avoidPosition, sprint = false) {
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Vec3} targetPosition - Position to look at
  * @param {number} degreesPerSecond - Rotation speed in degrees per second
+ * @param {boolean} useEasing - Whether to use easing for the rotation
+ * @param {boolean} randomized - Whether to use log-normal speed randomization
+ * @param {number} volatility - Sigma parameter for log-normal speed randomization (0: no randomization), 
+ *   0.4: a bit of randomness. To view how log-normal scaling works, see: https://www.desmos.com/calculator/wazayi56xf
  */
-async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, useEasing=false) {
+async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, useEasing=false, randomized=false, volatility=0.4) {
   const botPosition = bot.entity.position;
 
   // Calculate the vector from bot to target
@@ -306,12 +345,36 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, useEasin
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
   const targetPitch = -Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
 
-  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, useEasing);
+  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, useEasing, randomized, volatility);
 }
 
 
-async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, useEasing=false) {
-  await bot.look(targetYaw, targetPitch, false, degreesPerSecond, degreesPerSecond, useEasing);
+/**
+ * Smoothly rotate bot camera to specified yaw and pitch
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} targetYaw - Target yaw angle in radians
+ * @param {number} targetPitch - Target pitch angle in radians
+ * @param {number} degreesPerSecond - Base rotation speed in degrees per second
+ * @param {boolean} useEasing - Whether to use easing for the rotation
+ * @param {boolean} randomized - Whether to use log-normal speed randomization
+ * @param {number} volatility - Sigma parameter for log-normal speed randomization (0: no randomization), 
+ *   0.4: a bit of randomness. To view how log-normal scaling works, see: https://www.desmos.com/calculator/wazayi56xf
+ */
+async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, useEasing=false, randomized=false, volatility=0.4) {
+  let actualSpeed = degreesPerSecond;
+
+  if (randomized && volatility > 0) {
+    const multiplier = getMeanPreservingScalingFactor(volatility);
+    actualSpeed = degreesPerSecond * multiplier;
+
+    // Clip to at least 0.4x the original speed and at most 171 degrees per second, as specified (in rads/sec) by
+    // https://github.com/PrismarineJS/prismarine-physics/blob/37d8d0b612de347b2e132e270642fec108d4f2ec/index.js#L63
+    const minSpeed = degreesPerSecond * 0.4;
+    const maxSpeed = 171;
+    actualSpeed = Math.max(minSpeed, Math.min(maxSpeed, actualSpeed));
+  }
+
+  await bot.look(targetYaw, targetPitch, false, actualSpeed, actualSpeed, useEasing);
 }
 
 /**
@@ -535,4 +598,8 @@ module.exports = {
   jump,
   sneak,
   Y_IN_AIR,
+
+  // Random sampling
+  sampleLognormal,
+  getMeanPreservingScalingFactor,
 };
