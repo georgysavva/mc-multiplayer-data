@@ -32,7 +32,11 @@ const { BuildTowerEpisode } = require("./build-tower-episode");
 const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
+const { StructureEvalEpisode } = require("./structureEval");
 const { CollectorEpisode } = require("./collector-episode");
+const { TranslationEvalEpisode } = require("./translation-eval-episode");
+const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
+const { RotationEvalEpisode } = require("./rotation-eval-episode");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -47,7 +51,11 @@ const episodeClassMap = {
   buildTower: BuildTowerEpisode,
   mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
+  structureEval: StructureEvalEpisode,
   collector: CollectorEpisode,
+  translationEval: TranslationEvalEpisode,
+  lookAwayEval: LookAwayEvalEpisode,
+  rotationEval: RotationEvalEpisode,
 };
 
 // Import episode-specific handlers
@@ -55,18 +63,22 @@ const episodeClassMap = {
 // Add episode type selection - Enable multiple types for diverse data collection
 // Default episode types list
 const defaultEpisodeTypes = [
-  // "straightLineWalk",
-  // "chase",
-  // "orbit",
-  // "walkLook",
-  // "walkLookAway",
-  // "pvp",
-  // "pve",
-  // "buildStructure",
-  // "buildTower",
-  // "mine",
-  // "towerBridge",
+  "straightLineWalk",
+  "chase",
+  "orbit",
+  "walkLook",
+  "walkLookAway",
+  "pvp",
+  "pve",
+  "buildStructure",
+  "buildTower",
+  "mine",
+  "towerBridge",
+  "structureEval",
   "collector",
+  "translationEval",
+  "lookAwayEval",
+  "rotationEval",
 ];
 
 // Load episode types from environment variable or use default
@@ -115,6 +127,7 @@ async function saveEpisodeInfo({
     episode_recording_started: Boolean(
       episodeInstance?._episodeRecordingStarted
     ),
+    eval_metadata: episodeInstance?._evalMetadata || {},
   };
 
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2));
@@ -324,14 +337,6 @@ async function setupBotAndWorldOnce(bot, rcon) {
   console.log(
     `[${bot.username}] set showDeathMessages gamerule to false, showDeathMessagesRes=${showDeathMessagesRes}`
   );
-  const givePickaxeRes = await rcon.send(
-    `give ${bot.username} minecraft:diamond_pickaxe 1`
-  );
-  console.log(`[${bot.username}] givePickaxeRes=${givePickaxeRes}`);
-  const giveShovelRes = await rcon.send(
-    `give ${bot.username} minecraft:diamond_shovel 1`
-  );
-  console.log(`[${bot.username}] giveShovelRes=${giveShovelRes}`);
   const tagResult = await rcon.send(`tag ${bot.username} add minebot`);
   console.log(
     `[${bot.username}] tag ${bot.username} add minebot result: ${tagResult}`
@@ -368,7 +373,6 @@ async function setupCameraPlayerOnce(bot, rcon) {
  * @param {Object} args - Configuration arguments
  */
 async function setupBotAndCameraForEpisode(bot, rcon, args) {
-  await ensureBotHasEnough(bot, rcon, "stone", 128);
   const saturationEffectRes = await rcon.send(
     `effect give ${bot.username} minecraft:saturation 999999 255 true`
   );
@@ -381,7 +385,25 @@ async function setupBotAndCameraForEpisode(bot, rcon, args) {
   }
   await sleep(1000);
   console.log(`[${bot.username}] unequipping hand before episode`);
+  await clearBotInventory(bot, rcon);
+  await sleep(500);
+  await ensureBotHasEnough(bot, rcon, "stone", 64);
+  const givePickaxeRes = await rcon.send(
+    `give ${bot.username} minecraft:diamond_pickaxe 1`
+  );
+  console.log(`[${bot.username}] givePickaxeRes=${givePickaxeRes}`);
+  const giveShovelRes = await rcon.send(
+    `give ${bot.username} minecraft:diamond_shovel 1`
+  );
+  console.log(`[${bot.username}] giveShovelRes=${giveShovelRes}`);
   await unequipHand(bot);
+}
+
+async function clearBotInventory(bot, rcon) {
+  // /clear <name> with no item argument deletes ALL items
+  const cmd = `clear ${bot.username}`;
+  const response = await rcon.send(cmd);
+  console.log(`[${bot.username}] clearBotInventory response: ${response}`);
 }
 
 /**
@@ -516,7 +538,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
 
       if (!EpisodeClass) {
         throw new Error(
-          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${sortedEligible.join(
+          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${Object.keys(episodeClassMap).sort().join(
             ", "
           )}`
         );

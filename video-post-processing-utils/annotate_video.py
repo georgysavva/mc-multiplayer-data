@@ -69,6 +69,15 @@ def format_action_text(frame_data):
         "place_block",
         "place_entity",
         "mine",
+        "hotbar.1",
+        "hotbar.2",
+        "hotbar.3",
+        "hotbar.4",
+        "hotbar.5",
+        "hotbar.6",
+        "hotbar.7",
+        "hotbar.8",
+        "hotbar.9",
     ]
     active_actions = [
         action_name for action_name in all_actions if action.get(action_name, False)
@@ -135,7 +144,7 @@ def annotate_video(video_file, action_data, output_file):
         f"Mismatch between JSON frames ({len(action_data)}) and video frames ({total_frames}). "
         f"The JSON file must contain exactly one action object per video frame."
     )
-    print(f"✓ Verified: JSON contains {len(action_data)} frames matching video")
+    print(f"[OK] Verified: JSON contains {len(action_data)} frames matching video")
 
     # Define codec and create VideoWriter
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")

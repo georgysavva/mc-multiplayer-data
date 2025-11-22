@@ -313,74 +313,36 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90) {
   });
 }
 
-async function lookSmooth(
-  bot,
-  targetYaw,
-  targetPitch,
-  degreesPerSecond,
-  opts = {}
-) {
+
+async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, opts = {}) {
+const waitTick = () => bot.waitForTicks(1);
   const startYaw = bot.entity.yaw;
   const startPitch = bot.entity.pitch;
 
-  // Calculate angle differences, handling wrapping for yaw
+  // shortest-path yaw
   let yawDiff = targetYaw - startYaw;
-  // Normalize yaw difference to [-π, π] for shortest rotation
   while (yawDiff > Math.PI) yawDiff -= 2 * Math.PI;
   while (yawDiff < -Math.PI) yawDiff += 2 * Math.PI;
-
   const pitchDiff = targetPitch - startPitch;
 
-  // Calculate total angular distance in radians
-  const totalAngleDistance = Math.sqrt(
-    yawDiff * yawDiff + pitchDiff * pitchDiff
-  );
-
-  // Convert speed from degrees per second to radians per second
   const radiansPerSecond = (degreesPerSecond * Math.PI) / 180;
-
-  // Calculate total time needed
+  const totalAngleDistance = Math.hypot(yawDiff, pitchDiff);
   const totalTimeMs = (totalAngleDistance / radiansPerSecond) * 1000;
 
-  if (opts.logTarget) {
-    console.log(
-      `${opts.logTarget} at ${degreesPerSecond}°/s over ${(
-        totalTimeMs / 1000
-      ).toFixed(2)}s`
-    );
-  } else {
-    console.log(
-      `[${bot.username}] Looking at yaw=${targetYaw.toFixed(
-        2
-      )}, pitch=${targetPitch.toFixed(2)} at ${degreesPerSecond}°/s over ${(
-        totalTimeMs / 1000
-      ).toFixed(2)}s`
-    );
+  const start = Date.now();
+  while (true) {
+    const t = Math.min((Date.now() - start) / totalTimeMs, 1);
+    const eased = 1 - Math.pow(1 - t, 2); // ease-out
+    const y = startYaw + yawDiff * eased;
+    const p = startPitch + pitchDiff * eased;
+
+    // no force: let physics tick send packets at its per-tick limit
+    await bot.look(y, p, /*force=*/false);
+    if (t >= 1) break;
+    await waitTick(); // sync with 20 Hz physics / recorder
   }
 
-  const startTime = Date.now();
-  const endTime = startTime + totalTimeMs;
-  const updateInterval = 50; // 50ms intervals
-
-  while (Date.now() < endTime) {
-    const elapsed = Date.now() - startTime;
-    const progress = Math.min(elapsed / totalTimeMs, 1.0);
-
-    // Smooth interpolation using easing function (ease-out)
-    const easedProgress = 1 - Math.pow(1 - progress, 2);
-
-    // Calculate current angles
-    const currentYaw = startYaw + yawDiff * easedProgress;
-    const currentPitch = startPitch + pitchDiff * easedProgress;
-
-    bot.look(currentYaw, currentPitch, true);
-
-    if (progress >= 1.0) break;
-    await sleep(updateInterval);
-  }
-
-  // Ensure we end exactly at the target angles
-  bot.look(targetYaw, targetPitch, true);
+  await bot.look(targetYaw, targetPitch, false);
 }
 
 /**
@@ -549,6 +511,22 @@ async function jump(bot, durationMs) {
   }
 }
 
+/**
+ * Make bot sneak for specified number of ticks (default: 5 ticks)
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} durationTicks - Number of ticks to sneak (default: 5)
+ * @param {number} idleTicks - Number of ticks to idle for after releasing sneak (default: 5)
+ */
+async function sneak(bot, durationTicks = 5, idleTicks = 10) {
+  console.log(
+    `[${bot.username}] Sneaking for ${(durationTicks + idleTicks) / 20}s`
+  );
+  bot.setControlState("sneak", true);
+  await bot.waitForTicks(durationTicks);
+  bot.setControlState("sneak", false);
+  await bot.waitForTicks(idleTicks);
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -586,5 +564,6 @@ module.exports = {
   isNearBot,
   land_pos,
   jump,
+  sneak,
   Y_IN_AIR,
 };
