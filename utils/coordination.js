@@ -185,6 +185,11 @@ class BotCoordinator extends EventEmitter {
     this.once(fullEventName, wrappedHandler);
   }
 
+  removeListener(eventName, episodeNum) {
+    const fullEventName = getEventName(eventName, episodeNum);
+    this.removeAllListeners(fullEventName);
+  }
+
   async waitForAllPhasesToFinish() {
     const startTime = Date.now();
     const timeoutMs = 60000; // 1 minute timeout
