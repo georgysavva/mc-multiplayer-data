@@ -33,7 +33,7 @@ const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 const { StructureEvalEpisode } = require("./structureEval");
-// const { CollectorEpisode } = require("./collector-episode");
+const { CollectorEpisode } = require("./collector-episode");
 const { TranslationEvalEpisode } = require("./translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
 const { RotationEvalEpisode } = require("./rotation-eval-episode");
@@ -52,7 +52,7 @@ const episodeClassMap = {
   mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
   structureEval: StructureEvalEpisode,
-  // collector: CollectorEpisode,
+  collector: CollectorEpisode,
   translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
   rotationEval: RotationEvalEpisode,
@@ -74,8 +74,8 @@ const defaultEpisodeTypes = [
   "buildTower",
   "mine",
   "towerBridge",
-  "structureEval",
   "collector",
+  "structureEval",
   "translationEval",
   "lookAwayEval",
   "rotationEval",
@@ -881,7 +881,7 @@ async function teleport(
     const targets = `${bot.username} ${args.other_bot_name}`;
     const cmd = `spreadplayers ${centerX} ${centerZ} ${minDistance} ${maxRange} false @a[tag=minebot]`;
     console.log(
-      `[${bot.username}] spreadplayers args: center=(${centerX}, ${centerZ}), min=${minDistance}, max=${maxRange}, targets=[${targets}]`
+      `[${bot.username}] spreadplayers command: ${cmd}`
     );
     const result = await rcon.send(cmd);
     console.log(`[${bot.username}] spreadplayers result: ${result}`);
