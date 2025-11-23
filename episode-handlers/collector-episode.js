@@ -811,17 +811,6 @@ class CollectorEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 0;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
-    console.log(`[${bot.username}] Setting up collector episode`);
-
-    // Give mining tools and torches via RCON
-    await rcon.send(`clear ${bot.username}`);
-    await rcon.send(`give ${bot.username} diamond_pickaxe 1`);
-    await rcon.send(`give ${bot.username} diamond_shovel 1`);
-    await rcon.send(`give ${bot.username} torch 128`);
-    await rcon.send(`give ${bot.username} minecraft:dirt 64`);
-
-    console.log(`[${bot.username}] Mining tools and torches provided`);
-    await bot.waitForTicks(10);
   }
 
   async entryPoint(
