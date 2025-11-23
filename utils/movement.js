@@ -321,16 +321,22 @@ function getMeanPreservingScalingFactor(volatility) {
 // ============================================================================
 
 /**
+ * Default options for look functions
+ */
+const DEFAULT_LOOK_OPTIONS = {
+  useEasing: false,
+  randomized: false,
+  volatility: 0.4,
+};
+
+/**
  * Smoothly rotate bot camera to look at target position
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Vec3} targetPosition - Position to look at
  * @param {number} degreesPerSecond - Rotation speed in degrees per second
- * @param {boolean} useEasing - Whether to use easing for the rotation
- * @param {boolean} randomized - Whether to use log-normal speed randomization
- * @param {number} volatility - Sigma parameter for log-normal speed randomization (0: no randomization), 
- *   0.4: a bit of randomness. To view how log-normal scaling works, see: https://www.desmos.com/calculator/wazayi56xf
+ * @param {Object} [options] - Look options (see lookSmooth for details)
  */
-async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, useEasing=false, randomized=false, volatility=0.4) {
+async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, options = {}) {
   const botPosition = bot.entity.position;
 
   // Calculate the vector from bot to target
@@ -345,7 +351,7 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, useEasin
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
   const targetPitch = -Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
 
-  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, useEasing, randomized, volatility);
+  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options);
 }
 
 
@@ -355,12 +361,15 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, useEasin
  * @param {number} targetYaw - Target yaw angle in radians
  * @param {number} targetPitch - Target pitch angle in radians
  * @param {number} degreesPerSecond - Base rotation speed in degrees per second
- * @param {boolean} useEasing - Whether to use easing for the rotation
- * @param {boolean} randomized - Whether to use log-normal speed randomization
- * @param {number} volatility - Sigma parameter for log-normal speed randomization (0: no randomization), 
- *   0.4: a bit of randomness. To view how log-normal scaling works, see: https://www.desmos.com/calculator/wazayi56xf
+ * @param {Object} [options] - Look options
+ * @param {boolean} [options.useEasing=false] - Whether to use easing for the rotation
+ * @param {boolean} [options.randomized=false] - Whether to use log-normal speed randomization
+ * @param {number} [options.volatility=0.4] - Sigma parameter for log-normal speed randomization
+ *   To view how log-normal scaling works, see: https://www.desmos.com/calculator/wazayi56xf
  */
-async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, useEasing=false, randomized=false, volatility=0.4) {
+async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options = {}) {
+  const { useEasing, randomized, volatility } = { ...DEFAULT_LOOK_OPTIONS, ...options };
+
   let actualSpeed = degreesPerSecond;
 
   if (randomized && volatility > 0) {
@@ -382,11 +391,12 @@ async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, useEasi
  * @param {Bot} bot - Mineflayer bot instance
  * @param {string} targetBotName - Name of the bot to look at
  * @param {number} degreesPerSecond - Rotation speed in degrees per second
+ * @param {Object} [options] - Look options (see lookSmooth for details)
  */
-async function lookAtBot(bot, targetBotName, degreesPerSecond = 90) {
+async function lookAtBot(bot, targetBotName, degreesPerSecond = 90, options = {}) {
   const targetBot = bot.players[targetBotName];
   if (targetBot && targetBot.entity) {
-    await lookAtSmooth(bot, targetBot.entity.position, degreesPerSecond);
+    await lookAtSmooth(bot, targetBot.entity.position, degreesPerSecond, options);
   } else {
     console.log(
       `[${bot.username}] Cannot find bot ${targetBotName} to look at`
