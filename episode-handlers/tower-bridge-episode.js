@@ -495,7 +495,10 @@ class TowerBridgeEpisode extends BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = 20;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+    await ensureBotHasEnough(bot, rcon, BRIDGE_BLOCK_TYPE, 64);
+    await unequipHand(bot);
+  }
 
   async entryPoint(
     bot,

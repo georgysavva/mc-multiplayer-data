@@ -69,6 +69,15 @@ def format_action_text(frame_data):
         "place_block",
         "place_entity",
         "mine",
+        "hotbar.1",
+        "hotbar.2",
+        "hotbar.3",
+        "hotbar.4",
+        "hotbar.5",
+        "hotbar.6",
+        "hotbar.7",
+        "hotbar.8",
+        "hotbar.9",
     ]
     active_actions = [
         action_name for action_name in all_actions if action.get(action_name, False)
