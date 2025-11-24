@@ -480,7 +480,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       height: 360,
       frames: 400,
       disableRendering: args.viewer_rendering_disabled,
-      interval: 50,
+      interval: args.viewer_recording_interval,
     });
     // Run multiple episodes
     // Respect world type for eligible episode filtering
@@ -886,7 +886,6 @@ async function teleport(
     const result = await rcon.send(cmd);
     console.log(`[${bot.username}] spreadplayers result: ${result}`);
     attemptsWithThisRadius++;
-    await sleep(1000);
     if (!result.startsWith("Spread 2 player")) {
       if (attemptsWithThisRadius >= MAX_ATTEMPTS_WITH_THIS_RADIUS) {
         console.log(`[${bot.username}] spreadplayers failed after ${attemptsWithThisRadius} attempts with radius ${bot._teleport_radius}, halving the radius and trying again`);
@@ -895,8 +894,10 @@ async function teleport(
       } else {
         console.log(`[${bot.username}] spreadplayers failed, trying again`);
       }
+      await sleep(1000);
     } else {
       success = true;
+      await sleep(5000);
       break;
     }
   }

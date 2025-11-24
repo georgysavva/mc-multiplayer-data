@@ -304,18 +304,14 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90) {
 
   // Calculate target pitch (vertical rotation)
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
-  const targetPitch = -Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
+  const targetPitch = Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
 
-  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, {
-    logTarget: `[${bot.username}] Looking at (${targetPosition.x.toFixed(
-      2
-    )}, ${targetPosition.y.toFixed(2)}, ${targetPosition.z.toFixed(2)})`,
-  });
+  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond);
 }
 
 
 async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, opts = {}) {
-const waitTick = () => bot.waitForTicks(1);
+  const waitTick = () => bot.waitForTicks(1);
   const startYaw = bot.entity.yaw;
   const startPitch = bot.entity.pitch;
 
