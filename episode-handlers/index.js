@@ -57,19 +57,19 @@ const episodeClassMap = {
 // Add episode type selection - Enable multiple types for diverse data collection
 // Default episode types list
 const defaultEpisodeTypes = [
-  // "straightLineWalk",
-  // "chase",
-  // "orbit",
-  // "walkLook",
+  "straightLineWalk",
+  "chase",
+  "orbit",
+  "walkLook",
   // "buildHouse",
-  // "walkLookAway",
-  // "pvp",
-  // "pve",
+  "walkLookAway",
+  "pvp",
+  "pve",
   "buildStructure",
-  // "buildTower",
+  "buildTower",
   "mine",
-  // "towerBridge",
-  // "collector",
+  "towerBridge",
+  "collector",
 ];
 
 // Load episode types from environment variable or use default
