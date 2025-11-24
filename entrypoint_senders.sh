@@ -55,7 +55,7 @@ exec node senders.js \
   --walk_timeout "${WALK_TIMEOUT:-5}" \
   --teleport "${TELEPORT:-0}" \
   --teleport_radius "${TELEPORT_RADIUS:-5}" \
-  --mc_version "${MC_VERSION:-1.20.4}" \
+  --mc_version "${MC_VERSION:-1.21}" \
   --viewer_rendering_disabled "${VIEWER_RENDERING_DISABLED:-0}" \
   --viewer_recording_interval "${VIEWER_RECORDING_INTERVAL:-50}" \
   --smoke_test "${SMOKE_TEST:-0}" \

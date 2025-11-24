@@ -179,7 +179,7 @@ def generate_compose_config(
                     lambda: {
                         # Base server env, common to both normal and flat worlds
                         "EULA": "TRUE",
-                        "VERSION": "1.20.4",
+                        "VERSION": "1.21",
                         "TYPE": "PAPER",
                         "MODE": "survival",
                         "RCON_PORT": rcon_port,
@@ -247,7 +247,7 @@ def generate_compose_config(
                     "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
                     "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
-                    "MC_VERSION": "1.20.4",
+                    "MC_VERSION": "1.21",
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                     "VIEWER_RECORDING_INTERVAL": 50,
                     "WALK_TIMEOUT": 5,
@@ -300,7 +300,7 @@ def generate_compose_config(
                     "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
                     "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
-                    "MC_VERSION": "1.20.4",
+                    "MC_VERSION": "1.21",
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                     "VIEWER_RECORDING_INTERVAL": 50,
                     "WALK_TIMEOUT": 5,
@@ -356,7 +356,7 @@ def generate_compose_config(
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
                 "environment": {
-                    "MC_VERSION": "1.20.4",
+                    "MC_VERSION": "1.21",
                     "MC_HOST": "127.0.0.1",
                     "MC_PORT": mc_port,
                     "CAMERA_NAME": "CameraAlpha",
@@ -424,7 +424,7 @@ def generate_compose_config(
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
                 "environment": {
-                    "MC_VERSION": "1.20.4",
+                    "MC_VERSION": "1.21",
                     "MC_HOST": "127.0.0.1",
                     "MC_PORT": mc_port,
                     "CAMERA_NAME": "CameraBravo",

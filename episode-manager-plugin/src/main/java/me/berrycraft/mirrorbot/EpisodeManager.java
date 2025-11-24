@@ -67,36 +67,53 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
 
         if (Bukkit.getPluginManager().getPlugin("ProtocolLib") == null) {
-            getLogger().severe("ProtocolLib is required for block break forwarding.");
-        } else {
-            protocolManager = ProtocolLibrary.getProtocolManager();
+            getLogger().severe("ProtocolLib is required for MirrorBot to run.");
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
 
-            protocolManager.addPacketListener(new com.comphenix.protocol.events.PacketAdapter(
-                    this, PacketType.Play.Server.BLOCK_BREAK_ANIMATION) {
+        protocolManager = ProtocolLibrary.getProtocolManager();
 
-                @Override
-                public void onPacketSending(com.comphenix.protocol.events.PacketEvent event) {
-                    PacketContainer packet = event.getPacket();
+        // Debug listener for block breaking
+        protocolManager.addPacketListener(new com.comphenix.protocol.events.PacketAdapter(this,
+                PacketType.Play.Server.BLOCK_BREAK_ANIMATION) {
+            @Override
+            public void onPacketSending(com.comphenix.protocol.events.PacketEvent event) {
+                PacketContainer packet = event.getPacket();
+                int breakerId = packet.getIntegers().read(0);
+                int stage = packet.getIntegers().read(1);
+                BlockPosition pos = packet.getBlockPositionModifier().read(0);
 
-                    if (packet.getMeta("MirrorBotRelay").isPresent()) {
-                        // Already forwarded, ignore
-                        return;
+                // Bukkit.getScheduler().runTask(EpisodeManager.this, () -> {
+                //     Bukkit.broadcastMessage(ChatColor.GRAY + "[Debug] " +
+                //             ChatColor.YELLOW + "Breaker " + breakerId +
+                //             ChatColor.WHITE + " breaking block at " +
+                //             ChatColor.AQUA + pos +
+                //             ChatColor.WHITE + " stage " +
+                //             ChatColor.GREEN + stage);
+                // });
+
+                if (packet.getMeta("MirrorBotRelay").isPresent()) {
+                    return;
+                }
+                for (var entry : activePairs.entrySet()) {
+                    Player controller = entry.getKey();
+                    Player camera = entry.getValue();
+
+                    if (controller == null || camera == null) {
+                        continue;
                     }
 
-                    int stage = packet.getIntegers().read(1);
-                    BlockPosition pos = packet.getBlockPositionModifier().read(0);
-
-                    Player originalViewer = event.getPlayer(); // viewer receiving the normal packet
-                    Player controller = originalViewer;
-
-                    // find camera for this controller
-                    Player camera = activePairs.get(controller);
-                    if (camera == null) return;
+                    boolean controllerIsBreaker = breakerId == controller.getEntityId();
+                    boolean packetForController = event.getPlayer().equals(controller);
+                    if (!(controllerIsBreaker || packetForController)) {
+                        continue;
+                    }
 
                     forwardBlockBreakAnimation(camera, pos, camera.getEntityId(), stage);
                 }
-            });
-        }
+            }
+        });
 
         if (Bukkit.getPluginManager().getPlugin("SkinsRestorer") != null) {
             skinsRestorer = SkinsRestorerProvider.get();

@@ -13,10 +13,10 @@ const pvp = require("mineflayer-pvp").plugin;
  * @param {string} config.username - Bot username
  * @param {string} config.host - Server host
  * @param {number} config.port - Server port
- * @param {string} config.version - Minecraft version (defaults to 1.20.4)
+ * @param {string} config.version - Minecraft version (defaults to 1.21)
  * @returns {Bot} Mineflayer bot instance
  */
-function makeBot({ username, host, port, version = "1.20.4" }) {
+function makeBot({ username, host, port, version = "1.21" }) {
   const bot = mineflayer.createBot({
     host,
     port,
