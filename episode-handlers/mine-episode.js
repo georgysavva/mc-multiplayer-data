@@ -214,7 +214,7 @@ async function mineTowardsTargetWithTorchPlacement(bot, targetPos) {
   );
 
   // Set goal to get very close to the target position
-  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 0.5);
+  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 1.0);
 
   // Set up periodic torch placement check
   const torchCheckInterval = setInterval(async () => {
@@ -343,7 +343,7 @@ async function mineTowardsTarget(bot, targetPos) {
   );
 
   // Set goal to get very close to the target position (0.5 blocks = almost exact)
-  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 0.5);
+  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 1.0);
 
   try {
     console.log(`[${bot.username}] 🎯 Starting pathfinder navigation with mining...`);

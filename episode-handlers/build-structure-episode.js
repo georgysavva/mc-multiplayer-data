@@ -10,7 +10,8 @@ const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");
 
 // Constants for building behavior
-const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
+// const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
+const ALL_STRUCTURE_TYPES = ["platform"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const BUILD_BLOCK_TYPES = ["stone", "cobblestone", "oak_planks", "bricks"];
 const BLOCK_PLACE_DELAY_MS = 1500; // Delay between placing blocks (1.5 seconds for more visible building)
@@ -97,7 +98,7 @@ async function buildStructure(bot, positions, blockType, args) {
       args: args,
       delayMs: BLOCK_PLACE_DELAY_MS,
       useBuildOrder: true, // Enable intelligent build order
-      useSmartPositioning: false, // Keep disabled for performance
+      useSmartPositioning: true, // Enable smart positioning to move to optimal distance before placing
       prePlacementDelay: 500, // Natural pause before placement
     });
 
@@ -218,17 +219,41 @@ function getOnBuildPhaseFn(
       const height = 5;
       positions = generateTowerPositions(startPos, height);
     } else if (structureType === "platform") {
-      // Bots build a shared platform
-      const startPos = botPos.offset(2, 0, 0);
+      // Bots build a shared platform - use midpoint between bots as reference
+      const midpoint = botPos.plus(otherBotPosition).scaled(0.5).floored();
+      const startPos = midpoint.offset(-2, 0, -2); // Center the 4x4 platform at midpoint
       const width = 4;
       const depth = 4;
 
-      // Split platform: Alpha does first half, Bravo does second half
-      const allPositions = generatePlatformPositions(startPos, width, depth);
-      const half = Math.floor(allPositions.length / 2);
-      positions = botNameSmaller
-        ? allPositions.slice(0, half)
-        : allPositions.slice(half);
+      // Split platform horizontally: Assign halves based on bot position relative to platform
+      positions = [];
+      const halfDepth = Math.floor(depth / 2);
+      
+      // Determine which bot is closer to which half based on Z coordinate
+      const platformCenterZ = startPos.z + depth / 2;
+      const botIsNorth = botPos.z < platformCenterZ; // Bot is north (smaller Z) of platform center
+      
+      if (botIsNorth) {
+        // This bot is north - build top half (z=0,1) from middle outward
+        for (let z = halfDepth - 1; z >= 0; z--) {
+          for (let x = 0; x < width; x++) {
+            positions.push(startPos.offset(x, 0, z));
+          }
+        }
+        console.log(
+          `[${bot.username}] 🎯 Platform centered at midpoint (${midpoint.x}, ${midpoint.y}, ${midpoint.z}), building ${positions.length} blocks (NORTH half - top rows)`
+        );
+      } else {
+        // This bot is south - build bottom half (z=2,3) from middle outward
+        for (let z = halfDepth; z < depth; z++) {
+          for (let x = 0; x < width; x++) {
+            positions.push(startPos.offset(x, 0, z));
+          }
+        }
+        console.log(
+          `[${bot.username}] 🎯 Platform centered at midpoint (${midpoint.x}, ${midpoint.y}, ${midpoint.z}), building ${positions.length} blocks (SOUTH half - bottom rows)`
+        );
+      }
     }
 
     console.log(
