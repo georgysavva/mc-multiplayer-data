@@ -128,7 +128,7 @@ async function buildBridgeTowards(bot, targetPos, args) {
 
     try {
       // Look towards the target (slightly down to see the placement)
-      await bot.look(targetYaw, 0.3, true);
+      await bot.look(targetYaw, -0.3, true);
       await sleep(100);
 
       // Place block on the side of the block we're standing on

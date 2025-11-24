@@ -76,7 +76,7 @@ async function digDownOneBlock(bot) {
   console.log(`[${bot.username}] 🎯 Target block below: ${blockBelowPos}`);
 
   // Look down
-  await bot.look(bot.entity.yaw, 1.57, true); // 1.57 radians = 90 degrees down
+  await bot.look(bot.entity.yaw, -1.57, true); // 1.57 radians = 90 degrees down
   await sleep(200);
 
   // Dig the block below

@@ -33,7 +33,7 @@ const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 const { StructureEvalEpisode } = require("./structureEval");
-// const { CollectorEpisode } = require("./collector-episode");
+const { CollectorEpisode } = require("./collector-episode");
 const { TranslationEvalEpisode } = require("./translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
 const { RotationEvalEpisode } = require("./rotation-eval-episode");
@@ -52,7 +52,7 @@ const episodeClassMap = {
   mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
   structureEval: StructureEvalEpisode,
-  // collector: CollectorEpisode,
+  collector: CollectorEpisode,
   translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
   rotationEval: RotationEvalEpisode,
@@ -74,8 +74,8 @@ const defaultEpisodeTypes = [
   "buildTower",
   "mine",
   "towerBridge",
-  "structureEval",
   "collector",
+  "structureEval",
   "translationEval",
   "lookAwayEval",
   "rotationEval",
@@ -227,6 +227,9 @@ async function runSingleEpisode(
         args
       )
     );
+    const phaseDataOur = {
+      position: bot.entity.position.clone(),
+    };
 
     coordinator.onceEvent(
       "teleportPhase",
@@ -238,12 +241,13 @@ async function runSingleEpisode(
         coordinator,
         episodeNum,
         episodeInstance,
-        args
+        args,
+        phaseDataOur
       )
     );
     coordinator.sendToOtherBot(
       "teleportPhase",
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       "spawnPhase end"
     );
@@ -476,7 +480,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       height: 360,
       frames: 400,
       disableRendering: args.viewer_rendering_disabled,
-      interval: 50,
+      interval: args.viewer_recording_interval,
     });
     // Run multiple episodes
     // Respect world type for eligible episode filtering
@@ -630,22 +634,25 @@ function getOnTeleportPhaseFn(
   coordinator,
   episodeNum,
   episodeInstance,
-  args
+  args,
+  phaseDataOur
 ) {
-  return async (otherBotPosition) => {
+  return async (phaseDataOther) => {
     coordinator.sendToOtherBot(
       "teleportPhase",
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       "teleportPhase beginning"
     );
-
-    if (args.teleport) {
+    const otherBotPosition = phaseDataOther.position;
+    const ourPosition = phaseDataOur.position;
+    if (args.teleport && bot.username  < args.other_bot_name) {
+      console.log(`[${bot.username}] performs bots teleporting`);
       await teleport(
         bot,
         rcon,
-        sharedBotRng,
         args,
+        ourPosition,
         otherBotPosition,
         episodeInstance
       );
@@ -827,57 +834,75 @@ function getOnStartRecordingFn(
 async function teleport(
   bot,
   rcon,
-  sharedBotRng,
   args,
+  ourPosition,
   otherBotPosition,
   episodeInstance
 ) {
   // Initialize teleport center once as the midpoint between this bot and the other bot
   if (!bot._teleport_center) {
-    console.log(`[${bot.username}] initializing teleport center`);
-    const ourPos = bot.entity.position;
     bot._teleport_center = {
-      x: (ourPos.x + otherBotPosition.x) / 2,
-      z: (ourPos.z + otherBotPosition.z) / 2,
+      x: (ourPosition.x + otherBotPosition.x) / 2,
+      z: (ourPosition.z + otherBotPosition.z) / 2,
     };
+    console.log(`[${bot.username}] initializing teleport center: ${JSON.stringify(bot._teleport_center)}`);
+  }
+  if (!bot._teleport_radius) {
+    bot._teleport_radius = args.teleport_radius;
   }
   const teleportCenter = bot._teleport_center;
   // Pick a random point in the world within the specified radius from center
-  const randomAngle = sharedBotRng() * 2 * Math.PI;
-  const randomDistance = sharedBotRng() * args.teleport_radius;
+  const MAX_ATTEMPTS_WITH_THIS_RADIUS = 10;
+  const TOTAL_ATTEMPTS = 100;
+  let attemptsWithThisRadius = 0;
+  let success = false;
+  for (let i = 0; i < TOTAL_ATTEMPTS; i++) {
+    console.log(`[${bot.username}] teleporting with radius: ${bot._teleport_radius}`);
+    const randomAngle = Math.random() * 2 * Math.PI;
+    const randomDistance = Math.random() * bot._teleport_radius;
 
-  const randomPointX =
-    teleportCenter.x + randomDistance * Math.cos(randomAngle);
-  const randomPointZ =
-    teleportCenter.z + randomDistance * Math.sin(randomAngle);
-  console.log(`[${bot.username}] teleport radius: ${args.teleport_radius}`);
+    const randomPointX =
+      teleportCenter.x + randomDistance * Math.cos(randomAngle);
+    const randomPointZ =
+      teleportCenter.z + randomDistance * Math.sin(randomAngle);
 
-  console.log(
-    `[${bot.username}] picked random center at (${randomPointX.toFixed(
-      2
-    )}, ${randomPointZ.toFixed(2)})`
-  );
-  // Use spreadplayers to place both bots around the chosen center
-  const centerX = Math.floor(randomPointX);
-  const centerZ = Math.floor(randomPointZ);
-  const minDistance = episodeInstance.constructor.INIT_MIN_BOTS_DISTANCE;
-  const maxRange = Math.floor(
-    episodeInstance.constructor.INIT_MAX_BOTS_DISTANCE / 2
-  );
-  if (bot.username < args.other_bot_name) {
+    console.log(
+      `[${bot.username}] picked random center at (${randomPointX.toFixed(
+        2
+      )}, ${randomPointZ.toFixed(2)})`
+    );
+    // Use spreadplayers to place both bots around the chosen center
+    const centerX = Math.floor(randomPointX);
+    const centerZ = Math.floor(randomPointZ);
+    const minDistance = episodeInstance.constructor.INIT_MIN_BOTS_DISTANCE;
+    const maxRange = Math.floor(
+      episodeInstance.constructor.INIT_MAX_BOTS_DISTANCE / 2
+    );
     const targets = `${bot.username} ${args.other_bot_name}`;
     const cmd = `spreadplayers ${centerX} ${centerZ} ${minDistance} ${maxRange} false @a[tag=minebot]`;
     console.log(
-      `[${bot.username}] spreadplayers args: center=(${centerX}, ${centerZ}), min=${minDistance}, max=${maxRange}, targets=[${targets}]`
+      `[${bot.username}] spreadplayers command: ${cmd}`
     );
     const result = await rcon.send(cmd);
     console.log(`[${bot.username}] spreadplayers result: ${result}`);
+    attemptsWithThisRadius++;
     if (!result.startsWith("Spread 2 player")) {
-      throw new Error(
-        `[${bot.username}] Unexpected spreadplayers result: ${result}`
-      );
+      if (attemptsWithThisRadius >= MAX_ATTEMPTS_WITH_THIS_RADIUS) {
+        console.log(`[${bot.username}] spreadplayers failed after ${attemptsWithThisRadius} attempts with radius ${bot._teleport_radius}, halving the radius and trying again`);
+        bot._teleport_radius /= 2;
+        attemptsWithThisRadius = 0;
+      } else {
+        console.log(`[${bot.username}] spreadplayers failed, trying again`);
+      }
+      await sleep(1000);
+    } else {
+      success = true;
+      await sleep(5000);
+      break;
     }
-    await sleep(1000);
+  }
+  if (!success) {
+    console.log(`[${bot.username}] spreadplayers failed after ${TOTAL_ATTEMPTS} attempts, skipping teleport`);
   }
 }
 

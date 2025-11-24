@@ -349,7 +349,7 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, options 
 
   // Calculate target pitch (vertical rotation)
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
-  const targetPitch = -Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
+  const targetPitch = Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
 
   await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options);
 }
