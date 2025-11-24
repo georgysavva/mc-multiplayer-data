@@ -65,10 +65,10 @@ const defaultEpisodeTypes = [
   // "walkLookAway",
   // "pvp",
   // "pve",
-  // "buildStructure",
+  "buildStructure",
   // "buildTower",
   "mine",
-  // "towerBridge",
+  "towerBridge",
   // "collector",
 ];
 

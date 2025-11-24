@@ -92,7 +92,7 @@ async function buildStructure(bot, positions, blockType, args) {
 
   try {
     const result = await placeMultiple(bot, positions, blockType, {
-      useSneak: true,
+      useSneak: false, // No sneaking needed for normal structure building
       tries: 5,
       args: args,
       delayMs: BLOCK_PLACE_DELAY_MS,

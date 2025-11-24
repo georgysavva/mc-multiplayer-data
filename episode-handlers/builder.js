@@ -724,7 +724,7 @@ async function placeAt(
   bot,
   targetPos,
   itemName,
-  { useSneak = true, tries = 5, args = null, prePlacementDelay = 150, maxRetries = 10 } = {}
+  { useSneak = false, tries = 5, args = null, prePlacementDelay = 150, maxRetries = 10 } = {}
 ) {
   // Phase 7: Validation - Check if bot is in valid state
   if (!bot || !bot.entity) {
