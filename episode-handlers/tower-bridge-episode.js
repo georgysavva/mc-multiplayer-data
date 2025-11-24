@@ -1,6 +1,6 @@
 // tower-bridge-episode.js - Episode where bots build towers then bridge towards each other
 const { Vec3 } = require("vec3");
-const { sleep, initializePathfinder, stopPathfinder, gotoWithTimeout } = require("../utils/movement");
+const { sleep, initializePathfinder, stopPathfinder, gotoWithTimeout, getScaffoldingBlockIds } = require("../utils/movement");
 const {
   ensureItemInHand,
   placeAt,
@@ -69,15 +69,11 @@ async function buildBridgeWithPathfinder(bot, targetPos, args) {
   movements.infiniteLiquidDropdownDistance = false; // No water at this height
 
   // Configure scaffolding blocks (blocks pathfinder can place)
-  movements.scaffoldingBlocks = [
-    mcData.blocksByName.oak_planks.id,
-    mcData.blocksByName.stone.id,
-    mcData.blocksByName.cobblestone.id,
-    mcData.blocksByName.dirt.id,
-  ];
+  // Note: Property is 'scafoldingBlocks' (one 'f') in mineflayer-pathfinder - this is intentional
+  movements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
 
   console.log(
-    `[${bot.username}] ✅ Pathfinder configured with scaffolding blocks: oak_planks, stone, cobblestone, dirt`
+    `[${bot.username}] ✅ Pathfinder configured with ${movements.scafoldingBlocks.length} scaffolding block types`
   );
 
   // Apply movements to pathfinder

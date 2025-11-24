@@ -16,6 +16,82 @@ const {
 } = require("./bot-factory");
 
 // ============================================================================
+// SCAFFOLDING BLOCKS CONFIGURATION
+// ============================================================================
+
+/**
+ * Default scaffolding block names that can be used for bridging and pillaring
+ * Note: Property is 'scafoldingBlocks' (one 'f') in mineflayer-pathfinder
+ */
+const DEFAULT_SCAFFOLDING_BLOCK_NAMES = [
+  // Basic cheap blocks
+  'dirt',
+  'cobblestone',
+  'stone',
+
+  // Stone variants
+  'andesite',
+  'diorite',
+  'granite',
+  'polished_andesite',
+  'polished_diorite',
+  'polished_granite',
+
+  // Stone bricks & variants
+  'stone_bricks',
+  'cracked_stone_bricks',
+  'mossy_stone_bricks',
+  'chiseled_stone_bricks',
+
+  // Deepslate / brick-like
+  'cobbled_deepslate',
+  'deepslate_bricks',
+  'cracked_deepslate_bricks',
+
+  // Bricks
+  'bricks',              // classic clay bricks
+  'nether_bricks',
+  'red_nether_bricks',
+
+  // Sandstone & variants
+  'sandstone',
+  'cut_sandstone',
+  'smooth_sandstone',
+  'red_sandstone',
+  'cut_red_sandstone',
+  'smooth_red_sandstone',
+
+  // Overworld wood planks
+  'oak_planks',
+  'spruce_planks',
+  'birch_planks',
+  'jungle_planks',
+  'acacia_planks',
+  'dark_oak_planks',
+  'mangrove_planks',
+  'cherry_planks',
+  'bamboo_planks',
+
+  // Nether wood planks
+  'crimson_planks',
+  'warped_planks'
+];
+
+/**
+ * Get scaffolding block IDs from block names
+ * @param {Object} mcData - minecraft-data instance for the bot's version
+ * @param {Array<string>} blockNames - Optional array of block names (defaults to DEFAULT_SCAFFOLDING_BLOCK_NAMES)
+ * @returns {Array<number>} Array of block item IDs
+ */
+function getScaffoldingBlockIds(mcData, blockNames = null) {
+  const names = blockNames || DEFAULT_SCAFFOLDING_BLOCK_NAMES;
+  
+  return names
+    .map(name => mcData.itemsByName[name]?.id)
+    .filter(id => id !== undefined);
+}
+
+// ============================================================================
 // BASIC CONTROL FUNCTIONS
 // ============================================================================
 
@@ -92,7 +168,10 @@ function initializePathfinder(bot, options = {}) {
   movements.allowEntityDetection = options.allowEntityDetection !== false; // Default: true - Avoid entities
 
   // Additional pathfinder settings for robust navigation
-  movements.scaffoldingBlocks = options.scaffoldingBlocks || []; // Blocks to use for bridging
+  // Note: Property is 'scafoldingBlocks' (one 'f') in mineflayer-pathfinder - this is intentional
+  movements.scafoldingBlocks = options.scafoldingBlocks !== undefined 
+    ? options.scafoldingBlocks 
+    : getScaffoldingBlockIds(mcData); // Default: comprehensive building blocks list
   movements.maxDropDown = options.maxDropDown || 4; // Max blocks to drop down
   movements.infiniteLiquidDropdownDistance = options.infiniteLiquidDropdownDistance !== false; // Can drop any distance into water
 
@@ -106,6 +185,7 @@ function initializePathfinder(bot, options = {}) {
     placeBlocks: movements.canPlaceOn,
     entityDetection: movements.allowEntityDetection,
     maxDropDown: movements.maxDropDown,
+    scafoldingBlocks: movements.scafoldingBlocks.length,
   });
 
   return movements;
@@ -383,7 +463,7 @@ async function lookSmooth(
     bot.look(currentYaw, currentPitch, true);
 
     if (progress >= 1.0) break;
-    await sleep(updateInterval);
+    await sleep(100);
   }
 
   // Ensure we end exactly at the target angles
@@ -594,4 +674,6 @@ module.exports = {
   land_pos,
   jump,
   Y_IN_AIR,
+  getScaffoldingBlockIds,
+  DEFAULT_SCAFFOLDING_BLOCK_NAMES,
 };

@@ -67,7 +67,7 @@ const defaultEpisodeTypes = [
   // "pve",
   "buildStructure",
   // "buildTower",
-  "mine",
+  // "mine",
   "towerBridge",
   // "collector",
 ];
