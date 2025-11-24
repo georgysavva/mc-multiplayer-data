@@ -7,7 +7,6 @@ const {
   land_pos,
 } = require("../utils/movement");
 const { BaseEpisode } = require("./base-episode");
-const Lock = require("../utils/lock");
 
 // Constants for collector behavior
 const MEETUP_TIMEOUT_MS = 4000; // 15 seconds to meet up
