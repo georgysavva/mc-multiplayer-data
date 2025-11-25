@@ -252,7 +252,7 @@ def generate_compose_config(
                     "VIEWER_RECORDING_INTERVAL": 50,
                     "WALK_TIMEOUT": 5,
                     "TELEPORT": 1,
-                    "TELEPORT_RADIUS": 250,
+                    "TELEPORT_RADIUS": 50000,
                     "WORLD_TYPE": str(world_type).lower(),
                     "SMOKE_TEST": smoke_test,
                     "INSTANCE_ID": instance_id,
