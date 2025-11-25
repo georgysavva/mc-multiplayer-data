@@ -112,12 +112,14 @@ async function executeOrbitWithCheckpoints(bot, otherBotName, checkpoints, rcon)
       if (distance <= CHECKPOINT_REACH_DISTANCE) {
         reached = true;
         console.log(`[${bot.username}] ✅ Reached checkpoint ${i + 1} in ${(elapsed / 1000).toFixed(1)}s`);
+        break; // Exit immediately when reached
       } else if (elapsed > CHECKPOINT_TIMEOUT_MS) {
         timedOut = true;
         console.log(
           `[${bot.username}] ⏰ Timeout at checkpoint ${i + 1} after ${(elapsed / 1000).toFixed(1)}s ` +
           `(distance: ${distance.toFixed(2)} blocks, target: ${CHECKPOINT_REACH_DISTANCE} blocks)`
         );
+        break; // Exit immediately on timeout
       }
 
       checkCount++;
