@@ -462,9 +462,6 @@ async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options
   if (randomized && volatility > 0) {
     const multiplier = getMeanPreservingScalingFactor(volatility);
     actualSpeed = degreesPerSecond * multiplier;
-
-    if (progress >= 1.0) break;
-    await sleep(100);
   }
 
   await bot.look(targetYaw, targetPitch, false, actualSpeed, actualSpeed, useEasing);

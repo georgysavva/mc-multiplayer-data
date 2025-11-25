@@ -33,7 +33,6 @@ const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 const { BuildHouseEpisode } = require("./build-house-episode");
-// const { CollectorEpisode } = require("./collector-episode");
 const { StructureEvalEpisode } = require("./structureEval");
 const { CollectorEpisode } = require("./collector-episode");
 const { TranslationEvalEpisode } = require("./translation-eval-episode");
@@ -53,10 +52,9 @@ const episodeClassMap = {
   buildTower: BuildTowerEpisode,
   mine: MineEpisode,
   towerBridge: TowerBridgeEpisode,
-  //   buildHouse: BuildHouseEpisode,
-  // collector: CollectorEpisode,
-  structureEval: StructureEvalEpisode,
+  buildHouse: BuildHouseEpisode,
   collector: CollectorEpisode,
+  structureEval: StructureEvalEpisode,
   translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
   rotationEval: RotationEvalEpisode,
@@ -71,7 +69,7 @@ const defaultEpisodeTypes = [
   "chase",
   "orbit",
   "walkLook",
-  // "buildHouse",
+  "buildHouse",
   "walkLookAway",
   "pvp",
   "pve",
@@ -516,17 +514,13 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
         `[${bot.username}] SMOKE TEST MODE: Running ${episodesToRun.length} eligible episode types (world_type=${worldType}) in alphabetical order`
       );
     } else {
-      // Normal mode: cycle through eligible episode types in alphabetical order
+      // Normal mode: use the configured episodes_num, episode type picked at random from eligible
       for (let i = 0; i < args.episodes_num; i++) {
-        const episodeTypeIndex = i % sortedEligible.length;
         episodesToRun.push({
           episodeNum: args.start_episode_id + i,
-          episodeType: sortedEligible[episodeTypeIndex], // Sequential selection
+          episodeType: null, // Will be randomly selected
         });
       }
-      console.log(
-        `[${bot.username}] SEQUENTIAL MODE: Running ${episodesToRun.length} episodes cycling through ${sortedEligible.length} eligible episode types (world_type=${worldType}) in alphabetical order`
-      );
     }
 
     for (const episodeConfig of episodesToRun) {
@@ -536,8 +530,11 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       const botsRngSeedWithEpisode = `${botsRngBaseSeed}_${episodeNum}`;
       const sharedBotRng = seedrandom(botsRngSeedWithEpisode);
 
-      // Select episode type (already determined in episodesToRun)
-      const selectedEpisodeType = episodeConfig.episodeType;
+      // Select episode type
+      const selectedEpisodeType =
+        args.smoke_test === 1
+          ? episodeConfig.episodeType
+          : sortedEligible[Math.floor(sharedBotRng() * sortedEligible.length)];
 
       console.log(
         `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
