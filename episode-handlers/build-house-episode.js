@@ -117,20 +117,8 @@ function getOnBuildHousePhaseFn(
       `[${bot.username}]    Total blocks: ${worldTargets.length}`
     );
 
-    // STEP 5: Give blocks to bot via RCON
-    console.log(`[${bot.username}] 📦 STEP 5: Receiving building materials...`);
-    const materialCounts = calculateMaterialCounts(blueprint);
-    
-    // Add extra blocks for safety (50% more)
-    const safetyMaterials = {};
-    for (const [block, count] of Object.entries(materialCounts)) {
-      safetyMaterials[block] = Math.ceil(count * 1.5);
-    }
-    
-    await ensureBlocks(bot, rcon, safetyMaterials);
-
-    // STEP 6: Initialize pathfinder for building
-    console.log(`[${bot.username}] 🚶 STEP 6: Initializing pathfinder...`);
+    // STEP 5: Initialize pathfinder for building
+    console.log(`[${bot.username}] 🚶 STEP 5: Initializing pathfinder...`);
     initializePathfinder(bot, {
       allowSprinting: false,
       allowParkour: true,
@@ -138,8 +126,8 @@ function getOnBuildHousePhaseFn(
       allowEntityDetection: true,
     });
 
-    // STEP 7: Build in phases (floor → walls → door → windows → roof)
-    console.log(`[${bot.username}] 🏗️ STEP 7: Building house in phases...`);
+    // STEP 6: Build in phases (floor → walls → door → windows → roof)
+    console.log(`[${bot.username}] 🏗️ STEP 6: Building house in phases...`);
     const phases = ["floor", "walls", "door", "windows", "roof"];
     
     try {
@@ -230,11 +218,11 @@ function getOnBuildHousePhaseFn(
       return; // Exit early
     }
 
-    // STEP 8: Stop pathfinder
+    // STEP 7: Stop pathfinder
     stopPathfinder(bot);
 
-    // STEP 9: Exit through door and admire the house
-    console.log(`[${bot.username}] 🚪 STEP 9: Exiting and admiring house...`);
+    // STEP 8: Exit through door and admire the house
+    console.log(`[${bot.username}] 🚪 STEP 8: Exiting and admiring house...`);
     
     // Re-initialize pathfinder for admiration movement
     initializePathfinder(bot, {
@@ -293,6 +281,23 @@ class BuildHouseEpisode extends BaseEpisode {
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     console.log(`[${bot.username}] 🏠 Setting up house building episode...`);
+    
+    // Generate blueprint to calculate material needs
+    const blueprint = makeHouseBlueprint5x5({
+      materials: this.materials,
+    });
+    
+    // Calculate material counts
+    const materialCounts = calculateMaterialCounts(blueprint);
+    
+    // Add extra blocks for safety (50% more)
+    const safetyMaterials = {};
+    for (const [block, count] of Object.entries(materialCounts)) {
+      safetyMaterials[block] = Math.ceil(count * 1.5);
+    }
+    
+    console.log(`[${bot.username}] 📦 Giving building materials:`, safetyMaterials);
+    await ensureBlocks(bot, rcon, safetyMaterials);
   }
 
   async entryPoint(
