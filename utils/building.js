@@ -2,6 +2,7 @@
 const { Vec3 } = require("vec3");
 const { sleep } = require("./helpers");
 const { placeAt } = require("../episode-handlers/builder");
+const { digWithTimeout } = require("./movement");
 
 // Track scaffolds for cleanup
 const scaffoldBlocks = [];
@@ -463,12 +464,12 @@ async function cleanupScaffolds(bot) {
     try {
       const block = bot.blockAt(pos);
       if (block && block.name === "cobblestone") {
-        await bot.dig(block);
+        await digWithTimeout(bot, block, { timeoutMs: 5000 });
         await sleep(200);
       }
     } catch (error) {
       console.log(
-        `[${bot.username}] ⚠️ Failed to remove scaffold at (${pos.x}, ${pos.y}, ${pos.z})`
+        `[${bot.username}] ⚠️ Failed to remove scaffold at (${pos.x}, ${pos.y}, ${pos.z}): ${error.message}`
       );
     }
   }
