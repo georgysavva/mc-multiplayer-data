@@ -27,14 +27,14 @@ const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 const { decidePrimaryBot, rconTp } = require("../utils/coordination");
 const { lookAtBot, land_pos, digWithTimeout } = require("../utils/movement");
 
-const BLOCK_PLACE_INTERVAL_MS_MIN = 100;
-const BLOCK_PLACE_INTERVAL_MS_MAX = 200;
-const BLOCK_BREAK_INTERVAL_MS_MIN = 100;
-const BLOCK_BREAK_INTERVAL_MS_MAX = 200;
+const BLOCK_PLACE_INTERVAL_MS_MIN = 400;
+const BLOCK_PLACE_INTERVAL_MS_MAX = 800;
+const BLOCK_BREAK_INTERVAL_MS_MIN = 400;
+const BLOCK_BREAK_INTERVAL_MS_MAX = 800;
 const ROUND_DELAY_MS_MIN = 500;
 const ROUND_DELAY_MS_MAX = 1000;
-const NUM_ROUNDS_MIN = 10;
-const NUM_ROUNDS_MAX = 15;
+const NUM_ROUNDS_MIN = 7;
+const NUM_ROUNDS_MAX = 10;
 const PLACEMENT_RETRY_LIMIT = 3;
 const DISTANCE_FROM_CENTER = 2;
 
