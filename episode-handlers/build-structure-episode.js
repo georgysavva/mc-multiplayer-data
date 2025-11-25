@@ -144,6 +144,7 @@ async function buildStructure(bot, positions, blockType, args) {
  * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
  * @param {string} structureType - Type of structure ('wall', 'tower', 'platform')
+ * @param {Object} phaseDataOur - Phase data for this bot (contains position)
  * @returns {Function} Phase function
  */
 function getOnBuildPhaseFn(
@@ -155,12 +156,13 @@ function getOnBuildPhaseFn(
   episodeNum,
   episodeInstance,
   args,
-  structureType = "wall"
+  structureType = "wall",
+  phaseDataOur
 ) {
-  return async function onBuildPhase(otherBotPosition) {
+  return async function onBuildPhase(phaseDataOther) {
     coordinator.sendToOtherBot(
       `buildPhase_${iterationID}`,
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       `buildPhase_${iterationID} beginning`
     );
@@ -191,7 +193,7 @@ function getOnBuildPhaseFn(
     console.log(
       `[${bot.username}] 📐 STEP 3: Planning structure ${structureType}...`
     );
-    const botPos = bot.entity.position.floored();
+    const botPos = phaseDataOur.position.floored();
     let positions = [];
     let blockType =
       BUILD_BLOCK_TYPES[Math.floor(sharedBotRng() * BUILD_BLOCK_TYPES.length)];
@@ -220,7 +222,7 @@ function getOnBuildPhaseFn(
       positions = generateTowerPositions(startPos, height);
     } else if (structureType === "platform") {
       // Bots build a shared platform - use midpoint between bots as reference
-      const midpoint = botPos.plus(otherBotPosition).scaled(0.5).floored();
+      const midpoint = botPos.plus(phaseDataOther.position).scaled(0.5).floored();
       const startPos = midpoint.offset(-2, 0, -2); // Center the 4x4 platform at midpoint
       const width = 4;
       const depth = 4;
@@ -297,7 +299,7 @@ function getOnBuildPhaseFn(
     );
     coordinator.sendToOtherBot(
       "stopPhase",
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       `buildPhase_${iterationID} end`
     );
@@ -335,6 +337,10 @@ class BuildStructureEpisode extends BaseEpisode {
     episodeNum,
     args
   ) {
+    const phaseDataOur = {
+      position: bot.entity.position.clone()
+    };
+    
     coordinator.onceEvent(
       `buildPhase_${iterationID}`,
       episodeNum,
@@ -347,12 +353,13 @@ class BuildStructureEpisode extends BaseEpisode {
         episodeNum,
         this,
         args,
-        this.structureType
+        this.structureType,
+        phaseDataOur
       )
     );
     coordinator.sendToOtherBot(
       `buildPhase_${iterationID}`,
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       "entryPoint end"
     );
