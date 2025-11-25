@@ -27,10 +27,14 @@ const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 const { decidePrimaryBot, rconTp } = require("../utils/coordination");
 const { lookAtBot, land_pos, digWithTimeout } = require("../utils/movement");
 
-const BLOCK_PLACE_INTERVAL_MS = 150;
-const BLOCK_BREAK_INTERVAL_MS = 100;
-const ROUND_DELAY_MS = 500;
-const NUM_ROUNDS = 20;
+const BLOCK_PLACE_INTERVAL_MS_MIN = 100;
+const BLOCK_PLACE_INTERVAL_MS_MAX = 200;
+const BLOCK_BREAK_INTERVAL_MS_MIN = 100;
+const BLOCK_BREAK_INTERVAL_MS_MAX = 200;
+const ROUND_DELAY_MS_MIN = 500;
+const ROUND_DELAY_MS_MAX = 1000;
+const NUM_ROUNDS_MIN = 10;
+const NUM_ROUNDS_MAX = 15;
 const PLACEMENT_RETRY_LIMIT = 3;
 const DISTANCE_FROM_CENTER = 2;
 
@@ -191,54 +195,64 @@ function generateBlockPositions(center, blockCount, direction = "z") {
   return positions;
 }
 
-async function runBuilderRounds(bot, rcon, sharedBotRng, coordinator, episodeNum, center, stripDirection, otherBotName) {
-  console.log(`[${bot.username}] 🏗️ Starting builder role for ${NUM_ROUNDS} rounds`);
+function getOnBuildRoundPhaseFn(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, episodeInstance, args, round) {
+  return async (phaseDataOther) => {
+    coordinator.sendToOtherBot(
+      `buildRound_${iterationID}_${round}`,
+      {},
+      episodeNum,
+      `buildRound_${iterationID}_${round} beginning`
+    );
+    let nextPhaseData = {};
+    if (episodeInstance._isBuilder) {
 
-  for (let round = 0; round < NUM_ROUNDS; round++) {
-    console.log(`[${bot.username}] 🎯 Round ${round + 1}/${NUM_ROUNDS}`);
+      const center = episodeInstance._buildCenter;
+      const stripDirection = episodeInstance._axisOfActivity;
 
-    const blockCount = [1, 2, 3, 4, 5][Math.floor(sharedBotRng() * 5)];
-    const blockType = BLOCK_TYPES[Math.floor(sharedBotRng() * BLOCK_TYPES.length)];
-    const positions = generateBlockPositions(center, blockCount, stripDirection);
+      console.log(`[${bot.username}] 🎯 Round ${round + 1}/${episodeInstance._numRounds}`);
 
-    await ensureItemInHand(bot, blockType);
-    await sleep(100);
+      const blockCount = [1, 2, 3, 4, 5][Math.floor(Math.random() * 5)];
+      const blockType = BLOCK_TYPES[Math.floor(Math.random() * BLOCK_TYPES.length)];
+      const positions = generateBlockPositions(center, blockCount, stripDirection);
 
-    const placedPositions = [];
-    for (const pos of positions) {
-      const success = await placeAt(bot, pos, blockType, {
-        useSneak: true,
-        tries: PLACEMENT_RETRY_LIMIT,
-        args: null,
-      });
+      await ensureItemInHand(bot, blockType);
+      await sleep(100);
 
-      if (success) {
-        placedPositions.push(pos);
+      const placedPositions = [];
+      for (const pos of positions) {
+        const success = await placeAt(bot, pos, blockType, {
+          useSneak: true,
+          tries: PLACEMENT_RETRY_LIMIT,
+          args: null,
+        });
+
+        if (success) {
+          placedPositions.push(pos);
+        }
+
+        await sleep(Math.random() * (BLOCK_PLACE_INTERVAL_MS_MAX - BLOCK_PLACE_INTERVAL_MS_MIN + 1) + BLOCK_PLACE_INTERVAL_MS_MIN);
       }
 
-      await sleep(BLOCK_PLACE_INTERVAL_MS);
+      await sleep(200);
+      await lookAtBot(bot, args.other_bot_name, 90);
+      await sleep(500);
+
+
+      await sleep(Math.random() * (ROUND_DELAY_MS_MAX - ROUND_DELAY_MS_MIN + 1) + ROUND_DELAY_MS_MIN);
+      nextPhaseData = { roundData: { positions: placedPositions, blockType } };
+    } else {
+      console.log(`[${bot.username}] is not a builder, skipping build round`);
+
     }
-
-    await sleep(200);
-    await lookAtBot(bot, otherBotName, 90);
-    await sleep(500);
-
-    coordinator.sendToOtherBot(
-      `buildingComplete_${round}`,
-      { positions: placedPositions, blockType },
+    coordinator.onceEvent(
+      `mineRound_${iterationID}_${round}`,
       episodeNum,
-      `builder finished round ${round + 1}`
+      getOnMineRoundPhaseFn(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, episodeInstance, args, round, nextPhaseData)
     );
-
-    await new Promise((resolve) => {
-      coordinator.onceEvent(`miningComplete_${round}`, episodeNum, () => resolve());
-    });
-
-    await sleep(ROUND_DELAY_MS);
+    coordinator.sendToOtherBot(`mineRound_${iterationID}_${round}`, nextPhaseData, episodeNum, `buildRound_${iterationID}_${round} end`);
   }
-
-  console.log(`[${bot.username}] 🏁 Builder completed all ${NUM_ROUNDS} rounds`);
 }
+
 
 async function clearBuildArea(bot, center, clearDirection) {
   console.log(`[${bot.username}] 🧹 Clearing 5 blocks in ${clearDirection} direction`);
@@ -260,59 +274,74 @@ async function clearBuildArea(bot, center, clearDirection) {
       await bot.lookAt(pos.offset(0.5, 0.5, 0.5), false);
       await sleep(50);
       await digBlock(bot, pos);
-      await sleep(BLOCK_BREAK_INTERVAL_MS);
+      await sleep(Math.random() * (BLOCK_BREAK_INTERVAL_MS_MAX - BLOCK_BREAK_INTERVAL_MS_MIN + 1) + BLOCK_BREAK_INTERVAL_MS_MIN);
     }
   }
 }
 
-async function runMinerRounds(bot, rcon, sharedBotRng, coordinator, episodeNum, center, stripDirection, otherBotName) {
-  console.log(`[${bot.username}] ⛏️ Starting miner role for ${NUM_ROUNDS} rounds`);
-
-  await ensureItemInHand(bot, "diamond_pickaxe");
-  await sleep(100);
-
-  for (let round = 0; round < NUM_ROUNDS; round++) {
-    console.log(`[${bot.username}] 👀 Round ${round + 1}/${NUM_ROUNDS}: Watching builder...`);
-
-    await lookAtBot(bot, otherBotName, 90);
-
-    const roundData = await new Promise((resolve) => {
-      coordinator.onceEvent(`buildingComplete_${round}`, episodeNum, (data) => resolve(data));
-    });
-
-    await sleep(ROUND_DELAY_MS);
-
-    console.log(`[${bot.username}] ⛏️ Mining ${roundData.positions.length} block(s)...`);
-
-    let minedCount = 0;
-    for (const posData of roundData.positions) {
-      const pos = new Vec3(posData.x, posData.y, posData.z);
-      await bot.lookAt(pos.offset(0.5, 0.5, 0.5), false);
-      await sleep(50);
-
-      const success = await digBlock(bot, pos);
-      if (success) {
-        minedCount++;
-      }
-
-      await sleep(BLOCK_BREAK_INTERVAL_MS);
-    }
-
-    await sleep(200);
-    await lookAtBot(bot, otherBotName, 90);
-    await sleep(500);
-
+function getOnMineRoundPhaseFn(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, episodeInstance, args, round, phaseDataOur) {
+  return async (phaseDataOther) => {
     coordinator.sendToOtherBot(
-      `miningComplete_${round}`,
-      { minedCount },
+      `mineRound_${iterationID}_${round}`,
+      phaseDataOur,
       episodeNum,
-      `miner finished round ${round + 1}`
+      `mineRound_${iterationID}_${round} beginning`
     );
 
-    await sleep(ROUND_DELAY_MS);
-  }
+    if (!episodeInstance._isBuilder) {
+      const roundData = phaseDataOther.roundData;
+      if (!roundData) {
+        throw new Error(`[${bot.username}] No roundData received from builder for mining phase.`);
+      }
+      await ensureItemInHand(bot, "diamond_pickaxe");
+      await sleep(100);
 
-  console.log(`[${bot.username}] 🏁 Miner completed all ${NUM_ROUNDS} rounds`);
+      console.log(`[${bot.username}] 👀 Round ${round + 1}/${episodeInstance._numRounds}: Watching builder...`);
+
+      await lookAtBot(bot, args.other_bot_name, 90);
+
+
+      console.log(`[${bot.username}] ⛏️ Mining ${roundData.positions.length} block(s)...`);
+
+      let minedCount = 0;
+      for (const posData of roundData.positions) {
+        const pos = new Vec3(posData.x, posData.y, posData.z);
+        await bot.lookAt(pos.offset(0.5, 0.5, 0.5), false);
+        await sleep(50);
+
+        const success = await digBlock(bot, pos);
+        if (success) {
+          minedCount++;
+        }
+
+        await sleep(Math.random() * (BLOCK_BREAK_INTERVAL_MS_MAX - BLOCK_BREAK_INTERVAL_MS_MIN + 1) + BLOCK_BREAK_INTERVAL_MS_MIN);
+      }
+
+      await sleep(200);
+      await lookAtBot(bot, args.other_bot_name, 90);
+      await sleep(500);
+      await sleep(Math.random() * (ROUND_DELAY_MS_MAX - ROUND_DELAY_MS_MIN + 1) + ROUND_DELAY_MS_MIN);
+    } else {
+      console.log(`[${bot.username}] is not a miner, skipping mine round`);
+    }
+    if (round < episodeInstance._numRounds - 1) {
+      const nextRound = round + 1;
+      coordinator.onceEvent(
+        `buildRound_${iterationID}_${nextRound}`,
+        episodeNum,
+        getOnBuildRoundPhaseFn(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, episodeInstance, args, nextRound)
+      );
+      coordinator.sendToOtherBot(`buildRound_${iterationID}_${nextRound}`, {}, episodeNum, `MineRound_${iterationID}_${round} end`);
+
+    } else {
+      coordinator.onceEvent(
+        "stopPhase",
+        episodeNum,
+        episodeInstance.getOnStopPhaseFn(bot, rcon, sharedBotRng, coordinator, args.other_bot_name, episodeNum, args)
+      );
+      coordinator.sendToOtherBot("stopPhase", bot.entity.position.clone(), episodeNum, `placeAndMinePhase_${iterationID} end`);
+    }
+  }
 }
 
 function getOnPlaceAndMinePhaseFn(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, episodeInstance, args) {
@@ -331,58 +360,56 @@ function getOnPlaceAndMinePhaseFn(bot, rcon, sharedBotRng, coordinator, iteratio
     const axisOfObservation = episodeInstance._axisOfObservation;
     const needsClearing = episodeInstance._needsClearing;
     const isBuilder = episodeInstance._isBuilder;
-
+    const numRounds = Math.floor(sharedBotRng() * (NUM_ROUNDS_MAX - NUM_ROUNDS_MIN + 1)) + NUM_ROUNDS_MIN
+    episodeInstance._numRounds = numRounds;
     console.log(`[${bot.username}] 🎭 I am the ${isBuilder ? "🏗️ BUILDER" : "⛏️ MINER"}`);
     console.log(`[${bot.username}] 📐 AxO=${axisOfObservation}, AxA=${axisOfActivity}`);
 
-    let clearingStartPromise = null;
-    let clearingCompletePromise = null;
-    if (needsClearing && isBuilder) {
-      clearingStartPromise = new Promise((resolve) => {
-        coordinator.onceEvent(`clearingStart`, episodeNum, () => resolve());
-      });
-      clearingCompletePromise = new Promise((resolve) => {
-        coordinator.onceEvent(`clearingComplete`, episodeNum, () => resolve());
-      });
-    }
 
     await lookAtBot(bot, args.other_bot_name, 90);
     await sleep(1000);
 
     if (needsClearing && !isBuilder) {
       console.log(`[${bot.username}] 🧹 Miner clearing observation axis...`);
-      coordinator.sendToOtherBot(`clearingStart`, {}, episodeNum, `miner starting to clear`);
       await clearBuildArea(bot, buildCenter, axisOfObservation);
       await sleep(500);
       await lookAtBot(bot, args.other_bot_name, 90);
       await sleep(500);
-      coordinator.sendToOtherBot(`clearingComplete`, {}, episodeNum, `miner finished clearing`);
-    } else if (needsClearing && isBuilder) {
-      await clearingStartPromise;
-      await clearingCompletePromise;
-      await sleep(500);
-    }
-
-    if (isBuilder) {
-      await runBuilderRounds(bot, rcon, sharedBotRng, coordinator, episodeNum, buildCenter, axisOfActivity, args.other_bot_name);
-    } else {
-      await runMinerRounds(bot, rcon, sharedBotRng, coordinator, episodeNum, buildCenter, axisOfActivity, args.other_bot_name);
-    }
-
-    console.log(`[${bot.username}] ✅ PLACE-AND-MINE phase complete!`);
+    } 
+    
 
     coordinator.onceEvent(
-      "stopPhase",
+      `clearingComplete_${iterationID}`,
       episodeNum,
-      episodeInstance.getOnStopPhaseFn(bot, rcon, sharedBotRng, coordinator, args.other_bot_name, episodeNum, args)
+      getOnClearingCompletePhaseFn(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, episodeInstance, args)
     );
-    coordinator.sendToOtherBot("stopPhase", bot.entity.position.clone(), episodeNum, `placeAndMinePhase_${iterationID} end`);
+    coordinator.sendToOtherBot(`clearingComplete_${iterationID}`, bot.entity.position.clone(), episodeNum, `clearingComplete_${iterationID} end`);
+  };
+}
+
+function getOnClearingCompletePhaseFn(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, episodeInstance, args) {
+  return async () => {
+    coordinator.sendToOtherBot(
+      `clearingComplete_${iterationID}`,
+      bot.entity.position.clone(),
+      episodeNum,
+      `clearingComplete_${iterationID} beginning`
+    );
+
+    const round = 0;
+    coordinator.onceEvent(
+      `buildRound_${iterationID}_${round}`,
+      episodeNum,
+      getOnBuildRoundPhaseFn(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, episodeInstance, args, round)
+    );
+    coordinator.sendToOtherBot(`buildRound_${iterationID}_${round}`, {}, episodeNum, `clearingComplete_${iterationID} end`);
+
   };
 }
 
 class PlaceAndMineEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 4;
-  static INIT_MAX_BOTS_DISTANCE = 4;
+  static INIT_MAX_BOTS_DISTANCE = 8;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
@@ -485,7 +512,4 @@ class PlaceAndMineEpisode extends BaseEpisode {
 
 module.exports = {
   PlaceAndMineEpisode,
-  getOnPlaceAndMinePhaseFn,
-  BLOCK_TYPES,
-  NUM_ROUNDS,
 };
