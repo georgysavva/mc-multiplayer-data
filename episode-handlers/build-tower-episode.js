@@ -11,7 +11,7 @@ const {
   fastPlaceBlock,
 } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
-const { ensureBotHasEnough } = require("../utils/items");
+const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 
 // Constants for tower building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
@@ -163,10 +163,14 @@ class BuildTowerEpisode extends BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = 15;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
     // Give tower building blocks via RCON
     await ensureBotHasEnough(bot, rcon, TOWER_BLOCK_TYPE, 64);
     await unequipHand(bot);
+    return {
+      botPositionNew: botPosition,
+      otherBotPositionNew: otherBotPosition,
+    };
   }
 
   async entryPoint(

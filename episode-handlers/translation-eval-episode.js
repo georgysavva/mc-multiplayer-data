@@ -175,10 +175,7 @@ class TranslationEvalEpisode extends BaseEpisode {
     MAX_WALK_DISTANCE: 9,
     JUMP_PROBABILITY: 0.0,
   };
-  
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
-    // optional setup
-  }
+
 
   async entryPoint(
     bot,

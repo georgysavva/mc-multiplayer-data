@@ -315,13 +315,17 @@ class PvpEpisode extends BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = MAX_SPAWN_DISTANCE;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
     // No setup needed - swords are equipped during the episode
     // Wait for the item to be added to inventory
     await giveRandomSword(bot, rcon);
     await sleep(500);
     await unequipHand(bot);
     await sleep(500);
+    return {
+      botPositionNew: botPosition,
+      otherBotPositionNew: otherBotPosition,
+    };
   }
 
   async entryPoint(

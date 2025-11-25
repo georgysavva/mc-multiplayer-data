@@ -482,7 +482,6 @@ function getOnMinePhaseFn(
 class MineEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
 
   async entryPoint(
     bot,

@@ -237,9 +237,7 @@ function getOnMVCTestPhaseFn(
 }
 
 class MvcTestEpisode extends BaseEpisode {
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
-    // optional setup
-  }
+
 
   async entryPoint(
     bot,

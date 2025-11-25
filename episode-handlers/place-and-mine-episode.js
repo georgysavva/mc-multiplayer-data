@@ -385,8 +385,9 @@ class PlaceAndMineEpisode extends BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = 4;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
     console.log(`[${bot.username}] 🎬 Setting up place-and-mine episode...`);
+    const { botPositionNew, otherBotPositionNew } = await this.findGroundAndPositionBots(bot, rcon, sharedBotRng, args, botPosition, otherBotPosition);
 
     for (const blockType of BLOCK_TYPES) {
       await ensureBotHasEnough(bot, rcon, blockType, 64);
@@ -395,26 +396,16 @@ class PlaceAndMineEpisode extends BaseEpisode {
     await unequipHand(bot);
     await sleep(500);
 
-    await this.findGroundAndPositionBots(bot, rcon, sharedBotRng, coordinator, episodeNum, args);
 
     console.log(`[${bot.username}] ✅ Place-and-mine episode setup complete`);
+    return {
+      botPositionNew,
+      otherBotPositionNew,
+    };
   }
 
-  async findGroundAndPositionBots(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
-    const myPos = bot.entity.position.clone();
-    let otherBotPosition = null;
-
-    try {
-      const otherEntity = bot.players[args.other_bot_name]?.entity;
-      if (otherEntity) {
-        otherBotPosition = otherEntity.position.clone();
-      } else {
-        throw new Error(`Could not find other bot entity: ${args.other_bot_name}`);
-      }
-    } catch (error) {
-      console.error(`[${bot.username}] ❌ Error getting other bot position: ${error.message}`);
-      throw error;
-    }
+  async findGroundAndPositionBots(bot, rcon, sharedBotRng,  args, botPosition, otherBotPosition) {
+    const myPos = botPosition;
 
     const midX = Math.floor((myPos.x + otherBotPosition.x) / 2);
     const midZ = Math.floor((myPos.z + otherBotPosition.z) / 2);
@@ -424,13 +415,6 @@ class PlaceAndMineEpisode extends BaseEpisode {
       throw new Error(`Could not find ground at midpoint (${midX}, ${midZ})`);
     }
 
-    await new Promise((resolve) => {
-      coordinator.onceEvent(`setupPositioningSync`, episodeNum, () => {
-        coordinator.sendToOtherBot(`setupPositioningSync`, {}, episodeNum, `setup positioning sync response`);
-        resolve();
-      });
-      coordinator.sendToOtherBot(`setupPositioningSync`, {}, episodeNum, `setup positioning sync request`);
-    });
 
     const buildLocation = findBuildLocation(bot, groundPos, 15);
     if (!buildLocation) {
@@ -441,8 +425,8 @@ class PlaceAndMineEpisode extends BaseEpisode {
     const needsClearing = buildLocation.priority === 2;
 
     let axisOfObservation, axisOfActivity;
+    const useXAsObservation = sharedBotRng() < 0.5;
     if (buildLocation.priority === 0) {
-      const useXAsObservation = sharedBotRng() < 0.5;
       axisOfObservation = useXAsObservation ? "x" : "z";
       axisOfActivity = useXAsObservation ? "z" : "x";
     } else if (buildLocation.priority === 2) {
@@ -468,9 +452,10 @@ class PlaceAndMineEpisode extends BaseEpisode {
       ? buildCenter.offset(minerOffset, 0, 0)
       : buildCenter.offset(0, 0, minerOffset);
 
-    const targetPos = isBuilder ? builderPos : minerPos;
+    const botPositionNew = isBuilder ? builderPos : minerPos;
+    const otherBotPositionNew = isBuilder ? minerPos : builderPos;
 
-    await rconTp(rcon, bot.username, targetPos.x, targetPos.y, targetPos.z);
+    await rconTp(rcon, bot.username, botPositionNew.x, botPositionNew.y, botPositionNew.z);
     await sleep(1000);
 
     this._buildCenter = buildCenter;
@@ -478,6 +463,10 @@ class PlaceAndMineEpisode extends BaseEpisode {
     this._axisOfObservation = axisOfObservation;
     this._needsClearing = needsClearing;
     this._isBuilder = isBuilder;
+    return {
+      botPositionNew,
+      otherBotPositionNew,
+    };
   }
 
   async entryPoint(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, args) {
