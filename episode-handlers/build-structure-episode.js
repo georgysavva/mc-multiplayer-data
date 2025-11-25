@@ -11,8 +11,7 @@ const { pickRandom } = require("../utils/coordination");
 const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 
 // Constants for building behavior
-// const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
-const ALL_STRUCTURE_TYPES = ["platform"];
+const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const BUILD_BLOCK_TYPES = ["stone", "cobblestone", "oak_planks", "bricks"];
 const BLOCK_PLACE_DELAY_MS = 1500; // Delay between placing blocks (1.5 seconds for more visible building)
