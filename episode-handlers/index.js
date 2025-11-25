@@ -37,6 +37,7 @@ const { CollectorEpisode } = require("./collector-episode");
 const { TranslationEvalEpisode } = require("./translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
 const { RotationEvalEpisode } = require("./rotation-eval-episode");
+const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -56,6 +57,7 @@ const episodeClassMap = {
   translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
   rotationEval: RotationEvalEpisode,
+  placeAndMine: PlaceAndMineEpisode,
 };
 
 // Import episode-specific handlers
@@ -79,6 +81,7 @@ const defaultEpisodeTypes = [
   "translationEval",
   "lookAwayEval",
   "rotationEval",
+  "placeAndMine",
 ];
 
 // Load episode types from environment variable or use default
