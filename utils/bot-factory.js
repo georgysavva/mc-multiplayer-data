@@ -2,7 +2,7 @@ const mineflayer = require("mineflayer");
 const {
   pathfinder,
   Movements,
-  goals: { GoalNear, GoalNearXZ, GoalBlock, GoalFollow },
+  goals: { GoalNear, GoalNearXZ, GoalXZ, GoalBlock, GoalFollow },
 } = require("mineflayer-pathfinder");
 
 const pvp = require("mineflayer-pvp").plugin;
@@ -151,6 +151,7 @@ module.exports = {
   Movements,
   GoalNear,
   GoalNearXZ,
+  GoalXZ,
   GoalBlock,
   GoalFollow,
 };

@@ -369,16 +369,61 @@ function moveAway(bot, avoidPosition, sprint = false) {
 }
 
 // ============================================================================
+// RANDOM SAMPLING UTILITIES
+// ============================================================================
+
+/**
+ * Generate a log-normal random variable with given mu and sigma.
+ * @param {number} mu - Mean of the underlying normal distribution
+ * @param {number} sigma - Standard deviation of the underlying normal distribution
+ * @returns {number} A log-normal random sample
+ */
+function sampleLognormal(mu, sigma) {
+  // Generate Standard Normal Z ~ N(0, 1) using Box-Muller transform
+  let u1 = 0, u2 = 0;
+  // Math.random() is [0, 1), but we need (0, 1) to avoid Math.log(0) = -Infinity
+  while (u1 === 0) u1 = Math.random(); 
+  u2 = Math.random();
+
+  const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+  const normalSample = mu + z * sigma;
+  return Math.exp(normalSample);
+}
+
+/**
+ * Generates a scaling factor with Expected Value = 1.0.
+ * @param {number} volatility - The sigma parameter controlling variance (e.g., 0.5 or 0.8)
+ * @returns {number} A scaling factor R where E[R] = 1
+ */
+function getMeanPreservingScalingFactor(volatility) {
+  if (volatility <= 0) {
+    return 1;
+  }
+  const mu = -volatility * volatility / 2;
+  return sampleLognormal(mu, volatility);
+}
+
+// ============================================================================
 // CAMERA AND LOOKING FUNCTIONS
 // ============================================================================
+
+/**
+ * Default options for look functions
+ */
+const DEFAULT_LOOK_OPTIONS = {
+  useEasing: false,
+  randomized: false,
+  volatility: 0.4,
+};
 
 /**
  * Smoothly rotate bot camera to look at target position
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Vec3} targetPosition - Position to look at
  * @param {number} degreesPerSecond - Rotation speed in degrees per second
+ * @param {Object} [options] - Look options (see lookSmooth for details)
  */
-async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90) {
+async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, options = {}) {
   const botPosition = bot.entity.position;
 
   // Calculate the vector from bot to target
@@ -391,83 +436,38 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90) {
 
   // Calculate target pitch (vertical rotation)
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
-  const targetPitch = -Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
+  const targetPitch = Math.atan2(dy, horizontalDistance); // Negative for Minecraft pitch
 
-  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, {
-    logTarget: `[${bot.username}] Looking at (${targetPosition.x.toFixed(
-      2
-    )}, ${targetPosition.y.toFixed(2)}, ${targetPosition.z.toFixed(2)})`,
-  });
+  await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options);
 }
 
-async function lookSmooth(
-  bot,
-  targetYaw,
-  targetPitch,
-  degreesPerSecond,
-  opts = {}
-) {
-  const startYaw = bot.entity.yaw;
-  const startPitch = bot.entity.pitch;
 
-  // Calculate angle differences, handling wrapping for yaw
-  let yawDiff = targetYaw - startYaw;
-  // Normalize yaw difference to [-π, π] for shortest rotation
-  while (yawDiff > Math.PI) yawDiff -= 2 * Math.PI;
-  while (yawDiff < -Math.PI) yawDiff += 2 * Math.PI;
+/**
+ * Smoothly rotate bot camera to specified yaw and pitch
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} targetYaw - Target yaw angle in radians
+ * @param {number} targetPitch - Target pitch angle in radians
+ * @param {number} degreesPerSecond - Base rotation speed in degrees per second
+ * @param {Object} [options] - Look options
+ * @param {boolean} [options.useEasing=false] - Whether to use easing for the rotation
+ * @param {boolean} [options.randomized=false] - Whether to use log-normal speed randomization
+ * @param {number} [options.volatility=0.4] - Sigma parameter for log-normal speed randomization
+ *   To view how log-normal scaling works, see: https://www.desmos.com/calculator/wazayi56xf
+ */
+async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options = {}) {
+  const { useEasing, randomized, volatility } = { ...DEFAULT_LOOK_OPTIONS, ...options };
 
-  const pitchDiff = targetPitch - startPitch;
+  let actualSpeed = degreesPerSecond;
 
-  // Calculate total angular distance in radians
-  const totalAngleDistance = Math.sqrt(
-    yawDiff * yawDiff + pitchDiff * pitchDiff
-  );
-
-  // Convert speed from degrees per second to radians per second
-  const radiansPerSecond = (degreesPerSecond * Math.PI) / 180;
-
-  // Calculate total time needed
-  const totalTimeMs = (totalAngleDistance / radiansPerSecond) * 1000;
-
-  if (opts.logTarget) {
-    console.log(
-      `${opts.logTarget} at ${degreesPerSecond}°/s over ${(
-        totalTimeMs / 1000
-      ).toFixed(2)}s`
-    );
-  } else {
-    console.log(
-      `[${bot.username}] Looking at yaw=${targetYaw.toFixed(
-        2
-      )}, pitch=${targetPitch.toFixed(2)} at ${degreesPerSecond}°/s over ${(
-        totalTimeMs / 1000
-      ).toFixed(2)}s`
-    );
-  }
-
-  const startTime = Date.now();
-  const endTime = startTime + totalTimeMs;
-  const updateInterval = 50; // 50ms intervals
-
-  while (Date.now() < endTime) {
-    const elapsed = Date.now() - startTime;
-    const progress = Math.min(elapsed / totalTimeMs, 1.0);
-
-    // Smooth interpolation using easing function (ease-out)
-    const easedProgress = 1 - Math.pow(1 - progress, 2);
-
-    // Calculate current angles
-    const currentYaw = startYaw + yawDiff * easedProgress;
-    const currentPitch = startPitch + pitchDiff * easedProgress;
-
-    bot.look(currentYaw, currentPitch, true);
+  if (randomized && volatility > 0) {
+    const multiplier = getMeanPreservingScalingFactor(volatility);
+    actualSpeed = degreesPerSecond * multiplier;
 
     if (progress >= 1.0) break;
     await sleep(100);
   }
 
-  // Ensure we end exactly at the target angles
-  bot.look(targetYaw, targetPitch, true);
+  await bot.look(targetYaw, targetPitch, false, actualSpeed, actualSpeed, useEasing);
 }
 
 /**
@@ -475,11 +475,12 @@ async function lookSmooth(
  * @param {Bot} bot - Mineflayer bot instance
  * @param {string} targetBotName - Name of the bot to look at
  * @param {number} degreesPerSecond - Rotation speed in degrees per second
+ * @param {Object} [options] - Look options (see lookSmooth for details)
  */
-async function lookAtBot(bot, targetBotName, degreesPerSecond = 90) {
+async function lookAtBot(bot, targetBotName, degreesPerSecond = 90, options = {}) {
   const targetBot = bot.players[targetBotName];
   if (targetBot && targetBot.entity) {
-    await lookAtSmooth(bot, targetBot.entity.position, degreesPerSecond);
+    await lookAtSmooth(bot, targetBot.entity.position, degreesPerSecond, options);
   } else {
     console.log(
       `[${bot.username}] Cannot find bot ${targetBotName} to look at`
@@ -636,6 +637,22 @@ async function jump(bot, durationMs) {
   }
 }
 
+/**
+ * Make bot sneak for specified number of ticks (default: 5 ticks)
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {number} durationTicks - Number of ticks to sneak (default: 5)
+ * @param {number} idleTicks - Number of ticks to idle for after releasing sneak (default: 5)
+ */
+async function sneak(bot, durationTicks = 5, idleTicks = 10) {
+  console.log(
+    `[${bot.username}] Sneaking for ${(durationTicks + idleTicks) / 20}s`
+  );
+  bot.setControlState("sneak", true);
+  await bot.waitForTicks(durationTicks);
+  bot.setControlState("sneak", false);
+  await bot.waitForTicks(idleTicks);
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -673,6 +690,7 @@ module.exports = {
   isNearBot,
   land_pos,
   jump,
+  sneak,
   Y_IN_AIR,
   getScaffoldingBlockIds,
   DEFAULT_SCAFFOLDING_BLOCK_NAMES,
