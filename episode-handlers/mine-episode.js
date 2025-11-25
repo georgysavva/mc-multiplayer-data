@@ -213,8 +213,9 @@ async function mineTowardsTargetWithTorchPlacement(bot, targetPos) {
     `[${bot.username}] 📐 Distance to target: ${initialDistance.toFixed(2)} blocks`
   );
 
-  // Set goal to get very close to the target position
-  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 1.0);
+  // Set goal with slightly larger tolerance so bots don't walk into each other
+  // Range of 1.6 blocks allows both bots to finish tunnel without occupying same space
+  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 1.6);
 
   // Set up periodic torch placement check
   const torchCheckInterval = setInterval(async () => {
@@ -343,7 +344,7 @@ async function mineTowardsTarget(bot, targetPos) {
   );
 
   // Set goal to get very close to the target position (0.5 blocks = almost exact)
-  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 1.0);
+  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 1.6);
 
   try {
     console.log(`[${bot.username}] 🎯 Starting pathfinder navigation with mining...`);
