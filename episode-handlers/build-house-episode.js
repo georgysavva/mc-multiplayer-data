@@ -43,6 +43,7 @@ const MATERIALS = {
  * @param {number} episodeNum - Episode number
  * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
+ * @param {Object} phaseDataOur - Phase data for this bot (contains position)
  * @returns {Function} Phase function
  */
 function getOnBuildHousePhaseFn(
@@ -53,12 +54,13 @@ function getOnBuildHousePhaseFn(
   iterationID,
   episodeNum,
   episodeInstance,
-  args
+  args,
+  phaseDataOur
 ) {
-  return async function onBuildHousePhase(otherBotPosition) {
+  return async function onBuildHousePhase(phaseDataOther) {
     coordinator.sendToOtherBot(
       `buildHousePhase_${iterationID}`,
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       `buildHousePhase_${iterationID} beginning`
     );
@@ -87,8 +89,8 @@ function getOnBuildHousePhaseFn(
 
     // STEP 3: Determine world origin for house (midpoint between bots)
     console.log(`[${bot.username}] 📐 STEP 3: Planning house location...`);
-    const botPos = bot.entity.position.floored();
-    const otherBotPos = new Vec3(otherBotPosition.x, otherBotPosition.y, otherBotPosition.z).floored();
+    const botPos = phaseDataOur.position.floored();
+    const otherBotPos = phaseDataOther.position.floored();
     
     // Place house origin at midpoint, on the ground
     const worldOrigin = new Vec3(
@@ -237,7 +239,7 @@ function getOnBuildHousePhaseFn(
     );
     coordinator.sendToOtherBot(
       "stopPhase",
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       `buildHousePhase_${iterationID} end`
     );
@@ -289,6 +291,10 @@ class BuildHouseEpisode extends BaseEpisode {
     episodeNum,
     args
   ) {
+    const phaseDataOur = {
+      position: bot.entity.position.clone()
+    };
+    
     coordinator.onceEvent(
       `buildHousePhase_${iterationID}`,
       episodeNum,
@@ -300,12 +306,13 @@ class BuildHouseEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args
+        args,
+        phaseDataOur
       )
     );
     coordinator.sendToOtherBot(
       `buildHousePhase_${iterationID}`,
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       "entryPoint end"
     );
