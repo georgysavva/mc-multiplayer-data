@@ -466,24 +466,6 @@ function getOnMinePhaseFn(
       );
     }
 
-    // STEP 3b: Ensure torches are in inventory for illumination
-    console.log(`[${bot.username}] 🔦 STEP 3b: Ensuring torches in inventory...`);
-    try {
-      const torch = bot.inventory.items().find(item => item.name === TORCH_TYPE);
-      if (!torch) {
-        // Give torches via RCON
-        await rcon.send(`give ${bot.username} ${TORCH_TYPE} 64`);
-        await sleep(500);
-        console.log(`[${bot.username}] ✅ Received 64 torches`);
-      } else {
-        console.log(`[${bot.username}] ✅ Already have ${torch.count} torches`);
-      }
-    } catch (torchError) {
-      console.log(
-        `[${bot.username}] ⚠️ Could not get torches: ${torchError.message}`
-      );
-    }
-
     // STEP 4: Dig down to underground
     console.log(`[${bot.username}] ⬇️ STEP 4: Digging down to underground...`);
     const dugDown = await digDownToUnderground(bot, UNDERGROUND_DEPTH);
@@ -596,6 +578,12 @@ class MineEpisode extends BaseEpisode {
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
     console.log(`[${bot.username}] 🔧 Setting up Mine Episode 2 (Pathfinder)`);
+
+    // Give torches for illumination during mining
+    console.log(`[${bot.username}] 🔦 Giving torches for mining...`);
+    await rcon.send(`give ${bot.username} ${TORCH_TYPE} 64`);
+    await sleep(500);
+    console.log(`[${bot.username}] ✅ Gave 64 torches`);
   }
 
   async entryPoint(
