@@ -18,32 +18,40 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 
-
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
+
 import org.bukkit.Particle;
+import org.bukkit.block.BlockFace;
+import org.bukkit.util.RayTraceResult;
+import org.bukkit.block.data.BlockData;
 
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.events.PacketAdapter;
+import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.wrappers.BlockPosition;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class CameraManager implements Listener {
 
     private final EpisodeManager plugin;
     private final ProtocolManager protocol;
     private BukkitTask followTask;
+
+    // ================================
+    // Block animation cache
+    // ================================
+    private final Map<BlockPosition, Integer> breakStageCache = new HashMap<>();
 
     public CameraManager(EpisodeManager plugin, ProtocolManager protocol) {
         this.plugin = plugin;
@@ -60,6 +68,23 @@ public class CameraManager implements Listener {
 
         followTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
 
+            // =======================================================
+            // Replay cached block break animations every tick
+            // (this prevents flickering)
+            // =======================================================
+            if (!breakStageCache.isEmpty()) {
+                for (Map.Entry<BlockPosition, Integer> anim : breakStageCache.entrySet()) {
+                    BlockPosition pos = anim.getKey();
+                    int stage = anim.getValue();
+
+                    for (Map.Entry<Player, Player> pair : plugin.getActivePairs().entrySet()) {
+                        Player camera = pair.getValue();
+                        forward(camera, pos, stage);
+                    }
+                }
+            }
+
+            // Camera following logic ------------------------------
             for (Map.Entry<Player, Player> entry : plugin.getActivePairs().entrySet()) {
                 Player controller = entry.getKey();
                 Player camera = entry.getValue();
@@ -77,13 +102,13 @@ public class CameraManager implements Listener {
 
                 boolean rotated =
                         Math.abs(camLoc.getYaw() - cLoc.getYaw()) > 1f ||
-                        Math.abs(camLoc.getPitch() - cLoc.getPitch()) > 1f;
+                                Math.abs(camLoc.getPitch() - cLoc.getPitch()) > 1f;
 
                 if (moved || rotated) {
                     camera.teleportAsync(cLoc.clone());
                 }
 
-                // Keep attached spectator (if any) synced to the pair
+                // Keep the spectator synced
                 UUID spectatorId = plugin.getSpectatorForController(controller.getUniqueId());
                 if (spectatorId != null) {
                     Player spectator = Bukkit.getPlayer(spectatorId);
@@ -131,7 +156,7 @@ public class CameraManager implements Listener {
     public void onAttack(EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof Player controller)) return;
         Player camera = plugin.getActivePairs().get(controller);
-        if (camera != null) camera.swingMainHand(); // simulates attack motion
+        if (camera != null) camera.swingMainHand();
     }
 
     @EventHandler
@@ -143,7 +168,7 @@ public class CameraManager implements Listener {
         switch (e.getAction()) {
             case RIGHT_CLICK_AIR:
             case RIGHT_CLICK_BLOCK:
-                camera.swingMainHand(); // visually looks like a use-item animation
+                camera.swingMainHand();
                 break;
         }
     }
@@ -197,30 +222,50 @@ public class CameraManager implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
-    public void onBlockDamage(BlockDamageEvent e) {
+    public void onBlockBreak(BlockBreakEvent e) {
         Player controller = e.getPlayer();
         Player camera = plugin.getActivePairs().get(controller);
         if (camera == null) return;
 
         org.bukkit.block.Block block = e.getBlock();
 
-        double x = block.getX() + 0.5;
-        double y = block.getY() + 0.5;
-        double z = block.getZ() + 0.5;
-
         camera.spawnParticle(
-            Particle.BLOCK,
-            x, y, z,
-            70,             // amount
-            0.1, 0.1, 0.1,  // spread
-            0.025,           // speed
-            block.getBlockData() // particle data so it matches the block type
+                Particle.BLOCK,
+                block.getX() + 0.5,
+                block.getY() + 0.5,
+                block.getZ() + 0.5,
+                100,
+                0.15, 0.15, 0.15,
+                0.025,
+                block.getBlockData()
         );
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockDamageAbort(org.bukkit.event.block.BlockDamageAbortEvent e) {
+        Player controller = e.getPlayer();
+
+        // Only controllers, not cameras
+        if (!plugin.getActivePairs().containsKey(controller)) return;
+
+        BlockPosition pos = new BlockPosition(
+                e.getBlock().getX(),
+                e.getBlock().getY(),
+                e.getBlock().getZ()
+        );
+
+        // Clear cached crack stage
+        breakStageCache.remove(pos);
+
+        // Forward "clear animation" to camera
+        Player camera = plugin.getActivePairs().get(controller);
+        if (camera != null) {
+            forward(camera, pos, -1); // stage -1 resets the animation
+        }
+    }
 
     // ============================================================================
-    // Private Inventory Mirroring
+    // Private Helpers
     // ============================================================================
 
     private void mirrorInventory(Player controller, Player camera) {
@@ -294,42 +339,92 @@ public class CameraManager implements Listener {
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {}
     }
 
+    private Vector faceToOffset(Enum<?> face) {
+        switch (face.name()) {
+            case "DOWN":  return new Vector(0, -0.5, 0);
+            case "UP":    return new Vector(0, 0.5, 0);
+            case "NORTH": return new Vector(0, 0, -0.5);
+            case "SOUTH": return new Vector(0, 0, 0.5);
+            case "WEST":  return new Vector(-0.5, 0, 0);
+            case "EAST":  return new Vector(0.5, 0, 0);
+            default:      return new Vector(0, 0, 0);
+        }
+    }
+
+    private BlockFace getHitFace(Player player, BlockPosition pos) {
+        Location eye = player.getEyeLocation();
+
+        RayTraceResult result = player.rayTraceBlocks(5.0);
+
+        if (result == null) return BlockFace.SELF;
+        if (result.getHitBlock() == null) return BlockFace.SELF;
+
+        org.bukkit.block.Block hitBlock = result.getHitBlock();
+
+        // Make sure this raycast actually hit the same block as the break animation
+        if (hitBlock.getX() == pos.getX() &&
+            hitBlock.getY() == pos.getY() &&
+            hitBlock.getZ() == pos.getZ()) {
+
+            return result.getHitBlockFace();
+        }
+
+        return BlockFace.SELF; // fallback
+    }
+
     // ============================================================================
     // Breaking Animation
     // ============================================================================
     private void registerBlockBreakForwarder() {
+
+        // Listen for crack animation (0-9)
         protocol.addPacketListener(
-            new com.comphenix.protocol.events.PacketAdapter(plugin, PacketType.Play.Server.BLOCK_BREAK_ANIMATION) {
-                @Override
-                public void onPacketSending(com.comphenix.protocol.events.PacketEvent event) {
+                new com.comphenix.protocol.events.PacketAdapter(plugin, PacketType.Play.Server.BLOCK_BREAK_ANIMATION) {
+                    @Override
+                    public void onPacketSending(com.comphenix.protocol.events.PacketEvent event) {
 
-                    EpisodeManager handler = (EpisodeManager) plugin;
+                        EpisodeManager handler = (EpisodeManager) plugin;
 
-                    PacketContainer packet = event.getPacket();
-                    if (packet.getMeta("MirrorBotRelay").isPresent()) return;
+                        PacketContainer packet = event.getPacket();
+                        if (packet.getMeta("MirrorBotRelay").isPresent()) return;
 
-                    int breakerId = packet.getIntegers().read(0);
-                    int stage = packet.getIntegers().read(1);
-                    BlockPosition pos = packet.getBlockPositionModifier().read(0);
+                        int breakerId = packet.getIntegers().read(0);
+                        int stage = packet.getIntegers().read(1);
+                        BlockPosition pos = packet.getBlockPositionModifier().read(0);
 
-                    for (Map.Entry<Player, Player> entry : handler.getActivePairs().entrySet()) {
-                        Player controller = entry.getKey();
-                        Player camera = entry.getValue();
+                        // Clamp stage: never allow stage 9 (clear)
+                        int storedStage = Math.min(stage, 8);
+                        breakStageCache.put(pos, storedStage);
 
-                        if (controller == null || camera == null) continue;
+                        for (Map.Entry<Player, Player> entry : handler.getActivePairs().entrySet()) {
+                            Player controller = entry.getKey();
+                            Player camera = entry.getValue();
 
-                        boolean isBreaker = breakerId == controller.getEntityId();
-                        boolean forCtrl = event.getPlayer().equals(controller);
+                            if (controller == null || camera == null) continue;
 
-                        if (isBreaker || forCtrl) {
-                            forward(camera, pos, stage);
+                            boolean isBreaker = breakerId == controller.getEntityId();
+                            boolean forCtrl = event.getPlayer().equals(controller);
+
+                            if (isBreaker || forCtrl) {
+                                forward(camera, pos, storedStage);
+                            }
                         }
                     }
                 }
-            }
         );
-    }
 
+        // BLOCK_CHANGE → block actually changed → clear crack
+        protocol.addPacketListener(
+                new com.comphenix.protocol.events.PacketAdapter(plugin, PacketType.Play.Server.BLOCK_CHANGE) {
+                    @Override
+                    public void onPacketSending(com.comphenix.protocol.events.PacketEvent event) {
+                        BlockPosition pos = event.getPacket().getBlockPositionModifier().read(0);
+                        breakStageCache.remove(pos);
+                    }
+                }
+        );
+
+    }
 
     private void forward(Player viewer, BlockPosition pos, int stage) {
         try {

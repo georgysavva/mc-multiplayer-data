@@ -302,29 +302,45 @@ function getOnMinePhaseFn(
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
 
-    // STEP 2: Initial eye contact
-    console.log(
-      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
-    );
-    let actualOtherBotPosition = null;
+    // STEP 1.5: Teleport bots 100 blocks apart
+    console.log(`[${bot.username}] 🧭 STEP 1.5: Teleporting bots 100 blocks apart...`);
+
     try {
-      const otherEntity = bot.players[args.other_bot_name]?.entity;
-      if (otherEntity) {
-        actualOtherBotPosition = otherEntity.position.clone();
-        const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
-        await bot.lookAt(targetPos);
-        await sleep(INITIAL_EYE_CONTACT_MS);
-      } else {
-        console.log(
-          `[${bot.username}] ⚠️ Could not find other bot entity, using passed position`
-        );
-        actualOtherBotPosition = otherBotPosition.clone();
+      const myPos = bot.entity.position.clone();
+
+      // Try to get other bot’s position from live entity
+      let otherPos = bot.players[args.other_bot_name]?.entity?.position;
+      if (!otherPos) {
+        // Fallback: use passed-in otherBotPosition if entity not yet loaded
+        otherPos = otherBotPosition.clone();
       }
-    } catch (lookError) {
+
+      // Compute direction from other bot → this bot
+      const dx = myPos.x - otherPos.x;
+      const dz = myPos.z - otherPos.z;
+      const len = Math.sqrt(dx * dx + dz * dz) || 1;
+
+      const dirX = dx / len;
+      const dirZ = dz / len;
+
+      // Final teleport target 100 blocks away
+      const targetX = Math.floor(myPos.x + dirX * 100);
+      const targetZ = Math.floor(myPos.z + dirZ * 100);
+      const targetY = Math.floor(myPos.y); // keep same Y level
+
+      const cmd = `tp ${bot.username} ${targetX} ${targetY} ${targetZ}`;
+      console.log(`[${bot.username}] 📡 RCON → ${cmd}`);
+
+      await rcon.send(cmd);
+      await sleep(1000);
+
       console.log(
-        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+        `[${bot.username}] ✨ Teleported to (${targetX}, ${targetY}, ${targetZ})`
       );
-      actualOtherBotPosition = otherBotPosition.clone();
+    } catch (err) {
+      console.log(
+        `[${bot.username}] ⚠️ Teleport step failed: ${err.message}`
+      );
     }
 
     // STEP 3: Equip mining tool
@@ -350,99 +366,6 @@ function getOnMinePhaseFn(
 
     // Wait a moment to ensure both bots are down
     await sleep(1000);
-
-    // STEP 5: Look towards other bot's direction (horizontally, while staying in hole)
-    console.log(
-      `[${bot.username}] 👀 STEP 5: Looking towards other bot's direction...`
-    );
-    try {
-      const otherEntity = bot.players[args.other_bot_name]?.entity;
-      if (otherEntity) {
-        actualOtherBotPosition = otherEntity.position.clone();
-
-        // Calculate horizontal direction to other bot
-        const myPos = bot.entity.position.clone();
-        const dx = actualOtherBotPosition.x - myPos.x;
-        const dz = actualOtherBotPosition.z - myPos.z;
-        const targetYaw = Math.atan2(-dx, -dz);
-
-        // Look horizontally towards other bot (pitch = 0 to look straight ahead)
-        await bot.look(targetYaw, 0, true);
-        console.log(
-          `[${
-            bot.username
-          }] ✅ Looking towards other bot at yaw ${targetYaw.toFixed(2)}`
-        );
-        await sleep(1000); // Hold the look for 1 second
-      }
-    } catch (lookError) {
-      console.log(
-        `[${bot.username}] ⚠️ Could not look towards other bot: ${lookError.message}`
-      );
-    }
-
-    // STEP 6: Calculate midpoint between bots
-    console.log(`[${bot.username}] 📐 STEP 6: Calculating midpoint...`);
-    const myPos = bot.entity.position.clone();
-
-    // Try to get updated other bot position
-    const otherEntity = bot.players[args.other_bot_name]?.entity;
-    if (otherEntity) {
-      actualOtherBotPosition = otherEntity.position.clone();
-    }
-
-    const midpoint = new Vec3(
-      Math.floor((myPos.x + actualOtherBotPosition.x) / 2),
-      Math.floor(myPos.y), // Same Y level (we're both down one block)
-      Math.floor((myPos.z + actualOtherBotPosition.z) / 2)
-    );
-
-    console.log(
-      `[${bot.username}] 📍 My position: ${myPos.x.toFixed(
-        2
-      )}, ${myPos.y.toFixed(2)}, ${myPos.z.toFixed(2)}`
-    );
-    console.log(
-      `[${
-        bot.username
-      }] 📍 Other bot position: ${actualOtherBotPosition.x.toFixed(
-        2
-      )}, ${actualOtherBotPosition.y.toFixed(
-        2
-      )}, ${actualOtherBotPosition.z.toFixed(2)}`
-    );
-    console.log(
-      `[${bot.username}] 🎯 Midpoint: ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`
-    );
-
-    // STEP 7: Mine towards the midpoint (which will create a tunnel towards the other bot)
-    console.log(
-      `[${bot.username}] 🚇 STEP 7: Mining 2x1 tunnel towards midpoint...`
-    );
-    const miningResult = await mineTunnelTowards(bot, midpoint, 20);
-
-    console.log(
-      `[${bot.username}] ✅ Mining complete! Mined ${miningResult.blocksMined} blocks`
-    );
-
-    // STEP 8: Final eye contact
-    console.log(`[${bot.username}] 👀 STEP 8: Final eye contact...`);
-    try {
-      const otherEntity2 = bot.players[args.other_bot_name]?.entity;
-      if (otherEntity2) {
-        const targetPos = otherEntity2.position.offset(
-          0,
-          otherEntity2.height,
-          0
-        );
-        await bot.lookAt(targetPos);
-        await sleep(FINAL_EYE_CONTACT_MS);
-      }
-    } catch (lookError) {
-      console.log(
-        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
-      );
-    }
 
     console.log(`[${bot.username}] ✅ MINE phase complete!`);
     console.log(
@@ -493,6 +416,7 @@ class MineEpisode extends BaseEpisode {
     episodeNum,
     args
   ) {
+    
     coordinator.onceEvent(
       `minePhase_${iterationID}`,
       episodeNum,
