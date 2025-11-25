@@ -26,11 +26,13 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockDamageAbortEvent;
 
 import org.bukkit.Particle;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.World;
 
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.PacketType;
@@ -47,11 +49,13 @@ public class CameraManager implements Listener {
     private final EpisodeManager plugin;
     private final ProtocolManager protocol;
     private BukkitTask followTask;
+    private long tickCounter = 0;
 
     // ================================
     // Block animation cache
     // ================================
     private final Map<BlockPosition, Integer> breakStageCache = new HashMap<>();
+    private final Map<UUID, ActiveBreak> activeBreaks = new HashMap<>();
 
     public CameraManager(EpisodeManager plugin, ProtocolManager protocol) {
         this.plugin = plugin;
@@ -67,6 +71,7 @@ public class CameraManager implements Listener {
         stopFollowingTask();
 
         followTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            tickCounter++;
 
             // =======================================================
             // Replay cached block break animations every tick
@@ -81,6 +86,55 @@ public class CameraManager implements Listener {
                         Player camera = pair.getValue();
                         forward(camera, pos, stage);
                     }
+                }
+            }
+
+            // Emit block-break particles for active breaks
+            if (!activeBreaks.isEmpty()) {
+                for (Iterator<Map.Entry<UUID, ActiveBreak>> it = activeBreaks.entrySet().iterator(); it.hasNext(); ) {
+                    Map.Entry<UUID, ActiveBreak> entry = it.next();
+                    Player controller = Bukkit.getPlayer(entry.getKey());
+                    ActiveBreak active = entry.getValue();
+
+                    if (controller == null || !controller.isOnline()) {
+                        it.remove();
+                        continue;
+                    }
+
+                    // Expire if no updates recently (stopped digging)
+                    if (tickCounter - active.lastUpdateTick > 3) {
+                        it.remove();
+                        continue;
+                    }
+
+                    Player camera = plugin.getActivePairs().get(controller);
+                    if (camera == null || !camera.isOnline()) {
+                        it.remove();
+                        continue;
+                    }
+
+                    // If the block changed, drop the active state
+                    if (!isSameBlockData(active)) {
+                        it.remove();
+                        continue;
+                    }
+
+                    Location center = new Location(active.world,
+                            active.pos.getX() + 0.5,
+                            active.pos.getY() + 0.5,
+                            active.pos.getZ() + 0.5);
+                    Vector offset = faceToOffset(active.face);
+                    Location particleLoc = center.clone().add(offset);
+
+                    // More frequent (every tick), fewer particles per burst
+                    camera.spawnParticle(
+                            Particle.BLOCK,
+                            particleLoc,
+                            2,           // low count
+                            0.08, 0.08, 0.08,
+                            0.03,
+                            active.blockData
+                    );
                 }
             }
 
@@ -256,6 +310,7 @@ public class CameraManager implements Listener {
 
         // Clear cached crack stage
         breakStageCache.remove(pos);
+        activeBreaks.remove(controller.getUniqueId());
 
         // Forward "clear animation" to camera
         Player camera = plugin.getActivePairs().get(controller);
@@ -406,6 +461,7 @@ public class CameraManager implements Listener {
                             boolean forCtrl = event.getPlayer().equals(controller);
 
                             if (isBreaker || forCtrl) {
+                                updateActiveBreak(controller, pos, storedStage);
                                 forward(camera, pos, storedStage);
                             }
                         }
@@ -417,11 +473,12 @@ public class CameraManager implements Listener {
         protocol.addPacketListener(
                 new com.comphenix.protocol.events.PacketAdapter(plugin, PacketType.Play.Server.BLOCK_CHANGE) {
                     @Override
-                    public void onPacketSending(com.comphenix.protocol.events.PacketEvent event) {
-                        BlockPosition pos = event.getPacket().getBlockPositionModifier().read(0);
-                        breakStageCache.remove(pos);
-                    }
+                public void onPacketSending(com.comphenix.protocol.events.PacketEvent event) {
+                    BlockPosition pos = event.getPacket().getBlockPositionModifier().read(0);
+                    breakStageCache.remove(pos);
+                    clearActiveBreak(pos);
                 }
+            }
         );
 
     }
@@ -450,5 +507,52 @@ public class CameraManager implements Listener {
 
     private ItemStack clone(ItemStack i) {
         return i == null ? null : i.clone();
+    }
+
+    // ============================================================================
+    // Active break tracking
+    // ============================================================================
+    private void updateActiveBreak(Player controller, BlockPosition pos, int stage) {
+        if (stage < 0 || stage >= 9) {
+            activeBreaks.remove(controller.getUniqueId());
+            return;
+        }
+
+        BlockFace face = getHitFace(controller, pos);
+        World world = controller.getWorld();
+        org.bukkit.block.Block block = world.getBlockAt(pos.getX(), pos.getY(), pos.getZ());
+        BlockData data = block.getBlockData().clone();
+
+        ActiveBreak active = new ActiveBreak(world, pos, face, data, tickCounter);
+        activeBreaks.put(controller.getUniqueId(), active);
+    }
+
+    private void clearActiveBreak(BlockPosition pos) {
+        activeBreaks.entrySet().removeIf(entry -> {
+            BlockPosition p = entry.getValue().pos;
+            return p.getX() == pos.getX() && p.getY() == pos.getY() && p.getZ() == pos.getZ();
+        });
+    }
+
+    private boolean isSameBlockData(ActiveBreak active) {
+        org.bukkit.block.Block live = active.world.getBlockAt(active.pos.getX(), active.pos.getY(), active.pos.getZ());
+        return live.getType() == active.blockData.getMaterial() &&
+               live.getBlockData().getAsString().equals(active.blockData.getAsString());
+    }
+
+    private static final class ActiveBreak {
+        final World world;
+        final BlockPosition pos;
+        final BlockFace face;
+        final BlockData blockData;
+        final long lastUpdateTick;
+
+        ActiveBreak(World world, BlockPosition pos, BlockFace face, BlockData blockData, long lastUpdateTick) {
+            this.world = world;
+            this.pos = pos;
+            this.face = face;
+            this.blockData = blockData;
+            this.lastUpdateTick = lastUpdateTick;
+        }
     }
 }

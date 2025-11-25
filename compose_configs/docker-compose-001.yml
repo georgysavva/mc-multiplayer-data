@@ -34,7 +34,7 @@ services:
       ALLOW_FLIGHT: true
       ONLINE_MODE: false
       SPAWN_PROTECTION: 0
-      SEED: '11764060143'
+      SEED: '11764064215'
       ENFORCE_SECURE_PROFILE: false
       RCON_PASSWORD: research
       BROADCAST_RCON_TO_OPS: true
