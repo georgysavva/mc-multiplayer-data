@@ -27,6 +27,8 @@ public class EpisodeManager extends JavaPlugin implements Listener {
     private final Map<Player, Player> activePairs          = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> activeCameraControllers = new ConcurrentHashMap<>();
     private final Map<String, File> activeSkinSelections  = new ConcurrentHashMap<>();
+    private final Map<UUID, UUID> activeSpectatorsByController = new ConcurrentHashMap<>();
+    private final Map<UUID, UUID> controllerBySpectator = new ConcurrentHashMap<>();
 
     private boolean episodeRunning = false;
 
@@ -146,6 +148,8 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         activePairs.clear();
         activeSkinSelections.clear();
         activeCameraControllers.clear();
+        activeSpectatorsByController.clear();
+        controllerBySpectator.clear();
 
         for (StartConfig cfg : configs) {
 
@@ -165,6 +169,14 @@ public class EpisodeManager extends JavaPlugin implements Listener {
 
             activePairs.put(controller, camera);
             activeCameraControllers.put(camera.getUniqueId(), controller.getUniqueId());
+
+            // Optional spectator bot (e.g., SpectatorAlpha)
+            Player spectator = Bukkit.getPlayerExact("Spectator" + cfg.controller);
+            if (spectator != null) {
+                spectator.setGameMode(GameMode.SPECTATOR);
+                activeSpectatorsByController.put(controller.getUniqueId(), spectator.getUniqueId());
+                controllerBySpectator.put(spectator.getUniqueId(), controller.getUniqueId());
+            }
 
             cameraManager.prepareCamera(camera);
             skinManager.applySharedSkin(controller, camera, cfg.skin);
@@ -195,6 +207,12 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         activePairs.clear();
         activeCameraControllers.clear();
         activeSkinSelections.clear();
+        for (UUID spectatorId : controllerBySpectator.keySet()) {
+            Player spectator = Bukkit.getPlayer(spectatorId);
+            if (spectator != null) spectator.setGameMode(GameMode.SURVIVAL);
+        }
+        activeSpectatorsByController.clear();
+        controllerBySpectator.clear();
 
         Bukkit.broadcastMessage(ChatColor.RED + "[Episode] Episode stopped.");
     }
@@ -212,7 +230,8 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         for (Player spectator : Bukkit.getOnlinePlayers()) {
             boolean participant =
                     controllerToCamera.containsKey(spectator.getName()) ||
-                    controllerToCamera.containsValue(spectator.getName());
+                    controllerToCamera.containsValue(spectator.getName()) ||
+                    isSpectator(spectator);
 
             if (!participant) {
                 for (UUID camId : activeCameraControllers.keySet()) {
@@ -278,6 +297,13 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         if (isCamera(p)) {
             cameraManager.prepareCamera(p);
         }
+
+        // Restore spectator state if they reconnect mid-episode
+        if (isSpectator(p)) {
+            p.setGameMode(GameMode.SPECTATOR);
+        } else {
+            attachSpectatorIfMatches(p);
+        }
     }
 
     @EventHandler
@@ -305,9 +331,38 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                controllerToCamera.containsValue(p.getName());
     }
 
+    public boolean isSpectator(Player p) {
+        return controllerBySpectator.containsKey(p.getUniqueId());
+    }
+
     public Map<Player, Player> getActivePairs() { return activePairs; }
 
     public Map<UUID, UUID> getActiveCameraControllers() { return activeCameraControllers; }
+
+    public UUID getSpectatorForController(UUID controllerId) {
+        return activeSpectatorsByController.get(controllerId);
+    }
+
+    public Map<UUID, UUID> getSpectatorsByController() {
+        return activeSpectatorsByController;
+    }
+
+    private void attachSpectatorIfMatches(Player p) {
+        if (!episodeRunning) return;
+        if (controllerBySpectator.containsKey(p.getUniqueId())) return;
+
+        for (String controllerName : controllerToCamera.keySet()) {
+            if (("Spectator" + controllerName).equals(p.getName())) {
+                Player controller = Bukkit.getPlayerExact(controllerName);
+                if (controller != null) {
+                    p.setGameMode(GameMode.SPECTATOR);
+                    activeSpectatorsByController.put(controller.getUniqueId(), p.getUniqueId());
+                    controllerBySpectator.put(p.getUniqueId(), controller.getUniqueId());
+                }
+                break;
+            }
+        }
+    }
 
     // =====================================================================================
 

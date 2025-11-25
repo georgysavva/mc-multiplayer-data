@@ -7,6 +7,11 @@ const {
 
 const pvp = require("mineflayer-pvp").plugin;
 
+// Log mineflayer version once to help debug protocol mismatches
+const MINEFLAYER_VERSION =
+  (require("mineflayer/package.json") || {}).version || "unknown";
+console.log(`[bot-factory] mineflayer version: ${MINEFLAYER_VERSION}`);
+
 /**
  * Create a new Mineflayer bot instance
  * @param {Object} config - Bot configuration

@@ -299,3 +299,39 @@ services:
       - "authserver.mojang.com:127.0.0.1"
       - "textures.minecraft.net:127.0.0.1"
       - "pc.realms.minecraft.net:127.0.0.1"
+
+  spectator_alpha:
+    image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      mc:
+        condition: service_healthy
+    environment:
+      MC_HOST: "host.docker.internal"
+      MC_PORT: "${MC_SERVER_PORT:-25565}"
+      MC_USERNAME: "SpectatorAlpha"
+    restart: unless-stopped
+    working_dir: /usr/src/app
+    command: ["node", "spectator/spectator.js"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  spectator_bravo:
+    image: ojmichel/mc-multiplayer-base:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      mc:
+        condition: service_healthy
+    environment:
+      MC_HOST: "host.docker.internal"
+      MC_PORT: "${MC_SERVER_PORT:-25565}"
+      MC_USERNAME: "SpectatorBravo"
+    restart: unless-stopped
+    working_dir: /usr/src/app
+    command: ["node", "spectator/spectator.js"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

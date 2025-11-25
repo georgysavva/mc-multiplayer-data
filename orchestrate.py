@@ -111,6 +111,8 @@ class InstanceManager:
             "camera_alpha_instance_{i}",
             "episode_starter_instance_{i}",
             "camera_bravo_instance_{i}",
+            "spectator_alpha_instance_{i}",
+            "spectator_bravo_instance_{i}",
         ]
         self.instance_logs: Dict[str, Dict[str, subprocess.Popen]] = {}
 

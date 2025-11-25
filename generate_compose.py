@@ -398,7 +398,7 @@ def generate_compose_config(
                     "RCON_PORT": rcon_port,
                     "RCON_PASSWORD": "research",
                     "EPISODE_START_RETRIES": "60",
-                    "EPISODE_REQUIRED_PLAYERS": "Alpha,CameraAlpha,Bravo,CameraBravo",
+                    "EPISODE_REQUIRED_PLAYERS": "Alpha,CameraAlpha,Bravo,CameraBravo,SpectatorAlpha,SpectatorBravo",
                     "EPISODE_START_COMMAND": "episode start Alpha CameraAlpha technoblade.png Bravo CameraBravo test.png",
                 },
                 "volumes": [
@@ -449,6 +449,52 @@ def generate_compose_config(
                     "textures.minecraft.net:127.0.0.1",
                     "pc.realms.minecraft.net:127.0.0.1",
                 ],
+            },
+            # Passive spectator alpha
+            f"spectator_alpha_instance_{instance_id}": {
+                "image": "ojmichel/mc-multiplayer-base:latest",
+                "build": {
+                    "context": project_root,
+                    "dockerfile": "Dockerfile",
+                },
+                "restart": "unless-stopped",
+                "depends_on": {
+                    f"mc_instance_{instance_id}": {"condition": "service_healthy"}
+                },
+                "working_dir": "/usr/src/app",
+                "environment": {
+                    "MC_HOST": "host.docker.internal",
+                    "MC_PORT": mc_port,
+                    "MC_USERNAME": "SpectatorAlpha",
+                },
+                "extra_hosts": [
+                    "host.docker.internal:host-gateway",
+                ],
+                "networks": [f"mc_network_{instance_id}"],
+                "command": ["node", "spectator/spectator.js"],
+            },
+            # Passive spectator bravo
+            f"spectator_bravo_instance_{instance_id}": {
+                "image": "ojmichel/mc-multiplayer-base:latest",
+                "build": {
+                    "context": project_root,
+                    "dockerfile": "Dockerfile",
+                },
+                "restart": "unless-stopped",
+                "depends_on": {
+                    f"mc_instance_{instance_id}": {"condition": "service_healthy"}
+                },
+                "working_dir": "/usr/src/app",
+                "environment": {
+                    "MC_HOST": "host.docker.internal",
+                    "MC_PORT": mc_port,
+                    "MC_USERNAME": "SpectatorBravo",
+                },
+                "extra_hosts": [
+                    "host.docker.internal:host-gateway",
+                ],
+                "networks": [f"mc_network_{instance_id}"],
+                "command": ["node", "spectator/spectator.js"],
             },
         },
     }

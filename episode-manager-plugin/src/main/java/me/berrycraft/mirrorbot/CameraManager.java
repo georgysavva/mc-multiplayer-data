@@ -37,6 +37,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 public class CameraManager implements Listener {
 
@@ -80,6 +81,18 @@ public class CameraManager implements Listener {
 
                 if (moved || rotated) {
                     camera.teleportAsync(cLoc.clone());
+                }
+
+                // Keep attached spectator (if any) synced to the pair
+                UUID spectatorId = plugin.getSpectatorForController(controller.getUniqueId());
+                if (spectatorId != null) {
+                    Player spectator = Bukkit.getPlayer(spectatorId);
+                    if (spectator != null && spectator.isOnline()) {
+                        if (spectator.getGameMode() != GameMode.SPECTATOR) {
+                            spectator.setGameMode(GameMode.SPECTATOR);
+                        }
+                        spectator.teleportAsync(cLoc.clone());
+                    }
                 }
             }
 
