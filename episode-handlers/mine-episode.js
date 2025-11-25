@@ -471,10 +471,7 @@ function getOnMinePhaseFn(
     const dugDown = await digDownToUnderground(bot, UNDERGROUND_DEPTH);
     if (!dugDown) {
       console.log(`[${bot.username}] ⚠️ Failed to dig down, aborting episode`);
-      return {
-        success: false,
-        error: "Failed to dig down",
-      };
+      throw new Error("Failed to dig down to underground");
     }
 
     // STEP 5: Calculate midpoint between bots
