@@ -402,6 +402,7 @@ async function mineTowardsTarget(bot, targetPos) {
  * @param {number} episodeNum - Episode number
  * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
+ * @param {Object} phaseDataOur - Phase data for this bot (contains position)
  * @returns {Function} Phase function
  */
 function getOnMinePhaseFn(
@@ -412,12 +413,13 @@ function getOnMinePhaseFn(
   iterationID,
   episodeNum,
   episodeInstance,
-  args
+  args,
+  phaseDataOur
 ) {
-  return async function onMinePhase(otherBotPosition) {
+  return async function onMinePhase(phaseDataOther) {
     coordinator.sendToOtherBot(
       `minePhase_${iterationID}`,
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       `minePhase_${iterationID} beginning`
     );
@@ -446,13 +448,13 @@ function getOnMinePhaseFn(
         console.log(
           `[${bot.username}] ⚠️ Could not find other bot entity, using passed position`
         );
-        actualOtherBotPosition = otherBotPosition.clone();
+        actualOtherBotPosition = phaseDataOther.position.clone();
       }
     } catch (lookError) {
       console.log(
         `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
       );
-      actualOtherBotPosition = otherBotPosition.clone();
+      actualOtherBotPosition = phaseDataOther.position.clone();
     }
 
     // STEP 3: Equip mining tool
@@ -476,43 +478,51 @@ function getOnMinePhaseFn(
 
     // STEP 5: Calculate midpoint between bots
     console.log(`[${bot.username}] 📐 STEP 5: Calculating midpoint...`);
-    const myPos = bot.entity.position.clone();
-
-    // Try to get updated other bot position
-    const otherEntity = bot.players[args.other_bot_name]?.entity;
-    if (otherEntity) {
-      actualOtherBotPosition = otherEntity.position.clone();
-    }
+    
+    // Both bots dig down by UNDERGROUND_DEPTH, so calculate underground positions deterministically
+    const myUndergroundPos = new Vec3(
+      phaseDataOur.position.x,
+      phaseDataOur.position.y - UNDERGROUND_DEPTH,
+      phaseDataOur.position.z
+    );
+    const otherUndergroundPos = new Vec3(
+      phaseDataOther.position.x,
+      phaseDataOther.position.y - UNDERGROUND_DEPTH,
+      phaseDataOther.position.z
+    );
 
     const midpoint = new Vec3(
-      Math.floor((myPos.x + actualOtherBotPosition.x) / 2),
-      Math.floor(myPos.y), // Same Y level
-      Math.floor((myPos.z + actualOtherBotPosition.z) / 2)
+      Math.floor((myUndergroundPos.x + otherUndergroundPos.x) / 2),
+      Math.floor(myUndergroundPos.y), // Underground Y level
+      Math.floor((myUndergroundPos.z + otherUndergroundPos.z) / 2)
     );
 
     console.log(
-      `[${bot.username}] 📍 My position: ${myPos.x.toFixed(
+      `[${bot.username}] 📍 My underground position: ${myUndergroundPos.x.toFixed(
         2
-      )}, ${myPos.y.toFixed(2)}, ${myPos.z.toFixed(2)}`
+      )}, ${myUndergroundPos.y.toFixed(2)}, ${myUndergroundPos.z.toFixed(2)}`
     );
     console.log(
-      `[${
-        bot.username
-      }] 📍 Other bot position: ${actualOtherBotPosition.x.toFixed(
+      `[${bot.username}] 📍 Other bot underground position: ${otherUndergroundPos.x.toFixed(
         2
-      )}, ${actualOtherBotPosition.y.toFixed(
-        2
-      )}, ${actualOtherBotPosition.z.toFixed(2)}`
+      )}, ${otherUndergroundPos.y.toFixed(2)}, ${otherUndergroundPos.z.toFixed(2)}`
     );
     console.log(
       `[${bot.username}] 🎯 Midpoint: ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`
     );
 
+    // Adjust target to be one block below ground level for tunnel digging
+    const miningTarget = midpoint.offset(0, -1, 0);
+
+    console.log(
+      `[${bot.username}] 🎯 Mining target (1 block down): ${miningTarget.x}, ${miningTarget.y}, ${miningTarget.z}`
+    );
+
     // STEP 6: Mine towards the midpoint using pathfinder
     console.log(
-      `[${bot.username}] 🚇 STEP 6: Mining towards midpoint using pathfinder...`
+      `[${bot.username}] 🚇 STEP 6: Mining towards target using pathfinder...`
     );
-    const miningResult = await mineTowardsTargetWithTorchPlacement(bot, midpoint);
+    const miningResult = await mineTowardsTargetWithTorchPlacement(bot, miningTarget);
 
     console.log(
       `[${bot.username}] ✅ Mining complete! Result: ${JSON.stringify(miningResult)}`
@@ -558,7 +568,7 @@ function getOnMinePhaseFn(
     );
     coordinator.sendToOtherBot(
       "stopPhase",
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       `minePhase_${iterationID} end`
     );
@@ -592,6 +602,10 @@ class MineEpisode extends BaseEpisode {
     episodeNum,
     args
   ) {
+    const phaseDataOur = {
+      position: bot.entity.position.clone()
+    };
+    
     coordinator.onceEvent(
       `minePhase_${iterationID}`,
       episodeNum,
@@ -603,12 +617,13 @@ class MineEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args
+        args,
+        phaseDataOur
       )
     );
     coordinator.sendToOtherBot(
       `minePhase_${iterationID}`,
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       "entryPoint end"
     );
