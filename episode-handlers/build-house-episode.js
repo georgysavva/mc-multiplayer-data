@@ -188,34 +188,14 @@ function getOnBuildHousePhaseFn(
       console.error(
         `[${bot.username}] ❌ Building failed: ${buildError.message}`
       );
-      console.log(
-        `[${bot.username}] ⚠️ Aborting house building, transitioning to stop phase...`
-      );
       
-      // Stop pathfinder before transitioning
-      stopPathfinder(bot);
+      // Stop pathfinder immediately using setGoal(null)
+      if (bot.pathfinder) {
+        bot.pathfinder.setGoal(null);
+      }
       
-      // Transition to stop phase immediately
-      coordinator.onceEvent(
-        "stopPhase",
-        episodeNum,
-        episodeInstance.getOnStopPhaseFn(
-          bot,
-          rcon,
-          sharedBotRng,
-          coordinator,
-          args.other_bot_name,
-          episodeNum,
-          args
-        )
-      );
-      coordinator.sendToOtherBot(
-        "stopPhase",
-        bot.entity.position.clone(),
-        episodeNum,
-        `buildHousePhase_${iterationID} failed`
-      );
-      return; // Exit early
+      // Re-throw the error so episode system handles it properly
+      throw buildError;
     }
 
     // STEP 7: Stop pathfinder
