@@ -67,7 +67,7 @@ const episodeClassMap = {
 const defaultEpisodeTypes = [
   // "straightLineWalk",
   // "chase",
-  // "orbit",
+  "orbit",
   // "walkLook",
   // "buildHouse",
   // "walkLookAway",
@@ -75,7 +75,7 @@ const defaultEpisodeTypes = [
   // "pve",
   // "buildStructure",
   // "buildTower",
-  "mine",
+  // "mine",
   // "towerBridge",
   // "collector",
   // "structureEval",

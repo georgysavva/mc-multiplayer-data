@@ -165,9 +165,10 @@ function getOnOrbitPhaseFn(
   otherBotName,
   episodeNum,
   episodeInstance,
-  args
+  args,
+  phaseDataOur
 ) {
-  return async (otherBotPosition) => {
+  return async (phaseDataOther) => {
     const startTime = Date.now();
     console.log(
       `[${bot.username}] 🌀 ORBIT EPISODE STARTING - Episode ${episodeNum}, Iteration ${iterationID}`
@@ -175,14 +176,14 @@ function getOnOrbitPhaseFn(
 
     coordinator.sendToOtherBot(
       `orbitPhase_${iterationID}`,
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       `orbitPhase_${iterationID} beginning`
     );
 
     // Step 1: Calculate shared midpoint between both bots
-    const myPosition = bot.entity.position;
-    const otherPosition = otherBotPosition;
+    const myPosition = phaseDataOur.position;
+    const otherPosition = phaseDataOther.position;
 
     const sharedMidpoint = new Vec3(
       (myPosition.x + otherPosition.x) / 2,
@@ -247,7 +248,7 @@ function getOnOrbitPhaseFn(
     );
     coordinator.sendToOtherBot(
       "stopPhase",
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       `orbitPhase_${iterationID} end`
     );
@@ -275,6 +276,10 @@ class OrbitEpisode extends BaseEpisode {
     episodeNum,
     args
   ) {
+    const phaseDataOur = {
+      position: bot.entity.position.clone()
+    };
+    
     coordinator.onceEvent(
       `orbitPhase_${iterationID}`,
       episodeNum,
@@ -287,12 +292,13 @@ class OrbitEpisode extends BaseEpisode {
         args.other_bot_name,
         episodeNum,
         this,
-        args
+        args,
+        phaseDataOur
       )
     );
     coordinator.sendToOtherBot(
       `orbitPhase_${iterationID}`,
-      bot.entity.position.clone(),
+      phaseDataOur,
       episodeNum,
       "teleportPhase end"
     );
