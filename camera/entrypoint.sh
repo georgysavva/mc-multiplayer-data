@@ -10,7 +10,8 @@ VNC_PORT=${VNC_PORT:-5901}
 NOVNC_PORT=${NOVNC_PORT:-6901}
 ENABLE_RECORDING=${ENABLE_RECORDING:-1}
 RECORDING_PATH=${RECORDING_PATH:-/output/camera_alpha.mp4}
-JAVA_BIN=${JAVA_BIN:-/usr/lib/jvm/java-17-openjdk-amd64/bin/java}
+JAVA_BIN=${JAVA_BIN:-/usr/lib/jvm/temurin-21-jre-amd64/bin/java}
+
 
 if [ ! -x "$JAVA_BIN" ]; then
   echo "[client] java runtime not found at $JAVA_BIN" >&2

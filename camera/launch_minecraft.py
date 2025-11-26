@@ -126,7 +126,7 @@ def build_launch_command(version: str, minecraft_dir: Path) -> list[str]:
 
 def main() -> int:
     minecraft_dir = Path(os.environ.get("MINECRAFT_HOME", "/root/.minecraft"))
-    version = os.environ.get("MC_VERSION", "1.20.4")
+    version = os.environ.get("MC_VERSION", "1.21")
 
     print(f"[launcher] ensuring Minecraft {version} in {minecraft_dir}", flush=True)
     ensure_version(version, minecraft_dir)

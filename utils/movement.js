@@ -411,9 +411,9 @@ function getMeanPreservingScalingFactor(volatility) {
  * Default options for look functions
  */
 const DEFAULT_LOOK_OPTIONS = {
-  useEasing: false,
-  randomized: false,
-  volatility: 0.4,
+  useEasing: true,
+  randomized: true,
+  volatility: 0.35,
 };
 
 /**

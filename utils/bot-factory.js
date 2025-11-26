@@ -7,16 +7,21 @@ const {
 
 const pvp = require("mineflayer-pvp").plugin;
 
+// Log mineflayer version once to help debug protocol mismatches
+const MINEFLAYER_VERSION =
+  (require("mineflayer/package.json") || {}).version || "unknown";
+console.log(`[bot-factory] mineflayer version: ${MINEFLAYER_VERSION}`);
+
 /**
  * Create a new Mineflayer bot instance with all essential plugins
  * @param {Object} config - Bot configuration
  * @param {string} config.username - Bot username
  * @param {string} config.host - Server host
  * @param {number} config.port - Server port
- * @param {string} config.version - Minecraft version (defaults to 1.20.4)
- * @returns {Bot} Mineflayer bot instance with plugins loaded
+ * @param {string} config.version - Minecraft version (defaults to 1.21)
+ * @returns {Bot} Mineflayer bot instance
  */
-function makeBot({ username, host, port, version = "1.20.4" }) {
+function makeBot({ username, host, port, version = "1.21" }) {
   const bot = mineflayer.createBot({
     host,
     port,
