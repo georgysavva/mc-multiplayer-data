@@ -123,9 +123,7 @@ function getOnWalkLookPhaseFn(
 
 class WalkLookEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
-    // optional setup
-  }
+
 
   async entryPoint(
     bot,

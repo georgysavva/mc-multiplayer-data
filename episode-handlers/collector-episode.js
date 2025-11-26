@@ -808,10 +808,6 @@ function getCyclePhaseFn(
 class CollectorEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
   static INIT_MIN_BOTS_DISTANCE = 0;
-
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
-  }
-
   async entryPoint(
     bot,
     rcon,

@@ -113,9 +113,7 @@ class RotationEvalEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 10;
   static INIT_MAX_BOTS_DISTANCE = 12;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
-    // optional setup
-  }
+
 
   async entryPoint(
     bot,
