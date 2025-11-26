@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 
-
 ENV DISPLAY=:99
 ENV LIBGL_ALWAYS_SOFTWARE=1
 ENV GALLIUM_DRIVER=llvmpipe

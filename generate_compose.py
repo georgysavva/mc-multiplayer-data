@@ -179,7 +179,7 @@ def generate_compose_config(
                     lambda: {
                         # Base server env, common to both normal and flat worlds
                         "EULA": "TRUE",
-                        "VERSION": "1.20.4",
+                        "VERSION": "1.21",
                         "TYPE": "PAPER",
                         "MODE": "survival",
                         "RCON_PORT": rcon_port,
@@ -247,7 +247,7 @@ def generate_compose_config(
                     "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
                     "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
-                    "MC_VERSION": "1.20.4",
+                    "MC_VERSION": "1.21",
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                     "VIEWER_RECORDING_INTERVAL": 50,
                     "WALK_TIMEOUT": 5,
@@ -300,7 +300,7 @@ def generate_compose_config(
                     "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
                     "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
-                    "MC_VERSION": "1.20.4",
+                    "MC_VERSION": "1.21",
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                     "VIEWER_RECORDING_INTERVAL": 50,
                     "WALK_TIMEOUT": 5,
@@ -356,7 +356,7 @@ def generate_compose_config(
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
                 "environment": {
-                    "MC_VERSION": "1.20.4",
+                    "MC_VERSION": "1.21",
                     "MC_HOST": "127.0.0.1",
                     "MC_PORT": mc_port,
                     "CAMERA_NAME": "CameraAlpha",
@@ -398,7 +398,7 @@ def generate_compose_config(
                     "RCON_PORT": rcon_port,
                     "RCON_PASSWORD": "research",
                     "EPISODE_START_RETRIES": "60",
-                    "EPISODE_REQUIRED_PLAYERS": "Alpha,CameraAlpha,Bravo,CameraBravo",
+                    "EPISODE_REQUIRED_PLAYERS": "Alpha,CameraAlpha,Bravo,CameraBravo,SpectatorAlpha,SpectatorBravo",
                     "EPISODE_START_COMMAND": "episode start Alpha CameraAlpha technoblade.png Bravo CameraBravo test.png",
                 },
                 "volumes": [
@@ -424,7 +424,7 @@ def generate_compose_config(
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
                 "environment": {
-                    "MC_VERSION": "1.20.4",
+                    "MC_VERSION": "1.21",
                     "MC_HOST": "127.0.0.1",
                     "MC_PORT": mc_port,
                     "CAMERA_NAME": "CameraBravo",
@@ -449,6 +449,52 @@ def generate_compose_config(
                     "textures.minecraft.net:127.0.0.1",
                     "pc.realms.minecraft.net:127.0.0.1",
                 ],
+            },
+            # Passive spectator alpha
+            f"spectator_alpha_instance_{instance_id}": {
+                "image": "ojmichel/mc-multiplayer-base:latest",
+                "build": {
+                    "context": project_root,
+                    "dockerfile": "Dockerfile",
+                },
+                "restart": "unless-stopped",
+                "depends_on": {
+                    f"mc_instance_{instance_id}": {"condition": "service_healthy"}
+                },
+                "working_dir": "/usr/src/app",
+                "environment": {
+                    "MC_HOST": "host.docker.internal",
+                    "MC_PORT": mc_port,
+                    "MC_USERNAME": "SpectatorAlpha",
+                },
+                "extra_hosts": [
+                    "host.docker.internal:host-gateway",
+                ],
+                "networks": [f"mc_network_{instance_id}"],
+                "command": ["node", "spectator/spectator.js"],
+            },
+            # Passive spectator bravo
+            f"spectator_bravo_instance_{instance_id}": {
+                "image": "ojmichel/mc-multiplayer-base:latest",
+                "build": {
+                    "context": project_root,
+                    "dockerfile": "Dockerfile",
+                },
+                "restart": "unless-stopped",
+                "depends_on": {
+                    f"mc_instance_{instance_id}": {"condition": "service_healthy"}
+                },
+                "working_dir": "/usr/src/app",
+                "environment": {
+                    "MC_HOST": "host.docker.internal",
+                    "MC_PORT": mc_port,
+                    "MC_USERNAME": "SpectatorBravo",
+                },
+                "extra_hosts": [
+                    "host.docker.internal:host-gateway",
+                ],
+                "networks": [f"mc_network_{instance_id}"],
+                "command": ["node", "spectator/spectator.js"],
             },
         },
     }
