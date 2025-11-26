@@ -130,7 +130,7 @@ def annotate_video(video_path: str, json_path: str, output_dir: str, script_dir:
     Returns:
         True if successful, False otherwise
     """
-    script_path = os.path.join(script_dir, "annotate_video.py")
+    script_path = os.path.join(script_dir, "annotate_video_updated.py")
     
     # Create done subdirectory for annotated videos
     done_dir = os.path.join(output_dir, "done")
