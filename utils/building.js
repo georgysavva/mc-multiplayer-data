@@ -245,7 +245,7 @@ async function ensureBlocks(bot, rcon, materials) {
       const cmd = `/give ${bot.username} ${blockName} ${count}`;
       await rcon.send(cmd);
       console.log(`[${bot.username}]    ${count}x ${blockName}`);
-      await sleep(100);
+      await sleep(500); // Increased delay for inventory sync
     }
   }
 }

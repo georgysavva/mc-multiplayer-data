@@ -11,7 +11,7 @@ const {
   fastPlaceBlock,
 } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
-const { ensureBotHasEnough } = require("../utils/items");
+const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 
 // Constants for tower building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration

@@ -9,7 +9,6 @@ const {
   makeHouseBlueprint5x5,
   rotateLocalToWorld,
   splitWorkByXAxis,
-  ensureBlocks,
   buildPhase,
   cleanupScaffolds,
   admireHouse,
@@ -17,6 +16,7 @@ const {
 } = require("../utils/building");
 const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");
+const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 
 // Constants for house building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
@@ -34,7 +34,7 @@ const MATERIALS = {
 };
 
 /**
- * Get the phase function for house building episodes
+ * Get the setup phase function for house building episodes
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
@@ -43,7 +43,67 @@ const MATERIALS = {
  * @param {number} episodeNum - Episode number
  * @param {Object} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
- * @param {Object} phaseDataOur - Phase data for this bot (contains position)
+ * @returns {Function} Setup phase function
+ */
+function getOnBuildHouseSetupPhaseFn(
+  bot,
+  rcon,
+  sharedBotRng,
+  coordinator,
+  iterationID,
+  episodeNum,
+  episodeInstance,
+  args
+) {
+  return async (phaseDataOther) => {
+    coordinator.sendToOtherBot(
+      `buildHouseSetupPhase_${iterationID}`,
+      { position: bot.entity.position.clone() },
+      episodeNum,
+      `buildHouseSetupPhase_${iterationID} beginning`
+    );
+
+    // Capture our position for the build phase
+    const buildPhaseDataOur = {
+      position: bot.entity.position.clone(),
+    };
+
+    // Transition to build phase
+    coordinator.onceEvent(
+      `buildHousePhase_${iterationID}`,
+      episodeNum,
+      getOnBuildHousePhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        iterationID,
+        episodeNum,
+        episodeInstance,
+        args,
+        buildPhaseDataOur
+      )
+    );
+    coordinator.sendToOtherBot(
+      `buildHousePhase_${iterationID}`,
+      buildPhaseDataOur,
+      episodeNum,
+      `buildHouseSetupPhase_${iterationID} end`
+    );
+  };
+}
+
+/**
+ * Get the build phase function for house building episodes
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Object} rcon - RCON connection
+ * @param {Function} sharedBotRng - Shared random number generator
+ * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {number} iterationID - Iteration ID
+ * @param {number} episodeNum - Episode number
+ * @param {Object} episodeInstance - Episode instance
+ * @param {Object} args - Configuration arguments
+ * @param {Object} phaseDataOur - Phase data with captured position
  * @returns {Function} Phase function
  */
 function getOnBuildHousePhaseFn(
@@ -89,8 +149,18 @@ function getOnBuildHousePhaseFn(
 
     // STEP 3: Determine world origin for house (midpoint between bots)
     console.log(`[${bot.username}] 📐 STEP 3: Planning house location...`);
-    const botPos = phaseDataOur.position.floored();
-    const otherBotPos = phaseDataOther.position.floored();
+    
+    // Reconstruct Vec3 from received position data (positions are serialized when sent between bots)
+    const botPos = new Vec3(
+      phaseDataOur.position.x,
+      phaseDataOur.position.y,
+      phaseDataOur.position.z
+    ).floored();
+    const otherBotPos = new Vec3(
+      phaseDataOther.position.x,
+      phaseDataOther.position.y,
+      phaseDataOther.position.z
+    ).floored();
     
     // Place house origin at midpoint, on the ground
     const worldOrigin = new Vec3(
@@ -279,7 +349,11 @@ class BuildHouseEpisode extends BaseEpisode {
     }
     
     console.log(`[${bot.username}] 📦 Giving building materials:`, safetyMaterials);
-    await ensureBlocks(bot, rcon, safetyMaterials);
+    
+    // Use ensureBotHasEnough for each material (matches working episodes)
+    for (const [blockType, count] of Object.entries(safetyMaterials)) {
+      await ensureBotHasEnough(bot, rcon, blockType, count);
+    }
   }
 
   async entryPoint(
@@ -296,9 +370,9 @@ class BuildHouseEpisode extends BaseEpisode {
     };
     
     coordinator.onceEvent(
-      `buildHousePhase_${iterationID}`,
+      `buildHouseSetupPhase_${iterationID}`,
       episodeNum,
-      getOnBuildHousePhaseFn(
+      getOnBuildHouseSetupPhaseFn(
         bot,
         rcon,
         sharedBotRng,
@@ -306,12 +380,11 @@ class BuildHouseEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args,
-        phaseDataOur
+        args
       )
     );
     coordinator.sendToOtherBot(
-      `buildHousePhase_${iterationID}`,
+      `buildHouseSetupPhase_${iterationID}`,
       phaseDataOur,
       episodeNum,
       "entryPoint end"
@@ -336,6 +409,7 @@ class BuildHouseEpisode extends BaseEpisode {
 
 module.exports = {
   BuildHouseEpisode,
+  getOnBuildHouseSetupPhaseFn,
   getOnBuildHousePhaseFn,
   MATERIALS,
 };

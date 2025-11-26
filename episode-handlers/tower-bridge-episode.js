@@ -9,6 +9,7 @@ const {
 } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
 const { Movements, GoalNear } = require("../utils/bot-factory");
+const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 
 // Constants for tower-bridge behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
