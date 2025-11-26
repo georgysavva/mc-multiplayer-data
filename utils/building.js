@@ -8,11 +8,139 @@ const { digWithTimeout } = require("./movement");
 const scaffoldBlocks = [];
 
 /**
+ * Calculate placement order for floor blocks (edge-to-center spiral)
+ * Strategy: Place perimeter first, then work inward layer by layer
+ * This ensures bots never stand on unplaced blocks
+ * @param {number} width - Width of floor (default 5)
+ * @param {number} depth - Depth of floor (default 5)
+ * @returns {Array<{x: number, z: number, order: number}>} Ordered positions
+ */
+function calculateFloorPlacementOrder(width = 5, depth = 5) {
+  const positions = [];
+  let order = 0;
+  
+  // Work from outside edge inward (layer by layer)
+  let minX = 0, maxX = width - 1;
+  let minZ = 0, maxZ = depth - 1;
+  
+  while (minX <= maxX && minZ <= maxZ) {
+    // Top edge (left to right)
+    for (let x = minX; x <= maxX; x++) {
+      positions.push({ x, z: minZ, order: order++ });
+    }
+    minZ++;
+    
+    // Right edge (top to bottom)
+    for (let z = minZ; z <= maxZ; z++) {
+      positions.push({ x: maxX, z, order: order++ });
+    }
+    maxX--;
+    
+    // Bottom edge (right to left)
+    if (minZ <= maxZ) {
+      for (let x = maxX; x >= minX; x--) {
+        positions.push({ x, z: maxZ, order: order++ });
+      }
+      maxZ--;
+    }
+    
+    // Left edge (bottom to top)
+    if (minX <= maxX) {
+      for (let z = maxZ; z >= minZ; z--) {
+        positions.push({ x: minX, z, order: order++ });
+      }
+      minX++;
+    }
+  }
+  
+  return positions;
+}
+
+/**
+ * Helper: Get perimeter position for clockwise ordering
+ * @param {number} x - X coordinate
+ * @param {number} z - Z coordinate
+ * @returns {number} Position along perimeter
+ */
+function getPerimeterPosition(x, z) {
+  // South wall (z=0): positions 0-4
+  if (z === 0) return x;
+  // East wall (x=4): positions 5-8
+  if (x === 4) return 5 + (z - 1);
+  // North wall (z=4): positions 9-12
+  if (z === 4) return 9 + (4 - x);
+  // West wall (x=0): positions 13-15
+  if (x === 0) return 13 + (4 - z - 1);
+  return 999; // Should never happen
+}
+
+/**
+ * Calculate placement order for wall blocks
+ * Strategy: Bottom-up, corners first, then edges
+ * @param {Array<{x: number, y: number, z: number}>} wallBlocks - Wall block positions
+ * @returns {Map<string, number>} Map of "x,y,z" -> order
+ */
+function calculateWallPlacementOrder(wallBlocks) {
+  const orderMap = new Map();
+  let order = 0;
+  
+  // Group by Y level (bottom to top)
+  const byLevel = {};
+  for (const block of wallBlocks) {
+    const key = block.y;
+    if (!byLevel[key]) byLevel[key] = [];
+    byLevel[key].push(block);
+  }
+  
+  // Process each level
+  const levels = Object.keys(byLevel).map(Number).sort((a, b) => a - b);
+  
+  for (const y of levels) {
+    const levelBlocks = byLevel[y];
+    
+    // Sort by distance from corners (corners first)
+    // Corners are at (0,0), (4,0), (0,4), (4,4)
+    const sorted = levelBlocks.slice().sort((a, b) => {
+      const isCornerA = (a.x === 0 || a.x === 4) && (a.z === 0 || a.z === 4);
+      const isCornerB = (b.x === 0 || b.x === 4) && (b.z === 0 || b.z === 4);
+      
+      if (isCornerA && !isCornerB) return -1;
+      if (!isCornerA && isCornerB) return 1;
+      
+      // Then by perimeter position (clockwise from south-west)
+      const perimeterA = getPerimeterPosition(a.x, a.z);
+      const perimeterB = getPerimeterPosition(b.x, b.z);
+      return perimeterA - perimeterB;
+    });
+    
+    // Assign orders
+    for (const block of sorted) {
+      orderMap.set(`${block.x},${block.y},${block.z}`, order++);
+    }
+  }
+  
+  return orderMap;
+}
+
+/**
+ * Calculate placement order for roof blocks
+ * Strategy: Similar to floor (edge-to-center) but bots are below
+ * @param {number} width - Width of roof (default 5)
+ * @param {number} depth - Depth of roof (default 5)
+ * @returns {Array<{x: number, z: number, order: number}>} Ordered positions
+ */
+function calculateRoofPlacementOrder(width = 5, depth = 5) {
+  // Roof can use same strategy as floor since bots are below
+  // But we might want to place from edges inward for stability
+  return calculateFloorPlacementOrder(width, depth);
+}
+
+/**
  * Generate a 5x5 house blueprint with flat roof
  * Local coordinate frame: origin at south-west corner, +X=east, +Z=south, +Y=up
  * @param {Object} options - Configuration options
  * @param {Object} options.materials - Material overrides
- * @returns {Array<Object>} Array of {x, y, z, block, phase, data}
+ * @returns {Array<Object>} Array of {x, y, z, block, phase, placementOrder, data}
  */
 function makeHouseBlueprint5x5(options = {}) {
   const materials = {
@@ -26,93 +154,83 @@ function makeHouseBlueprint5x5(options = {}) {
 
   const blueprint = [];
 
-  // PHASE 1: FLOOR (y=0, 5x5 grid)
+  // PHASE 1: FLOOR (y=0, 5x5 grid) with edge-to-center placement order
+  const floorOrder = calculateFloorPlacementOrder(5, 5);
+  const floorOrderMap = new Map();
+  for (const pos of floorOrder) {
+    floorOrderMap.set(`${pos.x},${pos.z}`, pos.order);
+  }
+  
   for (let x = 0; x < 5; x++) {
     for (let z = 0; z < 5; z++) {
+      const placementOrder = floorOrderMap.get(`${x},${z}`);
       blueprint.push({
         x,
         y: 0,
         z,
         block: materials.floor,
         phase: "floor",
+        placementOrder: placementOrder !== undefined ? placementOrder : 999,
         data: null,
       });
     }
   }
 
   // PHASE 2: WALLS (y=1 to y=3, hollow ring)
-  // Door will be at (x=2, z=0) so we skip those positions
+  // Collect all wall blocks first, then assign orders
+  const wallBlocks = [];
+  
+  // Entrance will be at (x=2, z=0, y=1) - single block opening
   for (let y = 1; y <= 3; y++) {
-    // South wall (z=0) - skip door positions
+    // South wall (z=0) - skip entrance position
     for (let x = 0; x < 5; x++) {
-      if (!(x === 2 && (y === 1 || y === 2))) {
-        blueprint.push({
-          x,
-          y,
-          z: 0,
-          block: materials.walls,
-          phase: "walls",
-          data: null,
-        });
+      if (!(x === 2 && y === 1)) {  // Only skip the single entrance block
+        wallBlocks.push({ x, y, z: 0 });
       }
     }
 
     // North wall (z=4)
     for (let x = 0; x < 5; x++) {
-      blueprint.push({
-        x,
-        y,
-        z: 4,
-        block: materials.walls,
-        phase: "walls",
-        data: null,
-      });
+      wallBlocks.push({ x, y, z: 4 });
     }
 
     // West wall (x=0, skip corners already done)
     for (let z = 1; z < 4; z++) {
-      blueprint.push({
-        x: 0,
-        y,
-        z,
-        block: materials.walls,
-        phase: "walls",
-        data: null,
-      });
+      wallBlocks.push({ x: 0, y, z });
     }
 
     // East wall (x=4, skip corners already done)
     for (let z = 1; z < 4; z++) {
-      blueprint.push({
-        x: 4,
-        y,
-        z,
-        block: materials.walls,
-        phase: "walls",
-        data: null,
-      });
+      wallBlocks.push({ x: 4, y, z });
     }
   }
+  
+  // Calculate wall placement order
+  const wallOrderMap = calculateWallPlacementOrder(wallBlocks);
+  
+  // Add walls to blueprint with placement order
+  for (const wall of wallBlocks) {
+    const orderKey = `${wall.x},${wall.y},${wall.z}`;
+    const placementOrder = wallOrderMap.get(orderKey);
+    blueprint.push({
+      x: wall.x,
+      y: wall.y,
+      z: wall.z,
+      block: materials.walls,
+      phase: "walls",
+      placementOrder: placementOrder !== undefined ? placementOrder : 999,
+      data: null,
+    });
+  }
 
-  // PHASE 3: DOOR (south wall, centered at x=2, z=0)
-  blueprint.push({
-    x: 2,
-    y: 1,
-    z: 0,
-    block: materials.door,
-    phase: "door",
-    data: { half: "lower", facing: "south" },
-  });
-  blueprint.push({
-    x: 2,
-    y: 2,
-    z: 0,
-    block: materials.door,
-    phase: "door",
-    data: { half: "upper", facing: "south" },
-  });
+  // PHASE 3: ENTRANCE - Single block opening (no door)
+  // Entrance is at (x=2, z=0, y=1) - 1 block wide, 1 block tall
+  // No door blocks placed, creating an open entrance
 
   // PHASE 4: WINDOWS (glass panes at y=2)
+  // Windows can be placed in any order after walls
+  let windowOrder = 0;
+  
   // South windows flanking door
   blueprint.push({
     x: 1,
@@ -120,6 +238,7 @@ function makeHouseBlueprint5x5(options = {}) {
     z: 0,
     block: materials.windows,
     phase: "windows",
+    placementOrder: windowOrder++,
     data: null,
   });
   blueprint.push({
@@ -128,6 +247,7 @@ function makeHouseBlueprint5x5(options = {}) {
     z: 0,
     block: materials.windows,
     phase: "windows",
+    placementOrder: windowOrder++,
     data: null,
   });
   // West window
@@ -137,6 +257,7 @@ function makeHouseBlueprint5x5(options = {}) {
     z: 2,
     block: materials.windows,
     phase: "windows",
+    placementOrder: windowOrder++,
     data: null,
   });
   // East window
@@ -146,18 +267,27 @@ function makeHouseBlueprint5x5(options = {}) {
     z: 2,
     block: materials.windows,
     phase: "windows",
+    placementOrder: windowOrder++,
     data: null,
   });
 
-  // PHASE 5: ROOF (flat roof at y=4, 5x5 grid)
+  // PHASE 5: ROOF (flat roof at y=4, 5x5 grid) with edge-to-center order
+  const roofOrder = calculateRoofPlacementOrder(5, 5);
+  const roofOrderMap = new Map();
+  for (const pos of roofOrder) {
+    roofOrderMap.set(`${pos.x},${pos.z}`, pos.order);
+  }
+  
   for (let x = 0; x < 5; x++) {
     for (let z = 0; z < 5; z++) {
+      const placementOrder = roofOrderMap.get(`${x},${z}`);
       blueprint.push({
         x,
         y: 4,
         z,
         block: materials.roof,
         phase: "roof",
+        placementOrder: placementOrder !== undefined ? placementOrder : 999,
         data: null,
       });
     }
@@ -238,13 +368,17 @@ async function ensureBlocks(bot, rcon, materials) {
     return;
   }
 
-  console.log(`[${bot.username}] 📦 Receiving building materials...`);
+  console.log(
+    `[${bot.username}] 📦 Receiving building materials...`
+  );
 
   for (const [blockName, count] of Object.entries(materials)) {
     if (count > 0) {
       const cmd = `/give ${bot.username} ${blockName} ${count}`;
       await rcon.send(cmd);
-      console.log(`[${bot.username}]    ${count}x ${blockName}`);
+      console.log(
+        `[${bot.username}]    ${count}x ${blockName}`
+      );
       await sleep(500); // Increased delay for inventory sync
     }
   }
@@ -354,12 +488,18 @@ async function buildPhase(bot, targets, options = {}) {
 
   console.log(`[${bot.username}] 📦 Block type: ${blockType}, Phase: ${phaseName}`);
 
-  // Sort positions: bottom-up (Y), then near-to-far
+  // Sort positions: Use placementOrder if available, otherwise fallback to Y-level then distance
   const botPos = bot.entity.position;
   const sorted = targets.slice().sort((a, b) => {
+    // Primary sort: placementOrder (if both have it)
+    if (a.placementOrder !== undefined && b.placementOrder !== undefined) {
+      return a.placementOrder - b.placementOrder;
+    }
+    
+    // Fallback sort: Y-level (bottom-up), then distance (near-to-far)
     if (a.worldPos.y !== b.worldPos.y) return a.worldPos.y - b.worldPos.y;
     const distA = botPos.distanceTo(a.worldPos);
-    const distB = botPos.distanceTo(a.worldPos);
+    const distB = botPos.distanceTo(b.worldPos);
     return distA - distB;
   });
 
@@ -373,64 +513,185 @@ async function buildPhase(bot, targets, options = {}) {
   for (let i = 0; i < sorted.length; i++) {
     const target = sorted[i];
     const pos = target.worldPos;
+    let attemptCount = 0;
+    const MAX_ATTEMPTS = 3;
+    let placed = false;
 
-    try {
-      // Check if block already placed
-      const existingBlock = bot.blockAt(pos);
-      if (existingBlock && existingBlock.name !== "air") {
-        console.log(
-          `[${bot.username}] ⏭️ Block already exists at (${pos.x}, ${pos.y}, ${pos.z})`
-        );
-        success++;
-        continue;
-      }
-
-      // Auto-scaffold if no reference block
-      if (!hasAdjacentSolidBlock(bot, pos)) {
-        console.log(
-          `[${bot.username}] 🧱 No reference block at (${pos.x}, ${pos.y}, ${pos.z}), scaffolding...`
-        );
-        await placeScaffold(bot, pos, args);
-        await sleep(200); // Let scaffold settle
-      }
-
-      // Pathfind near target
-      const distance = bot.entity.position.distanceTo(pos);
-      if (distance > 4) {
-        console.log(
-          `[${bot.username}] 🚶 Pathfinding to block ${i + 1}/${sorted.length}, distance: ${distance.toFixed(1)}`
-        );
-
-        bot.pathfinder.setGoal(new GoalNear(pos.x, pos.y, pos.z, 3));
-        await sleep(Math.min(distance * 500, 5000));
-        bot.pathfinder.setGoal(null);
-      }
-
-      // Place block
-      const placed = await placeAt(bot, pos, blockType, {
-        useSneak: true,
-        tries: 5,
-        args: args,
-      });
-
-      if (placed) {
-        success++;
-        if ((i + 1) % 5 === 0 || i === sorted.length - 1) {
+    while (attemptCount < MAX_ATTEMPTS && !placed) {
+      try {
+        // Check if block already placed
+        const existingBlock = bot.blockAt(pos);
+        if (existingBlock && existingBlock.name !== "air") {
           console.log(
-            `[${bot.username}] ✅ Progress: ${success}/${sorted.length} blocks placed`
+            `[${bot.username}] ⏭️ Block already exists at (${pos.x}, ${pos.y}, ${pos.z})`
+          );
+          success++;
+          placed = true;
+          break;
+        }
+
+        // OPTIMIZATION: Check if bot is standing on target BEFORE first placement attempt
+        const botPos = bot.entity.position.floored();
+        const isStandingExactlyOnTarget = (
+          botPos.x === pos.x && 
+          botPos.z === pos.z && 
+          Math.abs(botPos.y - pos.y) <= 1
+        );
+        
+        if (isStandingExactlyOnTarget && attemptCount === 0) {
+          // Bot is standing on target - skip normal placement, go straight to jump
+          console.log(
+            `[${bot.username}] ⚠️ Bot is standing exactly on target block (${pos.x}, ${pos.y}, ${pos.z}), skipping normal placement and trying jump...`
+          );
+          
+          try {
+            bot.setControlState('jump', true);
+            await sleep(100); // Brief moment to start jump
+            
+            // Attempt placement while jumping
+            placed = await placeAt(bot, pos, blockType, {
+              useSneak: false, // Don't sneak while jumping
+              tries: 3,
+              args: args,
+            });
+            
+            bot.setControlState('jump', false);
+            await sleep(200); // Let bot land
+            
+            if (placed) {
+              console.log(
+                `[${bot.username}] ✅ Successfully placed block while jumping!`
+              );
+              success++;
+            } else {
+              // Jump placement failed - need to reposition
+              console.log(
+                `[${bot.username}] ⚠️ Jump placement failed, will reposition...`
+              );
+              attemptCount++;
+              if (attemptCount < MAX_ATTEMPTS) {
+                await sleep(300);
+                continue; // Skip to next iteration with repositioning
+              } else {
+                failed++;
+                break;
+              }
+            }
+          } catch (jumpError) {
+            console.log(
+              `[${bot.username}] ⚠️ Jump placement error: ${jumpError.message}, will reposition...`
+            );
+            attemptCount++;
+            if (attemptCount < MAX_ATTEMPTS) {
+              await sleep(300);
+              continue;
+            } else {
+              failed++;
+              break;
+            }
+          }
+          
+          // If placed successfully via jump, continue to next block
+          if (placed) {
+            continue;
+          }
+        }
+
+        // Auto-scaffold if no reference block
+        if (!hasAdjacentSolidBlock(bot, pos)) {
+          console.log(
+            `[${bot.username}] 🧱 No reference block at (${pos.x}, ${pos.y}, ${pos.z}), scaffolding...`
+          );
+          await placeScaffold(bot, pos, args);
+          await sleep(200); // Let scaffold settle
+        }
+
+        // Pathfind near target (reposition on retry attempts)
+        const distance = bot.entity.position.distanceTo(pos);
+        const shouldReposition = attemptCount > 0 || distance > 4;
+        
+        if (shouldReposition) {
+          if (attemptCount > 0) {
+            console.log(
+              `[${bot.username}] 🔄 Attempt ${attemptCount + 1}/${MAX_ATTEMPTS}: Repositioning for block ${i + 1}/${sorted.length}`
+            );
+          } else {
+            console.log(
+              `[${bot.username}] 🚶 Pathfinding to block ${i + 1}/${sorted.length}, distance: ${distance.toFixed(1)}`
+            );
+          }
+
+          // Try different approach angles on retries
+          // Attempt 1: Normal approach (distance 3)
+          // Attempt 2: Offset +X direction (distance 2.5)
+          // Attempt 3: Offset -Z direction (distance 2)
+          let targetX = pos.x;
+          let targetZ = pos.z;
+          let approachDistance = 3;
+          
+          if (attemptCount === 1) {
+            // Try approaching from +X direction (east)
+            targetX = pos.x + 2;
+            approachDistance = 2.5;
+          } else if (attemptCount === 2) {
+            // Try approaching from -Z direction (north)
+            targetZ = pos.z - 2;
+            approachDistance = 2;
+          }
+          
+          bot.pathfinder.setGoal(new GoalNear(targetX, pos.y, targetZ, approachDistance));
+          await sleep(Math.min(distance * 500, 5000));
+          bot.pathfinder.setGoal(null);
+          
+          // Extra settling time on retries
+          if (attemptCount > 0) {
+            await sleep(500);
+          }
+        }
+
+        // STEP 1: Try normal placement
+        placed = await placeAt(bot, pos, blockType, {
+          useSneak: true,
+          tries: 3,
+          args: args,
+        });
+
+        if (placed) {
+          success++;
+          if ((i + 1) % 5 === 0 || i === sorted.length - 1) {
+            console.log(
+              `[${bot.username}] ✅ Progress: ${success}/${sorted.length} blocks placed`
+            );
+          }
+        } else {
+          // Normal placement failed - increment attempt and retry with repositioning
+          attemptCount++;
+          if (attemptCount < MAX_ATTEMPTS) {
+            console.log(
+              `[${bot.username}] ⚠️ Failed attempt ${attemptCount}/${MAX_ATTEMPTS} at (${pos.x}, ${pos.y}, ${pos.z}), will reposition...`
+            );
+            await sleep(300); // Brief pause before retry
+          } else {
+            failed++;
+            console.log(
+              `[${bot.username}] ❌ Failed all ${MAX_ATTEMPTS} attempts at (${pos.x}, ${pos.y}, ${pos.z})`
+            );
+          }
+        }
+      } catch (error) {
+        attemptCount++;
+        if (attemptCount < MAX_ATTEMPTS) {
+          console.log(
+            `[${bot.username}] ⚠️ Error on attempt ${attemptCount}/${MAX_ATTEMPTS} at (${pos.x}, ${pos.y}, ${pos.z}): ${error.message}, retrying...`
+          );
+          await sleep(300);
+        } else {
+          failed++;
+          console.log(
+            `[${bot.username}] ❌ Error after ${MAX_ATTEMPTS} attempts at (${pos.x}, ${pos.y}, ${pos.z}): ${error.message}`
           );
         }
-      } else {
-        failed++;
-        console.log(
-          `[${bot.username}] ❌ Failed to place at (${pos.x}, ${pos.y}, ${pos.z})`
-        );
       }
-    } catch (error) {
-      failed++;
-      console.log(
-        `[${bot.username}] ❌ Error placing at (${pos.x}, ${pos.y}, ${pos.z}): ${error.message}`
-      );
     }
 
     if (delayMs > 0 && i < sorted.length - 1) {
@@ -517,14 +778,18 @@ async function admireHouse(bot, doorWorldPos, orientation, options = {}) {
       lookFromPos = doorWorldPos.offset(0, 0, backOff);
   }
 
-  console.log(`[${bot.username}] 🚶 Backing up to admire position...`);
+  console.log(
+    `[${bot.username}] 🚶 Backing up to admire position...`
+  );
   bot.pathfinder.setGoal(new GoalNear(lookFromPos.x, lookFromPos.y, lookFromPos.z, 2));
   await sleep(4000);
   bot.pathfinder.setGoal(null);
 
   // Step 3: Look at house center
   const houseCenter = doorWorldPos.offset(2, 2, 2); // Center of 5x5 house
-  console.log(`[${bot.username}] 👀 Looking at house...`);
+  console.log(
+    `[${bot.username}] 👀 Looking at house...`
+  );
   await bot.lookAt(houseCenter, false);
   await sleep(2000);
 
@@ -540,4 +805,8 @@ module.exports = {
   buildPhase,
   cleanupScaffolds,
   admireHouse,
+  calculateFloorPlacementOrder,
+  getPerimeterPosition,
+  calculateWallPlacementOrder,
+  calculateRoofPlacementOrder,
 };

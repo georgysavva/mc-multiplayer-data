@@ -17,6 +17,7 @@ const {
 const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");
 const { ensureBotHasEnough, unequipHand } = require("../utils/items");
+const { goals } = require("mineflayer-pathfinder");
 
 // Constants for house building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
@@ -198,9 +199,9 @@ function getOnBuildHousePhaseFn(
       allowEntityDetection: true,
     });
 
-    // STEP 6: Build in phases (floor → walls → door → windows → roof)
+    // STEP 6: Build in phases (floor → walls → windows → roof)
     console.log(`[${bot.username}] 🏗️ STEP 6: Building house in phases...`);
-    const phases = ["floor", "walls", "door", "windows", "roof"];
+    const phases = ["floor", "walls", "windows", "roof"];
     
     try {
       for (const phaseName of phases) {
@@ -285,9 +286,9 @@ function getOnBuildHousePhaseFn(
     });
     
     const doorWorldPos = rotateLocalToWorld({ x: 2, y: 1, z: 0 }, worldOrigin, ORIENTATION);
-    const houseCenter = worldOrigin.offset(2, 2, 2); // Center of 5x5 house
     
-    await admireHouse(bot, doorWorldPos, houseCenter, 7);
+    // STEP 9: Exit house and admire from 15 blocks away
+    await admireHouse(bot, doorWorldPos, ORIENTATION, { backOff: 15 });
     
     stopPathfinder(bot);
 
