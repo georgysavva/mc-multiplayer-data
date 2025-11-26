@@ -46,10 +46,16 @@ import java.util.*;
 
 public class CameraManager implements Listener {
 
+    private static final long MIN_SPRINT_MS = 200L;
+    private static final double SNEAK_SCALE = 0.785; 
+    private static final double NORMAL_SCALE = 1.0;
+
     private final EpisodeManager plugin;
     private final ProtocolManager protocol;
     private BukkitTask followTask;
     private long tickCounter = 0;
+
+    private final Map<UUID, Long> sprintStartTime = new HashMap<>();
 
     // ================================
     // Block animation cache
@@ -158,6 +164,8 @@ public class CameraManager implements Listener {
                         Math.abs(camLoc.getYaw() - cLoc.getYaw()) > 1f ||
                                 Math.abs(camLoc.getPitch() - cLoc.getPitch()) > 1f;
 
+                boolean sprinting = controller.isSprinting();
+
                 if (moved || rotated) {
                     camera.teleportAsync(cLoc.clone());
                 }
@@ -238,15 +246,40 @@ public class CameraManager implements Listener {
     public void onSneak(PlayerToggleSneakEvent e) {
         Player controller = e.getPlayer();
         Player camera = plugin.getActivePairs().get(controller);
-        if (camera != null) camera.setSneaking(e.isSneaking());
+        if (camera == null) return;
+
+        AttributeInstance scaleAttr = camera.getAttribute(Attribute.GENERIC_SCALE);
+        if (scaleAttr == null) return; // safety fallback
+
+        if (e.isSneaking()) {
+            // shrink to 7/8 height
+            scaleAttr.setBaseValue(SNEAK_SCALE);
+        } else {
+            // restore normal full height
+            scaleAttr.setBaseValue(NORMAL_SCALE);
+        }
     }
 
-    @EventHandler
-    public void onSprint(PlayerToggleSprintEvent e) {
-        Player controller = e.getPlayer();
-        Player camera = plugin.getActivePairs().get(controller);
-        if (camera != null) camera.setSprinting(e.isSprinting());
-    }
+    // @EventHandler
+    // public void onSprint(PlayerToggleSprintEvent e) {
+    //     Player controller = e.getPlayer();
+
+    //     // Only care about controllers that have cameras
+    //     if (!plugin.getActivePairs().containsKey(controller)) return;
+
+    //     UUID id = controller.getUniqueId();
+
+    //     if (e.isSprinting()) {
+    //         sprintStartTime.put(id, System.currentTimeMillis());
+    //     } else {
+    //         Long start = sprintStartTime.get(id);
+    //         if (start != null && System.currentTimeMillis() - start < MIN_SPRINT_MS) {
+    //             e.setCancelled(true);
+    //         } else {
+    //             sprintStartTime.remove(id);
+    //         }
+    //     }
+    // }
 
     @EventHandler(ignoreCancelled = true)
     public void onTargetCamera(EntityTargetLivingEntityEvent e) {
