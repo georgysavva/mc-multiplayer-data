@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     HOME=/root \
     LIBGL_ALWAYS_SOFTWARE=1 \
     MESA_GL_VERSION_OVERRIDE=3.3 \
-    JAVA_BIN=/usr/lib/jvm/java-17-openjdk-amd64/bin/java
+    JAVA_BIN=/usr/lib/jvm/temurin-21-jre-amd64/bin/java
 
 # Configure APT for better network reliability
 RUN printf '%s\n' \
@@ -19,7 +19,6 @@ RUN printf '%s\n' \
 # Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        openjdk-17-jre-headless \
         xvfb \
         x11vnc \
         fluxbox \
@@ -38,6 +37,15 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Java 21 (Temurin JRE) on Debian 12 (bookworm)
+RUN apt-get update && apt-get install -y wget gnupg ca-certificates && \
+    wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /etc/apt/trusted.gpg.d/adoptium.gpg && \
+    echo "deb [signed-by=/etc/apt/trusted.gpg.d/adoptium.gpg] https://packages.adoptium.net/artifactory/deb bookworm main" \
+        > /etc/apt/sources.list.d/adoptium.list && \
+    apt-get update && \
+    apt-get install -y temurin-21-jre && \
+    rm -rf /var/lib/apt/lists/*
+    
 # Install Python dependencies
 RUN pip install --no-cache-dir \
     minecraft-launcher-lib==6.5 \
