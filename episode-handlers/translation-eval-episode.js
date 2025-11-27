@@ -84,7 +84,7 @@ function getOnWalkLookPhaseFn(
     );
 
     // Look at the other bot smoothly at the start of the phase
-    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC * 4);
+    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC * 4, { randomized: false, useEasing: false });
 
     // Either run() or sleep() based on the mode
     if (shouldThisBotWalk) {
