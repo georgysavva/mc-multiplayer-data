@@ -285,6 +285,8 @@ function getOnBuildHousePhaseFn(
       allowSprinting: false,
       allowParkour: true,
       canDig: false,
+      canPlaceOn: true, // Disable scaffolding - let bots jump down from roof
+      maxDropDown: 10,
       allowEntityDetection: true,
     });
     
@@ -342,7 +344,7 @@ class BuildHouseEpisode extends BaseEpisode {
     const blueprint = makeHouseBlueprint5x5({
       materials: this.materials,
     });
-    
+
     // Calculate material counts
     const materialCounts = calculateMaterialCounts(blueprint);
     

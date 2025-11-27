@@ -180,11 +180,11 @@ function makeHouseBlueprint5x5(options = {}) {
   // Collect all wall blocks first, then assign orders
   const wallBlocks = [];
   
-  // Entrance will be at (x=2, z=0, y=1) - single block opening
+  // Entrance will be at (x=2, z=0, y=1 and y=2) - 1 wide × 2 tall opening
   for (let y = 1; y <= 3; y++) {
-    // South wall (z=0) - skip entrance position
+    // South wall (z=0) - skip entrance position (2 blocks tall)
     for (let x = 0; x < 5; x++) {
-      if (!(x === 2 && y === 1)) {  // Only skip the single entrance block
+      if (!(x === 2 && (y === 1 || y === 2))) {  // Skip entrance at y=1 and y=2
         wallBlocks.push({ x, y, z: 0 });
       }
     }
@@ -223,8 +223,8 @@ function makeHouseBlueprint5x5(options = {}) {
     });
   }
 
-  // PHASE 3: ENTRANCE - Single block opening (no door)
-  // Entrance is at (x=2, z=0, y=1) - 1 block wide, 1 block tall
+  // PHASE 3: ENTRANCE - 1 block wide × 2 blocks tall opening (no door)
+  // Entrance is at (x=2, z=0, y=1 and y=2)
   // No door blocks placed, creating an open entrance
 
   // PHASE 4: WINDOWS (glass panes at y=2)
@@ -838,47 +838,69 @@ async function cleanupScaffolds(bot) {
 async function admireHouse(bot, doorWorldPos, orientation, options = {}) {
   const { backOff = 7 } = options;
 
-  console.log(`[${bot.username}] 🚪 Exiting through door...`);
-
   const { GoalNear } = require("mineflayer-pathfinder").goals;
+
+  // Step 0: If bot is elevated (on roof), jump down to ground level
+  const botY = bot.entity.position.y;
+  const doorY = doorWorldPos.y;
+
+  if (botY > doorY + 1.5) {
+    console.log(
+      `[${bot.username}] 🪂 Bot is on roof, jumping down to ground...`
+    );
+    
+    // Just pathfind to door - pathfinder will jump down automatically
+    bot.pathfinder.setGoal(new GoalNear(doorWorldPos.x, doorY, doorWorldPos.z, 3));
+    await sleep(5000); // Time for jumping down
+    bot.pathfinder.setGoal(null);
+    await sleep(1000); // Stabilize after landing
+    
+    console.log(`[${bot.username}] ✅ Reached ground level`);
+  }
+
+  console.log(`[${bot.username}] 🚪 Exiting through door...`);
 
   // Step 1: Pathfind through door
   bot.pathfinder.setGoal(new GoalNear(doorWorldPos.x, doorWorldPos.y, doorWorldPos.z, 1));
   await sleep(3000);
   bot.pathfinder.setGoal(null);
 
-  // Step 2: Calculate lookFrom position based on orientation
-  let lookFromPos;
-  switch (orientation) {
-    case 0: // South-facing door, back up south (+Z)
-      lookFromPos = doorWorldPos.offset(0, 0, backOff);
-      break;
-    case 90: // West-facing door, back up west (-X)
-      lookFromPos = doorWorldPos.offset(-backOff, 0, 0);
-      break;
-    case 180: // North-facing door, back up north (-Z)
-      lookFromPos = doorWorldPos.offset(0, 0, -backOff);
-      break;
-    case 270: // East-facing door, back up east (+X)
-      lookFromPos = doorWorldPos.offset(backOff, 0, 0);
-      break;
-    default:
-      lookFromPos = doorWorldPos.offset(0, 0, backOff);
-  }
+  // Step 2: Pick a shared random position around the house, with bots standing side by side
+  // Generate random angle (0-360°) and distance (10-20 blocks) - SHARED between both bots
+  const houseCenter = doorWorldPos.offset(2, 0, 2); // Center of 5x5 house at ground level
+  
+  // Use a deterministic random based on house position so both bots get same angle
+  const seed = houseCenter.x + houseCenter.z * 1000;
+  const seededRandom = Math.abs(Math.sin(seed));
+  const randomAngle = seededRandom * 2 * Math.PI; // Random angle in radians (shared)
+  const randomDistance = 12 + (Math.abs(Math.sin(seed * 2)) * 8); // Random distance 12-20 blocks (shared)
+  
+  // Calculate base position using polar coordinates
+  const baseOffsetX = Math.cos(randomAngle) * randomDistance;
+  const baseOffsetZ = Math.sin(randomAngle) * randomDistance;
+  
+  // Calculate perpendicular offset for side-by-side positioning (3 blocks apart)
+  // Perpendicular angle is 90° offset from viewing angle
+  const perpAngle = randomAngle + Math.PI / 2;
+  const sideOffset = bot.username.includes('Alpha') ? -1.5 : 1.5; // Alpha left, Bravo right
+  const sideOffsetX = Math.cos(perpAngle) * sideOffset;
+  const sideOffsetZ = Math.sin(perpAngle) * sideOffset;
+  
+  const lookFromPos = houseCenter.offset(baseOffsetX + sideOffsetX, 0, baseOffsetZ + sideOffsetZ);
 
   console.log(
-    `[${bot.username}] 🚶 Backing up to admire position...`
+    `[${bot.username}] 🚶 Moving to admire position (angle: ${(randomAngle * 180 / Math.PI).toFixed(0)}°, distance: ${randomDistance.toFixed(1)} blocks, side: ${bot.username.includes('Alpha') ? 'left' : 'right'})...`
   );
-  bot.pathfinder.setGoal(new GoalNear(lookFromPos.x, lookFromPos.y, lookFromPos.z, 2));
-  await sleep(4000);
+  bot.pathfinder.setGoal(new GoalNear(lookFromPos.x, lookFromPos.y, lookFromPos.z, 1));
+  await sleep(5000); // Extra time for potentially longer paths
   bot.pathfinder.setGoal(null);
 
   // Step 3: Look at house center
-  const houseCenter = doorWorldPos.offset(2, 2, 2); // Center of 5x5 house
+  const houseCenterLookTarget = houseCenter.offset(0, 2, 0); // Look at middle height of house
   console.log(
-    `[${bot.username}] 👀 Looking at house...`
+    `[${bot.username}] 👀 Looking at house together...`
   );
-  await bot.lookAt(houseCenter, false);
+  await bot.lookAt(houseCenterLookTarget, false);
   await sleep(2000);
 
   console.log(`[${bot.username}] ✅ Admire sequence complete`);
