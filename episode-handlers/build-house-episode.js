@@ -337,7 +337,7 @@ class BuildHouseEpisode extends BaseEpisode {
     console.log(`[BuildHouseEpisode] Selected materials:`, this.materials);
   }
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
     console.log(`[${bot.username}] 🏠 Setting up house building episode...`);
     
     // Generate blueprint to calculate material needs
@@ -360,6 +360,12 @@ class BuildHouseEpisode extends BaseEpisode {
     for (const [blockType, count] of Object.entries(safetyMaterials)) {
       await ensureBotHasEnough(bot, rcon, blockType, count);
     }
+    
+    // Return unchanged positions since we don't move bots during setup
+    return { 
+      botPositionNew: botPosition, 
+      otherBotPositionNew: otherBotPosition 
+    };
   }
 
   async entryPoint(

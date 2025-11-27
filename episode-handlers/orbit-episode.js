@@ -265,8 +265,12 @@ function getOnOrbitPhaseFn(
 class OrbitEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
   
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
     console.log(`[${bot.username}] 🌀 Setting up orbit episode`);
+    return {
+      botPositionNew: botPosition,
+      otherBotPositionNew: otherBotPosition,
+    };
   }
 
   async entryPoint(

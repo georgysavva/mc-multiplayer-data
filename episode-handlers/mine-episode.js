@@ -584,7 +584,7 @@ function getOnMinePhaseFn(
 class MineEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
     console.log(`[${bot.username}] 🔧 Setting up Mine Episode 2 (Pathfinder)`);
 
     // Give torches for illumination during mining
@@ -592,6 +592,11 @@ class MineEpisode extends BaseEpisode {
     await rcon.send(`give ${bot.username} ${TORCH_TYPE} 64`);
     await sleep(500);
     console.log(`[${bot.username}] ✅ Gave 64 torches`);
+    
+    return {
+      botPositionNew: botPosition,
+      otherBotPositionNew: otherBotPosition,
+    };
   }
 
   async entryPoint(
