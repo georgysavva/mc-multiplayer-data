@@ -452,7 +452,7 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, options 
  * @param {boolean} [options.useEasing=false] - Whether to use easing for the rotation
  * @param {boolean} [options.randomized=false] - Whether to use log-normal speed randomization
  * @param {number} [options.volatility=0.4] - Sigma parameter for log-normal speed randomization
- *   To view how log-normal scaling works, see: https://www.desmos.com/calculator/wazayi56xf
+   To view how log-normal scaling works, see: https://www.desmos.com/calculator/wazayi56xf
  */
 async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options = {}) {
   const { useEasing, randomized, volatility } = { ...DEFAULT_LOOK_OPTIONS, ...options };
@@ -462,6 +462,12 @@ async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options
   if (randomized && volatility > 0) {
     const multiplier = getMeanPreservingScalingFactor(volatility);
     actualSpeed = degreesPerSecond * multiplier;
+
+    // Clip to at least 0.4x the original speed and at most 171 degrees per second, as specified (in rads/sec) by
+    // https://github.com/PrismarineJS/prismarine-physics/blob/37d8d0b612de347b2e132e270642fec108d4f2ec/index.js#L63
+    const minSpeed = degreesPerSecond * 0.4;
+    const maxSpeed = 171;
+    actualSpeed = Math.max(minSpeed, Math.min(maxSpeed, actualSpeed));
   }
 
   await bot.look(targetYaw, targetPitch, false, actualSpeed, actualSpeed, useEasing);
