@@ -362,9 +362,9 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, options 
  * @param {number} targetPitch - Target pitch angle in radians
  * @param {number} degreesPerSecond - Base rotation speed in degrees per second
  * @param {Object} [options] - Look options
- * @param {boolean} [options.useEasing=false] - Whether to use easing for the rotation
- * @param {boolean} [options.randomized=false] - Whether to use log-normal speed randomization
- * @param {number} [options.volatility=0.4] - Sigma parameter for log-normal speed randomization
+ * @param {boolean} [options.useEasing=true] - Whether to use easing for the rotation
+ * @param {boolean} [options.randomized=true] - Whether to use log-normal speed randomization
+ * @param {number} [options.volatility=0.35] - Sigma parameter for log-normal speed randomization
  *   To view how log-normal scaling works, see: https://www.desmos.com/calculator/wazayi56xf
  */
 async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options = {}) {
