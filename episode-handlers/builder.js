@@ -546,7 +546,7 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
   );
 
   // Debug: Log camera at start
-  console.log(`[${bot.username}] 📷 [PREP-START] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
+  // console.log(`[${bot.username}] 📷 [PREP-START] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
 
   // Disable pathfinder auto-look temporarily to prevent interference
   const pathfinderEnableLook = bot.pathfinder ? bot.pathfinder.enableLook : null;
@@ -571,7 +571,7 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
     }
 
     // Debug: Log camera after lookAt
-    console.log(`[${bot.username}] 📷 [PREP-AFTER-LOOK] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
+    // console.log(`[${bot.username}] 📷 [PREP-AFTER-LOOK] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
 
     // Natural pause after looking (makes movement more human-like)
     if (delayMs > 0) {
@@ -579,7 +579,7 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
     }
 
     // Debug: Log camera after delay
-    console.log(`[${bot.username}] 📷 [PREP-AFTER-DELAY] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
+    // console.log(`[${bot.username}] 📷 [PREP-AFTER-DELAY] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
 
     // Verify bot is still in reach
     const maxReach = bot.game.gameMode === 1 ? 6 : 4.5;
@@ -748,7 +748,7 @@ async function placeAt(
         // Attempt placement
         try {
           // Debug: Log camera before placement
-          console.log(`[${bot.username}] 📷 [BEFORE-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
+          // console.log(`[${bot.username}] 📷 [BEFORE-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
           
           // Temporarily disable lookAt to prevent placeBlock's internal lookAt from snapping camera
           const originalLookAt = bot.lookAt;
@@ -762,13 +762,13 @@ async function placeAt(
           }
           
           // Debug: Log camera immediately after placement
-          console.log(`[${bot.username}] 📷 [AFTER-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
+          // console.log(`[${bot.username}] 📷 [AFTER-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
           
           // Wait 500ms after placement without moving camera
           await new Promise((res) => setTimeout(res, 500));
           
           // Debug: Log camera after wait
-          console.log(`[${bot.username}] 📷 [AFTER-WAIT] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
+          // console.log(`[${bot.username}] 📷 [AFTER-WAIT] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
         } catch (e) {
           console.log(`[${bot.username}] ⚠️ Placement failed: ${e.message}`);
           await new Promise((res) => setTimeout(res, 120));
@@ -786,7 +786,7 @@ async function placeAt(
             `(face ${candidateIndex + 1}, attempt ${totalAttempts})`
           );
           // Debug: Log camera when returning success
-          console.log(`[${bot.username}] 📷 [RETURN-SUCCESS] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
+          // console.log(`[${bot.username}] 📷 [RETURN-SUCCESS] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
           return true;
         }
 

@@ -219,13 +219,16 @@ function getOnBuildHousePhaseFn(
           args.other_bot_name
         );
         
-        // Determine which targets this bot should build
-        // Alpha bot gets west half (x < 3), Bravo bot gets east half (x >= 3)
-        const myTargets =
-          bot.username === "Alpha" ? alphaTargets : bravoTargets;
+        // Determine which targets this bot should build based on spawn position
+        // Bot on west side (lower X) gets west half, bot on east side (higher X) gets east half
+        const botIsOnWestSide = botPos.x < worldOrigin.x;
+        const myTargets = botIsOnWestSide ? alphaTargets : bravoTargets;
         
         console.log(
-          `[${bot.username}]    My blocks: ${myTargets.length}/${phaseTargets.length}`
+          `[${bot.username}] 📍 Spawn position: (${botPos.x}, ${botPos.z}), House origin: (${worldOrigin.x}, ${worldOrigin.z})`
+        );
+        console.log(
+          `[${bot.username}] 🏗️ Assigned to ${botIsOnWestSide ? 'WEST' : 'EAST'} half: ${myTargets.length}/${phaseTargets.length} blocks`
         );
         
         // Build this bot's assigned blocks

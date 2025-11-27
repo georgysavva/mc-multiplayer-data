@@ -514,7 +514,7 @@ async function buildPhase(bot, targets, options = {}) {
     const target = sorted[i];
     const pos = target.worldPos;
     let attemptCount = 0;
-    const MAX_ATTEMPTS = 3;
+    const MAX_ATTEMPTS = 3; // attempt 1 = normal, attempt 2 = cardinal reposition, attempt 3 = jump-and-place
     let placed = false;
 
     while (attemptCount < MAX_ATTEMPTS && !placed) {
@@ -530,18 +530,38 @@ async function buildPhase(bot, targets, options = {}) {
           break;
         }
 
-        // OPTIMIZATION: Check if bot is standing on target BEFORE first placement attempt
-        const botPos = bot.entity.position.floored();
-        const isStandingExactlyOnTarget = (
-          botPos.x === pos.x && 
-          botPos.z === pos.z && 
-          Math.abs(botPos.y - pos.y) <= 1
-        );
+        // OPTIMIZATION: Check if bot hitbox collides with target block BEFORE first placement attempt
+        // Bot hitbox: 0.6 blocks wide (X/Z), 1.8 blocks tall (Y)
+        // Block hitbox: 1.0 x 1.0 x 1.0
+        const botPos = bot.entity.position; // Use precise position, not floored
         
-        if (isStandingExactlyOnTarget && attemptCount === 0) {
-          // Bot is standing on target - skip normal placement, go straight to jump
+        // Bot's AABB (Axis-Aligned Bounding Box) - centered on position
+        const botMinX = botPos.x - 0.3;
+        const botMaxX = botPos.x + 0.3;
+        const botMinZ = botPos.z - 0.3;
+        const botMaxZ = botPos.z + 0.3;
+        const botMinY = botPos.y;
+        const botMaxY = botPos.y + 1.8;
+        
+        // Target block's AABB
+        const blockMinX = pos.x;
+        const blockMaxX = pos.x + 1.0;
+        const blockMinZ = pos.z;
+        const blockMaxZ = pos.z + 1.0;
+        const blockMinY = pos.y;
+        const blockMaxY = pos.y + 1.0;
+        
+        // Check AABB collision on all three axes
+        const overlapsX = botMaxX > blockMinX && botMinX < blockMaxX;
+        const overlapsZ = botMaxZ > blockMinZ && botMinZ < blockMaxZ;
+        const overlapsY = botMaxY > blockMinY && botMinY < blockMaxY;
+        
+        const isCollidingWithTarget = overlapsX && overlapsZ && overlapsY;
+        
+        if (isCollidingWithTarget && attemptCount === 0) {
+          // Bot hitbox is colliding with target block - skip normal placement, use jump-and-place
           console.log(
-            `[${bot.username}] ⚠️ Bot is standing exactly on target block (${pos.x}, ${pos.y}, ${pos.z}), skipping normal placement and trying jump...`
+            `[${bot.username}] ⚠️ Bot hitbox colliding with target block at (${pos.x}, ${pos.y}, ${pos.z}), using jump-and-place...`
           );
           
           try {
@@ -606,6 +626,59 @@ async function buildPhase(bot, targets, options = {}) {
           await sleep(200); // Let scaffold settle
         }
 
+        // ATTEMPT 3 ONLY: Jump-and-place as final fallback
+        if (attemptCount === 2 && !placed) {
+          console.log(
+            `[${bot.username}] 🦘 Attempt 3: Using jump-and-place as final fallback...`
+          );
+          
+          // Move close to target (try to get on top or adjacent)
+          const targetAbove = new Vec3(pos.x + 0.5, pos.y, pos.z + 0.5); // Center of target block
+          const currentPos = bot.entity.position;
+          const distToTarget = currentPos.distanceTo(targetAbove);
+          
+          if (distToTarget > 2) {
+            console.log(
+              `[${bot.username}] 🚶 Moving closer to target for jump-and-place...`
+            );
+            bot.pathfinder.setGoal(new GoalNear(targetAbove.x, targetAbove.y, targetAbove.z, 1));
+            await sleep(Math.min(distToTarget * 500, 3000));
+            bot.pathfinder.setGoal(null);
+            await sleep(300);
+          }
+          
+          try {
+            bot.setControlState('jump', true);
+            await sleep(100); // Brief moment to start jump
+            
+            // Attempt placement while jumping with extra tries
+            placed = await placeAt(bot, pos, blockType, {
+              useSneak: false, // Don't sneak while jumping
+              tries: 3, // Extra tries since this is last chance
+              args: args,
+            });
+            
+            bot.setControlState('jump', false);
+            await sleep(200); // Let bot land
+            
+            if (placed) {
+              console.log(
+                `[${bot.username}] ✅ Jump-and-place succeeded on attempt 3!`
+              );
+              success++;
+              break; // Exit while loop, move to next block
+            } else {
+              console.log(
+                `[${bot.username}] ⚠️ Jump-and-place failed on attempt 3`
+              );
+            }
+          } catch (jumpError) {
+            console.log(
+              `[${bot.username}] ⚠️ Jump-and-place error: ${jumpError.message}`
+            );
+          }
+        }
+
         // Pathfind near target (reposition on retry attempts)
         const distance = bot.entity.position.distanceTo(pos);
         const shouldReposition = attemptCount > 0 || distance > 4;
@@ -667,7 +740,7 @@ async function buildPhase(bot, targets, options = {}) {
         // STEP 1: Try normal placement
         placed = await placeAt(bot, pos, blockType, {
           useSneak: true,
-          tries: 3,
+          tries: 1,
           args: args,
         });
 
