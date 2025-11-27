@@ -28,10 +28,10 @@ const ORIENTATION = 0; // Only 0° supported for now (south-facing door)
 // Material set (cobblestone house)
 const MATERIALS = {
   floor: "cobblestone",
-  walls: "cobblestone",
+  walls: "oak_planks",
   door: "oak_door",
   windows: "glass_pane",
-  roof: "cobblestone",
+  roof: "oak_log",
 };
 
 /**

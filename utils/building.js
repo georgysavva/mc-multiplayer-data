@@ -621,31 +621,46 @@ async function buildPhase(bot, targets, options = {}) {
             );
           }
 
-          // Try different approach angles on retries
-          // Attempt 1: Normal approach (distance 3)
-          // Attempt 2: Offset +X direction (distance 2.5)
-          // Attempt 3: Offset -Z direction (distance 2)
-          let targetX = pos.x;
-          let targetZ = pos.z;
-          let approachDistance = 3;
-          
-          if (attemptCount === 1) {
-            // Try approaching from +X direction (east)
-            targetX = pos.x + 2;
-            approachDistance = 2.5;
-          } else if (attemptCount === 2) {
-            // Try approaching from -Z direction (north)
-            targetZ = pos.z - 2;
-            approachDistance = 2;
-          }
-          
-          bot.pathfinder.setGoal(new GoalNear(targetX, pos.y, targetZ, approachDistance));
-          await sleep(Math.min(distance * 500, 5000));
-          bot.pathfinder.setGoal(null);
-          
-          // Extra settling time on retries
+          // On retry attempts, move to cardinally adjacent positions
           if (attemptCount > 0) {
+            // Define 4 cardinal positions adjacent to the target block
+            const cardinalPositions = [
+              { x: pos.x + 1, y: pos.y, z: pos.z, dir: "East" },   // East
+              { x: pos.x - 1, y: pos.y, z: pos.z, dir: "West" },   // West
+              { x: pos.x, y: pos.y, z: pos.z + 1, dir: "South" },  // South
+              { x: pos.x, y: pos.y, z: pos.z - 1, dir: "North" },  // North
+            ];
+            
+            // Find the closest cardinal position to bot's current location
+            const currentBotPos = bot.entity.position;
+            let closestCardinal = cardinalPositions[0];
+            let minDistance = currentBotPos.distanceTo(new Vec3(closestCardinal.x, closestCardinal.y, closestCardinal.z));
+            
+            for (const cardPos of cardinalPositions) {
+              const cardVec = new Vec3(cardPos.x, cardPos.y, cardPos.z);
+              const dist = currentBotPos.distanceTo(cardVec);
+              if (dist < minDistance) {
+                minDistance = dist;
+                closestCardinal = cardPos;
+              }
+            }
+            
+            console.log(
+              `[${bot.username}] 🧭 Moving to cardinal position ${closestCardinal.dir} of target: (${closestCardinal.x}, ${closestCardinal.y}, ${closestCardinal.z})`
+            );
+            
+            // Move to exact cardinal position (range 0 = stand exactly there)
+            bot.pathfinder.setGoal(new GoalNear(closestCardinal.x, closestCardinal.y, closestCardinal.z, 0));
+            await sleep(Math.min(minDistance * 500, 5000));
+            bot.pathfinder.setGoal(null);
+            
+            // Extra settling time after repositioning
             await sleep(500);
+          } else {
+            // First attempt: normal approach (distance 3)
+            bot.pathfinder.setGoal(new GoalNear(pos.x, pos.y, pos.z, 3));
+            await sleep(Math.min(distance * 500, 5000));
+            bot.pathfinder.setGoal(null);
           }
         }
 
