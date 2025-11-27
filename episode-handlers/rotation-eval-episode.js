@@ -25,7 +25,7 @@ function getOnRotatePhaseFn(
     );
 
     // Look at the other bot smoothly at the start of the phase
-    await lookAtSmooth(bot, otherBotPosition, 120);
+    await lookAtSmooth(bot, otherBotPosition, 120, { randomized: false, useEasing: false });
 
     // Determine which bot rotates and by how much based on episodeNum % 6
     // 0: Alpha +45, 1: Alpha -45, 2: Alpha 180
@@ -72,7 +72,7 @@ function getOnRotatePhaseFn(
       const newYaw = originalYaw + (rotationDegrees * Math.PI / 180);
       
       console.log(`[${bot.username}] Rotating from ${(originalYaw * 180 / Math.PI).toFixed(1)}° to ${(newYaw * 180 / Math.PI).toFixed(1)}°`);
-      await lookSmooth(bot, newYaw, originalPitch, THIS_CAMERA_SPEED_DEGREES_PER_SEC);
+      await lookSmooth(bot, newYaw, originalPitch, THIS_CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
       // Record tick number
       const endTick = bot.time.age;
       const remainingTicks = EPISODE_MIN_TICKS - (endTick - startTick);
