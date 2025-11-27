@@ -705,7 +705,7 @@ function getOnStructureEvalPhaseFn(
           // Look at the structure for 3 seconds
           if (structureCenter) {
             console.log(`[${bot.username}] 👁️ Looking at structure together...`);
-            await lookAtSmooth(bot, structureCenter, 90);
+            await lookAtSmooth(bot, structureCenter, 90, { randomized: false, useEasing: false });
             await bot.waitForTicks(getBuilderAdmireTicks(positions.length));
             console.log(`[${bot.username}] ✅ Admired structure from observer position`);
           }

@@ -219,16 +219,32 @@ function getOnBuildHousePhaseFn(
           args.other_bot_name
         );
         
-        // Determine which targets this bot should build based on spawn position
-        // Bot on west side (lower X) gets west half, bot on east side (higher X) gets east half
+        // Determine which half based on proximity to house origin
         const botIsOnWestSide = botPos.x < worldOrigin.x;
-        const myTargets = botIsOnWestSide ? alphaTargets : bravoTargets;
+        const otherBotIsOnWestSide = otherBotPos.x < worldOrigin.x;
+        
+        // If conflict (both bots on same side), use bot identity as tie-breaker
+        let myTargets;
+        if (botIsOnWestSide === otherBotIsOnWestSide) {
+          // Tie! Use alphabetical order: Alpha gets west, Bravo gets east
+          const isAlphaBot = bot.username < args.other_bot_name;
+          myTargets = isAlphaBot ? alphaTargets : bravoTargets;
+          console.log(
+            `[${bot.username}] ⚠️ Both bots on ${botIsOnWestSide ? 'WEST' : 'EAST'} side - using tie-breaker (${isAlphaBot ? 'WEST' : 'EAST'} half)`
+          );
+        } else {
+          // No conflict - use proximity-based assignment
+          myTargets = botIsOnWestSide ? alphaTargets : bravoTargets;
+          console.log(
+            `[${bot.username}] ✅ Using proximity-based assignment (${botIsOnWestSide ? 'WEST' : 'EAST'} half)`
+          );
+        }
         
         console.log(
           `[${bot.username}] 📍 Spawn position: (${botPos.x}, ${botPos.z}), House origin: (${worldOrigin.x}, ${worldOrigin.z})`
         );
         console.log(
-          `[${bot.username}] 🏗️ Assigned to ${botIsOnWestSide ? 'WEST' : 'EAST'} half: ${myTargets.length}/${phaseTargets.length} blocks`
+          `[${bot.username}] 🏗️ Assigned ${myTargets.length}/${phaseTargets.length} blocks`
         );
         
         // Build this bot's assigned blocks
