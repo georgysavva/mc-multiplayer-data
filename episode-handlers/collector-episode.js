@@ -19,7 +19,7 @@ const ORE_MINING_TIMEOUT_MS = 8000; // Wait 8 seconds to mine an ore
 const TASK_CHECK_INTERVAL_MS = 500; // Check task status every 500ms
 const MAX_ORES_TO_MINE = 8; // Maximum ores to mine per cycle
 const MAX_TORCH_DISTANCE = 2; // Maximum distance to place torch
-const MAX_MINING_CYCLES = 20; // Maximum number of mining cycles before stopping
+const MAX_MINING_CYCLES = 10; // Maximum number of mining cycles before stopping
 
 // Valuable ore types (by block name)
 const VALUABLE_ORES = [
