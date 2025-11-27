@@ -168,10 +168,6 @@ class LookAwayEvalEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 10;  // Override: bots spawn 10-12 blocks apart
   static INIT_MAX_BOTS_DISTANCE = 12;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
-    // optional setup
-  }
-
   async entryPoint(
     bot,
     rcon,

@@ -321,11 +321,15 @@ class BuildStructureEpisode extends BaseEpisode {
     this.structureType = pickRandom(ALL_STRUCTURE_TYPES, sharedBotRng);
   }
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
     for (const blockType of BUILD_BLOCK_TYPES) {
       await ensureBotHasEnough(bot, rcon, blockType, 64);
     }
     await unequipHand(bot);
+    return {
+      botPositionNew: botPosition,
+      otherBotPositionNew: otherBotPosition,
+    };
   }
 
   async entryPoint(

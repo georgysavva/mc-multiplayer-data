@@ -16,9 +16,14 @@ class BaseEpisode {
 
   /**
    * Optional setup hook. No-op by default.
-   * @returns {Promise<void>}
+   * @returns {Promise<{botPositionNew: Vec3, otherBotPositionNew: Vec3}>}
    */
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {}
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
+    return {
+      botPositionNew: botPosition,
+      otherBotPositionNew: otherBotPosition,
+    };
+  }
 
   /**
    * Main episode logic. Must be implemented by subclasses.

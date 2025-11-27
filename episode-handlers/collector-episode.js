@@ -1,5 +1,6 @@
 const Vec3 = require("vec3").Vec3;
 const { Movements, GoalNear, GoalBlock, GoalFollow } = require("../utils/bot-factory");
+const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 const {
   stopAll,
   lookAtBot,
@@ -79,6 +80,7 @@ function setMovementsForCollector(bot) {
   customMoves.allow1by1towers = false;
   customMoves.allowParkour = false;
   customMoves.allowDigging = true;
+  customMoves.allowSprinting = false;
   customMoves.blocksToAvoid.add(bot.registry.blocksByName.water.id);
   customMoves.blocksToAvoid.add(bot.registry.blocksByName.lava.id);
   customMoves.blocksToAvoid.add(bot.registry.blocksByName.bedrock.id);
@@ -480,7 +482,9 @@ async function followAndPlaceTorches(
   setMovementsForCollector(bot);
 
   let lastTorchPlaceTime = Date.now();
+  const startTick = bot.time.age;
   const MIN_TORCH_INTERVAL = 5000; // Place torch at most every 5 seconds
+  const FOLLOWER_TIMEOUT_TICKS = 20 * (64 + 10); // Stop follower after 77s, 64s for leader to mine Ores and 10s for to do motion mining
 
   // Continuous following with dynamic torch placement
   // Continue until leader signals completion
@@ -499,6 +503,10 @@ async function followAndPlaceTorches(
       bot.pathfinder.setGoal(new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE), true);
       // Check if leader finished while placing torch
       if (isLeaderDone()) {
+        break;
+      }
+      if (bot.time.age - startTick > FOLLOWER_TIMEOUT_TICKS) {
+        console.log(`[${bot.username}] Follower mining timed out after ${FOLLOWER_TIMEOUT_TICKS} ticks`);
         break;
       }
     }
@@ -650,8 +658,14 @@ async function miningPhase(
 
     if (isLeader) {
       // Mine as leader
+      const startTick = bot.time.age;
       await mineAsLeader(bot, coordinator, mcData, oreIds, episodeNum, cycle);
 
+      // Wait a bit before sending "done" to follower to ensure listener is set up
+      if (bot.time.age - startTick < 40) {
+        console.log(`[${bot.username}] Leader mining took less than 40 ticks, waiting for remaining ticks`);
+        await bot.waitForTicks(40 - (bot.time.age - startTick));
+      }
       // Signal completion to follower
       coordinator.sendToOtherBot(
         `done_${cycle}`,
@@ -809,7 +823,13 @@ class CollectorEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
   static INIT_MIN_BOTS_DISTANCE = 0;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
+    await ensureBotHasEnough(bot, rcon, "torch", 128);
+    await unequipHand(bot);
+    return {
+      botPositionNew: botPosition,
+      otherBotPositionNew: otherBotPosition,
+    };
   }
 
   async entryPoint(

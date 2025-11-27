@@ -163,10 +163,14 @@ class BuildTowerEpisode extends BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = 15;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
     // Give tower building blocks via RCON
     await ensureBotHasEnough(bot, rcon, TOWER_BLOCK_TYPE, 64);
     await unequipHand(bot);
+    return {
+      botPositionNew: botPosition,
+      otherBotPositionNew: otherBotPosition,
+    };
   }
 
   async entryPoint(

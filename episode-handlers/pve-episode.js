@@ -417,7 +417,7 @@ class PveEpisode extends BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = 25;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args) {
+  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
     const difficultyRes = await rcon.send("difficulty easy"); // or hard
     console.log(
       `[${bot.username}] set difficulty to easy, difficultyRes=${difficultyRes}`
@@ -428,6 +428,10 @@ class PveEpisode extends BaseEpisode {
     await sleep(500);
     await unequipHand(bot);
     await sleep(500);
+    return {
+      botPositionNew: botPosition,
+      otherBotPositionNew: otherBotPosition,
+    };
   }
 
   async entryPoint(

@@ -38,6 +38,7 @@ const { CollectorEpisode } = require("./collector-episode");
 const { TranslationEvalEpisode } = require("./translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
 const { RotationEvalEpisode } = require("./rotation-eval-episode");
+const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -58,6 +59,7 @@ const episodeClassMap = {
   translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
   rotationEval: RotationEvalEpisode,
+  placeAndMine: PlaceAndMineEpisode,
 };
 
 // Import episode-specific handlers
@@ -82,6 +84,7 @@ const defaultEpisodeTypes = [
   "translationEval",
   "lookAwayEval",
   "rotationEval",
+  "placeAndMine",
 ];
 
 // Load episode types from environment variable or use default
@@ -708,9 +711,9 @@ function getOnPostTeleportPhaseFn(
     );
 
     coordinator.onceEvent(
-      "beforeStartRecordingPhase",
+      "setupEpisodePhase",
       episodeNum,
-      getOnBeforeStartRecordingFn(
+      getOnSetupEpisodeFn(
         bot,
         rcon,
         sharedBotRng,
@@ -722,14 +725,14 @@ function getOnPostTeleportPhaseFn(
       )
     );
     coordinator.sendToOtherBot(
-      "beforeStartRecordingPhase",
+      "setupEpisodePhase",
       phaseDataOur,
       episodeNum,
       "postTeleportPhase end"
     );
   };
 }
-function getOnBeforeStartRecordingFn(
+function getOnSetupEpisodeFn(
   bot,
   rcon,
   sharedBotRng,
@@ -743,16 +746,10 @@ function getOnBeforeStartRecordingFn(
     console.log(
       `[${
         bot.username
-      }] other position before start recording: ${JSON.stringify(
+      }] other position after teleport: ${JSON.stringify(
         phaseDataOther
       )}`
     );
-    await lookAtSmooth(
-      bot,
-      phaseDataOther.position,
-      DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
-    );
-    console.log(`[${bot.username}] setting up episode ${episodeNum}`);
     try {
       await setupBotAndCameraForEpisode(bot, rcon, args);
     } catch (error) {
@@ -761,13 +758,21 @@ function getOnBeforeStartRecordingFn(
         error
       );
     }
-    await episodeInstance.setupEpisode(
+    console.log(`[${bot.username}] setting up episode ${episodeNum}`);
+    const { botPositionNew, otherBotPositionNew } = await episodeInstance.setupEpisode(
       bot,
       rcon,
       sharedBotRng,
       coordinator,
       episodeNum,
-      args
+      args,
+      phaseDataOur.position,
+      phaseDataOther.position
+    );
+    await lookAtSmooth(
+      bot,
+      otherBotPositionNew,
+      DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
     );
 
     await sleep(1000);
