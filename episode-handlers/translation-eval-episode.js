@@ -1,4 +1,4 @@
-const { lookAtSmooth, sneak } = require("../utils/movement");
+const { lookAtSmooth, sneak, gotoWithTimeout } = require("../utils/movement");
 const { run } = require("../utils/random-movement");
 const { BaseEpisode } = require("./base-episode");
 const { GoalXZ } = require("../utils/bot-factory");
@@ -227,10 +227,12 @@ class TranslationEvalEpisode extends BaseEpisode {
       
       // Wait for alignment to complete (with timeout to avoid hanging)
       try {
-        await bot.pathfinder.goto(new GoalXZ(targetX, targetZ));
+        await gotoWithTimeout(bot, new GoalXZ(targetX, targetZ), { timeoutMs: 10000 });
         console.log(`[iter ${iterationID}] [${bot.username}] alignment complete`);
       } catch (err) {
-        console.log(`[iter ${iterationID}] [${bot.username}] alignment error: ${err.message}`);
+        console.log(
+          `[iter ${iterationID}] [${bot.username}] alignment error: ${err?.message || err}`
+        );
       }
       await bot.waitForTicks(5);
       coordinator.sendToOtherBot(
