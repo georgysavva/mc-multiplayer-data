@@ -506,12 +506,16 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
     // In smoke test mode, iterate over all eligible episode types in alphabetical order
     let episodesToRun = [];
     if (args.smoke_test === 1) {
-      episodesToRun = sortedEligible.map((episodeType, index) => ({
-        episodeNum: args.start_episode_id + index,
-        episodeType: episodeType,
-      }));
+      // Cycle through eligible episode types until we reach episodes_num
+      for (let i = 0; i < args.episodes_num; i++) {
+        const episodeType = sortedEligible[i % sortedEligible.length];
+        episodesToRun.push({
+          episodeNum: args.start_episode_id + i,
+          episodeType: episodeType,
+        });
+      }
       console.log(
-        `[${bot.username}] SMOKE TEST MODE: Running ${episodesToRun.length} eligible episode types (world_type=${worldType}) in alphabetical order`
+        `[${bot.username}] SMOKE TEST MODE: Running ${episodesToRun.length} episodes cycling through ${sortedEligible.length} eligible episode types (world_type=${worldType}) in alphabetical order`
       );
     } else {
       // Normal mode: use the configured episodes_num, episode type picked at random from eligible
