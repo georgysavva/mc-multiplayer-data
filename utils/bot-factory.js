@@ -32,6 +32,7 @@ function makeBot({ username, host, port, version = "1.21" }) {
 
   // Load pathfinder plugin
   bot.loadPlugin(pathfinder);
+  
   bot.loadPlugin(pvp);
 
   bot.on("end", () => console.log(`[${bot.username}] disconnected.`));
@@ -39,6 +40,26 @@ function makeBot({ username, host, port, version = "1.21" }) {
     console.log(`[${bot.username}] kicked:`, reason)
   );
   bot.on("error", (err) => console.log(`[${bot.username}] error:`, err));
+
+  bot.on("spawn", () => {
+    console.log(`[${bot.username}] 🎮 Spawned in world at (${bot.entity.position.x.toFixed(1)}, ${bot.entity.position.y.toFixed(1)}, ${bot.entity.position.z.toFixed(1)})`);
+    console.log(`[${bot.username}] 🎯 Game mode: ${bot.game.gameMode === 0 ? 'Survival' : bot.game.gameMode === 1 ? 'Creative' : bot.game.gameMode === 2 ? 'Adventure' : 'Spectator'}`);
+  });
+
+  bot.on("health", () => {
+    if (bot.health <= 5 && bot.health > 0) {
+      console.log(`[${bot.username}] ⚠️ Low health: ${bot.health}/20`);
+    }
+  });
+
+  bot.on("death", () => {
+    console.log(`[${bot.username}] 💀 Died at (${bot.entity.position.x.toFixed(1)}, ${bot.entity.position.y.toFixed(1)}, ${bot.entity.position.z.toFixed(1)})`);
+  });
+
+  // Log when bot respawns
+  bot.on("respawn", () => {
+    console.log(`[${bot.username}] ♻️ Respawned`);
+  });
 
   return bot;
 }

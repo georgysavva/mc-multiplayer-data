@@ -16,6 +16,82 @@ const {
 } = require("./bot-factory");
 
 // ============================================================================
+// SCAFFOLDING BLOCKS CONFIGURATION
+// ============================================================================
+
+/**
+ * Default scaffolding block names that can be used for bridging and pillaring
+ * Note: Property is 'scafoldingBlocks' (one 'f') in mineflayer-pathfinder
+ */
+const DEFAULT_SCAFFOLDING_BLOCK_NAMES = [
+  // Basic cheap blocks
+  'dirt',
+  'cobblestone',
+  'stone',
+
+  // Stone variants
+  'andesite',
+  'diorite',
+  'granite',
+  'polished_andesite',
+  'polished_diorite',
+  'polished_granite',
+
+  // Stone bricks & variants
+  'stone_bricks',
+  'cracked_stone_bricks',
+  'mossy_stone_bricks',
+  'chiseled_stone_bricks',
+
+  // Deepslate / brick-like
+  'cobbled_deepslate',
+  'deepslate_bricks',
+  'cracked_deepslate_bricks',
+
+  // Bricks
+  'bricks',              // classic clay bricks
+  'nether_bricks',
+  'red_nether_bricks',
+
+  // Sandstone & variants
+  'sandstone',
+  'cut_sandstone',
+  'smooth_sandstone',
+  'red_sandstone',
+  'cut_red_sandstone',
+  'smooth_red_sandstone',
+
+  // Overworld wood planks
+  'oak_planks',
+  'spruce_planks',
+  'birch_planks',
+  'jungle_planks',
+  'acacia_planks',
+  'dark_oak_planks',
+  'mangrove_planks',
+  'cherry_planks',
+  'bamboo_planks',
+
+  // Nether wood planks
+  'crimson_planks',
+  'warped_planks'
+];
+
+/**
+ * Get scaffolding block IDs from block names
+ * @param {Object} mcData - minecraft-data instance for the bot's version
+ * @param {Array<string>} blockNames - Optional array of block names (defaults to DEFAULT_SCAFFOLDING_BLOCK_NAMES)
+ * @returns {Array<number>} Array of block item IDs
+ */
+function getScaffoldingBlockIds(mcData, blockNames = null) {
+  const names = blockNames || DEFAULT_SCAFFOLDING_BLOCK_NAMES;
+  
+  return names
+    .map(name => mcData.itemsByName[name]?.id)
+    .filter(id => id !== undefined);
+}
+
+// ============================================================================
 // BASIC CONTROL FUNCTIONS
 // ============================================================================
 
@@ -83,22 +159,33 @@ function initializePathfinder(bot, options = {}) {
   const mcData = require("minecraft-data")(bot.version);
   const movements = new Movements(bot, mcData);
 
-  // Configure movement settings
-  movements.allowSprinting = options.allowSprinting !== false; // Default: true
-  movements.allowParkour = options.allowParkour !== false; // Default: true
-  movements.canDig = options.canDig || false; // Default: false (don't break blocks)
-  movements.canPlaceOn = options.canPlaceOn || false; // Default: false (don't place blocks)
-  movements.allowFreeMotion = options.allowFreeMotion || false; // Default: false
-  movements.allowEntityDetection = options.allowEntityDetection !== false; // Default: true
+  // Configure movement settings with full capabilities enabled by default
+  movements.allowSprinting = options.allowSprinting !== false; // Default: true - Sprint while moving
+  movements.allowParkour = options.allowParkour !== false; // Default: true - Jump gaps
+  movements.canDig = options.canDig !== false; // Default: true - Break blocks to path through terrain
+  movements.canPlaceOn = options.canPlaceOn !== false; // Default: true - Place blocks to bridge gaps
+  movements.allowFreeMotion = options.allowFreeMotion || false; // Default: false - Flying/swimming
+  movements.allowEntityDetection = options.allowEntityDetection !== false; // Default: true - Avoid entities
+
+  // Additional pathfinder settings for robust navigation
+  // Note: Property is 'scafoldingBlocks' (one 'f') in mineflayer-pathfinder - this is intentional
+  movements.scafoldingBlocks = options.scafoldingBlocks !== undefined 
+    ? options.scafoldingBlocks 
+    : getScaffoldingBlockIds(mcData); // Default: comprehensive building blocks list
+  movements.maxDropDown = options.maxDropDown || 4; // Max blocks to drop down
+  movements.infiniteLiquidDropdownDistance = options.infiniteLiquidDropdownDistance !== false; // Can drop any distance into water
 
   // Set pathfinder movements
   bot.pathfinder.setMovements(movements);
 
-  console.log(`[${bot.username}] Pathfinder initialized with settings:`, {
+  console.log(`[${bot.username}] Pathfinder initialized with full capabilities:`, {
     sprint: movements.allowSprinting,
     parkour: movements.allowParkour,
     dig: movements.canDig,
+    placeBlocks: movements.canPlaceOn,
     entityDetection: movements.allowEntityDetection,
+    maxDropDown: movements.maxDropDown,
+    scafoldingBlocks: movements.scafoldingBlocks.length,
   });
 
   return movements;
@@ -608,8 +695,6 @@ module.exports = {
   jump,
   sneak,
   Y_IN_AIR,
-
-  // Random sampling
-  sampleLognormal,
-  getMeanPreservingScalingFactor,
+  getScaffoldingBlockIds,
+  DEFAULT_SCAFFOLDING_BLOCK_NAMES,
 };

@@ -7,6 +7,7 @@ param(
     
     [switch]$Compare,
     [switch]$Build,
+    [switch]$NoCache,
     [switch]$SkipPostProcess,
     [switch]$Align,
     [switch]$ResetWorld,
@@ -28,8 +29,8 @@ $LOG_SERVICES = @(
     "receiver_alpha",
     "receiver_bravo",
     "camera_alpha",
-    "episode_starter",
-    "camera_bravo"
+    "camera_bravo",
+    "episode_starter"
 )
 
 function Show-Usage {
@@ -40,6 +41,7 @@ Commands:
   up [options]      Start the docker stack and begin capturing logs
                     -Compare: Generate side-by-side comparison videos (slower)
                     -Build: Build images instead of pulling them
+                    -NoCache: Force Docker to build without cache
                     -SkipPostProcess: Skip aligning and processing recordings
                     -Align: Run alignment after stack shutdown
                     -ResetWorld: Delete data directory before starting (fresh world)
@@ -52,6 +54,7 @@ Examples:
   .\build_and_deploy_windows.ps1 up
   .\build_and_deploy_windows.ps1 up -Build -Compare
   .\build_and_deploy_windows.ps1 up -ResetWorld
+  .\build_and_deploy_windows.ps1 up -Build -NoCache
   .\build_and_deploy_windows.ps1 down
   .\build_and_deploy_windows.ps1 logs sender_alpha
   .\build_and_deploy_windows.ps1 status
@@ -176,7 +179,11 @@ function Invoke-Up {
     # Build or pull images
     if ($Build) {
         Write-Host "[run] building images and starting stack" -ForegroundColor Cyan
-        Invoke-ComposeCmd build
+        if ($NoCache) {
+            Invoke-ComposeCmd build --no-cache
+        } else {
+            Invoke-ComposeCmd build
+        }
     } else {
         Write-Host "[run] pulling images and starting stack" -ForegroundColor Cyan
         Invoke-ComposeCmd pull

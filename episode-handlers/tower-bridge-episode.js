@@ -1,6 +1,6 @@
 // tower-bridge-episode.js - Episode where bots build towers then bridge towards each other
 const { Vec3 } = require("vec3");
-const { sleep } = require("../utils/movement");
+const { sleep, initializePathfinder, stopPathfinder, gotoWithTimeout, getScaffoldingBlockIds } = require("../utils/movement");
 const {
   ensureItemInHand,
   placeAt,
@@ -8,6 +8,7 @@ const {
   buildTowerUnderneath,
 } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
+const { Movements, GoalNear } = require("../utils/bot-factory");
 const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 
 // Constants for tower-bridge behavior
@@ -16,241 +17,166 @@ const FINAL_EYE_CONTACT_MS = 1500; // Final look duration
 const TOWER_HEIGHT = 8; // Fixed tower height
 const TOWER_BLOCK_TYPE = "oak_planks"; // Block type for towers
 const BRIDGE_BLOCK_TYPE = "oak_planks"; // Block type for bridge
-const JUMP_DURATION_MS = 50; // How long to hold jump
-const PLACE_RETRY_DELAY_MS = 20; // Delay between place attempts
-const MAX_PLACE_ATTEMPTS = 10; // Max attempts to place a block
-const SETTLE_DELAY_MS = 200; // Delay to settle after placing
+const BRIDGE_TIMEOUT_MS = 60000; // 60 seconds max for bridge building
+const BRIDGE_GOAL_DISTANCE = 1.0; // How close to get to midpoint (blocks) - prevents bot overlap
 
 /**
- * Build a bridge towards a target position by placing blocks on the side of the current block
+ * Build a bridge towards a target position using pathfinder with automatic scaffolding
+ * This leverages mineflayer-pathfinder's built-in block placement capabilities
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Target position to build towards
  * @param {Object} args - Configuration arguments
  * @returns {Promise<Object>} Build statistics
  */
-async function buildBridgeTowards(bot, targetPos, args) {
-  console.log(`[${bot.username}] 🌉 Building bridge towards ${targetPos}`);
+async function buildBridgeWithPathfinder(bot, targetPos, args) {
+  console.log(
+    `[${bot.username}] 🌉 Building bridge with pathfinder to (${targetPos.x}, ${targetPos.y}, ${targetPos.z})`
+  );
 
-  let blocksPlaced = 0;
   const startPos = bot.entity.position.clone();
+  const mcData = require("minecraft-data")(bot.version);
 
-  // Calculate direction to target
+  // Calculate distance for logging
   const dx = targetPos.x - startPos.x;
   const dz = targetPos.z - startPos.z;
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
 
   console.log(
-    `[${bot.username}] 📐 Direction to target: dx=${dx.toFixed(
-      2
-    )}, dz=${dz.toFixed(2)}, distance=${horizontalDistance.toFixed(2)}`
+    `[${bot.username}] 📐 Distance to target: ${horizontalDistance.toFixed(2)} blocks`
   );
 
-  // Normalize direction
-  const dirX = dx / horizontalDistance;
-  const dirZ = dz / horizontalDistance;
-
-  // Calculate yaw to face the target
-  const targetYaw = Math.atan2(-dirX, -dirZ);
-  console.log(
-    `[${bot.username}] 🧭 Facing target at yaw: ${targetYaw.toFixed(2)} radians`
-  );
-
-  // Ensure we have blocks
+  // 1. Ensure we have blocks in inventory
   await ensureItemInHand(bot, BRIDGE_BLOCK_TYPE, args);
 
-  // Build bridge block by block
-  const maxBlocks = Math.ceil(horizontalDistance / 2) + 2; // Build halfway plus buffer
-
-  for (let i = 0; i < maxBlocks; i++) {
-    const myPos = bot.entity.position.clone();
-    const distanceToTarget = Math.sqrt(
-      Math.pow(targetPos.x - myPos.x, 2) + Math.pow(targetPos.z - myPos.z, 2)
-    );
-
-    console.log(
-      `[${bot.username}] 📏 Distance to target: ${distanceToTarget.toFixed(
-        2
-      )} blocks`
-    );
-
-    // Stop if we're close enough to the target
-    if (distanceToTarget < 2.0) {
-      console.log(`[${bot.username}] 🎯 Reached target area!`);
-      break;
-    }
-
-    // Find the block we're sneaking on (even if floating off the edge)
-    const sneakingBlockInfo = findSneakingBlock(bot);
-
-    if (!sneakingBlockInfo) {
-      console.log(
-        `[${bot.username}] ❌ No ground block found - not sneaking on any block`
-      );
-      break;
-    }
-
-    const groundBlock = sneakingBlockInfo.block;
-    const groundPos = sneakingBlockInfo.pos;
-
-    console.log(
-      `[${bot.username}] 📦 Standing on: ${groundBlock.name} at ${groundPos}`
-    );
-
-    // Determine which face to place on based on direction to target
-    // Calculate which direction is dominant
-    const absDx = Math.abs(dirX);
-    const absDz = Math.abs(dirZ);
-
-    let faceVector;
-    if (absDx > absDz) {
-      // Moving more in X direction
-      faceVector = new Vec3(dirX > 0 ? 1 : -1, 0, 0);
-      console.log(
-        `[${bot.username}] 🧭 Placing on ${
-          dirX > 0 ? "East (+X)" : "West (-X)"
-        } face`
-      );
-    } else {
-      // Moving more in Z direction
-      faceVector = new Vec3(0, 0, dirZ > 0 ? 1 : -1);
-      console.log(
-        `[${bot.username}] 🧭 Placing on ${
-          dirZ > 0 ? "South (+Z)" : "North (-Z)"
-        } face`
-      );
-    }
-
-    console.log(
-      `[${bot.username}] 🧱 Placing bridge block ${i + 1} on side of ${
-        groundBlock.name
-      }`
-    );
-
-    try {
-      // Look towards the target (slightly down to see the placement)
-      await bot.look(targetYaw, -0.3, true);
-      await sleep(100);
-
-      // Place block on the side of the block we're standing on
-      await bot.placeBlock(groundBlock, faceVector);
-      blocksPlaced++;
-      console.log(
-        `[${bot.username}] ✅ Bridge block ${i + 1} placed successfully`
-      );
-
-      await sleep(200); // Wait for block to appear
-
-      // Move forward onto the new block (slower while sneaking)
-      console.log(`[${bot.username}] 🚶 Walking forward onto bridge...`);
-
-      // Face the target direction
-      await bot.look(targetYaw, 0, true);
-
-      bot.setControlState("forward", true);
-      await sleep(1000); // Reduced to prevent overshooting (sneaking speed ~1.3 blocks/s, so 600ms = ~0.78 blocks)
-      bot.setControlState("forward", false);
-
-      await sleep(300); // Settle on new block
-
-      // Verify we moved forward
-      const newPos = bot.entity.position.clone();
-      const distanceMoved = myPos.distanceTo(newPos);
-      console.log(
-        `[${bot.username}] 📏 Moved ${distanceMoved.toFixed(2)} blocks forward`
-      );
-
-      if (distanceMoved < 0.3) {
-        console.log(`[${bot.username}] ⚠️ Didn't move much, might be stuck`);
-      }
-    } catch (placeError) {
-      console.log(
-        `[${bot.username}] ❌ Error placing bridge block: ${placeError.message}`
-      );
-      // Try to continue anyway
-    }
-  }
-
-  const endPos = bot.entity.position.clone();
-  const distanceTraveled = startPos.distanceTo(endPos);
-
-  console.log(`[${bot.username}] 🏁 Bridge building complete!`);
-  console.log(`[${bot.username}]    Blocks placed: ${blocksPlaced}`);
+  // Estimate blocks needed (distance * 1.5 for safety margin)
+  const estimatedBlocks = Math.ceil(horizontalDistance * 1.5);
   console.log(
-    `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(
-      2
-    )} blocks`
+    `[${bot.username}] 📦 Estimated blocks needed: ~${estimatedBlocks}`
   );
 
-  return { blocksPlaced, distanceTraveled };
-}
+  // 2. Configure pathfinder movements with scaffolding enabled
+  console.log(
+    `[${bot.username}] � Configuring pathfinder with scaffolding...`
+  );
+  const movements = new Movements(bot, mcData);
 
-/**
- * Find the block the bot is currently sneaking on, even if floating off the edge.
- * This handles the Minecraft mechanic where sneaking prevents falling.
- * @param {Bot} bot - The mineflayer bot
- * @returns {Object|null} Object with {block, pos} or null if no ground found
- */
-function findSneakingBlock(bot) {
-  const myPos = bot.entity.position.clone();
+  // Movement capabilities
+  movements.allowSprinting = false; // No sprinting for safety at height
+  movements.allowParkour = true; // Allow jumping gaps if needed
+  movements.canDig = false; // Don't break existing blocks
+  movements.canPlaceOn = true; // ENABLE automatic block placement
+  movements.allowEntityDetection = true; // Avoid other bot
+  movements.maxDropDown = 1; // Very conservative - we're high up!
+  movements.infiniteLiquidDropdownDistance = false; // No water at this height
 
-  // Check directly below first
-  const directlyBelow = new Vec3(
-    Math.floor(myPos.x),
-    Math.floor(myPos.y) - 1,
-    Math.floor(myPos.z)
+  // Configure scaffolding blocks (blocks pathfinder can place)
+  // Note: Property is 'scafoldingBlocks' (one 'f') in mineflayer-pathfinder - this is intentional
+  movements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+
+  console.log(
+    `[${bot.username}] ✅ Pathfinder configured with ${movements.scafoldingBlocks.length} scaffolding block types`
   );
 
-  let groundBlock = bot.blockAt(directlyBelow);
+  // Apply movements to pathfinder
+  bot.pathfinder.setMovements(movements);
 
-  if (groundBlock && groundBlock.name !== "air") {
-    return { block: groundBlock, pos: directlyBelow };
-  }
+  // 3. Enable sneaking for safety (prevents falling off edges)
+  console.log(`[${bot.username}] 🐢 Enabling sneak mode for safety...`);
+  bot.setControlState("sneak", true);
+  await sleep(500); // Let sneak activate
 
-  // If floating, check adjacent blocks (bot is hanging off edge while sneaking)
-  // Check all 4 cardinal directions
-  const checkPositions = [
-    new Vec3(
-      Math.floor(myPos.x) + 1,
-      Math.floor(myPos.y) - 1,
-      Math.floor(myPos.z)
-    ), // East (+X)
-    new Vec3(
-      Math.floor(myPos.x) - 1,
-      Math.floor(myPos.y) - 1,
-      Math.floor(myPos.z)
-    ), // West (-X)
-    new Vec3(
-      Math.floor(myPos.x),
-      Math.floor(myPos.y) - 1,
-      Math.floor(myPos.z) + 1
-    ), // South (+Z)
-    new Vec3(
-      Math.floor(myPos.x),
-      Math.floor(myPos.y) - 1,
-      Math.floor(myPos.z) - 1
-    ), // North (-Z)
-  ];
+  // 4. Set pathfinding goal to target position
+  const goal = new GoalNear(
+    targetPos.x,
+    targetPos.y,
+    targetPos.z,
+    BRIDGE_GOAL_DISTANCE
+  );
 
-  // Find the closest solid block that bot could be sneaking on
-  let closestBlock = null;
-  let closestDistance = Infinity;
+  console.log(
+    `[${bot.username}] 🎯 Setting pathfinder goal (within ${BRIDGE_GOAL_DISTANCE} blocks of target)`
+  );
+  console.log(
+    `[${bot.username}] 🚀 Starting pathfinder - will automatically place blocks as needed!`
+  );
 
-  for (const checkPos of checkPositions) {
-    const block = bot.blockAt(checkPos);
-    if (block && block.name !== "air") {
-      // Calculate distance from bot to center of this block
-      const blockCenter = checkPos.offset(0.5, 1, 0.5);
-      const distance = myPos.distanceTo(blockCenter);
-
-      // Bot must be within 1.5 blocks to be sneaking on it
-      if (distance < 1.5 && distance < closestDistance) {
-        closestBlock = { block: block, pos: checkPos };
-        closestDistance = distance;
-      }
+  // Track pathfinding events for debugging
+  let blocksPlaced = 0;
+  const onBlockPlaced = () => {
+    blocksPlaced++;
+    if (blocksPlaced % 5 === 0) {
+      console.log(
+        `[${bot.username}] 🧱 Pathfinder has placed ~${blocksPlaced} blocks so far...`
+      );
     }
-  }
+  };
 
-  return closestBlock;
+  bot.on("blockPlaced", onBlockPlaced);
+
+  try {
+    // Use gotoWithTimeout to prevent infinite pathfinding
+    await gotoWithTimeout(bot, goal, {
+      timeoutMs: BRIDGE_TIMEOUT_MS,
+      stopOnTimeout: true,
+    });
+
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+
+    console.log(`[${bot.username}] 🏁 Bridge building complete!`);
+    console.log(
+      `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`
+    );
+    console.log(
+      `[${bot.username}]    Blocks placed: ~${blocksPlaced} (estimated)`
+    );
+    console.log(`[${bot.username}] ✅ Successfully reached midpoint!`);
+
+    return {
+      success: true,
+      blocksPlaced: blocksPlaced,
+      distanceTraveled: distanceTraveled,
+    };
+  } catch (error) {
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+
+    console.log(
+      `[${bot.username}] ⚠️ Pathfinding did not complete: ${error.message}`
+    );
+    console.log(
+      `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`
+    );
+    console.log(
+      `[${bot.username}]    Blocks placed: ~${blocksPlaced} (estimated)`
+    );
+
+    // Check if we got close enough despite the error
+    const finalDistance = endPos.distanceTo(targetPos);
+    if (finalDistance < BRIDGE_GOAL_DISTANCE * 2) {
+      console.log(
+        `[${bot.username}] ✅ Close enough to target (${finalDistance.toFixed(2)} blocks)`
+      );
+      return {
+        success: true,
+        blocksPlaced: blocksPlaced,
+        distanceTraveled: distanceTraveled,
+        partialSuccess: true,
+      };
+    }
+
+    return {
+      success: false,
+      blocksPlaced: blocksPlaced,
+      distanceTraveled: distanceTraveled,
+      error: error.message,
+    };
+  } finally {
+    // Clean up
+    bot.removeListener("blockPlaced", onBlockPlaced);
+    bot.setControlState("sneak", false);
+    console.log(`[${bot.username}] 🚶 Sneak mode disabled`);
+  }
 }
 
 /**
@@ -290,6 +216,17 @@ function getOnTowerBridgePhaseFn(
       `[${bot.username}] 🎬 TOWER-BRIDGE EPISODE - Episode ${episodeNum}, Iteration ${iterationID}`
     );
 
+    // Initialize pathfinder with full capabilities for optimal movement
+    console.log(`[${bot.username}] 🧭 Initializing pathfinder with full capabilities...`);
+    initializePathfinder(bot, {
+      allowSprinting: false, // No sprinting to maintain control during building
+      allowParkour: true, // Allow jumping gaps
+      canDig: true, // Can break blocks if needed
+      canPlaceOn: true, // Can place blocks to bridge gaps
+      allowEntityDetection: true, // Avoid other entities
+      maxDropDown: 4, // Safe drop distance
+    });
+
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
 
@@ -303,7 +240,7 @@ function getOnTowerBridgePhaseFn(
       if (otherEntity) {
         actualOtherBotPosition = otherEntity.position.clone();
         const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(INITIAL_EYE_CONTACT_MS);
       } else {
         console.log(
@@ -404,7 +341,7 @@ function getOnTowerBridgePhaseFn(
           otherEntity2.height,
           0
         );
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(INITIAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {
@@ -487,7 +424,7 @@ function getOnTowerBridgePhaseFn(
     console.log(
       `[${bot.username}] 🌉 STEP 8: Building bridge towards midpoint...`
     );
-    const bridgeResult = await buildBridgeTowards(bot, targetPoint, args);
+    const bridgeResult = await buildBridgeWithPathfinder(bot, targetPoint, args);
 
     console.log(
       `[${bot.username}] ✅ Bridge building complete! Placed ${bridgeResult.blocksPlaced} blocks`
@@ -508,7 +445,7 @@ function getOnTowerBridgePhaseFn(
           otherEntity4.height,
           0
         );
-        await bot.lookAt(targetPos);
+        await bot.lookAt(targetPos, false);
         await sleep(FINAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {
@@ -521,6 +458,10 @@ function getOnTowerBridgePhaseFn(
     console.log(
       `[${bot.username}] 📊 Final stats: Tower ${towerResult.heightGained} blocks, Bridge ${bridgeResult.blocksPlaced} blocks`
     );
+
+    // Clean up pathfinder
+    console.log(`[${bot.username}] 🧹 Stopping pathfinder...`);
+    stopPathfinder(bot);
 
     // STEP 10: Transition to stop phase (end episode)
     coordinator.onceEvent(
@@ -607,7 +548,7 @@ class TowerBridgeEpisode extends BaseEpisode {
 
 module.exports = {
   getOnTowerBridgePhaseFn,
-  buildBridgeTowards,
+  buildBridgeWithPathfinder,
   TOWER_HEIGHT,
   TOWER_BLOCK_TYPE,
   BRIDGE_BLOCK_TYPE,
