@@ -126,6 +126,21 @@ function getOnBuildHousePhaseFn(
       `buildHousePhase_${iterationID} beginning`
     );
 
+    // Register stop-phase listener immediately so we can react to remote stop requests mid-build
+    coordinator.onceEvent(
+      "stopPhase",
+      episodeNum,
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args
+      )
+    );
+
     console.log(`[${bot.username}] 🏠 Starting BUILD HOUSE phase ${iterationID}`);
 
     // STEP 1: Bots spawn (already done by teleport phase)
@@ -202,9 +217,18 @@ function getOnBuildHousePhaseFn(
     // STEP 6: Build in phases (floor → walls → windows → roof)
     console.log(`[${bot.username}] 🏗️ STEP 6: Building house in phases...`);
     const phases = ["floor", "walls", "windows", "roof"];
-    
+    let phaseAborted = false;
+
     try {
       for (const phaseName of phases) {
+        if (bot._episodeStopping) {
+          phaseAborted = true;
+          console.log(
+            `[${bot.username}] 🛑 Stop requested before ${phaseName} phase, aborting build loop`
+          );
+          break;
+        }
+
         console.log(`[${bot.username}] ═══════════════════════════════════════`);
         console.log(`[${bot.username}] 🔨 Building phase: ${phaseName.toUpperCase()}`);
         console.log(`[${bot.username}] 🕐 Phase start time: ${new Date().toISOString()}`);
@@ -253,8 +277,17 @@ function getOnBuildHousePhaseFn(
           const result = await buildPhase(bot, myTargets, {
             args: args,
             delayMs: BLOCK_PLACE_DELAY_MS,
+            shouldAbort: () => bot._episodeStopping,
           });
           console.log(`[${bot.username}] ✅ Finished building my blocks`);
+
+          if (result.aborted) {
+            phaseAborted = true;
+            console.log(
+              `[${bot.username}] 🛑 ${phaseName} phase aborted due to stop request`
+            );
+            break;
+          }
           
           // Check for catastrophic failure (more than 50% failed)
           if (result.failed > myTargets.length * 0.5) {
@@ -275,7 +308,9 @@ function getOnBuildHousePhaseFn(
         console.log(`[${bot.username}] ✅ Phase ${phaseName} complete at ${new Date().toISOString()}`);
       }
 
-      console.log(`[${bot.username}] ✅ All phases complete!`);
+      if (!phaseAborted) {
+        console.log(`[${bot.username}] ✅ All phases complete!`);
+      }
     } catch (buildError) {
       console.error(
         `[${bot.username}] ❌ Building failed: ${buildError.message}`
@@ -292,6 +327,13 @@ function getOnBuildHousePhaseFn(
 
     // STEP 7: Stop pathfinder
     stopPathfinder(bot);
+
+    if (bot._episodeStopping) {
+      console.log(
+        `[${bot.username}] 🛑 Stop phase already in progress, skipping admiration/stop transition`
+      );
+      return;
+    }
 
     // STEP 8: Exit through door and admire the house
     console.log(`[${bot.username}] 🚪 STEP 8: Exiting and admiring house...`);
@@ -315,20 +357,13 @@ function getOnBuildHousePhaseFn(
 
     console.log(`[${bot.username}] ✅ BUILD HOUSE phase complete!`);
 
-    // Transition to stop phase
-    coordinator.onceEvent(
-      "stopPhase",
-      episodeNum,
-      episodeInstance.getOnStopPhaseFn(
-        bot,
-        rcon,
-        sharedBotRng,
-        coordinator,
-        args.other_bot_name,
-        episodeNum,
-        args
-      )
-    );
+    if (bot._episodeStopping) {
+      console.log(
+        `[${bot.username}] 🛑 Stop already requested by peer, not initiating another stopPhase`
+      );
+      return;
+    }
+
     coordinator.sendToOtherBot(
       "stopPhase",
       phaseDataOur,

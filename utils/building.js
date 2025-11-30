@@ -472,11 +472,11 @@ async function placeScaffold(bot, targetPos, args) {
  * @returns {Promise<Object>} Build statistics {success, failed}
  */
 async function buildPhase(bot, targets, options = {}) {
-  const { args = null, delayMs = 300 } = options;
+  const { args = null, delayMs = 300, shouldAbort = () => false } = options;
 
   if (targets.length === 0) {
     console.log(`[${bot.username}] No blocks assigned in this phase`);
-    return { success: 0, failed: 0 };
+    return { success: 0, failed: 0, aborted: false };
   }
 
   console.log(
@@ -487,6 +487,26 @@ async function buildPhase(bot, targets, options = {}) {
   const phaseName = targets[0].phase;
 
   console.log(`[${bot.username}] 📦 Block type: ${blockType}, Phase: ${phaseName}`);
+
+  const abortIfRequested = (context) => {
+    try {
+      if (shouldAbort()) {
+        console.log(
+          `[${bot.username}] 🛑 Abort requested during ${context} (${phaseName} phase)`
+        );
+        return true;
+      }
+    } catch (abortError) {
+      console.warn(
+        `[${bot.username}] ⚠️ Error while checking abort signal: ${abortError.message}`
+      );
+    }
+    return false;
+  };
+
+  if (abortIfRequested("phase initialization")) {
+    return { success: 0, failed: 0, aborted: true };
+  }
 
   // Sort positions: Use placementOrder if available, otherwise fallback to Y-level then distance
   const botPos = bot.entity.position;
@@ -511,6 +531,10 @@ async function buildPhase(bot, targets, options = {}) {
   console.log(`[${bot.username}] 🔨 Starting block placement loop...`);
 
   for (let i = 0; i < sorted.length; i++) {
+    if (abortIfRequested(`preparing block ${i + 1}/${sorted.length}`)) {
+      return { success, failed, aborted: true };
+    }
+
     const target = sorted[i];
     const pos = target.worldPos;
     let attemptCount = 0;
@@ -518,6 +542,10 @@ async function buildPhase(bot, targets, options = {}) {
     let placed = false;
 
     while (attemptCount < MAX_ATTEMPTS && !placed) {
+      if (abortIfRequested(`attempt ${attemptCount + 1} for block ${i + 1}/${sorted.length}`)) {
+        return { success, failed, aborted: true };
+      }
+
       try {
         // Check if block already placed
         const existingBlock = bot.blockAt(pos);
@@ -784,6 +812,9 @@ async function buildPhase(bot, targets, options = {}) {
 
     if (delayMs > 0 && i < sorted.length - 1) {
       await sleep(delayMs);
+      if (abortIfRequested(`post-delay after block ${i + 1}/${sorted.length}`)) {
+        return { success, failed, aborted: true };
+      }
     }
   }
 
@@ -791,7 +822,7 @@ async function buildPhase(bot, targets, options = {}) {
   console.log(`[${bot.username}]    ✅ Success: ${success}/${targets.length}`);
   console.log(`[${bot.username}]    ❌ Failed: ${failed}/${targets.length}`);
 
-  return { success, failed };
+  return { success, failed, aborted: false };
 }
 
 /**
