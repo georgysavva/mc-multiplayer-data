@@ -749,17 +749,7 @@ async function placeAt(
         try {
           // Debug: Log camera before placement
           // console.log(`[${bot.username}] 📷 [BEFORE-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
-          
-          // Temporarily disable lookAt to prevent placeBlock's internal lookAt from snapping camera
-          const originalLookAt = bot.lookAt;
-          bot.lookAt = async () => {}; // No-op
-          
-          try {
-            await bot.placeBlock(refBlock, faceVec);
-          } finally {
-            // Restore original lookAt
-            bot.lookAt = originalLookAt;
-          }
+          await bot.placeBlock(refBlock, faceVec);
           
           // Debug: Log camera immediately after placement
           // console.log(`[${bot.username}] 📷 [AFTER-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
@@ -984,7 +974,7 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
 
   // Look down ONCE before starting
   console.log(`[${bot.username}] 👇 Looking down once...`);
-  await bot.look(bot.entity.yaw, -1.45, true);
+  await bot.look(bot.entity.yaw, -1.45, false);
   await new Promise((res) => setTimeout(res, 50));
 
   for (let i = 0; i < towerHeight; i++) {
@@ -1101,7 +1091,7 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
       }
 
       // Look down again
-      await bot.look(bot.entity.yaw, -1.45, true);
+      await bot.look(bot.entity.yaw, -1.45, false);
       await new Promise((res) => setTimeout(res, 50));
 
       // Try one more time
