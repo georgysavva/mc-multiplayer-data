@@ -975,6 +975,7 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
   // Look down ONCE before starting
   console.log(`[${bot.username}] 👇 Looking down once...`);
   await bot.look(bot.entity.yaw, -1.45, false);
+  bot.waitForTicks(10);
   await new Promise((res) => setTimeout(res, 50));
 
   for (let i = 0; i < towerHeight; i++) {
