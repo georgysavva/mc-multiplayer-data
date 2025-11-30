@@ -227,8 +227,7 @@ async function gotoWithTimeout(bot, goal, options = {}) {
     timeoutId = setTimeout(() => {
       if (
         stopOnTimeout &&
-        bot.pathfinder &&
-        typeof bot.pathfinder.stop === "function"
+        bot.pathfinder
       ) {
         bot.pathfinder.setGoal(null);
       }
