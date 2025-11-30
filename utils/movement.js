@@ -498,7 +498,7 @@ async function lookAtBot(bot, targetBotName, degreesPerSecond = 90, options = {}
  * @param {number} pitchRadians - Pitch angle in radians (default: 0)
  */
 function lookDirection(bot, yawRadians, pitchRadians = 0) {
-  bot.look(yawRadians, pitchRadians, true);
+  bot.look(yawRadians, pitchRadians, false);
 }
 
 // ============================================================================

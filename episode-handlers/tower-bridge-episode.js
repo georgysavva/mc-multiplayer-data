@@ -274,7 +274,7 @@ function getOnTowerBridgePhaseFn(
     // const awayYaw = Math.atan2(-backwardDirX, -backwardDirZ);
 
     // console.log(`[${bot.username}] 🧭 Facing away from ${otherBotName} at yaw: ${awayYaw.toFixed(2)} radians`);
-    // await bot.look(awayYaw, 0, true);
+    // await bot.look(awayYaw, 0, false);
     // await sleep(200);
 
     // // Walk backward 3 blocks
