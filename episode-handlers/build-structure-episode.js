@@ -87,7 +87,7 @@ async function buildStructure(bot, positions, blockType, args) {
   initializePathfinder(bot, {
     allowSprinting: false,
     allowParkour: true,
-    canDig: false, // Don't dig during building
+    canDig: true, // Don't dig during building
     allowEntityDetection: true,
   });
 

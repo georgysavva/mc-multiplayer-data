@@ -63,11 +63,11 @@ async function buildBridgeWithPathfinder(bot, targetPos, args) {
   // Movement capabilities
   movements.allowSprinting = false; // No sprinting for safety at height
   movements.allowParkour = true; // Allow jumping gaps if needed
-  movements.canDig = false; // Don't break existing blocks
+  movements.canDig = true; // Don't break existing blocks
   movements.canPlaceOn = true; // ENABLE automatic block placement
   movements.allowEntityDetection = true; // Avoid other bot
-  movements.maxDropDown = 1; // Very conservative - we're high up!
-  movements.infiniteLiquidDropdownDistance = false; // No water at this height
+  movements.maxDropDown = 15; // Very conservative - we're high up!
+  movements.infiniteLiquidDropdownDistance = true; // No water at this height
 
   // Configure scaffolding blocks (blocks pathfinder can place)
   // Note: Property is 'scafoldingBlocks' (one 'f') in mineflayer-pathfinder - this is intentional
@@ -224,7 +224,6 @@ function getOnTowerBridgePhaseFn(
       canDig: true, // Can break blocks if needed
       canPlaceOn: true, // Can place blocks to bridge gaps
       allowEntityDetection: true, // Avoid other entities
-      maxDropDown: 4, // Safe drop distance
     });
 
     // STEP 1: Bots spawn (already done by teleport phase)

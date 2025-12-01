@@ -6,6 +6,7 @@ const {
   lookAtBot,
   sleep,
   land_pos,
+  getScaffoldingBlockIds,
 } = require("../utils/movement");
 const { BaseEpisode } = require("./base-episode");
 
@@ -76,14 +77,19 @@ function isMyTurn(bot, sharedBotRng, args) {
  * @param {Bot} bot - Mineflayer bot instance
  */
 function setMovementsForCollector(bot) {
-  const customMoves = new Movements(bot);
-  customMoves.allow1by1towers = false;
-  customMoves.allowParkour = false;
+  const mcData = require("minecraft-data")(bot.version);
+  const customMoves = new Movements(bot, mcData);
+  customMoves.allow1by1towers = true;
+  customMoves.allowParkour = true;
   customMoves.allowDigging = true;
   customMoves.allowSprinting = false;
+  customMoves.canPlaceOn = true;
   customMoves.blocksToAvoid.add(bot.registry.blocksByName.water.id);
   customMoves.blocksToAvoid.add(bot.registry.blocksByName.lava.id);
   customMoves.blocksToAvoid.add(bot.registry.blocksByName.bedrock.id);
+  customMoves.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+  customMoves.infiniteLiquidDropdownDistance = true;
+  customMoves.maxDropDown = 15;
   bot.pathfinder.setMovements(customMoves);
 }
 
