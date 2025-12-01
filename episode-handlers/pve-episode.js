@@ -13,7 +13,7 @@ const { BaseEpisode } = require("./base-episode");
 const { unequipHand } = require("../utils/items");
 const { giveRandomSword, equipSword } = require("../utils/fighting");
 
-const CAMERA_SPEED_DEGREES_PER_SEC = 30;
+const CAMERA_SPEED_DEGREES_PER_SEC = 60;
 
 const VIEW_DISTANCE = 16;
 const LOCK_EYE_DURATION_MIN = 1000;

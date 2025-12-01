@@ -2,7 +2,7 @@ const { lookAtSmooth } = require("../utils/movement");
 const { run } = require("../utils/random-movement");
 const { BaseEpisode } = require("./base-episode");
 
-const CAMERA_SPEED_DEGREES_PER_SEC = 30;
+const CAMERA_SPEED_DEGREES_PER_SEC = 60;
 const ITERATIONS_NUM_PER_EPISODE = 3;
 const MIN_RUN_ACTIONS = 1;
 const MAX_RUN_ACTIONS = 1;
