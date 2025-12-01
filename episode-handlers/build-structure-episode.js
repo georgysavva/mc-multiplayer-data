@@ -314,7 +314,7 @@ function getOnBuildPhaseFn(
 class BuildStructureEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 8;
   static INIT_MAX_BOTS_DISTANCE = 15;
-  static WORKS_IN_NON_FLAT_WORLD = true;
+  static WORKS_IN_NON_FLAT_WORLD = false;
 
   constructor(sharedBotRng) {
     super();
