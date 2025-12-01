@@ -126,20 +126,6 @@ function getOnBuildHousePhaseFn(
       `buildHousePhase_${iterationID} beginning`
     );
 
-    // Register stop-phase listener immediately so we can react to remote stop requests mid-build
-    coordinator.onceEvent(
-      "stopPhase",
-      episodeNum,
-      episodeInstance.getOnStopPhaseFn(
-        bot,
-        rcon,
-        sharedBotRng,
-        coordinator,
-        args.other_bot_name,
-        episodeNum,
-        args
-      )
-    );
 
     console.log(`[${bot.username}] 🏠 Starting BUILD HOUSE phase ${iterationID}`);
 
@@ -356,14 +342,20 @@ function getOnBuildHousePhaseFn(
     stopPathfinder(bot);
 
     console.log(`[${bot.username}] ✅ BUILD HOUSE phase complete!`);
-
-    if (bot._episodeStopping) {
-      console.log(
-        `[${bot.username}] 🛑 Stop already requested by peer, not initiating another stopPhase`
-      );
-      return;
-    }
-
+    // Transition to stop phase
+    coordinator.onceEvent(
+      "stopPhase",
+      episodeNum,
+      episodeInstance.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args
+      )
+    );
     coordinator.sendToOtherBot(
       "stopPhase",
       phaseDataOur,
