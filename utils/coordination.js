@@ -186,28 +186,20 @@ class BotCoordinator extends EventEmitter {
   }
 
   async waitForAllPhasesToFinish() {
-    const startTime = Date.now();
-    const timeoutMs = 60000; // 1 minute timeout
+    let lastLogTime = 0;
+    const logIntervalMs = 2000;
 
     while (this.executingEvents.size > 0) {
-      const elapsedMs = Date.now() - startTime;
+      const now = Date.now();
 
-      if (elapsedMs >= timeoutMs) {
+      if (now - lastLogTime >= logIntervalMs) {
         console.log(
-          `[${
-            this.botName
-          }] Timeout after 1 minute waiting for events. Still executing: ${[
-            ...this.executingEvents.keys(),
-          ].join(", ")}`
+          `[${this.botName}] Waiting for ${
+            this.executingEvents.size
+          } event(s) to finish: ${[...this.executingEvents.keys()].join(", ")}`
         );
-        return;
+        lastLogTime = now;
       }
-
-      console.log(
-        `[${this.botName}] Waiting for ${
-          this.executingEvents.size
-        } event(s) to finish: ${[...this.executingEvents.keys()].join(", ")}`
-      );
       // Wait a bit before checking again
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
