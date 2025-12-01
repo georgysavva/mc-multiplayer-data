@@ -41,6 +41,7 @@ class BotCoordinator extends EventEmitter {
     this.server = null;
     this.executingEvents = new Map(); // Track currently executing event handlers
     this.eventCounter = 0; // Auto-incrementing counter for unique event tracking
+    this.currentEpisodeNum = null; // Track the current active episode number
   }
 
   async setupConnections() {
@@ -150,6 +151,14 @@ class BotCoordinator extends EventEmitter {
   }
 
   sendToOtherBot(eventName, eventParams, episodeNum, location) {
+    // Prevent stale event handlers from previous episodes from sending messages
+    if (episodeNum !== this.currentEpisodeNum) {
+      console.warn(
+        `[sendToOtherBot] ${location}: BLOCKED stale message for episode ${episodeNum} (current episode: ${this.currentEpisodeNum}). Event: ${eventName}`
+      );
+      return;
+    }
+
     eventName = getEventName(eventName, episodeNum);
     if (this.clientConnection) {
       const message = JSON.stringify({ eventName, eventParams });
@@ -212,6 +221,10 @@ class BotCoordinator extends EventEmitter {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     console.log(`[${this.botName}] All event handlers finished`);
+  }
+
+  setCurrentEpisode(episodeNum) {
+    this.currentEpisodeNum = episodeNum;
   }
 
   async syncBots(episodeNum) {

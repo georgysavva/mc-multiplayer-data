@@ -160,7 +160,10 @@ async function runSingleEpisode(
   episodeInstance,
   args
 ) {
-  console.log(`[${bot.username}] Starting episode ${episodeNum}`);
+  console.log(`[${bot.username}] Starting episode ${episodeNum}. Setting coordinator current episode to this number.`);
+
+  // Set the current episode number to prevent stale handlers from previous episodes
+  coordinator.setCurrentEpisode(episodeNum);
 
   episodeInstance._botDied = false;
   episodeInstance._episodeRecordingStarted = false;
@@ -934,7 +937,7 @@ function getOnPeerErrorPhaseFn(
     );
     episodeInstance._peerError = true;
     coordinator.onceEvent(
-      "stopPhase",
+coord      "stopPhase",
       episodeNum,
       episodeInstance.getOnStopPhaseFn(
         bot,
