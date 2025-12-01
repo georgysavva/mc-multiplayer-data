@@ -72,7 +72,7 @@ const defaultEpisodeTypes = [
   // "chase",
   // "orbit",
   // "walkLook",
-  "buildHouse",
+  // "buildHouse",
   // "walkLookAway",
   // "pvp",
   // "pve",

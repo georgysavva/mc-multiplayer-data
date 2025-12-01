@@ -5,7 +5,12 @@ const {
   initializePathfinder,
   stopPathfinder,
 } = require("../utils/movement");
-const { placeAt, placeMultiple } = require("./builder");
+const {
+  rotateLocalToWorld,
+  splitWorkByXAxis,
+  buildPhase,
+  calculateMaterialCounts,
+} = require("../utils/building");
 const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");
 const { ensureBotHasEnough, unequipHand } = require("../utils/items");
@@ -14,123 +19,150 @@ const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const BUILD_BLOCK_TYPES = ["stone", "cobblestone", "oak_planks", "bricks"];
-const BLOCK_PLACE_DELAY_MS = 1500; // Delay between placing blocks (1.5 seconds for more visible building)
+const BLOCK_PLACE_DELAY_MS = 300; // Delay between placing blocks
+const ORIENTATION = 0; // Only 0° supported for now
 
 /**
- * Generate positions for a simple wall structure
- * @param {Vec3} startPos - Starting position
- * @param {number} length - Length of wall
- * @param {number} height - Height of wall
- * @param {string} direction - 'x' or 'z' axis
- * @returns {Array<Vec3>} Array of positions
+ * Generate blueprint for a wall structure (5 blocks wide × 2 blocks tall)
+ * @param {Object} options - Configuration options
+ * @param {string} options.blockType - Block type to use
+ * @returns {Array<Object>} Array of {x, y, z, block, phase, placementOrder}
  */
-function generateWallPositions(startPos, length, height, direction = "x") {
-  const positions = [];
+function makeWallBlueprint(options = {}) {
+  const { blockType = "stone" } = options;
+  const blueprint = [];
+  
+  const width = 5;
+  const height = 2;
+  
+  // Build bottom-up, left-to-right
+  let order = 0;
   for (let y = 0; y < height; y++) {
-    for (let i = 0; i < length; i++) {
-      if (direction === "x") {
-        positions.push(startPos.offset(i, y, 0));
-      } else {
-        positions.push(startPos.offset(0, y, i));
-      }
+    for (let x = 0; x < width; x++) {
+      blueprint.push({
+        x,
+        y,
+        z: 0,
+        block: blockType,
+        phase: "wall",
+        placementOrder: order++,
+        data: null,
+      });
     }
   }
-  return positions;
+  
+  return blueprint;
 }
 
 /**
- * Generate positions for a tower structure
- * @param {Vec3} basePos - Base position
- * @param {number} height - Height of tower
- * @returns {Array<Vec3>} Array of positions
+ * Generate blueprint for a tower structure (single column, 2 blocks tall)
+ * @param {Object} options - Configuration options
+ * @param {string} options.blockType - Block type to use
+ * @returns {Array<Object>} Array of {x, y, z, block, phase, placementOrder}
  */
-function generateTowerPositions(basePos, height) {
-  const positions = [];
+function makeTowerBlueprint(options = {}) {
+  const { blockType = "stone" } = options;
+  const blueprint = [];
+  
+  const height = 2;
+  
+  // Build bottom-up
   for (let y = 0; y < height; y++) {
-    positions.push(basePos.offset(0, y, 0));
-  }
-  return positions;
-}
-
-/**
- * Generate positions for a platform structure
- * @param {Vec3} startPos - Starting corner position
- * @param {number} width - Width (X axis)
- * @param {number} depth - Depth (Z axis)
- * @returns {Array<Vec3>} Array of positions
- */
-function generatePlatformPositions(startPos, width, depth) {
-  const positions = [];
-  for (let x = 0; x < width; x++) {
-    for (let z = 0; z < depth; z++) {
-      positions.push(startPos.offset(x, 0, z));
-    }
-  }
-  return positions;
-}
-
-/**
- * Main building loop - bot builds assigned structure
- * Enhanced with intelligent build order and comprehensive logging
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Array<Vec3>} positions - Positions to build at
- * @param {string} blockType - Type of block to place
- * @param {Object} args - Configuration arguments
- * @returns {Promise<Object>} Build statistics
- */
-async function buildStructure(bot, positions, blockType, args) {
-  console.log(
-    `[${bot.username}] 🏗️ Starting to build ${positions.length} blocks with ${blockType}...`
-  );
-
-  // Initialize pathfinder for movement with appropriate settings
-  initializePathfinder(bot, {
-    allowSprinting: false,
-    allowParkour: true,
-    canDig: false, // Don't dig during building
-    allowEntityDetection: true,
-  });
-
-  try {
-    const result = await placeMultiple(bot, positions, blockType, {
-      useSneak: false, // No sneaking needed for normal structure building
-      tries: 5,
-      args: args,
-      delayMs: BLOCK_PLACE_DELAY_MS,
-      useBuildOrder: true, // Enable intelligent build order
-      useSmartPositioning: true, // Enable smart positioning to move to optimal distance before placing
-      prePlacementDelay: 500, // Natural pause before placement
+    blueprint.push({
+      x: 0,
+      y,
+      z: 0,
+      block: blockType,
+      phase: "tower",
+      placementOrder: y,
+      data: null,
     });
-
-    console.log(`[${bot.username}] 🏁 Build complete!`);
-    console.log(
-      `[${bot.username}]    ✅ Success: ${result.success}/${positions.length} ` +
-      `(${((result.success / positions.length) * 100).toFixed(1)}%)`
-    );
-    console.log(
-      `[${bot.username}]    ❌ Failed: ${result.failed}/${positions.length}`
-    );
-    if (result.skipped > 0) {
-      console.log(
-        `[${bot.username}]    ⏭️ Skipped: ${result.skipped}/${positions.length}`
-      );
-    }
-
-    // Check if build was successful enough (>50% success rate)
-    const successRate = result.success / positions.length;
-    if (successRate < 0.5) {
-      console.warn(
-        `[${bot.username}] ⚠️ Low success rate: ${(successRate * 100).toFixed(1)}%`
-      );
-    }
-
-    return result;
-  } catch (error) {
-    console.error(`[${bot.username}] ❌ Build error: ${error.message}`);
-    throw error;
-  } finally {
-    stopPathfinder(bot);
   }
+  
+  return blueprint;
+}
+
+/**
+ * Generate blueprint for a platform structure (4×4 grid)
+ * @param {Object} options - Configuration options
+ * @param {string} options.blockType - Block type to use
+ * @returns {Array<Object>} Array of {x, y, z, block, phase, placementOrder}
+ */
+function makePlatformBlueprint(options = {}) {
+  const { blockType = "stone" } = options;
+  const blueprint = [];
+  
+  const width = 4;
+  const depth = 4;
+  
+  // Build edge-to-center spiral (same as house floor)
+  let order = 0;
+  let minX = 0, maxX = width - 1;
+  let minZ = 0, maxZ = depth - 1;
+  
+  while (minX <= maxX && minZ <= maxZ) {
+    // Top edge (left to right)
+    for (let x = minX; x <= maxX; x++) {
+      blueprint.push({
+        x,
+        y: 0,
+        z: minZ,
+        block: blockType,
+        phase: "platform",
+        placementOrder: order++,
+        data: null,
+      });
+    }
+    minZ++;
+    
+    // Right edge (top to bottom)
+    for (let z = minZ; z <= maxZ; z++) {
+      blueprint.push({
+        x: maxX,
+        y: 0,
+        z,
+        block: blockType,
+        phase: "platform",
+        placementOrder: order++,
+        data: null,
+      });
+    }
+    maxX--;
+    
+    // Bottom edge (right to left)
+    if (minZ <= maxZ) {
+      for (let x = maxX; x >= minX; x--) {
+        blueprint.push({
+          x,
+          y: 0,
+          z: maxZ,
+          block: blockType,
+          phase: "platform",
+          placementOrder: order++,
+          data: null,
+        });
+      }
+      maxZ--;
+    }
+    
+    // Left edge (bottom to top)
+    if (minX <= maxX) {
+      for (let z = maxZ; z >= minZ; z--) {
+        blueprint.push({
+          x: minX,
+          y: 0,
+          z,
+          block: blockType,
+          phase: "platform",
+          placementOrder: order++,
+          data: null,
+        });
+      }
+      minX++;
+    }
+  }
+  
+  return blueprint;
 }
 
 /**
@@ -189,85 +221,187 @@ function getOnBuildPhaseFn(
       );
     }
 
-    // STEP 3: Determine build positions based on bot role
-    console.log(
-      `[${bot.username}] 📐 STEP 3: Planning structure ${structureType}...`
-    );
-    const botPos = phaseDataOur.position.floored();
-    let positions = [];
-    let blockType =
-      BUILD_BLOCK_TYPES[Math.floor(sharedBotRng() * BUILD_BLOCK_TYPES.length)];
-    const botNameSmaller = bot.username < args.other_bot_name;
-
-    if (structureType === "wall") {
-      // Alpha builds left side, Bravo builds right side
-      const startPos = botPos.offset(2, 0, 0);
-      const length = 5;
-      const height = 2;
-
-      if (botNameSmaller) {
-        positions = generateWallPositions(startPos, length, height, "x");
-      } else {
-        positions = generateWallPositions(
-          startPos.offset(0, 0, 2),
-          length,
-          height,
-          "x"
-        );
-      }
-    } else if (structureType === "tower") {
-      // Each bot builds their own tower
-      const startPos = botPos.offset(3, 0, botNameSmaller ? 0 : 3);
-      const height = 2;
-      positions = generateTowerPositions(startPos, height);
-    } else if (structureType === "platform") {
-      // Bots build a shared platform - use midpoint between bots as reference
-      const midpoint = botPos.plus(phaseDataOther.position).scaled(0.5).floored();
-      const startPos = midpoint.offset(-2, 0, -2); // Center the 4x4 platform at midpoint
-      const width = 4;
-      const depth = 4;
-
-      // Split platform horizontally: Assign halves based on bot position relative to platform
-      positions = [];
-      const halfDepth = Math.floor(depth / 2);
-      
-      // Determine which bot is closer to which half based on Z coordinate
-      const platformCenterZ = startPos.z + depth / 2;
-      const botIsNorth = botPos.z < platformCenterZ; // Bot is north (smaller Z) of platform center
-      
-      if (botIsNorth) {
-        // This bot is north - build top half (z=0,1) from middle outward
-        for (let z = halfDepth - 1; z >= 0; z--) {
-          for (let x = 0; x < width; x++) {
-            positions.push(startPos.offset(x, 0, z));
-          }
-        }
-        console.log(
-          `[${bot.username}] 🎯 Platform centered at midpoint (${midpoint.x}, ${midpoint.y}, ${midpoint.z}), building ${positions.length} blocks (NORTH half - top rows)`
-        );
-      } else {
-        // This bot is south - build bottom half (z=2,3) from middle outward
-        for (let z = halfDepth; z < depth; z++) {
-          for (let x = 0; x < width; x++) {
-            positions.push(startPos.offset(x, 0, z));
-          }
-        }
-        console.log(
-          `[${bot.username}] 🎯 Platform centered at midpoint (${midpoint.x}, ${midpoint.y}, ${midpoint.z}), building ${positions.length} blocks (SOUTH half - bottom rows)`
-        );
-      }
+    // STEP 3: Determine world origin for structure (midpoint between bots)
+    console.log(`[${bot.username}] 📐 STEP 3: Planning structure ${structureType}...`);
+    
+    // Reconstruct Vec3 from received position data
+    const botPos = new Vec3(
+      phaseDataOur.position.x,
+      phaseDataOur.position.y,
+      phaseDataOur.position.z
+    ).floored();
+    const otherBotPos = new Vec3(
+      phaseDataOther.position.x,
+      phaseDataOther.position.y,
+      phaseDataOther.position.z
+    ).floored();
+    
+    // For wall and tower: each bot builds at their own position
+    // For platform: build at midpoint (collaborative)
+    let worldOrigin;
+    if (structureType === "wall" || structureType === "tower") {
+      // Each bot builds their own structure at their spawn location
+      worldOrigin = botPos.clone();
+      console.log(
+        `[${bot.username}] 🏗️ Building individual ${structureType} at bot position: (${worldOrigin.x}, ${worldOrigin.y}, ${worldOrigin.z})`
+      );
+    } else {
+      // Platform: build at midpoint between bots (collaborative)
+      worldOrigin = new Vec3(
+        Math.floor((botPos.x + otherBotPos.x) / 2),
+        Math.floor(botPos.y), // Use bot's Y level
+        Math.floor((botPos.z + otherBotPos.z) / 2)
+      );
+      console.log(
+        `[${bot.username}] 🏗️ Platform origin (midpoint): (${worldOrigin.x}, ${worldOrigin.y}, ${worldOrigin.z})`
+      );
     }
 
+    // STEP 4: Generate blueprint and convert to world coordinates
+    console.log(`[${bot.username}] 📋 STEP 4: Generating blueprint...`);
+    
+    // Pick block type using shared RNG
+    const blockType = BUILD_BLOCK_TYPES[Math.floor(sharedBotRng() * BUILD_BLOCK_TYPES.length)];
+    console.log(`[${bot.username}] 📦 Block type: ${blockType}`);
+    
+    let blueprint;
+    if (structureType === "wall") {
+      blueprint = makeWallBlueprint({ blockType });
+    } else if (structureType === "tower") {
+      blueprint = makeTowerBlueprint({ blockType });
+    } else if (structureType === "platform") {
+      blueprint = makePlatformBlueprint({ blockType });
+    }
+
+    // Convert all local coords to world coords
+    const worldTargets = blueprint.map((target) => ({
+      ...target,
+      worldPos: rotateLocalToWorld(target, worldOrigin, ORIENTATION),
+    }));
+
     console.log(
-      `[${bot.username}] 📋 Building ${positions.length} blocks with ${blockType}`
+      `[${bot.username}]    Total blocks: ${worldTargets.length}`
     );
 
-    // STEP 4: Build the structure
-    console.log(`[${bot.username}] 🏗️ STEP 4: Building structure...`);
-    const buildResult = await buildStructure(bot, positions, blockType, args);
+    // STEP 5: Assign work (split only for platform, full structure for wall/tower)
+    console.log(`[${bot.username}] 🔀 STEP 5: Assigning work...`);
+    
+    let myTargets;
+    
+    if (structureType === "platform") {
+      // Platform: Split work between bots
+      const { alphaTargets, bravoTargets } = splitWorkByXAxis(
+        worldTargets,
+        args.bot_name,
+        args.other_bot_name
+      );
+      
+      // Determine which half based on proximity to structure origin
+      const botIsOnWestSide = botPos.x < worldOrigin.x;
+      const otherBotIsOnWestSide = otherBotPos.x < worldOrigin.x;
+      
+      // If conflict (both bots on same side), use bot identity as tie-breaker
+      if (botIsOnWestSide === otherBotIsOnWestSide) {
+        // Tie! Use alphabetical order: Alpha gets west, Bravo gets east
+        const isAlphaBot = bot.username < args.other_bot_name;
+        myTargets = isAlphaBot ? alphaTargets : bravoTargets;
+        console.log(
+          `[${bot.username}] ⚠️ Both bots on ${botIsOnWestSide ? 'WEST' : 'EAST'} side - using tie-breaker (${isAlphaBot ? 'WEST' : 'EAST'} half)`
+        );
+      } else {
+        // No conflict - use proximity-based assignment
+        myTargets = botIsOnWestSide ? alphaTargets : bravoTargets;
+        console.log(
+          `[${bot.username}] ✅ Using proximity-based assignment (${botIsOnWestSide ? 'WEST' : 'EAST'} half)`
+        );
+      }
+      
+      console.log(
+        `[${bot.username}] 📍 Spawn position: (${botPos.x}, ${botPos.z}), Platform origin: (${worldOrigin.x}, ${worldOrigin.z})`
+      );
+      console.log(
+        `[${bot.username}] 🏗️ Assigned ${myTargets.length}/${worldTargets.length} blocks (collaborative build)`
+      );
+    } else {
+      // Wall/Tower: Each bot builds their own complete structure
+      myTargets = worldTargets;
+      console.log(
+        `[${bot.username}] ✅ Building complete ${structureType} independently`
+      );
+      console.log(
+        `[${bot.username}] 📍 Structure position: (${worldOrigin.x}, ${worldOrigin.y}, ${worldOrigin.z})`
+      );
+      console.log(
+        `[${bot.username}] 🏗️ Assigned ${myTargets.length} blocks (individual build)`
+      );
+    }
 
-    // STEP 5: Final eye contact
-    console.log(`[${bot.username}] 👀 STEP 5: Final eye contact...`);
+    // STEP 6: Initialize pathfinder for building
+    console.log(`[${bot.username}] 🚶 STEP 6: Initializing pathfinder...`);
+    initializePathfinder(bot, {
+      allowSprinting: false,
+      allowParkour: true,
+      canDig: false,
+      allowEntityDetection: true,
+    });
+
+    // STEP 7: Build the structure
+    console.log(`[${bot.username}] 🏗️ STEP 7: Building structure...`);
+    
+    let buildResult;
+    try {
+      buildResult = await buildPhase(bot, myTargets, {
+        args: args,
+        delayMs: BLOCK_PLACE_DELAY_MS,
+        shouldAbort: () => bot._episodeStopping,
+      });
+
+      if (buildResult.aborted) {
+        console.log(
+          `[${bot.username}] 🛑 Build aborted due to stop request`
+        );
+        stopPathfinder(bot);
+        return;
+      }
+      
+      // Check for catastrophic failure (more than 50% failed)
+      if (buildResult.failed > myTargets.length * 0.5) {
+        console.log(
+          `[${bot.username}] ❌ Build failed significantly: ${buildResult.failed}/${myTargets.length} blocks failed`
+        );
+        throw new Error(
+          `Build failed: ${buildResult.failed}/${myTargets.length} blocks failed`
+        );
+      }
+      
+      console.log(`[${bot.username}] ✅ Build complete!`);
+    } catch (buildError) {
+      console.error(
+        `[${bot.username}] ❌ Building failed: ${buildError.message}`
+      );
+      
+      // Stop pathfinder immediately
+      if (bot.pathfinder) {
+        bot.pathfinder.setGoal(null);
+      }
+      stopPathfinder(bot);
+      
+      // Re-throw the error so episode system handles it properly
+      throw buildError;
+    }
+
+    // STEP 8: Stop pathfinder
+    stopPathfinder(bot);
+
+    if (bot._episodeStopping) {
+      console.log(
+        `[${bot.username}] 🛑 Stop phase already in progress, skipping final eye contact`
+      );
+      return;
+    }
+
+    // STEP 9: Final eye contact
+    console.log(`[${bot.username}] 👀 STEP 9: Final eye contact...`);
     try {
       const otherEntity = bot.players[args.other_bot_name]?.entity;
       if (otherEntity) {
@@ -314,7 +448,7 @@ function getOnBuildPhaseFn(
 class BuildStructureEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 8;
   static INIT_MAX_BOTS_DISTANCE = 15;
-  static WORKS_IN_NON_FLAT_WORLD = false;
+  static WORKS_IN_NON_FLAT_WORLD = true;
 
   constructor(sharedBotRng) {
     super();
@@ -322,10 +456,16 @@ class BuildStructureEpisode extends BaseEpisode {
   }
 
   async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
+    console.log(`[${bot.username}] 🏗️ Setting up structure building episode...`);
+    
+    // Give all block types (we'll pick one during build phase using shared RNG)
+    console.log(`[${bot.username}] 📦 Giving building materials...`);
     for (const blockType of BUILD_BLOCK_TYPES) {
       await ensureBotHasEnough(bot, rcon, blockType, 64);
     }
+    
     await unequipHand(bot);
+    
     return {
       botPositionNew: botPosition,
       otherBotPositionNew: otherBotPosition,
@@ -377,15 +517,18 @@ class BuildStructureEpisode extends BaseEpisode {
     episodeNum,
     args
   ) {
-    // Clean up any remaining blocks from inventory
+    console.log(`[${bot.username}] 🧹 Cleaning up structure building episode...`);
+    // Clean up pathfinder if still active
+    if (bot.pathfinder) {
+      stopPathfinder(bot);
+    }
   }
 }
 
 module.exports = {
-  buildStructure,
-  generateWallPositions,
-  generateTowerPositions,
-  generatePlatformPositions,
+  makeWallBlueprint,
+  makeTowerBlueprint,
+  makePlatformBlueprint,
   getOnBuildPhaseFn,
   BuildStructureEpisode,
 };
