@@ -203,7 +203,7 @@ function getOnBuildPhaseFn(
       // Alpha builds left side, Bravo builds right side
       const startPos = botPos.offset(2, 0, 0);
       const length = 5;
-      const height = 3;
+      const height = 2;
 
       if (botNameSmaller) {
         positions = generateWallPositions(startPos, length, height, "x");
@@ -218,7 +218,7 @@ function getOnBuildPhaseFn(
     } else if (structureType === "tower") {
       // Each bot builds their own tower
       const startPos = botPos.offset(3, 0, botNameSmaller ? 0 : 3);
-      const height = 5;
+      const height = 2;
       positions = generateTowerPositions(startPos, height);
     } else if (structureType === "platform") {
       // Bots build a shared platform - use midpoint between bots as reference
