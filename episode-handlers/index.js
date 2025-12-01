@@ -19,6 +19,7 @@ const {
   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
 } = require("../utils/constants");
 const { ensureBotHasEnough, unequipHand } = require("../utils/items");
+const { selectWeightedEpisodeType } = require("../utils/episode-weights");
 
 // Import episode classes
 const { StraightLineEpisode } = require("./straight-line-episode");
@@ -537,11 +538,11 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       const botsRngSeedWithEpisode = `${botsRngBaseSeed}_${episodeNum}`;
       const sharedBotRng = seedrandom(botsRngSeedWithEpisode);
 
-      // Select episode type
+      // Select episode type (weighted by inverse sqrt of typical length)
       const selectedEpisodeType =
         args.smoke_test === 1
           ? episodeConfig.episodeType
-          : sortedEligible[Math.floor(sharedBotRng() * sortedEligible.length)];
+          : selectWeightedEpisodeType(sortedEligible, sharedBotRng, args.uniform_weights);
 
       console.log(
         `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
