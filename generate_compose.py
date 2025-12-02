@@ -189,6 +189,8 @@ def generate_compose_config(
                         "SPAWN_PROTECTION": 0,
                         "SEED": seed,
                         "ENFORCE_SECURE_PROFILE": False,
+                        # Keep our trusted accounts OP'd across generated stacks
+                        "OPS": "Pengulu,Ahrae,timwm",
                         "RCON_PASSWORD": "research",
                         "BROADCAST_RCON_TO_OPS": True,
                         **(
@@ -374,13 +376,6 @@ def generate_compose_config(
                     f"{cam_paths['alpha_data_host']}:/root",
                     f"{cam_paths['alpha_output_host']}:/output",
                 ],
-                "extra_hosts": [
-                    "sessionserver.mojang.com:127.0.0.1",
-                    "api.minecraftservices.com:127.0.0.1",
-                    "authserver.mojang.com:127.0.0.1",
-                    "textures.minecraft.net:127.0.0.1",
-                    "pc.realms.minecraft.net:127.0.0.1",
-                ],
             },
             # Episode starter: waits for all players then triggers episode start
             f"episode_starter_instance_{instance_id}": {
@@ -441,13 +436,6 @@ def generate_compose_config(
                 "volumes": [
                     f"{cam_paths['bravo_data_host']}:/root",
                     f"{cam_paths['bravo_output_host']}:/output",
-                ],
-                "extra_hosts": [
-                    "sessionserver.mojang.com:127.0.0.1",
-                    "api.minecraftservices.com:127.0.0.1",
-                    "authserver.mojang.com:127.0.0.1",
-                    "textures.minecraft.net:127.0.0.1",
-                    "pc.realms.minecraft.net:127.0.0.1",
                 ],
             },
             # Passive spectator alpha
