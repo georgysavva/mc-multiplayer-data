@@ -34,6 +34,7 @@ services:
       MODE: survival
       ONLINE_MODE: false
       ENFORCE_SECURE_PROFILE: false
+      OPS: "Pengulu,Ahrae,timwm"
       SERVER_PORT: ${MC_SERVER_PORT:-25565}
       RCON_PORT: ${MC_RCON_PORT:-25575}
       RCON_PASSWORD: research
@@ -233,12 +234,6 @@ services:
     volumes:
       - ./camera/data_alpha:/root
       - ./camera/output_alpha:/output
-    extra_hosts:
-      - "sessionserver.mojang.com:127.0.0.1"
-      - "api.minecraftservices.com:127.0.0.1"
-      - "authserver.mojang.com:127.0.0.1"
-      - "textures.minecraft.net:127.0.0.1"
-      - "pc.realms.minecraft.net:127.0.0.1"
 
   episode_starter:
     image: node:20
@@ -293,12 +288,6 @@ services:
     volumes:
       - ./camera/data_bravo:/root
       - ./camera/output_bravo:/output
-    extra_hosts:
-      - "sessionserver.mojang.com:127.0.0.1"
-      - "api.minecraftservices.com:127.0.0.1"
-      - "authserver.mojang.com:127.0.0.1"
-      - "textures.minecraft.net:127.0.0.1"
-      - "pc.realms.minecraft.net:127.0.0.1"
 
   spectator_alpha:
     image: ojmichel/mc-multiplayer-base:latest

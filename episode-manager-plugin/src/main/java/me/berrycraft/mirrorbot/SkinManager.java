@@ -28,12 +28,19 @@ public class SkinManager {
 
         if (Bukkit.getPluginManager().getPlugin("SkinsRestorer") != null) {
             skinsRestorer = SkinsRestorerProvider.get();
+            plugin.getLogger().info("[SkinManager] SkinsRestorer detected, API attached.");
         } else {
+            plugin.getLogger().warning("[SkinManager] SkinsRestorer not found. Skins will not be applied.");
             skinsRestorer = null;
         }
 
         this.skinsDir = resolveSkinsDirectory();
-        if (skinsDir != null) skinsDir.mkdirs();
+        if (skinsDir != null) {
+            boolean created = skinsDir.mkdirs();
+            plugin.getLogger().info("[SkinManager] Skins directory resolved to: " + skinsDir.getAbsolutePath() + " (created=" + created + ")");
+        } else {
+            plugin.getLogger().warning("[SkinManager] Failed to resolve skins directory; custom skins will be unavailable.");
+        }
     }
 
     // ------------------------------------------------------------------------------------
@@ -41,15 +48,23 @@ public class SkinManager {
     // ------------------------------------------------------------------------------------
 
     public Map<String, File> loadSkins() {
-        if (skinsDir == null || !skinsDir.exists()) return Collections.emptyMap();
+        if (skinsDir == null || !skinsDir.exists()) {
+            plugin.getLogger().warning("[SkinManager] Skins directory missing: " + skinsDir);
+            return Collections.emptyMap();
+        }
 
         Map<String, File> map = new TreeMap<>();
         File[] list = skinsDir.listFiles((dir, name) -> name.endsWith(".png"));
-        if (list == null) return map;
+        if (list == null) {
+            plugin.getLogger().warning("[SkinManager] listFiles returned null for: " + skinsDir.getAbsolutePath());
+            return map;
+        }
 
         for (File f : list) {
             map.put(normalizeName(f.getName()), f);
         }
+
+        plugin.getLogger().info("[SkinManager] Loaded " + map.size() + " skin(s) from " + skinsDir.getAbsolutePath());
         return map;
     }
 
@@ -76,12 +91,20 @@ public class SkinManager {
     // ------------------------------------------------------------------------------------
 
     public void applySharedSkin(Player controller, Player camera, File file) {
-        if (skinsRestorer == null) return;
+        if (skinsRestorer == null) {
+            plugin.getLogger().warning("[SkinManager] SkinsRestorer unavailable; skipping skin apply for " + controller.getName() + " / " + camera.getName());
+            return;
+        }
+
+        plugin.getLogger().info("[SkinManager] Applying shared skin " + file.getName() + " to " + controller.getName() + " and " + camera.getName());
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 SkinStorage storage = skinsRestorer.getSkinStorage();
-                if (storage == null) return;
+                if (storage == null) {
+                    plugin.getLogger().severe("[SkinManager] SkinStorage is null; cannot cache/apply skin.");
+                    return;
+                }
 
                 String key = "file:" + file.getName().toLowerCase(Locale.ROOT);
 
@@ -89,8 +112,10 @@ public class SkinManager {
                 SkinIdentifier id;
 
                 if (cached.isPresent()) {
+                    plugin.getLogger().info("[SkinManager] Using cached skin for key " + key);
                     id = cached.get().getIdentifier();
                 } else {
+                    plugin.getLogger().info("[SkinManager] Generating skin for key " + key + " from file " + file.getAbsolutePath());
                     var api = skinsRestorer.getMineSkinAPI();
                     var response = api.genSkin(file.toPath(), SkinVariant.CLASSIC);
 
@@ -112,6 +137,7 @@ public class SkinManager {
                 });
 
             } catch (DataRequestException | MineSkinException | IOException ex) {
+                plugin.getLogger().severe("[SkinManager] Failed to apply skin " + file.getName() + ": " + ex.getMessage());
                 ex.printStackTrace();
             }
         });
