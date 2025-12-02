@@ -613,9 +613,34 @@ async function buildPhase(bot, targets, options = {}) {
             scaffoldMovements.canPlaceOn = true; // Enable scaffolding
             scaffoldMovements.allowEntityDetection = true;
             
-            // Set scaffolding blocks to use any available blocks from inventory
+            // Set scaffolding blocks - FORCE pathfinder to use the correct block type for this phase
             const mcData = require("minecraft-data")(bot.version);
-            scaffoldMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+            
+            // blockType is already set from targets[0].block (phase-specific: cobblestone/oak_planks/oak_log)
+            const targetBlockItem = bot.inventory.items().find(item => item.name === blockType);
+            
+            if (targetBlockItem && targetBlockItem.count > 0) {
+              // Force pathfinder to ONLY use the correct block type for this phase
+              const targetBlockId = mcData.itemsByName[blockType]?.id; // Use itemsByName, not blocksByName!
+              if (targetBlockId) {
+                scaffoldMovements.scafoldingBlocks = [targetBlockId];
+                console.log(
+                  `[${bot.username}] 🎯 Forcing pathfinder to use ${blockType} for ${phaseName} phase scaffolding (${targetBlockItem.count} available)`
+                );
+              } else {
+                // Fallback: use all scaffolding blocks
+                scaffoldMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+                console.log(
+                  `[${bot.username}] ⚠️ Could not get block ID for ${blockType}, using default scaffolding blocks`
+                );
+              }
+            } else {
+              // Target block not available - use any scaffolding block
+              scaffoldMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+              console.log(
+                `[${bot.username}] ⚠️ ${blockType} not in inventory (${phaseName} phase), using any available scaffolding blocks`
+              );
+            }
             
             bot.pathfinder.setMovements(scaffoldMovements);
             
@@ -631,7 +656,7 @@ async function buildPhase(bot, targets, options = {}) {
             bot.pathfinder.setMovements(originalMovements);
             
             // Settling time after pathfinding
-            await sleep(500);
+            await sleep(300); // Reduced from 500ms for faster scaffolding
             
             // Verify if block was placed underneath us during scaffolding
             const placedBlock = bot.blockAt(pos);
@@ -639,17 +664,17 @@ async function buildPhase(bot, targets, options = {}) {
             
             if (placed) {
               console.log(
-                `[${bot.username}] ✅ Successfully scaffolded to position (pathfinder placed block)!`
+                `[${bot.username}] ✅ Successfully scaffolded to position (pathfinder placed correct ${phaseName} block: ${blockType})!`
               );
               success++;
             } else {
-              // Check if pathfinder placed a different block type (scaffolding material)
+              // Check if pathfinder placed a different block type (fallback scenario)
               if (placedBlock && placedBlock.name !== "air") {
                 console.log(
-                  `[${bot.username}] ⚠️ Pathfinder placed ${placedBlock.name} instead of ${blockType}, will try to replace...`
+                  `[${bot.username}] ⚠️ Pathfinder placed ${placedBlock.name} instead of ${blockType} (${phaseName} phase fallback), will replace...`
                 );
                 
-                // Try to dig the scaffolding block and place correct block
+                // Try to dig the wrong block and place correct block
                 try {
                   await digWithTimeout(bot, placedBlock, { timeoutMs: 3000 });
                   await sleep(200);
@@ -663,26 +688,26 @@ async function buildPhase(bot, targets, options = {}) {
                   
                   if (placed) {
                     console.log(
-                      `[${bot.username}] ✅ Successfully replaced scaffolding with correct block!`
+                      `[${bot.username}] ✅ Successfully replaced ${placedBlock.name} with ${blockType} (${phaseName} phase)!`
                     );
                     success++;
                   } else {
                     failed++;
                     console.log(
-                      `[${bot.username}] ❌ Failed to replace scaffolding block`
+                      `[${bot.username}] ❌ Failed to replace scaffolding block (${phaseName} phase)`
                     );
                   }
                 } catch (replaceError) {
                   failed++;
                   console.log(
-                    `[${bot.username}] ❌ Error replacing scaffolding: ${replaceError.message}`
+                    `[${bot.username}] ❌ Error replacing scaffolding (${phaseName} phase): ${replaceError.message}`
                   );
                 }
               } else {
                 // Pathfinder didn't place anything - complete failure
                 failed++;
                 console.log(
-                  `[${bot.username}] ❌ Pathfinder scaffold-up failed after all attempts`
+                  `[${bot.username}] ❌ Pathfinder scaffold-up failed - no block placed (${phaseName} phase)`
                 );
               }
             }
@@ -750,9 +775,35 @@ async function buildPhase(bot, targets, options = {}) {
             diggingMovements.canDig = true; // Enable digging for pathfinder
             diggingMovements.canPlaceOn = true; // Enable block placement for scaffolding
             diggingMovements.allowEntityDetection = true;
-            // Set scaffolding blocks to use any available blocks from inventory
+            
+            // Set scaffolding blocks - FORCE pathfinder to use the correct block type for this phase
             const mcData = require("minecraft-data")(bot.version);
-            diggingMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+            
+            // blockType is already set from targets[0].block (phase-specific: cobblestone/oak_planks/oak_log)
+            const targetBlockItem2 = bot.inventory.items().find(item => item.name === blockType);
+            
+            if (targetBlockItem2 && targetBlockItem2.count > 0) {
+              // Force pathfinder to ONLY use the correct block type for this phase
+              const targetItemId = mcData.itemsByName[blockType]?.id; // Use itemsByName, not blocksByName!
+              if (targetItemId) {
+                diggingMovements.scafoldingBlocks = [targetItemId];
+                console.log(
+                  `[${bot.username}] 🎯 Cardinal reposition: Using ${blockType} for ${phaseName} phase scaffolding (${targetBlockItem2.count} available)`
+                );
+              } else {
+                // Fallback: use all scaffolding blocks
+                diggingMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+                console.log(
+                  `[${bot.username}] ⚠️ Cardinal reposition: Could not get item ID for ${blockType}, using default scaffolding blocks`
+                );
+              }
+            } else {
+              // Target block not available - use any scaffolding block
+              diggingMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+              console.log(
+                `[${bot.username}] ⚠️ Cardinal reposition: ${blockType} not in inventory (${phaseName} phase), using any available scaffolding blocks`
+              );
+            }
             
             bot.pathfinder.setMovements(diggingMovements);
             

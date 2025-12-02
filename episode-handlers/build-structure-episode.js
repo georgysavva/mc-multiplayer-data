@@ -247,13 +247,15 @@ function getOnBuildPhaseFn(
       );
     } else {
       // Platform: build at midpoint between bots (collaborative)
+      // Use the higher Y level between bots to ensure consistent elevation
+      const maxBotY = Math.max(botPos.y, otherBotPos.y);
       worldOrigin = new Vec3(
         Math.floor((botPos.x + otherBotPos.x) / 2),
-        Math.floor(botPos.y), // Use bot's Y level
+        Math.floor(maxBotY), // Use higher Y level for consistency (lower bot will pathfind up)
         Math.floor((botPos.z + otherBotPos.z) / 2)
       );
       console.log(
-        `[${bot.username}] 🏗️ Platform origin (midpoint): (${worldOrigin.x}, ${worldOrigin.y}, ${worldOrigin.z})`
+        `[${bot.username}] 🏗️ Platform origin (midpoint at higher Y): (${worldOrigin.x}, ${worldOrigin.y}, ${worldOrigin.z}) [maxY: ${maxBotY}]`
       );
     }
 

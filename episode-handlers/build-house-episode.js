@@ -393,13 +393,14 @@ class BuildHouseEpisode extends BaseEpisode {
     // Calculate material counts
     const materialCounts = calculateMaterialCounts(blueprint);
     
-    // Add extra blocks for safety (50% more)
+    // Add extra blocks for scaffolding (100% more = 2x total)
+    // Pathfinder now uses correct block types for scaffolding, so we need more materials
     const safetyMaterials = {};
     for (const [block, count] of Object.entries(materialCounts)) {
-      safetyMaterials[block] = Math.ceil(count * 1.5);
+      safetyMaterials[block] = Math.ceil(count * 2.0); // 2x for scaffolding consumption
     }
     
-    console.log(`[${bot.username}] 📦 Giving building materials:`, safetyMaterials);
+    console.log(`[${bot.username}] 📦 Giving building materials (2x for scaffolding):`, safetyMaterials);
     
     // Use ensureBotHasEnough for each material (matches working episodes)
     for (const [blockType, count] of Object.entries(safetyMaterials)) {
