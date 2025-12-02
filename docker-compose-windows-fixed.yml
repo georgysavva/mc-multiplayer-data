@@ -46,19 +46,18 @@ services:
       SEED: ${WORLD_SEED:-1234567890}
       # MODRINTH_PROJECTS: skinsrestorer,luckperms
       # LEVEL_TYPE: "minecraft:single_biome_surface"
-      # GENERATOR_SETTINGS: '{"biome":"minecraft:plains"}'
-      LEVEL_TYPE: minecraft:${LEVEL_TYPE:-flat}
+      LEVEL_TYPE: minecraft:${LEVEL_TYPE:-normal}
       # below should be irrelevant if LEVEL_TYPE is not minecraft:flat
-      GENERATOR_SETTINGS: >-
-        {
-          "layers": [
-            { "block": "minecraft:bedrock", "height": 1 },
-            { "block": "minecraft:stone",   "height": 124 },
-            { "block": "minecraft:dirt",    "height": 2 },
-            { "block": "minecraft:grass_block", "height": 1 }
-          ],
-          "biome": "minecraft:plains"
-        }
+      # GENERATOR_SETTINGS: >-
+      #   {
+      #     "layers": [
+      #       { "block": "minecraft:bedrock", "height": 1 },
+      #       { "block": "minecraft:stone",   "height": 124 },
+      #       { "block": "minecraft:dirt",    "height": 2 },
+      #       { "block": "minecraft:grass_block", "height": 1 }
+      #     ],
+      #     "biome": "minecraft:plains"
+      #   }
     volumes:
       # attach the relative directory 'data' to the container's /data path
       - ${MC_DATA_DIR:-./data}:/data
@@ -113,7 +112,7 @@ services:
       CAMERA_READY_CHECK_INTERVAL: 2000
       VIEWER_RENDERING_DISABLED: 1
       VIEWER_RECORDING_INTERVAL: 50 # should be 50 when rendering is disabled to have 20 FPS
-      WORLD_TYPE: ${LEVEL_TYPE:-flat}
+      WORLD_TYPE: ${LEVEL_TYPE:-normal}
       SMOKE_TEST: ${SMOKE_TEST:-0}
       INSTANCE_ID: 0
       OUTPUT_DIR: /output
@@ -162,7 +161,7 @@ services:
       VIEWER_RENDERING_DISABLED: 1
       VIEWER_RECORDING_INTERVAL: 50
       SMOKE_TEST: ${SMOKE_TEST:-0}
-      WORLD_TYPE: ${LEVEL_TYPE:-flat}
+      WORLD_TYPE: ${LEVEL_TYPE:-normal}
       INSTANCE_ID: 0
       OUTPUT_DIR: /output
     extra_hosts:

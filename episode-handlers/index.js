@@ -200,11 +200,11 @@ async function runSingleEpisode(
     };
     const cleanupEpisodeScopedHandlers = () => {
       process.removeListener("unhandledRejection", handleAnyError);
-      process.removeListener("uncaughtException", handleAnyError);
+      process.removeListener("unhandledException", handleAnyError);
       bot.removeListener("death", handleBotDeath);
     };
     process.on("unhandledRejection", handleAnyError);
-    process.on("uncaughtException", handleAnyError);
+    process.on("unhandledException", handleAnyError);
     bot.once("death", handleBotDeath);
 
     // Ensure we clean up episode-scoped handlers when the episode resolves
@@ -407,6 +407,10 @@ async function setupBotAndCameraForEpisode(bot, rcon, args) {
     `give ${bot.username} minecraft:diamond_shovel 1`
   );
   console.log(`[${bot.username}] giveShovelRes=${giveShovelRes}`);
+  const giveAxeRes = await rcon.send(
+    `give ${bot.username} minecraft:diamond_axe 1`
+  );
+  console.log(`[${bot.username}] giveAxeRes=${giveAxeRes}`);
   await unequipHand(bot);
 }
 

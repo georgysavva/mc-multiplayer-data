@@ -22,7 +22,7 @@ const { goals } = require("mineflayer-pathfinder");
 // Constants for house building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const FINAL_EYE_CONTACT_MS = 2000; // Final admiration duration
-const BLOCK_PLACE_DELAY_MS = 300; // Delay between placing blocks
+const BLOCK_PLACE_DELAY_MS = 200; // Delay between placing blocks
 const ORIENTATION = 0; // Only 0° supported for now (south-facing door)
 
 // Material set (cobblestone house)
@@ -164,10 +164,11 @@ function getOnBuildHousePhaseFn(
       phaseDataOther.position.z
     ).floored();
     
-    // Place house origin at midpoint, on the ground
+    // Use the higher Y level between bots to ensure consistent elevation
+    const maxBotY = Math.max(botPos.y, otherBotPos.y);
     const worldOrigin = new Vec3(
       Math.floor((botPos.x + otherBotPos.x) / 2),
-      Math.floor(botPos.y), // Use bot's Y level
+      Math.floor(maxBotY), // Use higher Y level for consistency
       Math.floor((botPos.z + otherBotPos.z) / 2)
     );
 
@@ -202,7 +203,8 @@ function getOnBuildHousePhaseFn(
 
     // STEP 6: Build in phases (floor → walls → windows → roof)
     console.log(`[${bot.username}] 🏗️ STEP 6: Building house in phases...`);
-    const phases = ["floor", "walls", "windows", "roof"];
+    // const phases = ["floor", "walls", "windows", "roof"];
+    const phases = ["floor", "walls", "roof"]; // windows are not placed for better performance
     let phaseAborted = false;
 
     try {
@@ -290,7 +292,7 @@ function getOnBuildHousePhaseFn(
         
         // Wait for other bot to finish this phase
         console.log(`[${bot.username}]    Waiting for ${args.other_bot_name}...`);
-        await sleep(2000); // Give other bot time to catch up
+        await sleep(1000); // Give other bot time to catch up
         console.log(`[${bot.username}] ✅ Phase ${phaseName} complete at ${new Date().toISOString()}`);
       }
 
@@ -390,13 +392,14 @@ class BuildHouseEpisode extends BaseEpisode {
     // Calculate material counts
     const materialCounts = calculateMaterialCounts(blueprint);
     
-    // Add extra blocks for safety (50% more)
+    // Add extra blocks for scaffolding (100% more = 2x total)
+    // Pathfinder now uses correct block types for scaffolding, so we need more materials
     const safetyMaterials = {};
     for (const [block, count] of Object.entries(materialCounts)) {
-      safetyMaterials[block] = Math.ceil(count * 1.5);
+      safetyMaterials[block] = Math.ceil(count * 2.0); // 2x for scaffolding consumption
     }
     
-    console.log(`[${bot.username}] 📦 Giving building materials:`, safetyMaterials);
+    console.log(`[${bot.username}] 📦 Giving building materials (2x for scaffolding):`, safetyMaterials);
     
     // Use ensureBotHasEnough for each material (matches working episodes)
     for (const [blockType, count] of Object.entries(safetyMaterials)) {

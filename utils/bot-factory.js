@@ -6,6 +6,7 @@ const {
 } = require("mineflayer-pathfinder");
 
 const pvp = require("mineflayer-pvp").plugin;
+const toolPlugin = require("mineflayer-tool").plugin;
 
 // Log mineflayer version once to help debug protocol mismatches
 const MINEFLAYER_VERSION =
@@ -34,6 +35,9 @@ function makeBot({ username, host, port, version = "1.21" }) {
   bot.loadPlugin(pathfinder);
   
   bot.loadPlugin(pvp);
+
+  // Load tool plugin for automatic tool selection
+  bot.loadPlugin(toolPlugin);
 
   bot.on("end", () => console.log(`[${bot.username}] disconnected.`));
   bot.on("kicked", (reason) =>
