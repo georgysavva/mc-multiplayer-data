@@ -2,7 +2,8 @@
 const { Vec3 } = require("vec3");
 const { sleep } = require("./helpers");
 const { placeAt } = require("../episode-handlers/builder");
-const { digWithTimeout } = require("./movement");
+const { digWithTimeout, gotoWithTimeout } = require("./movement");
+const { GoalNear } = require("./bot-factory"); // Import GoalNear
 
 // Track scaffolds for cleanup
 const scaffoldBlocks = [];
@@ -526,8 +527,6 @@ async function buildPhase(bot, targets, options = {}) {
   let success = 0;
   let failed = 0;
 
-  const { GoalNear } = require("mineflayer-pathfinder").goals;
-
   console.log(`[${bot.username}] 🔨 Starting block placement loop...`);
 
   for (let i = 0; i < sorted.length; i++) {
@@ -708,9 +707,7 @@ async function buildPhase(bot, targets, options = {}) {
             );
             
             // Move to exact cardinal position (range 0 = stand exactly there)
-            bot.pathfinder.setGoal(new GoalNear(closestCardinal.x, closestCardinal.y, closestCardinal.z, 0));
-            await sleep(Math.min(minDistance * 500, 5000));
-            bot.pathfinder.setGoal(null);
+            await gotoWithTimeout(bot, new GoalNear(closestCardinal.x, closestCardinal.y, closestCardinal.z, 0), { timeoutMs: 8000 });
             
             // Extra settling time after repositioning
             await sleep(500);

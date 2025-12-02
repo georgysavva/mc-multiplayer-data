@@ -164,10 +164,11 @@ function getOnBuildHousePhaseFn(
       phaseDataOther.position.z
     ).floored();
     
-    // Place house origin at midpoint, on the ground
+    // Use the higher Y level between bots to ensure consistent elevation
+    const maxBotY = Math.max(botPos.y, otherBotPos.y);
     const worldOrigin = new Vec3(
       Math.floor((botPos.x + otherBotPos.x) / 2),
-      Math.floor(botPos.y), // Use bot's Y level
+      Math.floor(maxBotY), // Use higher Y level for consistency
       Math.floor((botPos.z + otherBotPos.z) / 2)
     );
 
