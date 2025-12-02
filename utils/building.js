@@ -2,7 +2,7 @@
 const { Vec3 } = require("vec3");
 const { sleep } = require("./helpers");
 const { placeAt } = require("../episode-handlers/builder");
-const { digWithTimeout, gotoWithTimeout } = require("./movement");
+const { digWithTimeout, gotoWithTimeout, getScaffoldingBlockIds } = require("./movement");
 const { GoalNear } = require("./bot-factory"); // Import GoalNear
 const Movements = require("mineflayer-pathfinder").Movements; // Import Movements
 
@@ -474,7 +474,7 @@ async function placeScaffold(bot, targetPos, args) {
  * @returns {Promise<Object>} Build statistics {success, failed}
  */
 async function buildPhase(bot, targets, options = {}) {
-  const { args = null, delayMs = 300, shouldAbort = () => false } = options;
+  const { args = null, delayMs = 150, shouldAbort = () => false } = options;
 
   if (targets.length === 0) {
     console.log(`[${bot.username}] No blocks assigned in this phase`);
@@ -538,7 +538,7 @@ async function buildPhase(bot, targets, options = {}) {
     const target = sorted[i];
     const pos = target.worldPos;
     let attemptCount = 0;
-    const MAX_ATTEMPTS = 3; // attempt 1 = normal, attempt 2 = cardinal reposition, attempt 3 = jump-and-place
+    const MAX_ATTEMPTS = 3; // attempt 1 = normal, attempt 2 = cardinal reposition, attempt 3 = pathfinder scaffold-up
     let placed = false;
 
     while (attemptCount < MAX_ATTEMPTS && !placed) {
@@ -590,75 +590,110 @@ async function buildPhase(bot, targets, options = {}) {
           await sleep(200); // Let scaffold settle
         }
 
-        // ATTEMPT 3 ONLY: Jump-and-place as final fallback
+        // ATTEMPT 3 ONLY: Pathfinder scaffold-up as final fallback
         if (attemptCount === 2 && !placed) {
           console.log(
-            `[${bot.username}] 🦘 Attempt 3: Using jump-and-place as final fallback...`
+            `[${bot.username}] � Attempt 3: Using pathfinder scaffold-up as final fallback...`
           );
           
-          // Move close to target (try to get on top or adjacent)
-          const targetAbove = new Vec3(pos.x + 0.5, pos.y, pos.z + 0.5); // Center of target block
-          const currentPos = bot.entity.position;
-          const distToTarget = currentPos.distanceTo(targetAbove);
-          
-          if (distToTarget > 2) {
-            console.log(
-              `[${bot.username}] 🚶 Moving closer to target for jump-and-place...`
-            );
-            bot.pathfinder.setGoal(new GoalNear(targetAbove.x, targetAbove.y, targetAbove.z, 1));
-            await sleep(Math.min(distToTarget * 500, 3000));
-            bot.pathfinder.setGoal(null);
-            await sleep(500);
-          }
-          
           try {
-            bot.setControlState('jump', true);
-            await sleep(150); // Brief moment to start jump
+            // Target position: Stand on top of the block we want to place (Y+1)
+            const scaffoldTarget = new Vec3(pos.x, pos.y + 1, pos.z);
             
-            // Attempt placement while jumping
-            placed = await placeAt(bot, pos, blockType, {
-              useSneak: false, // Don't sneak while jumping
-              tries: 2,
-              args: args,
-            });
+            console.log(
+              `[${bot.username}] 🧗 Pathfinding to scaffold up to (${scaffoldTarget.x}, ${scaffoldTarget.y}, ${scaffoldTarget.z})...`
+            );
             
-            bot.setControlState('jump', false);
-            await sleep(200); // Let bot land
+            // Temporarily enable digging and scaffolding for upward pathfinding
+            const originalMovements = bot.pathfinder.movements;
+            const scaffoldMovements = new Movements(bot, require("minecraft-data")(bot.version));
+            scaffoldMovements.allowSprinting = false;
+            scaffoldMovements.allowParkour = true;
+            scaffoldMovements.canDig = true; // Enable digging obstacles
+            scaffoldMovements.canPlaceOn = true; // Enable scaffolding
+            scaffoldMovements.allowEntityDetection = true;
+            
+            // Set scaffolding blocks to use any available blocks from inventory
+            const mcData = require("minecraft-data")(bot.version);
+            scaffoldMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+            
+            bot.pathfinder.setMovements(scaffoldMovements);
+            
+            // Pathfind to stand on top of target block (range 0 = exact position)
+            // The pathfinder will automatically scaffold underneath if needed
+            await gotoWithTimeout(
+              bot, 
+              new GoalNear(scaffoldTarget.x, scaffoldTarget.y, scaffoldTarget.z, 0), 
+              { timeoutMs: 8000 }
+            );
+            
+            // Restore original movements
+            bot.pathfinder.setMovements(originalMovements);
+            
+            // Settling time after pathfinding
+            await sleep(500);
+            
+            // Verify if block was placed underneath us during scaffolding
+            const placedBlock = bot.blockAt(pos);
+            placed = placedBlock && placedBlock.name === blockType;
             
             if (placed) {
               console.log(
-                `[${bot.username}] ✅ Successfully placed block while jumping!`
+                `[${bot.username}] ✅ Successfully scaffolded to position (pathfinder placed block)!`
               );
               success++;
             } else {
-              // Jump placement failed - need to reposition
-              console.log(
-                `[${bot.username}] ⚠️ Jump placement failed, will reposition...`
-              );
-              attemptCount++;
-              if (attemptCount < MAX_ATTEMPTS) {
-                await sleep(300);
-                continue; // Skip to next iteration with repositioning
+              // Check if pathfinder placed a different block type (scaffolding material)
+              if (placedBlock && placedBlock.name !== "air") {
+                console.log(
+                  `[${bot.username}] ⚠️ Pathfinder placed ${placedBlock.name} instead of ${blockType}, will try to replace...`
+                );
+                
+                // Try to dig the scaffolding block and place correct block
+                try {
+                  await digWithTimeout(bot, placedBlock, { timeoutMs: 3000 });
+                  await sleep(200);
+                  
+                  // Now try to place the correct block
+                  placed = await placeAt(bot, pos, blockType, {
+                    useSneak: false,
+                    tries: 2,
+                    args: args,
+                  });
+                  
+                  if (placed) {
+                    console.log(
+                      `[${bot.username}] ✅ Successfully replaced scaffolding with correct block!`
+                    );
+                    success++;
+                  } else {
+                    failed++;
+                    console.log(
+                      `[${bot.username}] ❌ Failed to replace scaffolding block`
+                    );
+                  }
+                } catch (replaceError) {
+                  failed++;
+                  console.log(
+                    `[${bot.username}] ❌ Error replacing scaffolding: ${replaceError.message}`
+                  );
+                }
               } else {
+                // Pathfinder didn't place anything - complete failure
                 failed++;
-                break;
+                console.log(
+                  `[${bot.username}] ❌ Pathfinder scaffold-up failed after all attempts`
+                );
               }
             }
-          } catch (jumpError) {
+          } catch (scaffoldError) {
+            failed++;
             console.log(
-              `[${bot.username}] ⚠️ Jump placement error: ${jumpError.message}, will reposition...`
+              `[${bot.username}] ❌ Pathfinder scaffold-up error: ${scaffoldError.message}`
             );
-            attemptCount++;
-            if (attemptCount < MAX_ATTEMPTS) {
-              await sleep(300);
-              continue;
-            } else {
-              failed++;
-              break;
-            }
           }
           
-          // If placed successfully via jump, continue to next block
+          // If placed successfully, continue to next block
           if (placed) {
             continue;
           }
@@ -715,6 +750,10 @@ async function buildPhase(bot, targets, options = {}) {
             diggingMovements.canDig = true; // Enable digging for pathfinder
             diggingMovements.canPlaceOn = true; // Enable block placement for scaffolding
             diggingMovements.allowEntityDetection = true;
+            // Set scaffolding blocks to use any available blocks from inventory
+            const mcData = require("minecraft-data")(bot.version);
+            diggingMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+            
             bot.pathfinder.setMovements(diggingMovements);
             
             // Move to exact cardinal position (range 0 = stand exactly there)
@@ -740,7 +779,7 @@ async function buildPhase(bot, targets, options = {}) {
             `[${bot.username}] ⚠️ Bot is colliding with target block at (${pos.x}, ${pos.y}, ${pos.z}), skipping regular placement and repositioning...`
           );
           attemptCount++;
-          await sleep(300);
+          await sleep(150);
           continue; // Skip to next iteration which will do cardinal repositioning
         }
 
@@ -765,7 +804,7 @@ async function buildPhase(bot, targets, options = {}) {
             console.log(
               `[${bot.username}] ⚠️ Failed attempt ${attemptCount}/${MAX_ATTEMPTS} at (${pos.x}, ${pos.y}, ${pos.z}), will reposition...`
             );
-            await sleep(300); // Brief pause before retry
+            await sleep(150); // Brief pause before retry
           } else {
             failed++;
             console.log(
@@ -779,7 +818,7 @@ async function buildPhase(bot, targets, options = {}) {
           console.log(
             `[${bot.username}] ⚠️ Error on attempt ${attemptCount}/${MAX_ATTEMPTS} at (${pos.x}, ${pos.y}, ${pos.z}): ${error.message}, retrying...`
           );
-          await sleep(300);
+          await sleep(150);
         } else {
           failed++;
           console.log(
@@ -900,7 +939,7 @@ async function admireHouse(bot, doorWorldPos, orientation, options = {}) {
     bot.pathfinder.setGoal(new GoalNear(doorWorldPos.x, doorY, doorWorldPos.z, 3));
     await sleep(5000); // Time for jumping down
     bot.pathfinder.setGoal(null);
-    await sleep(1000); // Stabilize after landing
+    await sleep(500); // Stabilize after landing
     
     console.log(`[${bot.username}] ✅ Reached ground level`);
   }

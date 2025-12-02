@@ -22,7 +22,7 @@ const { goals } = require("mineflayer-pathfinder");
 // Constants for house building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
 const FINAL_EYE_CONTACT_MS = 2000; // Final admiration duration
-const BLOCK_PLACE_DELAY_MS = 300; // Delay between placing blocks
+const BLOCK_PLACE_DELAY_MS = 200; // Delay between placing blocks
 const ORIENTATION = 0; // Only 0° supported for now (south-facing door)
 
 // Material set (cobblestone house)
@@ -292,7 +292,7 @@ function getOnBuildHousePhaseFn(
         
         // Wait for other bot to finish this phase
         console.log(`[${bot.username}]    Waiting for ${args.other_bot_name}...`);
-        await sleep(2000); // Give other bot time to catch up
+        await sleep(1000); // Give other bot time to catch up
         console.log(`[${bot.username}] ✅ Phase ${phaseName} complete at ${new Date().toISOString()}`);
       }
 
