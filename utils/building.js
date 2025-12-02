@@ -680,12 +680,12 @@ async function buildPhase(bot, targets, options = {}) {
 
           // On retry attempts, move to cardinally adjacent positions
           if (attemptCount > 0) {
-            // Define 4 cardinal positions adjacent to the target block
+            // Define 4 cardinal positions adjacent and y+1 to the target block
             const cardinalPositions = [
-              { x: pos.x + 1, y: pos.y, z: pos.z, dir: "East" },   // East
-              { x: pos.x - 1, y: pos.y, z: pos.z, dir: "West" },   // West
-              { x: pos.x, y: pos.y, z: pos.z + 1, dir: "South" },  // South
-              { x: pos.x, y: pos.y, z: pos.z - 1, dir: "North" },  // North
+              { x: pos.x + 1, y: pos.y+1, z: pos.z, dir: "East" },   // East
+              { x: pos.x - 1, y: pos.y+1, z: pos.z, dir: "West" },   // West
+              { x: pos.x, y: pos.y+1, z: pos.z + 1, dir: "South" },  // South
+              { x: pos.x, y: pos.y+1, z: pos.z - 1, dir: "North" },  // North
             ];
             
             // Find the closest cardinal position to bot's current location
