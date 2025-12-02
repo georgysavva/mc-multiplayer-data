@@ -172,7 +172,7 @@ function initializePathfinder(bot, options = {}) {
   movements.scafoldingBlocks = options.scafoldingBlocks !== undefined 
     ? options.scafoldingBlocks 
     : getScaffoldingBlockIds(mcData); // Default: comprehensive building blocks list
-  movements.maxDropDown = options.maxDropDown || 4; // Max blocks to drop down
+  movements.maxDropDown = options.maxDropDown || 15; // Max blocks to drop down
   movements.infiniteLiquidDropdownDistance = options.infiniteLiquidDropdownDistance !== false; // Can drop any distance into water
 
   // Set pathfinder movements

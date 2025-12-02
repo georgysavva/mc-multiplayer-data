@@ -197,7 +197,7 @@ function getOnBuildHousePhaseFn(
     initializePathfinder(bot, {
       allowSprinting: false,
       allowParkour: true,
-      canDig: false,
+      canDig: true,
       allowEntityDetection: true,
     });
 
@@ -330,9 +330,8 @@ function getOnBuildHousePhaseFn(
     initializePathfinder(bot, {
       allowSprinting: false,
       allowParkour: true,
-      canDig: false,
+      canDig: true,
       canPlaceOn: true, // Disable scaffolding - let bots jump down from roof
-      maxDropDown: 10,
       allowEntityDetection: true,
     });
     
