@@ -722,6 +722,17 @@ async function buildPhase(bot, targets, options = {}) {
           }
         }
 
+        // CHECK: Is bot colliding with target block hitbox?
+        // If yes, skip regular placement and go straight to repositioning
+        if (attemptCount === 0 && isBotCollidingWithBlock(bot, pos)) {
+          console.log(
+            `[${bot.username}] ⚠️ Bot is colliding with target block at (${pos.x}, ${pos.y}, ${pos.z}), skipping regular placement and repositioning...`
+          );
+          attemptCount++;
+          await sleep(300);
+          continue; // Skip to next iteration which will do cardinal repositioning
+        }
+
         // STEP 1: Try normal placement
         placed = await placeAt(bot, pos, blockType, {
           useSneak: false,
@@ -780,6 +791,43 @@ async function buildPhase(bot, targets, options = {}) {
   console.log(`[${bot.username}]    ❌ Failed: ${failed}/${targets.length}`);
 
   return { success, failed, aborted: false };
+}
+
+/**
+ * Check if bot's hitbox overlaps with target block position
+ * Bot hitbox: 0.6 wide × 1.8 tall, centered at bot position
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Vec3} targetPos - Target block position
+ * @returns {boolean} True if bot is standing on/inside target block
+ */
+function isBotCollidingWithBlock(bot, targetPos) {
+  const botPos = bot.entity.position;
+  const BOT_WIDTH = 0.6; // Minecraft bot width
+  const BOT_HEIGHT = 1.8; // Minecraft bot height
+  
+  // Bot's AABB (Axis-Aligned Bounding Box)
+  // Bot position is at feet, center of the horizontal plane
+  const botMinX = botPos.x - BOT_WIDTH / 2;
+  const botMaxX = botPos.x + BOT_WIDTH / 2;
+  const botMinY = botPos.y;
+  const botMaxY = botPos.y + BOT_HEIGHT;
+  const botMinZ = botPos.z - BOT_WIDTH / 2;
+  const botMaxZ = botPos.z + BOT_WIDTH / 2;
+  
+  // Target block AABB (1×1×1 cube)
+  const blockMinX = targetPos.x;
+  const blockMaxX = targetPos.x + 1;
+  const blockMinY = targetPos.y;
+  const blockMaxY = targetPos.y + 1;
+  const blockMinZ = targetPos.z;
+  const blockMaxZ = targetPos.z + 1;
+  
+  // Check for AABB overlap (intersection)
+  const overlapX = botMaxX > blockMinX && botMinX < blockMaxX;
+  const overlapY = botMaxY > blockMinY && botMinY < blockMaxY;
+  const overlapZ = botMaxZ > blockMinZ && botMinZ < blockMaxZ;
+  
+  return overlapX && overlapY && overlapZ;
 }
 
 /**
@@ -907,4 +955,5 @@ module.exports = {
   getPerimeterPosition,
   calculateWallPlacementOrder,
   calculateRoofPlacementOrder,
+  isBotCollidingWithBlock,
 };
