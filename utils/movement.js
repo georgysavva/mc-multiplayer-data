@@ -254,6 +254,18 @@ async function gotoWithTimeout(bot, goal, options = {}) {
 async function digWithTimeout(bot, block, options = {}) {
   const { timeoutMs = 7000, stopOnTimeout = true } = options;
 
+  // Auto-equip best tool for this block (if tool plugin is available)
+  if (bot.tool) {
+    try {
+      await bot.tool.equipForBlock(block, { requireHarvest: false });
+      const equippedTool = bot.heldItem?.name || 'unknown tool';
+      console.log(`[${bot.username}] 🔧 Equipped ${equippedTool} for ${block.name}`);
+    } catch (toolError) {
+      console.log(`[${bot.username}] ⚠️ Could not equip tool: ${toolError.message}, will dig anyway`);
+      // Continue anyway - bot will use whatever is in hand
+    }
+  }
+
   let timeoutId;
   const digPromise = bot.dig(block);
   const timeoutPromise = new Promise((_, reject) => {
