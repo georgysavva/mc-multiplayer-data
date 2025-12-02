@@ -203,7 +203,8 @@ function getOnBuildHousePhaseFn(
 
     // STEP 6: Build in phases (floor → walls → windows → roof)
     console.log(`[${bot.username}] 🏗️ STEP 6: Building house in phases...`);
-    const phases = ["floor", "walls", "windows", "roof"];
+    // const phases = ["floor", "walls", "windows", "roof"];
+    const phases = ["floor", "walls", "roof"]; // windows are not placed for better performance
     let phaseAborted = false;
 
     try {

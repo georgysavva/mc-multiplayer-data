@@ -761,7 +761,7 @@ async function placeAt(
           // console.log(`[${bot.username}] 📷 [AFTER-WAIT] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
         } catch (e) {
           console.log(`[${bot.username}] ⚠️ Placement failed: ${e.message}`);
-          await new Promise((res) => setTimeout(res, 120));
+          await new Promise((res) => setTimeout(res, 100));
           continue; // Retry same face
         }
 

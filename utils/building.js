@@ -4,6 +4,7 @@ const { sleep } = require("./helpers");
 const { placeAt } = require("../episode-handlers/builder");
 const { digWithTimeout, gotoWithTimeout } = require("./movement");
 const { GoalNear } = require("./bot-factory"); // Import GoalNear
+const Movements = require("mineflayer-pathfinder").Movements; // Import Movements
 
 // Track scaffolds for cleanup
 const scaffoldBlocks = [];
@@ -233,44 +234,44 @@ function makeHouseBlueprint5x5(options = {}) {
   let windowOrder = 0;
   
   // South windows flanking door
-  blueprint.push({
-    x: 1,
-    y: 2,
-    z: 0,
-    block: materials.windows,
-    phase: "windows",
-    placementOrder: windowOrder++,
-    data: null,
-  });
-  blueprint.push({
-    x: 3,
-    y: 2,
-    z: 0,
-    block: materials.windows,
-    phase: "windows",
-    placementOrder: windowOrder++,
-    data: null,
-  });
-  // West window
-  blueprint.push({
-    x: 0,
-    y: 2,
-    z: 2,
-    block: materials.windows,
-    phase: "windows",
-    placementOrder: windowOrder++,
-    data: null,
-  });
-  // East window
-  blueprint.push({
-    x: 4,
-    y: 2,
-    z: 2,
-    block: materials.windows,
-    phase: "windows",
-    placementOrder: windowOrder++,
-    data: null,
-  });
+  // blueprint.push({
+  //   x: 1,
+  //   y: 2,
+  //   z: 0,
+  //   block: materials.windows,
+  //   phase: "windows",
+  //   placementOrder: windowOrder++,
+  //   data: null,
+  // });
+  // blueprint.push({
+  //   x: 3,
+  //   y: 2,
+  //   z: 0,
+  //   block: materials.windows,
+  //   phase: "windows",
+  //   placementOrder: windowOrder++,
+  //   data: null,
+  // });
+  // // West window
+  // blueprint.push({
+  //   x: 0,
+  //   y: 2,
+  //   z: 2,
+  //   block: materials.windows,
+  //   phase: "windows",
+  //   placementOrder: windowOrder++,
+  //   data: null,
+  // });
+  // // East window
+  // blueprint.push({
+  //   x: 4,
+  //   y: 2,
+  //   z: 2,
+  //   block: materials.windows,
+  //   phase: "windows",
+  //   placementOrder: windowOrder++,
+  //   data: null,
+  // });
 
   // PHASE 5: ROOF (flat roof at y=4, 5x5 grid) with edge-to-center order
   const roofOrder = calculateRoofPlacementOrder(5, 5);
@@ -607,17 +608,17 @@ async function buildPhase(bot, targets, options = {}) {
             bot.pathfinder.setGoal(new GoalNear(targetAbove.x, targetAbove.y, targetAbove.z, 1));
             await sleep(Math.min(distToTarget * 500, 3000));
             bot.pathfinder.setGoal(null);
-            await sleep(300);
+            await sleep(500);
           }
           
           try {
             bot.setControlState('jump', true);
-            await sleep(100); // Brief moment to start jump
+            await sleep(150); // Brief moment to start jump
             
             // Attempt placement while jumping
             placed = await placeAt(bot, pos, blockType, {
               useSneak: false, // Don't sneak while jumping
-              tries: 3,
+              tries: 2,
               args: args,
             });
             
@@ -706,8 +707,21 @@ async function buildPhase(bot, targets, options = {}) {
               `[${bot.username}] 🧭 Moving to cardinal position ${closestCardinal.dir} of target: (${closestCardinal.x}, ${closestCardinal.y}, ${closestCardinal.z})`
             );
             
+            // Temporarily enable digging and block placement for cardinal repositioning
+            const originalMovements = bot.pathfinder.movements;
+            const diggingMovements = new Movements(bot, require("minecraft-data")(bot.version));
+            diggingMovements.allowSprinting = false;
+            diggingMovements.allowParkour = true;
+            diggingMovements.canDig = true; // Enable digging for pathfinder
+            diggingMovements.canPlaceOn = true; // Enable block placement for scaffolding
+            diggingMovements.allowEntityDetection = true;
+            bot.pathfinder.setMovements(diggingMovements);
+            
             // Move to exact cardinal position (range 0 = stand exactly there)
             await gotoWithTimeout(bot, new GoalNear(closestCardinal.x, closestCardinal.y, closestCardinal.z, 0), { timeoutMs: 8000 });
+            
+            // Restore original movements (disable digging)
+            bot.pathfinder.setMovements(originalMovements);
             
             // Extra settling time after repositioning
             await sleep(500);
