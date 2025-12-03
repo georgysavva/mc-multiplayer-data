@@ -296,7 +296,6 @@ function getOnPVEFightPhaseFn(
       `pvePhase_fight_${iterationID} beginning`
     );
     let mob = null;
-    await equipSword(bot);
     await sleep(1000);
     const distToOther = horizontalDistanceTo(
       phaseDataOur.guardPosition,
@@ -311,6 +310,7 @@ function getOnPVEFightPhaseFn(
     const numMobs =
       Math.floor(sharedBotRng() * (MAX_MOBS - MIN_MOBS + 1)) + MIN_MOBS;
     for (let mobI = 0; mobI < numMobs; mobI++) {
+      await equipSword(bot);
       const mobInFov = getNearestHostile(bot, mobDistMax, true);
       if (!mobInFov) {
         const chosenMob =
