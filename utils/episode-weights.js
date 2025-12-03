@@ -13,7 +13,7 @@ const episodeTypicalLengths = {
   mine: 10,
   towerBridge: 22,
   buildHouse: 120,
-  collector: 150,
+  collector: 195,
   structureEval: 60,
   translationEval: 60,
   lookAwayEval: 60,
