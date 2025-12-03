@@ -496,7 +496,7 @@ async function followAndPlaceTorches(
   // Continue until leader signals completion
   const leaderBot = bot.players[leaderName];
   // dynamic goal to follow leader
-  bot.pathfinder.setGoal(new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE), false);
+  bot.pathfinder.setGoal(new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE), true);
   while (!isLeaderDone()) {
     // Place torch periodically while following
     const now = Date.now();
@@ -506,7 +506,7 @@ async function followAndPlaceTorches(
       await placeTorch(bot, mcData, oreIds, 2400, () => isLeaderDone());
       lastTorchPlaceTime = now;
       await bot.lookAt(leaderBot.entity.position.offset(0, leaderBot.entity.height, 0));
-      bot.pathfinder.setGoal(new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE), false);
+      bot.pathfinder.setGoal(new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE), true);
       // Check if leader finished while placing torch
       if (isLeaderDone()) {
         break;
