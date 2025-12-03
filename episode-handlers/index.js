@@ -871,7 +871,9 @@ async function teleport(
   // Pick a random point in the world within the specified radius from center
   const MAX_ATTEMPTS_WITH_THIS_RADIUS = 10;
   const TOTAL_ATTEMPTS = 100;
+  const MAX_RCON_TIMEOUTS = 3;
   let attemptsWithThisRadius = 0;
+  let rconTimeoutCount = 0;
   let success = false;
   for (let i = 0; i < TOTAL_ATTEMPTS; i++) {
     console.log(`[${bot.username}] teleporting with radius: ${bot._teleport_radius}`);
@@ -900,7 +902,19 @@ async function teleport(
     console.log(
       `[${bot.username}] spreadplayers command: ${cmd}`
     );
-    const result = await rcon.send(cmd);
+    let result;
+    try {
+      result = await rcon.send(cmd);
+    } catch (err) {
+      if (err.message && err.message.includes('Timeout for packet id') && rconTimeoutCount < MAX_RCON_TIMEOUTS) {
+        rconTimeoutCount++;
+        console.log(`[${bot.username}] RCON timeout, retrying (${rconTimeoutCount}/${MAX_RCON_TIMEOUTS})...`);
+        await sleep(1000);
+        continue;
+      } else {
+        throw err;
+      }
+    }
     console.log(`[${bot.username}] spreadplayers result: ${result}`);
     attemptsWithThisRadius++;
     if (!result.startsWith("Spread 2 player")) {
