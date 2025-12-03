@@ -441,6 +441,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       host: args.rcon_host,
       port: args.rcon_port,
       password: args.rcon_password,
+      timeout: 4000, // increased from the 2000ms default
     });
     await setupBotAndWorldOnce(bot, rcon);
 
