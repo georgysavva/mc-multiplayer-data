@@ -198,10 +198,10 @@ async function mineTowardsTargetWithTorchPlacement(bot, targetPos) {
   movements.digCost = 0.1; // Very cheap digging - strongly prefer mining over walking
   movements.placeCost = 1000; // Extremely expensive placing to prevent climbing out
   movements.blocksCost = 10; // High cost for walking - makes surface path expensive
-  movements.allowParkour = true;
+  movements.allowParkour = false;
   movements.allowSprinting = false; // Disable sprinting to prevent jumping out
   movements.canPlaceOn = true;
-  movements.allowJumping = true; // Disable jumping completely
+  movements.allowJumping = false; // Disable jumping completely
   movements.allowEntityDetection = true; // Avoid other bots
   movements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
   movements.infiniteLiquidDropdownDistance = true;
@@ -334,9 +334,9 @@ async function mineTowardsTarget(bot, targetPos) {
   movements.digCost = 0.1; // Very cheap digging - strongly prefer mining over walking
   movements.blocksCost = 10; // High cost for walking - makes surface path expensive
   movements.placeCost = 1000; // Extremely expensive placing to prevent climbing out
-  movements.allowParkour = true; // Disable parkour for safer mining
+  movements.allowParkour = false; // Disable parkour for safer mining
   movements.allowSprinting = false; // Disable sprinting to prevent jumping out
-  movements.allowJumping = true; // Disable jumping completely
+  movements.allowJumping = false; // Disable jumping completely
   movements.allowEntityDetection = true; // Avoid other bots
   movements.maxDropDown = 15; // No vertical drops - stay at same Y level
   movements.scafoldingBlocks = getScaffoldingBlockIds(mcData); // Don't place scaffolding blocks
