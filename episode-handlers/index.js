@@ -909,7 +909,7 @@ async function teleport(
       if (err.message && err.message.includes('Timeout for packet id') && rconTimeoutCount < MAX_RCON_TIMEOUTS) {
         rconTimeoutCount++;
         console.log(`[${bot.username}] RCON timeout, retrying (${rconTimeoutCount}/${MAX_RCON_TIMEOUTS})...`);
-        await sleep(1000);
+        await sleep(2500);
         continue;
       } else {
         throw err;
