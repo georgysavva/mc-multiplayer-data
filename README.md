@@ -158,6 +158,12 @@ Data will be saved to:
 - `./camera/output_alpha/camera_alpha.mp4` - Camera recording of Alpha
 - `./camera/output_bravo/camera_bravo.mp4` - Camera recording of Bravo
 
+### Custom server content (plugins/skins/datapacks/ops)
+
+Drop server plugins in `./plugins/`, skins in `./skins/`, datapacks in `./datapacks/`, and offline-op entries in `./ops_offline/ops.json`. On startup the `prep_data` job copies them into the container (`/data/plugins`, `/data/skins`, `/data/<LEVEL>/datapacks`, and `/data/ops.json` with `LEVEL` defaulting to `world`) so every freshly generated world starts with the same content. Any older datapacks found at `/data/datapacks` are also moved into `/data/<LEVEL>/datapacks` to keep everything in the right place for new worlds (runtime shell vars are escaped with `$$` so compose doesn’t try to substitute them).
+
+`ops_offline/ops.json` ships with offline UUIDs for `Pengulu`, `Ahrae`, and `timwm` (using the `OfflinePlayer:<name>` algorithm). Add more entries with the same structure if you need additional operators while running in offline mode.
+
 To change the world seed or generator settings, edit `server.env` and restart the stack. The default configuration spawns a flat world for deterministic bot interaction.
 
 ### 5. Access Aligned Camera Recordings

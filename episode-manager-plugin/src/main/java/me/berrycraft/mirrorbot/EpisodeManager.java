@@ -288,6 +288,11 @@ public class EpisodeManager extends JavaPlugin implements Listener {
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
 
+        // Always op joining players so commands and datapacks work in offline mode.
+        if (!p.isOp()) {
+            p.setOp(true);
+        }
+
         if (!episodeRunning) return;
 
         // If controller or camera rejoined, re-apply visibility rules

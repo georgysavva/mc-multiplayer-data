@@ -15,8 +15,8 @@ python3 "$BASE/generate_compose.py" --instances 2 \
   --camera_data_alpha_base "$BASE/camera/data_alpha" \
   --camera_data_bravo_base "$BASE/camera/data_bravo" \
   --smoke_test 0 \
-  --num_flatland_world 2 \
-  --num_normal_world 0 \
+  --num_flatland_world 0 \
+  --num_normal_world 2 \
   --num_episodes 1 \
   --iterations_num_per_episode 1 \
   --viewer_rendering_disabled 0
