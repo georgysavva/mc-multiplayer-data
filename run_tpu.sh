@@ -21,9 +21,9 @@ python3 generate_compose.py \
  --iterations_num_per_episode 1 \
  --viewer_rendering_disabled 1
 
-python3 orchestrate.py start --build
-python3 orchestrate.py status
-python3 orchestrate.py logs --tail 20
+python3 orchestrate.py start --build --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
+python3 orchestrate.py status --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
+python3 orchestrate.py logs --tail 20 --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
 python3 orchestrate.py recordings
 python3 orchestrate.py stop
 python3 orchestrate.py postprocess --workers 16 --comparison-video --output-dir "$BASE_DATA_DIR/$BATCH_NAME/aligned"
