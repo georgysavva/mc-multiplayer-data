@@ -230,7 +230,7 @@ def find_episode_pairs(output_dir: str) -> List[Dict[str, str]]:
         )
         if match:
             timestamp, episode_id, bot_name, instance_id = match.groups()
-
+            episode_id = f"{episode_id:06d}_instance_{instance_id:03d}"
             if episode_id not in episodes:
                 episodes[episode_id] = {}
 
@@ -248,6 +248,7 @@ def find_episode_pairs(output_dir: str) -> List[Dict[str, str]]:
         if match:
             timestamp, episode_id, bot_name, instance_id = match.groups()
 
+            episode_id = f"{episode_id:06d}_instance_{instance_id:03d}"
             if episode_id not in episodes:
                 episodes[episode_id] = {}
 
@@ -261,6 +262,7 @@ def find_episode_pairs(output_dir: str) -> List[Dict[str, str]]:
         match = re.match(r'(\d{8}_\d{6})_(\d{6})_(Alpha|Bravo)_instance_(\d{3})_meta\.json$', filename)
         if match:
             timestamp, episode_id, bot_name, instance_id = match.groups()
+            episode_id = f"{episode_id:06d}_instance_{instance_id:03d}"
 
             if episode_id not in episodes:
                 episodes[episode_id] = {}
