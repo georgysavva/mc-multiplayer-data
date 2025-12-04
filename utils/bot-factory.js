@@ -1,4 +1,5 @@
 const mineflayer = require("mineflayer");
+const util = require("util");
 const {
   pathfinder,
   Movements,
@@ -41,7 +42,7 @@ function makeBot({ username, host, port, version = "1.21" }) {
 
   bot.on("end", () => console.log(`[${bot.username}] disconnected.`));
   bot.on("kicked", (reason) =>
-    console.log(`[${bot.username}] kicked:`, reason)
+    console.log(`[${bot.username}] kicked:`, util.inspect(reason, { depth: null }))
   );
   bot.on("error", (err) => console.log(`[${bot.username}] error:`, err));
 
