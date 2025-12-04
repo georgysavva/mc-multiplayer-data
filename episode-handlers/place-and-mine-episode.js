@@ -221,7 +221,7 @@ function getOnBuildRoundPhaseFn(bot, rcon, sharedBotRng, coordinator, iterationI
       const placedPositions = [];
       for (const pos of positions) {
         const success = await placeAt(bot, pos, blockType, {
-          useSneak: true,
+          useSneak: false,
           tries: PLACEMENT_RETRY_LIMIT,
           args: null,
         });
