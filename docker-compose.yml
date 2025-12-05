@@ -5,19 +5,29 @@ services:
       - sh
       - -c
       - |
-        mkdir -p /data /data/plugins /data/skins &&
-        chmod 777 /data /data/plugins /data/skins &&
+        WORLD_NAME="${LEVEL:-world}";
+        WORLD_DP_PATH="/data/$${WORLD_NAME}/datapacks";
+        mkdir -p /data /data/plugins /data/skins "$${WORLD_DP_PATH}" &&
+        chmod 777 /data /data/plugins /data/skins "/data/$${WORLD_NAME}" "$${WORLD_DP_PATH}" &&
         if [ -d /source_plugins ] && [ -n "$(ls -A /source_plugins 2>/dev/null)" ]; then
           cp -r /source_plugins/. /data/plugins/;
         fi;
         if [ -d /source_skins ] && [ -n "$(ls -A /source_skins 2>/dev/null)" ]; then
           cp -r /source_skins/. /data/skins/;
         fi;
-        chmod -R 777 /data/plugins /data/skins
+        if [ -d /source_datapacks ] && [ -n "$(ls -A /source_datapacks 2>/dev/null)" ]; then
+          cp -r /source_datapacks/. "$${WORLD_DP_PATH}/";
+        fi;
+        if [ -d /data/datapacks ] && [ -n "$(ls -A /data/datapacks 2>/dev/null)" ]; then
+          cp -r /data/datapacks/. "$${WORLD_DP_PATH}/";
+          rm -rf /data/datapacks;
+        fi;
+        chmod -R 777 /data/plugins /data/skins "$${WORLD_DP_PATH}"
     volumes:
       - ${MC_DATA_DIR:-./data}:/data
       - ./plugins:/source_plugins:ro
       - ./skins:/source_skins:ro
+      - ./datapacks:/source_datapacks:ro
     restart: "no"
 
   mc:

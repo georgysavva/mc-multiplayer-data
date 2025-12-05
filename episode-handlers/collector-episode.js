@@ -36,10 +36,10 @@ const VALUABLE_ORES = [
   "deepslate_lapis_ore",
   "redstone_ore",
   "deepslate_redstone_ore",
-  "coal_ore",
-  "deepslate_coal_ore",
-  "copper_ore",
-  "deepslate_copper_ore",
+  // "coal_ore",
+  // "deepslate_coal_ore",
+  // "copper_ore",
+  // "deepslate_copper_ore",
 ];
 
 // ============================================================================
