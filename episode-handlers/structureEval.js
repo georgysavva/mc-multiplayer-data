@@ -13,8 +13,7 @@ const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
-const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2"];
-// const ALL_STRUCTURE_TYPES = ["wall_2x2"];
+const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2x1"];
 
 // Dynamic timing functions based on block count
 const getInitialEyeContactTicks = (blockCount) => {
@@ -104,7 +103,7 @@ function generatePlatformPositions(startPos, width, depth) {
 function getStructureCenter(structureType, basePos, height, length = 5, width = 4) {
   const EYE_LEVEL = 1.6; // Standard Minecraft player eye level
   
-  if (structureType === "tower_2") {
+  if (structureType === "tower_2x1") {
     // Look at eye level of tower (or middle if tower is shorter than eye level)
     const lookHeight = Math.min(EYE_LEVEL, height / 2);
     return basePos.offset(0, lookHeight, 0);
@@ -511,6 +510,13 @@ function getOnStructureEvalPhaseFn(
       `[${bot.username}] 🎭 Role mode: ${selectedRoleMode}, Role: ${role}`
     );
     
+    // Calculate builder's spawn position for structure location (both bots need this)
+    // Builder uses their own spawn, observer uses the other bot's spawn position
+    // Note: otherBotPosition is a plain object from coordinator, need to convert to Vec3
+    const builderSpawnPos = isBuilder 
+      ? initialSpawnPos.floored() 
+      : new Vec3(otherBotPosition.x, otherBotPosition.y, otherBotPosition.z).floored();
+    
     // STEP 1b-pre: Builder equips stone block in hand (before any movement or interactions)
     if (isBuilder) {
       console.log(
@@ -598,11 +604,12 @@ function getOnStructureEvalPhaseFn(
     const botPos = bot.entity.position.floored();
     let positions = [];
     let structureBasePos = null;
-    let structureHeight = 0;
-    let structureLength = 5;
-    let structureWidth = 4;
+    let structureHeight = null;
+    let structureLength = null; // as seen from the front, sideways length
+    let structureWidth = 1; // in other words, depth
 
     if (structureType === "platform_2x2") {
+      // NOTE: platform 2x2 is un-used right now
       const startPos = botPos.offset(1, 0, 0);
       const width = 2;
       const depth = 2;
@@ -626,10 +633,11 @@ function getOnStructureEvalPhaseFn(
       structureLength = length;
       positions = generateWallPositions(startPos, length, height, "x");
       structureBasePos = startPos;
-    } else if (structureType === "tower_2") {
+    } else if (structureType === "tower_2x1") {
       const startPos = botPos.offset(1, 0, 0);
       const height = 2;
       structureHeight = height;
+      structureLength = 1;
       positions = generateTowerPositions(startPos, height);
       structureBasePos = startPos;
     }
@@ -661,69 +669,71 @@ function getOnStructureEvalPhaseFn(
       structureWidth
     );
 
-    // STEP 5: Builder moves next to observer and looks at structure together
-    if (isBuilder) {
+    // STEP 5: Both bots move to the front of the structure (axially aligned)
+    // This ensures both bots view the structure from the front, not the side
+    console.log(
+      `[${bot.username}] 🚶 STEP 5: Moving to front of structure (axially aligned)...`
+    );
+    try {
+      initializePathfinder(bot, {
+        allowSprinting: true,
+        allowParkour: true,
+        canDig: false,
+        allowEntityDetection: true,
+      });
+
+      // Calculate the actual structure base position based on builder's spawn
+      // Structure is always built at builderSpawnPos.offset(1, 0, 0)
+      const actualStructureBasePos = builderSpawnPos.offset(1, 0, 0);
+      
+      // For walls built along X axis, "front" is along the Z axis
+      // We want both bots to be axially aligned with the structure's center X
+      const FRONT_DISTANCE = 4; // Stand 4 blocks in front of the structure
+      const actualStructureCenterX = actualStructureBasePos.x + (structureLength - 1) / 2;
+      const frontZ = actualStructureBasePos.z - FRONT_DISTANCE; // Front is in -Z direction
+      
+      // Both bots stand side by side, axially aligned with structure center
+      // Offset along X so they don't overlap
+      const sideOffset = isBuilder ? 1 : -1; // Builder to the right, observer to the left
+      const targetX = actualStructureCenterX + sideOffset;
+      const targetZ = frontZ;
+      
       console.log(
-        `[${bot.username}] 🚶 STEP 5: Moving to stand next to observer...`
+        `[${bot.username}] 📐 Structure center X: ${actualStructureCenterX.toFixed(1)}, moving to front position (${targetX.toFixed(1)}, ${targetZ.toFixed(1)})`
       );
-      try {
-        initializePathfinder(bot, {
-          allowSprinting: true,
-          allowParkour: true,
-          canDig: false,
-          allowEntityDetection: true,
-        });
 
-        // Get observer's position
-        const otherEntity = bot.players[args.other_bot_name]?.entity;
-        if (otherEntity) {
-          const observerPos = otherEntity.position.clone();
-          const observerYaw = otherEntity.yaw; // Observer's facing direction
-          
-          // Calculate a position 2 blocks to the RIGHT of observer (perpendicular to their view)
-          // Yaw + 90° (π/2 radians) = right side
-          const sideAngle = observerYaw + Math.PI / 2;
-          const sideDistance = 2;
-          
-          const sideX = observerPos.x + Math.cos(sideAngle) * sideDistance;
-          const sideZ = observerPos.z + Math.sin(sideAngle) * sideDistance;
-          
-          console.log(
-            `[${bot.username}] 📐 Observer yaw: ${observerYaw.toFixed(2)}, moving to side position (${sideX.toFixed(1)}, ${sideZ.toFixed(1)})`
-          );
-
-          // Move to stand beside observer (not in front)
-          const standGoal = new GoalNear(
-            sideX,
-            observerPos.y,
-            sideZ,
-            1 // Get within 1 block of the side position
-          );
-          await gotoWithTimeout(bot, standGoal, { timeoutTicks: 200 });
-          console.log(`[${bot.username}] ✅ Moved next to observer (side position)`);
-          
-          // Look at the structure for 3 seconds
-          if (structureCenter) {
-            console.log(`[${bot.username}] 👁️ Looking at structure together...`);
-            await lookAtSmooth(bot, structureCenter, 90, { randomized: false, useEasing: false });
-            await bot.waitForTicks(getBuilderAdmireTicks(positions.length));
-            console.log(`[${bot.username}] ✅ Admired structure from observer position`);
-          }
-        }
-      } catch (pathError) {
-        console.log(
-          `[${bot.username}] ⚠️ Could not move to observer: ${pathError.message}`
-        );
-      } finally {
-        stopPathfinder(bot);
+      // Move to front position (axially aligned with structure)
+      const frontGoal = new GoalNear(
+        targetX,
+        bot.entity.position.y,
+        targetZ,
+        1 // Get within 1 block of the target position
+      );
+      await gotoWithTimeout(bot, frontGoal, { timeoutTicks: 200 });
+      console.log(`[${bot.username}] ✅ Moved to front of structure (axially aligned)`);
+      
+      // Calculate the structure center for viewing (using actual structure position)
+      const viewCenter = getStructureCenter(
+        structureType,
+        actualStructureBasePos,
+        structureHeight,
+        structureLength,
+        structureWidth
+      );
+      
+      // Look at the structure together
+      if (viewCenter) {
+        console.log(`[${bot.username}] 👁️ Looking at structure from front...`);
+        await lookAtSmooth(bot, viewCenter, 90, { randomized: false, useEasing: false });
+        await bot.waitForTicks(getBuilderAdmireTicks(positions.length));
+        console.log(`[${bot.username}] ✅ Admired structure from front position`);
       }
-    } else {
+    } catch (pathError) {
       console.log(
-        `[${bot.username}] 🧍 STEP 5: Remaining stationary (observer role)...`
+        `[${bot.username}] ⚠️ Could not move to front: ${pathError.message}`
       );
-      // Observer waits while builder moves and looks
-      await bot.waitForTicks(getBuilderAdmireTicks(positions.length) + 100); // Extra time for builder to pathfind
-      console.log(`[${bot.username}] ✅ Finished waiting (stationary)`);
+    } finally {
+      stopPathfinder(bot);
     }
 
     // 🎬 END FRAME COUNTING - Always execute, even if pathfinding fails
