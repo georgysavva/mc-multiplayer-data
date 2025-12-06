@@ -798,7 +798,10 @@ def main():
             print(f"  Excluding physical core 0 siblings: {physical_core0_cpus}")
             for idx, (start, end) in enumerate(cpu_ranges):
                 (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start, end)
-                print(f"  Instance {idx}: cores {start}-{end} (camera_alpha: {alpha_start}-{alpha_end}, camera_bravo: {bravo_start}-{bravo_end})")
+                instance_cs = cpuset_string_excluding(start, end, physical_core0_cpus)
+                alpha_cs = cpuset_string_excluding(alpha_start, alpha_end, physical_core0_cpus)
+                bravo_cs = cpuset_string_excluding(bravo_start, bravo_end, physical_core0_cpus)
+                print(f"  Instance {idx}: {instance_cs} (camera_alpha: {alpha_cs}, camera_bravo: {bravo_cs})")
 
     print(f"Generating {total_instances} Docker Compose configurations...")
 
