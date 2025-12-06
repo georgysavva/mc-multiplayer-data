@@ -95,6 +95,8 @@ def generate_compose_config(
     smoke_test,
     viewer_rendering_disabled,
     world_type,
+    render_distance,
+    enable_f3_debug,
     # camera specific
     camera_output_alpha_base,
     camera_output_bravo_base,
@@ -371,6 +373,8 @@ def generate_compose_config(
                     "VNC_PASSWORD": "research",
                     "ENABLE_RECORDING": "1",
                     "RECORDING_PATH": "/output/camera_alpha.mp4",
+                    "RENDER_DISTANCE": render_distance,
+                    "ENABLE_F3_DEBUG": enable_f3_debug,
                 },
                 "volumes": [
                     f"{cam_paths['alpha_data_host']}:/root",
@@ -432,6 +436,8 @@ def generate_compose_config(
                     "VNC_PASSWORD": "research",
                     "ENABLE_RECORDING": "1",
                     "RECORDING_PATH": "/output/camera_bravo.mp4",
+                    "RENDER_DISTANCE": render_distance,
+                    "ENABLE_F3_DEBUG": enable_f3_debug,
                 },
                 "volumes": [
                     f"{cam_paths['bravo_data_host']}:/root",
@@ -630,6 +636,19 @@ def main():
         choices=[0, 1],
         help="Enable smoke test mode to run all episode types (default: 0)",
     )
+    parser.add_argument(
+        "--render_distance",
+        type=int,
+        default=8,
+        help="Minecraft render distance in chunks (2-32, lower = faster, default: 8)",
+    )
+    parser.add_argument(
+        "--enable_f3_debug",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Enable F3 debug overlay showing FPS in camera bots (default: 0)",
+    )
 
     args = parser.parse_args()
     # Ensure required dirs are absolute
@@ -689,6 +708,8 @@ def main():
             args.smoke_test,
             args.viewer_rendering_disabled,
             world_type,
+            str(args.render_distance),
+            str(args.enable_f3_debug),
             # camera args
             args.camera_output_alpha_base,
             args.camera_output_bravo_base,

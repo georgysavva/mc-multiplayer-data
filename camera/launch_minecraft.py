@@ -82,6 +82,10 @@ def build_launch_command(version: str, minecraft_dir: Path) -> list[str]:
     ensure_option(minecraft_dir, "skipQuickPlayFirstLaunchPrompt", "true")
     ensure_option(minecraft_dir, "accessibilityOnboarded", "true")
     ensure_option(minecraft_dir, "tutorialStep", "none")
+    
+    # Performance: reduce render distance (2-32 chunks, lower = faster)
+    render_distance = os.environ.get("RENDER_DISTANCE", "8")
+    ensure_option(minecraft_dir, "renderDistance", render_distance)
 
     options = {
         "username": login["name"],

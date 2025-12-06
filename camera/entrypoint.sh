@@ -11,6 +11,8 @@ NOVNC_PORT=${NOVNC_PORT:-6901}
 ENABLE_RECORDING=${ENABLE_RECORDING:-1}
 RECORDING_PATH=${RECORDING_PATH:-/output/camera_alpha.mp4}
 JAVA_BIN=${JAVA_BIN:-/usr/lib/jvm/temurin-21-jre-amd64/bin/java}
+ENABLE_F3_DEBUG=${ENABLE_F3_DEBUG:-0}
+F3_DEBUG_DELAY=${F3_DEBUG_DELAY:-30}
 
 
 if [ ! -x "$JAVA_BIN" ]; then
@@ -122,6 +124,20 @@ EOF
   PIDS="$PIDS $FFMPEG_PID"
 else
   FFMPEG_PID=""
+fi
+
+# Enable F3 debug screen if requested (sends F3 keypress after Minecraft loads)
+if [ "$ENABLE_F3_DEBUG" = "1" ]; then
+  (
+    sleep "$F3_DEBUG_DELAY"
+    if command -v xdotool >/dev/null 2>&1; then
+      echo "[client] enabling F3 debug screen"
+      xdotool key F3
+    else
+      echo "[client] xdotool not available, cannot enable F3 debug" >&2
+    fi
+  ) &
+  PIDS="$PIDS $!"
 fi
 
 wait "$GAME_PID"

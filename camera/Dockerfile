@@ -16,7 +16,11 @@ RUN printf '%s\n' \
       'Acquire::https::No-Cache "true";' \
       > /etc/apt/apt.conf.d/99network-tuning
 
-# Install system dependencies
+# Add backports repository for newer Mesa (25.0.7 vs 22.3.6)
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main" \
+      > /etc/apt/sources.list.d/backports.list
+
+# Install system dependencies (Mesa from backports for stability fixes)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         xvfb \
@@ -28,12 +32,14 @@ RUN apt-get update && \
         curl \
         ca-certificates \
         fonts-dejavu-core \
-        libgl1-mesa-dri \
-        libgl1-mesa-glx \
         libxi6 \
         libxrender1 \
         libxtst6 \
         libxrandr2 \
+        xdotool \
+    && apt-get install -y --no-install-recommends -t bookworm-backports \
+        libgl1-mesa-dri \
+        libgl1-mesa-glx \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
