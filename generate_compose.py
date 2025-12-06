@@ -96,6 +96,7 @@ def generate_compose_config(
     viewer_rendering_disabled,
     world_type,
     render_distance,
+    simulation_distance,
     enable_f3_debug,
     # camera specific
     camera_output_alpha_base,
@@ -374,6 +375,7 @@ def generate_compose_config(
                     "ENABLE_RECORDING": "1",
                     "RECORDING_PATH": "/output/camera_alpha.mp4",
                     "RENDER_DISTANCE": render_distance,
+                    "SIMULATION_DISTANCE": simulation_distance,
                     "ENABLE_F3_DEBUG": enable_f3_debug,
                 },
                 "volumes": [
@@ -437,6 +439,7 @@ def generate_compose_config(
                     "ENABLE_RECORDING": "1",
                     "RECORDING_PATH": "/output/camera_bravo.mp4",
                     "RENDER_DISTANCE": render_distance,
+                    "SIMULATION_DISTANCE": simulation_distance,
                     "ENABLE_F3_DEBUG": enable_f3_debug,
                 },
                 "volumes": [
@@ -640,7 +643,13 @@ def main():
         "--render_distance",
         type=int,
         default=8,
-        help="Minecraft render distance in chunks (2-32, lower = faster, default: 8)",
+        help="Minecraft render distance in chunks (2-32, lower = faster, our default: 8, MC default: 12.)",
+    )
+    parser.add_argument(
+        "--simulation_distance",
+        type=int,
+        default=4,
+        help="Minecraft simulation distance in chunks (5-32, lower = faster, our default: 4, MC default: 12.)",
     )
     parser.add_argument(
         "--enable_f3_debug",
@@ -709,6 +718,7 @@ def main():
             args.viewer_rendering_disabled,
             world_type,
             str(args.render_distance),
+            str(args.simulation_distance),
             str(args.enable_f3_debug),
             # camera args
             args.camera_output_alpha_base,
