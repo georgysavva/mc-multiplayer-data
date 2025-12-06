@@ -60,6 +60,12 @@ def cpuset_string(start_cpu: int, end_cpu: int) -> str:
     return f"{start_cpu}-{end_cpu}"
 
 
+def split_cpu_range(start_cpu: int, end_cpu: int) -> tuple[tuple[int, int], tuple[int, int]]:
+    """Split a CPU range into two halves for camera alpha and bravo."""
+    mid = (start_cpu + end_cpu) // 2
+    return ((start_cpu, mid), (min(mid + 1, end_cpu), end_cpu))
+
+
 def absdir(path: str) -> str:
     """Validate path is absolute and return it.
 
@@ -152,6 +158,8 @@ def generate_compose_config(
     display_step,
     # CPU pinning
     cpuset: Optional[str] = None,
+    cpuset_camera_alpha: Optional[str] = None,
+    cpuset_camera_bravo: Optional[str] = None,
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -404,7 +412,7 @@ def generate_compose_config(
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",
-                **({"cpuset": cpuset} if cpuset else {}),
+                **({"cpuset": cpuset_camera_alpha} if cpuset_camera_alpha else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
@@ -470,7 +478,7 @@ def generate_compose_config(
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",
-                **({"cpuset": cpuset} if cpuset else {}),
+                **({"cpuset": cpuset_camera_bravo} if cpuset_camera_bravo else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
@@ -772,7 +780,8 @@ def main():
             cpu_ranges = calculate_cpu_ranges(total_cpus, total_instances)
             print(f"CPU pinning enabled: {total_cpus} cores across {total_instances} instances")
             for idx, (start, end) in enumerate(cpu_ranges):
-                print(f"  Instance {idx}: cores {start}-{end}")
+                (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start, end)
+                print(f"  Instance {idx}: cores {start}-{end} (camera_alpha: {alpha_start}-{alpha_end}, camera_bravo: {bravo_start}-{bravo_end})")
 
     print(f"Generating {total_instances} Docker Compose configurations...")
 
@@ -780,9 +789,15 @@ def main():
         world_type = world_plan[i]
         # Calculate cpuset string for this instance if CPU pinning is enabled
         instance_cpuset = None
+        camera_alpha_cpuset = None
+        camera_bravo_cpuset = None
         if args.enable_cpu_pinning and cpu_ranges:
             start_cpu, end_cpu = cpu_ranges[i]
             instance_cpuset = cpuset_string(start_cpu, end_cpu)
+            # Split the instance's cores between the two camera bots
+            (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start_cpu, end_cpu)
+            camera_alpha_cpuset = cpuset_string(alpha_start, alpha_end)
+            camera_bravo_cpuset = cpuset_string(bravo_start, bravo_end)
         
         config = generate_compose_config(
             i,
@@ -818,6 +833,8 @@ def main():
             args.display_step,
             # CPU pinning
             cpuset=instance_cpuset,
+            cpuset_camera_alpha=camera_alpha_cpuset,
+            cpuset_camera_bravo=camera_bravo_cpuset,
         )
 
         # Write compose file
