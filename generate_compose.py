@@ -53,11 +53,25 @@ def calculate_cpu_ranges(
     return ranges
 
 
+def get_physical_core0_cpus() -> set[int]:
+    """Read logical CPUs tied to physical core 0 from sysfs."""
+    with open("/sys/devices/system/cpu/cpu0/topology/thread_siblings_list") as f:
+        return set(int(c) for c in f.read().strip().split(","))
+
+
 def cpuset_string(start_cpu: int, end_cpu: int) -> str:
     """Generate a cpuset string from start and end CPU indices."""
     if start_cpu == end_cpu:
         return str(start_cpu)
     return f"{start_cpu}-{end_cpu}"
+
+
+def cpuset_string_excluding(start_cpu: int, end_cpu: int, exclude: set[int]) -> str:
+    """Generate a cpuset string excluding specific cores."""
+    cpus = [c for c in range(start_cpu, end_cpu + 1) if c not in exclude]
+    if not cpus:
+        return cpuset_string(start_cpu, end_cpu)
+    return ",".join(str(c) for c in cpus)
 
 
 def split_cpu_range(start_cpu: int, end_cpu: int) -> tuple[tuple[int, int], tuple[int, int]]:
@@ -771,6 +785,7 @@ def main():
 
     # Calculate CPU pinning if enabled
     cpu_ranges: list[tuple[int, int]] = []
+    physical_core0_cpus: set[int] = set()
     if args.enable_cpu_pinning:
         total_cpus = args.total_cpus if args.total_cpus else os.cpu_count()
         if total_cpus is None:
@@ -778,7 +793,9 @@ def main():
             args.enable_cpu_pinning = 0
         else:
             cpu_ranges = calculate_cpu_ranges(total_cpus, total_instances)
+            physical_core0_cpus = get_physical_core0_cpus()
             print(f"CPU pinning enabled: {total_cpus} cores across {total_instances} instances")
+            print(f"  Excluding physical core 0 siblings: {physical_core0_cpus}")
             for idx, (start, end) in enumerate(cpu_ranges):
                 (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start, end)
                 print(f"  Instance {idx}: cores {start}-{end} (camera_alpha: {alpha_start}-{alpha_end}, camera_bravo: {bravo_start}-{bravo_end})")
@@ -793,17 +810,12 @@ def main():
         camera_bravo_cpuset = None
         if args.enable_cpu_pinning and cpu_ranges:
             start_cpu, end_cpu = cpu_ranges[i]
-            # Exclude CPU 0 if possible (it handles system interrupts)
-            if start_cpu == 0:
-                if end_cpu - start_cpu + 1 >= 8:
-                    start_cpu = 1
-                else:
-                    print(f"Warning: Instance {i} includes CPU 0 but has <8 cores, keeping it")
-            instance_cpuset = cpuset_string(start_cpu, end_cpu)
+            # Exclude physical core 0 siblings (they handle system interrupts)
+            instance_cpuset = cpuset_string_excluding(start_cpu, end_cpu, physical_core0_cpus)
             # Split the instance's cores between the two camera bots
             (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start_cpu, end_cpu)
-            camera_alpha_cpuset = cpuset_string(alpha_start, alpha_end)
-            camera_bravo_cpuset = cpuset_string(bravo_start, bravo_end)
+            camera_alpha_cpuset = cpuset_string_excluding(alpha_start, alpha_end, physical_core0_cpus)
+            camera_bravo_cpuset = cpuset_string_excluding(bravo_start, bravo_end, physical_core0_cpus)
         
         config = generate_compose_config(
             i,
