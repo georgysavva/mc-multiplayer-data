@@ -649,7 +649,7 @@ def main():
         "--simulation_distance",
         type=int,
         default=4,
-        help="Minecraft simulation distance in chunks (5-32, lower = faster, our default: 4, MC default: 12.)",
+        help="Minecraft simulation distance in chunks (5-32, lower = faster, our default: 4, MC default: 8.)",
     )
     parser.add_argument(
         "--enable_f3_debug",
