@@ -793,6 +793,12 @@ def main():
         camera_bravo_cpuset = None
         if args.enable_cpu_pinning and cpu_ranges:
             start_cpu, end_cpu = cpu_ranges[i]
+            # Exclude CPU 0 if possible (it handles system interrupts)
+            if start_cpu == 0:
+                if end_cpu - start_cpu + 1 >= 8:
+                    start_cpu = 1
+                else:
+                    print(f"Warning: Instance {i} includes CPU 0 but has <8 cores, keeping it")
             instance_cpuset = cpuset_string(start_cpu, end_cpu)
             # Split the instance's cores between the two camera bots
             (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start_cpu, end_cpu)
