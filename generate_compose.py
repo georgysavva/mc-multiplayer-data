@@ -16,8 +16,48 @@ import os
 import re
 import time
 from pathlib import Path
+from typing import Optional
 
 import yaml
+
+
+def calculate_cpu_ranges(
+    total_cpus: int, num_instances: int
+) -> list[tuple[int, int]]:
+    """Calculate CPU core ranges for each instance.
+    
+    Returns a list of (start_cpu, end_cpu) tuples for each instance.
+    Cores are distributed as evenly as possible.
+    """
+    if num_instances <= 0:
+        return []
+    
+    cores_per_instance = total_cpus // num_instances
+    extra_cores = total_cpus % num_instances
+    
+    ranges = []
+    current_cpu = 0
+    
+    for i in range(num_instances):
+        # Give one extra core to the first 'extra_cores' instances
+        instance_cores = cores_per_instance + (1 if i < extra_cores else 0)
+        if instance_cores > 0:
+            start_cpu = current_cpu
+            end_cpu = current_cpu + instance_cores - 1
+            ranges.append((start_cpu, end_cpu))
+            current_cpu = end_cpu + 1
+        else:
+            # If we have more instances than cores, some get no cores
+            ranges.append((0, 0))  # Fallback to core 0
+    
+    return ranges
+
+
+def cpuset_string(start_cpu: int, end_cpu: int) -> str:
+    """Generate a cpuset string from start and end CPU indices."""
+    if start_cpu == end_cpu:
+        return str(start_cpu)
+    return f"{start_cpu}-{end_cpu}"
 
 
 def absdir(path: str) -> str:
@@ -110,6 +150,8 @@ def generate_compose_config(
     display_base,
     vnc_step,
     display_step,
+    # CPU pinning
+    cpuset: Optional[str] = None,
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -178,6 +220,7 @@ def generate_compose_config(
                 "image": "itzg/minecraft-server",
                 "tty": True,
                 "network_mode": "host",
+                **({"cpuset": cpuset} if cpuset else {}),
                 "environment": (
                     lambda: {
                         # Base server env, common to both normal and flat worlds
@@ -229,6 +272,7 @@ def generate_compose_config(
                         "condition": "service_started"
                     },
                 },
+                **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "environment": {
                     "BOT_NAME": "Alpha",
@@ -282,6 +326,7 @@ def generate_compose_config(
                         "condition": "service_started"
                     },
                 },
+                **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "environment": {
                     "BOT_NAME": "Bravo",
@@ -330,6 +375,7 @@ def generate_compose_config(
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                 },
                 "tty": True,
+                **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "networks": [f"mc_network_{instance_id}"],
                 "command": "./entrypoint_receiver.sh",
@@ -344,6 +390,7 @@ def generate_compose_config(
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                 },
                 "tty": True,
+                **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "networks": [f"mc_network_{instance_id}"],
                 "command": "./entrypoint_receiver.sh",
@@ -357,6 +404,7 @@ def generate_compose_config(
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",
+                **({"cpuset": cpuset} if cpuset else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
@@ -387,6 +435,7 @@ def generate_compose_config(
             f"episode_starter_instance_{instance_id}": {
                 "image": "node:20",
                 "network_mode": "host",
+                **({"cpuset": cpuset} if cpuset else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"},
                     f"camera_alpha_instance_{instance_id}": {
@@ -421,6 +470,7 @@ def generate_compose_config(
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",
+                **({"cpuset": cpuset} if cpuset else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
@@ -455,6 +505,7 @@ def generate_compose_config(
                     "dockerfile": "Dockerfile",
                 },
                 "restart": "unless-stopped",
+                **({"cpuset": cpuset} if cpuset else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
@@ -478,6 +529,7 @@ def generate_compose_config(
                     "dockerfile": "Dockerfile",
                 },
                 "restart": "unless-stopped",
+                **({"cpuset": cpuset} if cpuset else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
@@ -658,6 +710,19 @@ def main():
         choices=[0, 1],
         help="Enable F3 debug overlay showing FPS in camera bots (default: 0)",
     )
+    parser.add_argument(
+        "--enable_cpu_pinning",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Enable CPU pinning to evenly distribute cores among instances (default: 0)",
+    )
+    parser.add_argument(
+        "--total_cpus",
+        type=int,
+        default=None,
+        help="Total number of CPU cores to distribute (default: auto-detect from system)",
+    )
 
     args = parser.parse_args()
     # Ensure required dirs are absolute
@@ -696,10 +761,29 @@ def main():
         total_instances = args.instances
         world_plan = ["normal"] * total_instances
 
+    # Calculate CPU pinning if enabled
+    cpu_ranges: list[tuple[int, int]] = []
+    if args.enable_cpu_pinning:
+        total_cpus = args.total_cpus if args.total_cpus else os.cpu_count()
+        if total_cpus is None:
+            print("Warning: Could not detect CPU count, disabling CPU pinning")
+            args.enable_cpu_pinning = 0
+        else:
+            cpu_ranges = calculate_cpu_ranges(total_cpus, total_instances)
+            print(f"CPU pinning enabled: {total_cpus} cores across {total_instances} instances")
+            for idx, (start, end) in enumerate(cpu_ranges):
+                print(f"  Instance {idx}: cores {start}-{end}")
+
     print(f"Generating {total_instances} Docker Compose configurations...")
 
     for i in range(total_instances):
         world_type = world_plan[i]
+        # Calculate cpuset string for this instance if CPU pinning is enabled
+        instance_cpuset = None
+        if args.enable_cpu_pinning and cpu_ranges:
+            start_cpu, end_cpu = cpu_ranges[i]
+            instance_cpuset = cpuset_string(start_cpu, end_cpu)
+        
         config = generate_compose_config(
             i,
             args.base_port,
@@ -732,6 +816,8 @@ def main():
             args.display_base,
             args.vnc_step,
             args.display_step,
+            # CPU pinning
+            cpuset=instance_cpuset,
         )
 
         # Write compose file

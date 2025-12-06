@@ -19,7 +19,10 @@ python3 generate_compose.py \
  --num_normal_world 5 \
  --num_episodes 100 \
  --iterations_num_per_episode 1 \
- --viewer_rendering_disabled 1
+ --viewer_rendering_disabled 1 \
+ --render_distance 8 \
+ --simulation_distance 4 \
+ --enable_cpu_pinning 1 \
 
 python3 orchestrate.py start --build --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
 python3 orchestrate.py status --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
