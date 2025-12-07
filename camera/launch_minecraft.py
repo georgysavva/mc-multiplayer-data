@@ -90,6 +90,10 @@ def build_launch_command(version: str, minecraft_dir: Path) -> list[str]:
     # Performance: reduce simulation distance (5-32 chunks, lower = faster)
     simulation_distance = os.environ.get("SIMULATION_DISTANCE", "4")
     ensure_option(minecraft_dir, "simulationDistance", simulation_distance)
+    
+    # Performance: graphics mode (0=Fast, 1=Fancy, 2=Fabulous)
+    graphics_mode = os.environ.get("GRAPHICS_MODE", "1")
+    ensure_option(minecraft_dir, "graphicsMode", graphics_mode)
 
     options = {
         "username": login["name"],

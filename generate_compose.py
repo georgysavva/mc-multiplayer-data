@@ -158,6 +158,7 @@ def generate_compose_config(
     render_distance,
     simulation_distance,
     enable_f3_debug,
+    graphics_mode,
     # camera specific
     camera_output_alpha_base,
     camera_output_bravo_base,
@@ -447,6 +448,7 @@ def generate_compose_config(
                     "RENDER_DISTANCE": render_distance,
                     "SIMULATION_DISTANCE": simulation_distance,
                     "ENABLE_F3_DEBUG": enable_f3_debug,
+                    "GRAPHICS_MODE": graphics_mode,
                 },
                 "volumes": [
                     f"{cam_paths['alpha_data_host']}:/root",
@@ -513,6 +515,7 @@ def generate_compose_config(
                     "RENDER_DISTANCE": render_distance,
                     "SIMULATION_DISTANCE": simulation_distance,
                     "ENABLE_F3_DEBUG": enable_f3_debug,
+                    "GRAPHICS_MODE": graphics_mode,
                 },
                 "volumes": [
                     f"{cam_paths['bravo_data_host']}:/root",
@@ -733,6 +736,13 @@ def main():
         help="Enable F3 debug overlay showing FPS in camera bots (default: 0)",
     )
     parser.add_argument(
+        "--graphics_mode",
+        type=int,
+        default=1,
+        choices=[0, 1, 2],
+        help="Minecraft graphics mode (0=Fast, 1=Fancy, 2=Fabulous, default: 1)",
+    )
+    parser.add_argument(
         "--enable_cpu_pinning",
         type=int,
         default=0,
@@ -840,6 +850,7 @@ def main():
             str(args.render_distance),
             str(args.simulation_distance),
             str(args.enable_f3_debug),
+            str(args.graphics_mode),
             # camera args
             args.camera_output_alpha_base,
             args.camera_output_bravo_base,
