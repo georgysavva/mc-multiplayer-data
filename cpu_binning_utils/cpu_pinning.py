@@ -33,8 +33,8 @@ def calculate_cpu_ranges(
             ranges.append((start_cpu, end_cpu))
             current_cpu = end_cpu + 1
         else:
-            # If we have more instances than cores, some get no cores
-            ranges.append((0, 0))  # Fallback to core 0
+            # If we have more instances than cores, some get no cores, so raise an error
+            raise ValueError(f"Not enough cores to distribute to {num_instances} instances")
 
     return ranges
 
@@ -95,3 +95,27 @@ def split_cpu_range(
     """
     mid = (start_cpu + end_cpu) // 2
     return ((start_cpu, mid), (min(mid + 1, end_cpu), end_cpu))
+
+
+def get_no_hyper_threading_cpu_ranges(
+    total_cpus: int, num_instances: int
+) -> list[tuple[int, int]]:
+    """Calculate CPU core ranges using only second logical cores (no hyperthreading).
+
+    On systems with hyperthreading, this uses only the latter half of all available
+    CPU cores, which corresponds to the second logical core of each physical core.
+    The first logical cores are ignored to avoid hyperthreading interference.
+
+    Args:
+        total_cpus: Total number of logical CPUs on the system
+        num_instances: Number of instances to distribute across
+
+    Returns:
+        A list of (start_cpu, end_cpu) tuples for each instance (same format as
+        calculate_cpu_ranges)
+    """
+    usable_start = total_cpus // 2
+    usable_cpus = total_cpus - usable_start
+    ranges = calculate_cpu_ranges(usable_cpus, num_instances)
+    # Offset the ranges to start from usable_start
+    return [(start + usable_start, end + usable_start) for start, end in ranges]

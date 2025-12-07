@@ -23,6 +23,7 @@ import yaml
 from cpu_binning_utils import (
     calculate_cpu_ranges,
     cpuset_string_excluding,
+    get_no_hyper_threading_cpu_ranges,
     get_physical_core0_cpus,
     split_cpu_range,
 )
@@ -703,6 +704,13 @@ def main():
         default=None,
         help="Total number of CPU cores to distribute (default: auto-detect from system)",
     )
+    parser.add_argument(
+        "--no_hyper_threading",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Only use second logical cores (latter half of CPUs) to avoid hyperthreading (default: 0)",
+    )
 
     args = parser.parse_args()
     # Ensure required dirs are absolute
@@ -750,10 +758,17 @@ def main():
             print("Warning: Could not detect CPU count, disabling CPU pinning")
             args.enable_cpu_pinning = 0
         else:
-            cpu_ranges = calculate_cpu_ranges(total_cpus, total_instances)
-            physical_core0_cpus = get_physical_core0_cpus()
-            print(f"CPU pinning enabled: {total_cpus} cores across {total_instances} instances")
-            print(f"  Excluding physical core 0 siblings: {physical_core0_cpus}")
+            if args.no_hyper_threading:
+                cpu_ranges = get_no_hyper_threading_cpu_ranges(total_cpus, total_instances)
+                # No need to exclude physical_core0_cpus when using only second logical cores
+                physical_core0_cpus = set()
+                usable_cpus = total_cpus - total_cpus // 2
+                print(f"CPU pinning enabled (no hyperthreading): using {usable_cpus} cores (CPUs {total_cpus // 2}-{total_cpus - 1}) across {total_instances} instances")
+            else:
+                cpu_ranges = calculate_cpu_ranges(total_cpus, total_instances)
+                physical_core0_cpus = get_physical_core0_cpus()
+                print(f"CPU pinning enabled: {total_cpus} cores across {total_instances} instances")
+                print(f"  Excluding physical core 0 siblings: {physical_core0_cpus}")       
             for idx, (start, end) in enumerate(cpu_ranges):
                 (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start, end)
                 instance_cs = cpuset_string_excluding(start, end, physical_core0_cpus)
