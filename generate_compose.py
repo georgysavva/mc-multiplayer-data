@@ -20,64 +20,12 @@ from typing import Optional
 
 import yaml
 
-
-def calculate_cpu_ranges(
-    total_cpus: int, num_instances: int
-) -> list[tuple[int, int]]:
-    """Calculate CPU core ranges for each instance.
-    
-    Returns a list of (start_cpu, end_cpu) tuples for each instance.
-    Cores are distributed as evenly as possible.
-    """
-    if num_instances <= 0:
-        return []
-    
-    cores_per_instance = total_cpus // num_instances
-    extra_cores = total_cpus % num_instances
-    
-    ranges = []
-    current_cpu = 0
-    
-    for i in range(num_instances):
-        # Give one extra core to the first 'extra_cores' instances
-        instance_cores = cores_per_instance + (1 if i < extra_cores else 0)
-        if instance_cores > 0:
-            start_cpu = current_cpu
-            end_cpu = current_cpu + instance_cores - 1
-            ranges.append((start_cpu, end_cpu))
-            current_cpu = end_cpu + 1
-        else:
-            # If we have more instances than cores, some get no cores
-            ranges.append((0, 0))  # Fallback to core 0
-    
-    return ranges
-
-
-def get_physical_core0_cpus() -> set[int]:
-    """Read logical CPUs tied to physical core 0 from sysfs."""
-    with open("/sys/devices/system/cpu/cpu0/topology/thread_siblings_list") as f:
-        return set(int(c) for c in f.read().strip().split(","))
-
-
-def cpuset_string(start_cpu: int, end_cpu: int) -> str:
-    """Generate a cpuset string from start and end CPU indices."""
-    if start_cpu == end_cpu:
-        return str(start_cpu)
-    return f"{start_cpu}-{end_cpu}"
-
-
-def cpuset_string_excluding(start_cpu: int, end_cpu: int, exclude: set[int]) -> str:
-    """Generate a cpuset string excluding specific cores."""
-    cpus = [c for c in range(start_cpu, end_cpu + 1) if c not in exclude]
-    if not cpus:
-        return cpuset_string(start_cpu, end_cpu)
-    return ",".join(str(c) for c in cpus)
-
-
-def split_cpu_range(start_cpu: int, end_cpu: int) -> tuple[tuple[int, int], tuple[int, int]]:
-    """Split a CPU range into two halves for camera alpha and bravo."""
-    mid = (start_cpu + end_cpu) // 2
-    return ((start_cpu, mid), (min(mid + 1, end_cpu), end_cpu))
+from cpu_binning_utils import (
+    calculate_cpu_ranges,
+    cpuset_string_excluding,
+    get_physical_core0_cpus,
+    split_cpu_range,
+)
 
 
 def absdir(path: str) -> str:
