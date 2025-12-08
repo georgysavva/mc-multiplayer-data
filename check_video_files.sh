@@ -25,7 +25,7 @@ for episode_num in {0..99}; do
     for type in "Alpha" "Bravo"; do
 
         # Loop through Instance IDs 000 to 007
-        for instance_num in {0..7}; do
+        for instance_num in {0..3}; do
             # Format instance_id with leading zeros (3 digits)
             instance_id=$(printf "%03d" "$instance_num")
 
