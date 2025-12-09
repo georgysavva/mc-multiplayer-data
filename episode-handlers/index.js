@@ -898,7 +898,6 @@ async function teleport(
     const maxRange = Math.floor(
       episodeInstance.constructor.INIT_MAX_BOTS_DISTANCE / 2
     );
-    const targets = `${bot.username} ${args.other_bot_name}`;
     const cmd = `spreadplayers ${centerX} ${centerZ} ${minDistance} ${maxRange} false @a[tag=minebot]`;
     console.log(
       `[${bot.username}] spreadplayers command: ${cmd}`
@@ -919,18 +918,46 @@ async function teleport(
     console.log(`[${bot.username}] spreadplayers result: ${result}`);
     attemptsWithThisRadius++;
     if (!result.startsWith("Spread 2 player")) {
-      if (attemptsWithThisRadius >= MAX_ATTEMPTS_WITH_THIS_RADIUS) {
-        console.log(`[${bot.username}] spreadplayers failed after ${attemptsWithThisRadius} attempts with radius ${bot._teleport_radius}, halving the radius and trying again`);
-        bot._teleport_radius /= 2;
-        attemptsWithThisRadius = 0;
-      } else {
-        console.log(`[${bot.username}] spreadplayers failed, trying again`);
-      }
+      console.log(`[${bot.username}] spreadplayers failed, trying again`);
       await sleep(1000);
     } else {
-      success = true;
+      // Wait a moment for positions to settle, then verify no bot is in water
       await sleep(5000);
+      try {
+        const waterBlockId = bot.registry.blocksByName.water?.id;
+        const isInWaterAt = (pos) => {
+          if (waterBlockId === undefined) return false;
+          const base = new Vec3(Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z));
+          const block = bot.blockAt(base);
+          const blockAbove = bot.blockAt(base.offset(0, 1, 0));
+          return (
+            (block && block.type === waterBlockId) ||
+            (blockAbove && blockAbove.type === waterBlockId)
+          );
+        };
+        const ourWater = isInWaterAt(bot.entity.position);
+        const other = bot.players[args.other_bot_name];
+        const otherWater =
+          other && other.entity ? isInWaterAt(other.entity.position) : false;
+        if (ourWater || otherWater) {
+          console.log(
+            `[${bot.username}] spreadplayers placed a bot in water (self=${ourWater}, other=${otherWater}), retrying...`
+          );
+          // Treat as a failed attempt and retry
+          await sleep(1000);
+        }
+      } catch (checkErr) {
+        console.log(
+          `[${bot.username}] water-check after spreadplayers failed (${checkErr?.message || checkErr}), proceeding as success`
+        );
+      }
+      success = true;
       break;
+    }
+    if (attemptsWithThisRadius >= MAX_ATTEMPTS_WITH_THIS_RADIUS) {
+      console.log(`[${bot.username}] spreadplayers failed after ${attemptsWithThisRadius} attempts with radius ${bot._teleport_radius}, halving the radius and trying again`);
+      bot._teleport_radius /= 2;
+      attemptsWithThisRadius = 0;
     }
   }
   if (!success) {
