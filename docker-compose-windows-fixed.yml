@@ -231,7 +231,7 @@ services:
       FPS: "20"
       VNC_PASSWORD: "research"
       ENABLE_RECORDING: "1"
-      RECORDING_PATH: "/output/camera_alpha.mp4"
+      RECORDING_PATH: "/output/camera_alpha.mkv"
     volumes:
       - ./camera/data_alpha:/root
       - ./camera/output_alpha:/output
@@ -262,7 +262,7 @@ services:
       FPS: "20"
       VNC_PASSWORD: "research"
       ENABLE_RECORDING: "1"
-      RECORDING_PATH: "/output/camera_bravo.mp4"
+      RECORDING_PATH: "/output/camera_bravo.mkv"
     volumes:
       - ./camera/data_bravo:/root
       - ./camera/output_bravo:/output

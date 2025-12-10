@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 WIDTH=${WIDTH:-1280}
@@ -11,6 +11,9 @@ NOVNC_PORT=${NOVNC_PORT:-6901}
 ENABLE_RECORDING=${ENABLE_RECORDING:-1}
 RECORDING_PATH=${RECORDING_PATH:-/output/camera_alpha.mkv}
 JAVA_BIN=${JAVA_BIN:-/usr/lib/jvm/temurin-21-jre-amd64/bin/java}
+
+# GPU rendering mode: "egl" (headless), "x11" (requires host X), or "auto"
+GPU_MODE=${GPU_MODE:-egl}
 
 if [ ! -x "$JAVA_BIN" ]; then
   echo "[client] java runtime not found at $JAVA_BIN" >&2
@@ -25,8 +28,17 @@ export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/tmp}
 
 echo "[client] DISPLAY=$DISPLAY resolution=${WIDTH}x${HEIGHT}"
 echo "[client] noVNC: http://localhost:${NOVNC_PORT} (password $VNC_PASSWORD)"
+echo "[client] GPU rendering mode: $GPU_MODE"
 
-for dep in Xvfb fluxbox x11vnc websockify ffmpeg; do
+# Verify GPU is accessible
+if command -v nvidia-smi >/dev/null 2>&1; then
+  echo "[client] GPU status:"
+  nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv,noheader || true
+else
+  echo "[client] warning: nvidia-smi not found, GPU may not be available"
+fi
+
+for dep in Xvfb fluxbox x11vnc websockify ffmpeg vglrun; do
   if ! command -v "$dep" >/dev/null 2>&1; then
     echo "[client] missing required binary: $dep" >&2
     exit 1
@@ -45,11 +57,38 @@ trap cleanup INT TERM EXIT
 
 PIDS=""
 
+# Start Xvfb with GLX extension
+# Note: GLX is handled by VirtualGL which redirects to the GPU
 Xvfb "$DISPLAY" -screen 0 "${WIDTH}x${HEIGHT}x24" +extension RANDR +extension GLX -ac &
 PIDS="$PIDS $!"
 sleep 2
 
 export DISPLAY
+
+# Configure VirtualGL display based on mode
+case "$GPU_MODE" in
+  egl)
+    # Use EGL for headless GPU rendering (no X server needed on host)
+    export VGL_DISPLAY=egl
+    echo "[client] Using EGL headless GPU rendering"
+    ;;
+  x11)
+    # Use host X server (requires X11 socket mounted and DISPLAY set correctly)
+    export VGL_DISPLAY=${VGL_DISPLAY:-:0}
+    echo "[client] Using X11 GPU rendering via VGL_DISPLAY=$VGL_DISPLAY"
+    ;;
+  auto)
+    # Try EGL first, fall back to X11
+    if [ -e "/dev/dri/renderD128" ]; then
+      export VGL_DISPLAY=egl
+      echo "[client] Auto-detected EGL support, using headless GPU"
+    else
+      export VGL_DISPLAY=${VGL_DISPLAY:-:0}
+      echo "[client] Falling back to X11 GPU rendering"
+    fi
+    ;;
+esac
+
 FLUXBOX_DIR="${HOME:-/root}/.fluxbox"
 INIT_FILE="${FLUXBOX_DIR}/init"
 mkdir -p "$FLUXBOX_DIR"
@@ -88,13 +127,14 @@ PIDS="$PIDS $!"
 websockify --web=/usr/share/novnc/ "$NOVNC_PORT" localhost:"$VNC_PORT" &
 PIDS="$PIDS $!"
 
-python3 /app/launch_minecraft.py &
+# Launch Minecraft with VirtualGL for GPU-accelerated OpenGL
+echo "[client] Launching Minecraft with VirtualGL (GPU acceleration)"
+vglrun -d "$VGL_DISPLAY" python3 /app/launch_minecraft.py &
 GAME_PID=$!
 PIDS="$PIDS $GAME_PID"
 
 if [ "$ENABLE_RECORDING" = "1" ]; then
   # Small delay so the Minecraft window stabilizes before capturing.
-  # Keep metadata in sync with the actual recording start time.
   sleep "${RECORDING_DELAY:-5}"
   RECORDING_META_PATH=${RECORDING_META_PATH:-${RECORDING_PATH%.*}_meta.json}
   RECORDING_START_TS=$(date +%s.%N)
@@ -109,14 +149,26 @@ if [ "$ENABLE_RECORDING" = "1" ]; then
   "height": ${HEIGHT},
   "display": "${DISPLAY}",
   "camera_name": "${CAMERA_NAME:-}",
+  "gpu_mode": "${GPU_MODE}",
   "note": "Frame index ~= round((wall_time_seconds - start_epoch_seconds) * fps)"
 }
 EOF
   echo "[client] recording metadata saved to ${RECORDING_META_PATH}"
-  ffmpeg -hide_banner -loglevel info -y \
-    -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" \
-    -f x11grab -i "${DISPLAY}.0" \
-    -codec:v libx264 -preset veryfast -pix_fmt yuv420p "$RECORDING_PATH" &
+  
+  # Use GPU-accelerated encoding if available (NVENC)
+  if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q h264_nvenc; then
+    echo "[client] Using NVENC hardware encoding (MKV)"
+    ffmpeg -hide_banner -loglevel info -y \
+      -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" \
+      -f x11grab -i "${DISPLAY}.0" \
+      -c:v h264_nvenc -preset p4 -pix_fmt yuv420p "$RECORDING_PATH" &
+  else
+    echo "[client] Using CPU encoding (libx264, MKV)"
+    ffmpeg -hide_banner -loglevel info -y \
+      -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" \
+      -f x11grab -i "${DISPLAY}.0" \
+      -codec:v libx264 -preset veryfast -pix_fmt yuv420p "$RECORDING_PATH" &
+  fi
   FFMPEG_PID=$!
   PIDS="$PIDS $FFMPEG_PID"
 else

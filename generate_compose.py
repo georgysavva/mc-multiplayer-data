@@ -16,8 +16,17 @@ import os
 import re
 import time
 from pathlib import Path
+from typing import Optional
 
 import yaml
+
+from cpu_binning_utils import (
+    calculate_cpu_ranges,
+    cpuset_string_excluding,
+    get_no_hyper_threading_cpu_ranges,
+    get_physical_core0_cpus,
+    split_cpu_range,
+)
 
 
 def absdir(path: str) -> str:
@@ -95,6 +104,9 @@ def generate_compose_config(
     smoke_test,
     viewer_rendering_disabled,
     world_type,
+    render_distance,
+    simulation_distance,
+    graphics_mode,
     # camera specific
     camera_output_alpha_base,
     camera_output_bravo_base,
@@ -107,6 +119,14 @@ def generate_compose_config(
     display_base,
     vnc_step,
     display_step,
+    # CPU pinning
+    cpuset: Optional[str] = None,
+    cpuset_camera_alpha: Optional[str] = None,
+    cpuset_camera_bravo: Optional[str] = None,
+    # GPU settings
+    enable_gpu: bool = False,
+    gpu_device_id: Optional[int] = None,
+    gpu_mode: str = "egl",
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -175,6 +195,7 @@ def generate_compose_config(
                 "image": "itzg/minecraft-server",
                 "tty": True,
                 "network_mode": "host",
+                **({"cpuset": cpuset} if cpuset else {}),
                 "environment": (
                     lambda: {
                         # Base server env, common to both normal and flat worlds
@@ -226,6 +247,7 @@ def generate_compose_config(
                         "condition": "service_started"
                     },
                 },
+                **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "environment": {
                     "BOT_NAME": "Alpha",
@@ -279,6 +301,7 @@ def generate_compose_config(
                         "condition": "service_started"
                     },
                 },
+                **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "environment": {
                     "BOT_NAME": "Bravo",
@@ -327,6 +350,7 @@ def generate_compose_config(
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                 },
                 "tty": True,
+                **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "networks": [f"mc_network_{instance_id}"],
                 "command": "./entrypoint_receiver.sh",
@@ -341,19 +365,21 @@ def generate_compose_config(
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                 },
                 "tty": True,
+                **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "networks": [f"mc_network_{instance_id}"],
                 "command": "./entrypoint_receiver.sh",
             },
             # Camera alpha: recording client
             f"camera_alpha_instance_{instance_id}": {
-                "image": "ojmichel/mineflayer-spectator-client:latest",
+                "image": "ojmichel/mineflayer-spectator-client:gpu" if enable_gpu else "ojmichel/mineflayer-spectator-client:latest",
                 "build": {
                     "context": os.path.join(project_root, "camera"),
-                    "dockerfile": "Dockerfile",
+                    "dockerfile": "Dockerfile.gpu" if enable_gpu else "Dockerfile",
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",
+                **({"cpuset": cpuset_camera_alpha} if cpuset_camera_alpha else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
@@ -370,8 +396,20 @@ def generate_compose_config(
                     "FPS": "20",
                     "VNC_PASSWORD": "research",
                     "ENABLE_RECORDING": "1",
-                    "RECORDING_PATH": "/output/camera_alpha.mp4",
+                    "RECORDING_PATH": "/output/camera_alpha.mkv",
+                    "RENDER_DISTANCE": render_distance,
+                    "SIMULATION_DISTANCE": simulation_distance,
+                    "GRAPHICS_MODE": graphics_mode,
+                    **(
+                        {
+                            "NVIDIA_DRIVER_CAPABILITIES": "all",
+                            "NVIDIA_VISIBLE_DEVICES": gpu_device_id,
+                        }
+                        if enable_gpu and gpu_device_id is not None
+                        else {}
+                    ),
                 },
+                "runtime": "nvidia",
                 "volumes": [
                     f"{cam_paths['alpha_data_host']}:/root",
                     f"{cam_paths['alpha_output_host']}:/output",
@@ -381,6 +419,7 @@ def generate_compose_config(
             f"episode_starter_instance_{instance_id}": {
                 "image": "node:20",
                 "network_mode": "host",
+                **({"cpuset": cpuset} if cpuset else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"},
                     f"camera_alpha_instance_{instance_id}": {
@@ -408,13 +447,14 @@ def generate_compose_config(
             },
             # Camera bravo: recording client
             f"camera_bravo_instance_{instance_id}": {
-                "image": "ojmichel/mineflayer-spectator-client:latest",
+                "image": "ojmichel/mineflayer-spectator-client:gpu" if enable_gpu else "ojmichel/mineflayer-spectator-client:latest",
                 "build": {
                     "context": os.path.join(project_root, "camera"),
-                    "dockerfile": "Dockerfile",
+                    "dockerfile": "Dockerfile.gpu" if enable_gpu else "Dockerfile",
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",
+                **({"cpuset": cpuset_camera_bravo} if cpuset_camera_bravo else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
@@ -431,8 +471,20 @@ def generate_compose_config(
                     "FPS": "20",
                     "VNC_PASSWORD": "research",
                     "ENABLE_RECORDING": "1",
-                    "RECORDING_PATH": "/output/camera_bravo.mp4",
+                    "RECORDING_PATH": "/output/camera_bravo.mkv",
+                    "RENDER_DISTANCE": render_distance,
+                    "SIMULATION_DISTANCE": simulation_distance,
+                    "GRAPHICS_MODE": graphics_mode,
+                    **(
+                        {
+                            "NVIDIA_DRIVER_CAPABILITIES": "all",
+                            "NVIDIA_VISIBLE_DEVICES": gpu_device_id,
+                        }
+                        if enable_gpu and gpu_device_id is not None
+                        else {}
+                    ),
                 },
+                "runtime": "nvidia",
                 "volumes": [
                     f"{cam_paths['bravo_data_host']}:/root",
                     f"{cam_paths['bravo_output_host']}:/output",
@@ -446,6 +498,7 @@ def generate_compose_config(
                     "dockerfile": "Dockerfile",
                 },
                 "restart": "unless-stopped",
+                **({"cpuset": cpuset} if cpuset else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
@@ -469,6 +522,7 @@ def generate_compose_config(
                     "dockerfile": "Dockerfile",
                 },
                 "restart": "unless-stopped",
+                **({"cpuset": cpuset} if cpuset else {}),
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"}
                 },
@@ -630,6 +684,65 @@ def main():
         choices=[0, 1],
         help="Enable smoke test mode to run all episode types (default: 0)",
     )
+    parser.add_argument(
+        "--render_distance",
+        type=int,
+        default=8,
+        help="Minecraft render distance in chunks (2-32, lower = faster, our default: 8, MC default: 12.)",
+    )
+    parser.add_argument(
+        "--simulation_distance",
+        type=int,
+        default=4,
+        help="Minecraft simulation distance in chunks (5-32, lower = faster, our default: 4, MC default: 8.)",
+    )
+    parser.add_argument(
+        "--graphics_mode",
+        type=int,
+        default=1,
+        choices=[0, 1, 2],
+        help="Minecraft graphics mode (0=Fast, 1=Fancy, 2=Fabulous, default: 1)",
+    )
+    parser.add_argument(
+        "--enable_cpu_pinning",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Enable CPU pinning to evenly distribute cores among instances (default: 0)",
+    )
+    parser.add_argument(
+        "--enable_gpu",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Enable GPU rendering for camera containers (requires nvidia-container-toolkit, default: 0)",
+    )
+    parser.add_argument(
+        "--gpu_count",
+        type=int,
+        default=2,
+        help="Number of GPUs available to distribute among instances (default: 2)",
+    )
+    parser.add_argument(
+        "--gpu_mode",
+        type=str,
+        default="egl",
+        choices=["egl", "x11", "auto"],
+        help="GPU rendering mode: egl (headless), x11 (requires host X), auto (default: egl)",
+    )
+    parser.add_argument(
+        "--total_cpus",
+        type=int,
+        default=None,
+        help="Total number of CPU cores to distribute (default: auto-detect from system)",
+    )
+    parser.add_argument(
+        "--no_hyper_threading",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Only use second logical cores (latter half of CPUs) to avoid hyperthreading (default: 0)",
+    )
 
     args = parser.parse_args()
     # Ensure required dirs are absolute
@@ -668,10 +781,70 @@ def main():
         total_instances = args.instances
         world_plan = ["normal"] * total_instances
 
+    # Calculate CPU pinning if enabled
+    cpu_ranges: list[tuple[int, int]] = []
+    physical_core0_cpus: set[int] = set()
+    if args.enable_cpu_pinning:
+        total_cpus = args.total_cpus if args.total_cpus else os.cpu_count()
+        if total_cpus is None:
+            print("Warning: Could not detect CPU count, disabling CPU pinning")
+            args.enable_cpu_pinning = 0
+        else:
+            if args.no_hyper_threading:
+                cpu_ranges = get_no_hyper_threading_cpu_ranges(total_cpus, total_instances)
+                # No need to exclude physical_core0_cpus when using only second logical cores
+                physical_core0_cpus = set()
+                usable_cpus = total_cpus - total_cpus // 2
+                print(f"CPU pinning enabled (no hyperthreading): using {usable_cpus} cores (CPUs {total_cpus // 2}-{total_cpus - 1}) across {total_instances} instances")
+            else:
+                cpu_ranges = calculate_cpu_ranges(total_cpus, total_instances)
+                physical_core0_cpus = get_physical_core0_cpus()
+                print(f"CPU pinning enabled: {total_cpus} cores across {total_instances} instances")
+                print(f"  Excluding physical core 0 siblings: {physical_core0_cpus}")       
+            for idx, (start, end) in enumerate(cpu_ranges):
+                (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start, end)
+                instance_cs = cpuset_string_excluding(start, end, physical_core0_cpus)
+                alpha_cs = instance_cs # cpuset_string_excluding(alpha_start, alpha_end, physical_core0_cpus)
+                bravo_cs = instance_cs #cpuset_string_excluding(bravo_start, bravo_end, physical_core0_cpus)
+                print(f"  Instance {idx}: {instance_cs} (camera_alpha: {alpha_cs}, camera_bravo: {bravo_cs})")
+
+    # GPU configuration validation
+    if args.enable_gpu and args.gpu_count > 1:
+        raise ValueError(
+            f"Multi-GPU support is currently broken due to an NVENC bug. "
+            f"Got --gpu_count={args.gpu_count}, but only GPU 0 can be used.\n"
+            f"See: https://forums.developer.nvidia.com/t/nvenc-and-nvdec-work-on-only-one-gpu-with-multi-gpu-setups-with-nvidia-container-toolkit-in-driver-565/347361\n"
+            f"Use --gpu_count=1 to run all instances on GPU 0."
+        )
+
+    # GPU configuration summary
+    if args.enable_gpu:
+        print(f"GPU rendering enabled: {args.gpu_count} GPUs available, mode={args.gpu_mode}")
+        print(f"  Instances will be distributed round-robin across GPUs")
+        for i in range(total_instances):
+            gpu_id = i % args.gpu_count
+            print(f"    Instance {i}: GPU {gpu_id}")
+    
     print(f"Generating {total_instances} Docker Compose configurations...")
 
     for i in range(total_instances):
         world_type = world_plan[i]
+        # Calculate cpuset string for this instance if CPU pinning is enabled
+        instance_cpuset = None
+        camera_alpha_cpuset = None
+        camera_bravo_cpuset = None
+        if args.enable_cpu_pinning and cpu_ranges:
+            start_cpu, end_cpu = cpu_ranges[i]
+            # Exclude physical core 0 siblings (they handle system interrupts)
+            instance_cpuset = cpuset_string_excluding(start_cpu, end_cpu, physical_core0_cpus)
+            # Split the instance's cores between the two camera bots
+            (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start_cpu, end_cpu)
+            camera_alpha_cpuset = cpuset_string_excluding(alpha_start, alpha_end, physical_core0_cpus)
+            camera_bravo_cpuset = cpuset_string_excluding(bravo_start, bravo_end, physical_core0_cpus)
+        
+        # Calculate GPU assignment for this instance (round-robin across available GPUs)
+        gpu_device_id = i % args.gpu_count if args.enable_gpu else None
+        
         config = generate_compose_config(
             i,
             args.base_port,
@@ -689,6 +862,9 @@ def main():
             args.smoke_test,
             args.viewer_rendering_disabled,
             world_type,
+            str(args.render_distance),
+            str(args.simulation_distance),
+            str(args.graphics_mode),
             # camera args
             args.camera_output_alpha_base,
             args.camera_output_bravo_base,
@@ -701,6 +877,14 @@ def main():
             args.display_base,
             args.vnc_step,
             args.display_step,
+            # CPU pinning
+            cpuset=instance_cpuset,
+            cpuset_camera_alpha=camera_alpha_cpuset,
+            cpuset_camera_bravo=camera_bravo_cpuset,
+            # GPU settings
+            enable_gpu=bool(args.enable_gpu),
+            gpu_device_id=gpu_device_id,
+            gpu_mode=args.gpu_mode,
         )
 
         # Write compose file
