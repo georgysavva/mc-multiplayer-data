@@ -808,6 +808,15 @@ def main():
                 bravo_cs = instance_cs #cpuset_string_excluding(bravo_start, bravo_end, physical_core0_cpus)
                 print(f"  Instance {idx}: {instance_cs} (camera_alpha: {alpha_cs}, camera_bravo: {bravo_cs})")
 
+    # GPU configuration validation
+    if args.enable_gpu and args.gpu_count > 1:
+        raise ValueError(
+            f"Multi-GPU support is currently broken due to an NVENC bug. "
+            f"Got --gpu_count={args.gpu_count}, but only GPU 0 can be used.\n"
+            f"See: https://forums.developer.nvidia.com/t/nvenc-and-nvdec-work-on-only-one-gpu-with-multi-gpu-setups-with-nvidia-container-toolkit-in-driver-565/347361\n"
+            f"Use --gpu_count=1 to run all instances on GPU 0."
+        )
+
     # GPU configuration summary
     if args.enable_gpu:
         print(f"GPU rendering enabled: {args.gpu_count} GPUs available, mode={args.gpu_mode}")

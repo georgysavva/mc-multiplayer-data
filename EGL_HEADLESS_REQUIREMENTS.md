@@ -47,21 +47,7 @@ nvidia-smi --query-gpu=driver_version --format=csv,noheader
 
 Required for GPU passthrough to Docker containers.
 
-```bash
-# Install (one-time setup)
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
-  sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-
-curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
-
-sudo apt-get update
-sudo apt-get install -y nvidia-container-toolkit
-
-# Configure Docker to use nvidia runtime
-sudo nvidia-ctk runtime configure --runtime=docker
-sudo systemctl restart docker
+Follow instructions: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
 ```
 
 ### 3. Docker with NVIDIA Runtime
@@ -86,7 +72,10 @@ Expected: Shows your GPU(s) with driver version and CUDA version.
 ### Step 2: Verify Docker GPU Access
 
 ```bash
-docker run --rm --gpus all nvidia/cuda:12.3.2-base-ubuntu22.04 nvidia-smi
+# Checks CUDA
+docker run --rm --gpus all nvidia/cuda:13.0.0-runtime-ubuntu22.04 nvidia-smi
+# Checks NVENC with ffmpeg. A100/H100/B100/B200 GPUs do not have NVENC. You have to resort to CPU software encoding. Please edit `camera/entrypoint_gpu.sh`.
+docker run --rm --runtime=nvidia -e NVIDIA_DRIVER_CAPABILITIES=all nvidia/cuda:13.0.0-runtime-ubuntu22.04 bash -c "apt-get update -qq && apt-get install -y -qq ffmpeg && ffmpeg -f lavfi -i testsrc=duration=3:size=1280x720:rate=30 -c:v h264_nvenc -f null -"
 ```
 
 Expected: Same output as host `nvidia-smi`, showing GPUs accessible inside container.
@@ -211,13 +200,12 @@ NVENC library not accessible in container.
 **Solution**: Ensure container has GPU access via compose config:
 ```yaml
 runtime: nvidia
-deploy:
-  resources:
-    reservations:
-      devices:
-        - driver: nvidia
-          device_ids: ["0"]
-          capabilities: ["gpu"]
+environment:
+  NVIDIA_DRIVER_CAPABILITIES: all
+  NVIDIA_VISIBLE_DEVICES: "0"
+  # Note that you have to make either all GPUs or only GPU 0 visible
+  # because of this known bug regarding NVENC: https://forums.developer.nvidia.com/t/nvenc-and-nvdec-work-on-only-one-gpu-with-multi-gpu-setups-with-nvidia-container-toolkit-in-driver-565/347361
+  # https://github.com/NVIDIA/k8s-device-plugin/issues/1282#issuecomment-2967436022
 ```
 
 #### Issue: Camera logs show "llvmpipe" or "Mesa/X.org"
@@ -257,11 +245,11 @@ If GPU utilization is low but CPU is high, VirtualGL may not be working correctl
 
 ## Performance Expectations
 
-With 2x RTX 4090 and GPU rendering enabled:
+I tested this with 1x RTX 4090 (multi GPU is bugged) and GPU rendering enabled:
 
 | Metric | CPU (OSMesa) | GPU (EGL + NVENC) |
 |--------|--------------|-------------------|
-| Minecraft FPS | ~10-20 | 60+ |
+| Minecraft FPS | ~7-20 | 20+ |
 | Video Encoding | CPU (libx264) | GPU (h264_nvenc) |
 | Parallel Instances | Limited by CPU | Limited by VRAM (~4-8 per GPU) |
-| VRAM per Instance | N/A | ~2-3 GB |
+| VRAM per Instance | N/A | ~2 GB |
