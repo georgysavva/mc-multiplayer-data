@@ -160,7 +160,12 @@ def generate_compose_config(
     entrypoint_host = os.path.join(project_root, "camera", "entrypoint.sh")
     launch_host = os.path.join(project_root, "camera", "launch_minecraft.py")
     camera_package_json_host = os.path.join(project_root, "camera", "package.json")
-    seed = str(instance_id) + str(int(time.time()))
+    # If the only episode type is turnToLookEval, use the fixed seed "solaris"
+    if episode_types == "turnToLookEval":
+        seed = "solaris"
+        print(f"turnToLookEval episode type passsed. Using fixed seed 'solaris' for all instances.")
+    else:
+        seed = str(instance_id) + str(int(time.time()))
     config = {
         "networks": {f"mc_network_{instance_id}": {"driver": "bridge"}},
         "services": {

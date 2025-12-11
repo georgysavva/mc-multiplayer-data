@@ -1,4 +1,5 @@
 const Vec3 = require("vec3").Vec3;
+const seedrandom = require("seedrandom");
 
 /**
  * Basic Movement Building Blocks for Mineflayer Bots
@@ -667,6 +668,63 @@ async function sneak(bot, durationTicks = 5, idleTicks = 10) {
   await bot.waitForTicks(idleTicks);
 }
 
+/**
+ * Direct teleport to specific points from a list.
+ * Used for episodes that require precise positioning (e.g. TurnToLookEpisode).
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Rcon} rcon - RCON connection instance
+ * @param {string} otherBotName - Name of the other bot
+ * @param {number} episodeNum - Episode number
+ * @param {Array<Array<number>>} points - List of [x, y, z] coordinates
+ */
+async function directTeleport(bot, rcon, otherBotName, episodeNum, points) {
+  console.log(`[${bot.username}] Using custom teleport logic for episode ${episodeNum}`);
+    
+  // Use a deterministic RNG separate from sharedBotRng to avoid desyncing the main RNG
+  const tpRng = seedrandom(`${episodeNum}_tp`);
+  
+  const point = points[episodeNum % points.length];
+  const [cx, cy, cz] = point;
+
+  // Determine axis offset: > 0.5 means X axis offset, else Z axis offset
+  const useXAxis = tpRng() > 0.5;
+  const offset = 2; // 2 blocks each way = 4 blocks apart
+
+  let bot1Pos, bot2Pos;
+  if (useXAxis) {
+    bot1Pos = { x: cx - offset, y: cy, z: cz };
+    bot2Pos = { x: cx + offset, y: cy, z: cz };
+  } else {
+    bot1Pos = { x: cx, y: cy, z: cz - offset };
+    bot2Pos = { x: cx, y: cy, z: cz + offset };
+  }
+
+  // Assign positions to bots deterministically based on name sorting
+  const botName1 = bot.username;
+  const botName2 = otherBotName;
+  
+  let myTarget, otherTarget;
+  if (botName1 < botName2) {
+      myTarget = bot1Pos;
+      otherTarget = bot2Pos;
+  } else {
+      myTarget = bot2Pos;
+      otherTarget = bot1Pos;
+  }
+
+  console.log(`[${bot.username}] TPing ${botName1} to (${myTarget.x}, ${myTarget.y}, ${myTarget.z}) and ${botName2} to (${otherTarget.x}, ${otherTarget.y}, ${otherTarget.z})`);
+  
+  try {
+    await rcon.send(`tp ${botName1} ${myTarget.x} ${myTarget.y} ${myTarget.z}`);
+    await rcon.send(`tp ${botName2} ${otherTarget.x} ${otherTarget.y} ${otherTarget.z}`);
+  } catch (err) {
+    console.error(`[${bot.username}] directTeleport failed:`, err);
+  }
+  
+  // Wait a bit for chunks to load and bots to settle
+  await sleep(2000);
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -705,6 +763,7 @@ module.exports = {
   land_pos,
   jump,
   sneak,
+  directTeleport,
   Y_IN_AIR,
   getScaffoldingBlockIds,
   DEFAULT_SCAFFOLDING_BLOCK_NAMES,

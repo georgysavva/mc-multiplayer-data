@@ -14,11 +14,12 @@ const episodeTypicalLengths = {
   towerBridge: 22,
   buildHouse: 120,
   collector: 150,
+  placeAndMine: 120,
   structureEval: 60,
   translationEval: 60,
   lookAwayEval: 60,
   rotationEval: 60,
-  placeAndMine: 120,
+  turnToLookEval: 60,
 };
 
 /**

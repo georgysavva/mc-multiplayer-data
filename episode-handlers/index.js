@@ -35,13 +35,13 @@ const { MineEpisode } = require("./mine-episode");
 const { PveEpisode } = require("./pve-episode");
 const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 const { BuildHouseEpisode } = require("./build-house-episode");
-const { StructureEvalEpisode } = require("./structureEval");
 const { CollectorEpisode } = require("./collector-episode");
+const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
+const { StructureEvalEpisode } = require("./structureEval");
 const { TranslationEvalEpisode } = require("./translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
 const { RotationEvalEpisode } = require("./rotation-eval-episode");
-const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
-const { TurnToLookEpisode } = require("./turn-to-look-eval-episode");
+const { TurnToLookEvalEpisode } = require("./turn-to-look-eval-episode");
 const turnToLookEvalTpPoints = require("./turn-to-look-eval-episode-tp-points.json");
 
 // Map episode type strings to their class implementations
@@ -64,7 +64,7 @@ const episodeClassMap = {
   translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
   rotationEval: RotationEvalEpisode,
-  turnToLookEval: TurnToLookEpisode,
+  turnToLookEval: TurnToLookEvalEpisode,
 };
 
 // Import episode-specific handlers
@@ -868,7 +868,9 @@ async function teleport(
   episodeNum
 ) {
   // Custom TP logic for TurnToLookEpisode
-  if (episodeInstance instanceof TurnToLookEpisode && turnToLookEvalTpPoints && turnToLookEvalTpPoints.length > 0) {
+  if (episodeInstance instanceof TurnToLookEvalEpisode && turnToLookEvalTpPoints && turnToLookEvalTpPoints.length > 0) {
+    const timeSetRes = await rcon.send("time set day");
+    console.log(`[${bot.username}] time set to day for TurnToLookEpisode eval, result=${timeSetRes}`);
     await directTeleport(
       bot,
       rcon,

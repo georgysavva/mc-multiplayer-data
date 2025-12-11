@@ -3,6 +3,7 @@ const { GoalNear } = require("../utils/bot-factory");
 const { lookAtSmooth, sneak } = require("../utils/movement");
 const { GoalXZ } = require("../utils/bot-factory");
 
+const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const EPISODE_MIN_TICKS = 300;
 
 function getOnTurnToLookPhaseFn(
@@ -43,15 +44,43 @@ function getOnTurnToLookPhaseFn(
     const me = bot.entity.position;
     const them = other.position;
 
-    // ---- Phase 1: Signal beginning ----
+    // ---- Phase 1: Look at each other ----
+    console.log(`[${bot.username}] Looking at ${otherName}`);
+    await lookAtSmooth(bot, them, 90, { randomized: false, useEasing: false });
+
+    // ---- Phase 2: Signal beginning ----
     console.log(`[${bot.username}] Sneaking to signal beginning`);
     await sneak(bot);
 
-    // ---- Phase 2: Look at each other ----
-    console.log(`[${bot.username}] Looking at ${otherName}`);
-    await lookAtSmooth(bot, them, 60);
-    await bot.waitForTicks(20);
+    // ---- Phase 3: Face a random direction ----
+    const vx = them.x - me.x;
+    const vz = them.z - me.z;
 
+    // Normalize horizontal vector
+    const mag = Math.sqrt(vx*vx + vz*vz) || 1;
+    const nx = vx / mag;
+    const nz = vz / mag;
+
+    // Rotate 90 degrees left or right
+    // direction = +1 or -1 chosen from sharedRng so both bots choose opposite sides deterministically
+    const dir = bot.username < otherName ? 1 : -1;
+
+    // rotated vector
+    const sideX = -nz * dir;
+    const sideZ = nx * dir;
+
+    const facePos = bot.entity.position.offset(sideX, 0, sideZ);
+    console.log(`[${bot.username}] Facing sideways (${sideX.toFixed(2)}, ${sideZ.toFixed(2)})`);
+
+    episodeInstance._evalMetadata = {
+      camera_speed_degrees_per_sec: CAMERA_SPEED_DEGREES_PER_SEC,
+      side_vector: { x: sideX, z: sideZ },
+      dir: dir,
+    };
+
+    await lookAtSmooth(bot, facePos, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
+
+    // ---- Phase 4: Ensure minimum ticks ----
     const endTick = bot.time.age;
     const elapsed = endTick - startTick;
     const remaining = EPISODE_MIN_TICKS - elapsed;
@@ -84,7 +113,7 @@ function getOnTurnToLookPhaseFn(
   };
 }
 
-class TurnToLookEpisode extends BaseEpisode {
+class TurnToLookEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
   async entryPoint(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, args) {
@@ -113,5 +142,5 @@ class TurnToLookEpisode extends BaseEpisode {
 
 module.exports = {
   getOnTurnToLookPhaseFn,
-  TurnToLookEpisode,
+  TurnToLookEvalEpisode,
 };
