@@ -9,6 +9,7 @@ const {
   land_pos,
   lookAtSmooth,
   stopAll,
+  directTeleport,
   Y_IN_AIR,
 } = require("../utils/movement");
 const { rconTp } = require("../utils/coordination");
@@ -40,6 +41,8 @@ const { TranslationEvalEpisode } = require("./translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
 const { RotationEvalEpisode } = require("./rotation-eval-episode");
 const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
+const { TurnToLookEpisode } = require("./turn-to-look-eval-episode");
+const turnToLookEvalTpPoints = require("./turn-to-look-eval-episode-tp-points.json");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -56,11 +59,12 @@ const episodeClassMap = {
   towerBridge: TowerBridgeEpisode,
   buildHouse: BuildHouseEpisode,
   collector: CollectorEpisode,
+  placeAndMine: PlaceAndMineEpisode,
   structureEval: StructureEvalEpisode,
   translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
   rotationEval: RotationEvalEpisode,
-  placeAndMine: PlaceAndMineEpisode,
+  turnToLookEval: TurnToLookEpisode,
 };
 
 // Import episode-specific handlers
@@ -81,18 +85,19 @@ const defaultEpisodeTypes = [
   "mine",
   "towerBridge",
   "collector",
+  "placeAndMine",
   "structureEval",
   "translationEval",
   "lookAwayEval",
   "rotationEval",
-  "placeAndMine",
+  "turnToLookEval",
 ];
 
+const isCustomEpisodeTypes = process.env.EPISODE_TYPES && process.env.EPISODE_TYPES !== "all";
 // Load episode types from environment variable or use default
-const episodeTypes =
-  process.env.EPISODE_TYPES && process.env.EPISODE_TYPES !== "all"
-    ? process.env.EPISODE_TYPES.split(",").map((type) => type.trim())
-    : defaultEpisodeTypes;
+const episodeTypes = isCustomEpisodeTypes
+  ? process.env.EPISODE_TYPES.split(",").map((type) => type.trim())
+  : defaultEpisodeTypes;
 
 function formatDateForFilename(date) {
   const pad = (value, length = 2) => String(value).padStart(length, "0");
@@ -547,7 +552,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       const selectedEpisodeType =
         args.smoke_test === 1
           ? episodeConfig.episodeType
-          : selectWeightedEpisodeType(sortedEligible, sharedBotRng, args.uniform_weights);
+          : selectWeightedEpisodeType(sortedEligible, sharedBotRng, args.uniform_weights, !isCustomEpisodeTypes);
 
       console.log(
         `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
@@ -670,7 +675,9 @@ function getOnTeleportPhaseFn(
         args,
         ourPosition,
         otherBotPosition,
-        episodeInstance
+        episodeInstance,
+        sharedBotRng,
+        episodeNum
       );
     }
 
@@ -782,7 +789,8 @@ function getOnSetupEpisodeFn(
     await lookAtSmooth(
       bot,
       otherBotPositionNew,
-      DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
+      DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
+      { randomized: false, useEasing: false }
     );
 
     await sleep(1000);
@@ -855,8 +863,22 @@ async function teleport(
   args,
   ourPosition,
   otherBotPosition,
-  episodeInstance
+  episodeInstance,
+  sharedBotRng,
+  episodeNum
 ) {
+  // Custom TP logic for TurnToLookEpisode
+  if (episodeInstance instanceof TurnToLookEpisode && turnToLookEvalTpPoints && turnToLookEvalTpPoints.length > 0) {
+    await directTeleport(
+      bot,
+      rcon,
+      args.other_bot_name,
+      episodeNum,
+      turnToLookEvalTpPoints
+    );
+    return;
+  }
+
   // Initialize teleport center once as the midpoint between this bot and the other bot
   if (!bot._teleport_center) {
     bot._teleport_center = {
