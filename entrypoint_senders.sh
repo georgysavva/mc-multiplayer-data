@@ -61,4 +61,5 @@ exec node senders.js \
   --smoke_test "${SMOKE_TEST:-0}" \
   --world_type "${WORLD_TYPE:-flat}" \
   --instance_id "${INSTANCE_ID:-0}" \
-  --output_dir "${OUTPUT_DIR:-/output}"
+  --output_dir "${OUTPUT_DIR:-/output}" \
+  --eval_time_set_day "${EVAL_TIME_SET_DAY:-0}"

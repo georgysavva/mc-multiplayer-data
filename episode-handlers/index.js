@@ -67,6 +67,24 @@ const episodeClassMap = {
   turnToLookEval: TurnToLookEvalEpisode,
 };
 
+// List of eval episode classes for generic eval episode detection
+const evalEpisodeClasses = [
+  StructureEvalEpisode,
+  TranslationEvalEpisode,
+  LookAwayEvalEpisode,
+  RotationEvalEpisode,
+  TurnToLookEvalEpisode,
+];
+
+/**
+ * Check if an episode instance is an eval episode
+ * @param {Object} episodeInstance - Episode instance to check
+ * @returns {boolean} True if the episode is an eval episode
+ */
+function isEvalEpisode(episodeInstance) {
+  return evalEpisodeClasses.some(EvalClass => episodeInstance instanceof EvalClass);
+}
+
 // Import episode-specific handlers
 
 // Add episode type selection - Enable multiple types for diverse data collection
@@ -867,10 +885,14 @@ async function teleport(
   sharedBotRng,
   episodeNum
 ) {
+  // Set time to day for eval episodes if enabled
+  if (args.eval_time_set_day && isEvalEpisode(episodeInstance)) {
+    const timeSetRes = await rcon.send("time set day");
+    console.log(`[${bot.username}] time set to day for eval episode, result=${timeSetRes}`);
+  }
+
   // Custom TP logic for TurnToLookEpisode
   if (episodeInstance instanceof TurnToLookEvalEpisode && turnToLookEvalTpPoints && turnToLookEvalTpPoints.length > 0) {
-    const timeSetRes = await rcon.send("time set day");
-    console.log(`[${bot.username}] time set to day for TurnToLookEpisode eval, result=${timeSetRes}`);
     await directTeleport(
       bot,
       rcon,

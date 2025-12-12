@@ -40,6 +40,7 @@ function parseArgs() {
       viewer_recording_interval: 50,
       smoke_test: 0,
       world_type: "flat",
+      eval_time_set_day: 0,
     },
   });
 }

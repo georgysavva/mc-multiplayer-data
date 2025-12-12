@@ -127,6 +127,8 @@ def generate_compose_config(
     enable_gpu: bool = False,
     gpu_device_id: Optional[int] = None,
     gpu_mode: str = "egl",
+    # Eval options
+    eval_time_set_day: int = 0,
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -286,6 +288,7 @@ def generate_compose_config(
                     "SMOKE_TEST": smoke_test,
                     "INSTANCE_ID": instance_id,
                     "OUTPUT_DIR": "/output",
+                    "EVAL_TIME_SET_DAY": eval_time_set_day,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -340,6 +343,7 @@ def generate_compose_config(
                     "SMOKE_TEST": smoke_test,
                     "INSTANCE_ID": instance_id,
                     "OUTPUT_DIR": "/output",
+                    "EVAL_TIME_SET_DAY": eval_time_set_day,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -690,6 +694,13 @@ def main():
         help="Enable smoke test mode to run all episode types (default: 0)",
     )
     parser.add_argument(
+        "--eval_time_set_day",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Set time to day at the start of eval episodes (default: 0)",
+    )
+    parser.add_argument(
         "--render_distance",
         type=int,
         default=8,
@@ -890,6 +901,8 @@ def main():
             enable_gpu=bool(args.enable_gpu),
             gpu_device_id=gpu_device_id,
             gpu_mode=args.gpu_mode,
+            # Eval options
+            eval_time_set_day=args.eval_time_set_day,
         )
 
         # Write compose file
