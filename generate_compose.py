@@ -736,8 +736,8 @@ def main():
     parser.add_argument(
         "--gpu_count",
         type=int,
-        default=2,
-        help="Number of GPUs available to distribute among instances (default: 2)",
+        default=1,
+        help="Number of GPUs available to distribute among instances (default: 1)",
     )
     parser.add_argument(
         "--gpu_mode",
