@@ -18,16 +18,10 @@ def main():
         description="Prepare episode files for evaluation by copying and renaming them."
     )
     parser.add_argument(
-        "--output_dir",
+        "--episodes-dir",
         type=str,
         required=True,
-        help="Path to the 'output' directory containing .json files."
-    )
-    parser.add_argument(
-        "--output_aligned_dir",
-        type=str,
-        required=True,
-        help="Path to the 'output_aligned' directory containing _camera.mp4 files."
+        help="Path to the episodes root directory (containing 'output/' and 'aligned/' subdirectories)."
     )
     parser.add_argument(
         "--destination_dir",
@@ -43,21 +37,30 @@ def main():
 
     args = parser.parse_args()
 
+    # Derive output and aligned directories from episodes-dir
+    output_dir = os.path.join(args.episodes_dir, "output")
+    output_aligned_dir = os.path.join(args.episodes_dir, "aligned")
+
     # --- 1. Validate inputs ---
-    if not os.path.isdir(args.output_dir):
-        print(f"Error: Input directory not found: {args.output_dir}", file=sys.stderr)
+    if not os.path.isdir(args.episodes_dir):
+        print(f"Error: Episodes directory not found: {args.episodes_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    if not os.path.isdir(output_dir):
+        print(f"Error: Output directory not found: {output_dir}", file=sys.stderr)
         sys.exit(1)
         
-    if not os.path.isdir(args.output_aligned_dir):
-        print(f"Error: Input directory not found: {args.output_aligned_dir}", file=sys.stderr)
+    if not os.path.isdir(output_aligned_dir):
+        print(f"Error: Aligned directory not found: {output_aligned_dir}", file=sys.stderr)
         sys.exit(1)
 
     # --- 2. Create destination directory ---
+    destination_dir = os.path.join(args.destination_dir, "test")
     try:
-        os.makedirs(args.destination_dir, exist_ok=True)
-        print(f"Ensured destination directory exists: {args.destination_dir}")
+        os.makedirs(destination_dir, exist_ok=True)
+        print(f"Ensured destination directory exists: {destination_dir}")
     except OSError as e:
-        print(f"Error: Could not create destination directory {args.destination_dir}: {e}", file=sys.stderr)
+        print(f"Error: Could not create destination directory {destination_dir}: {e}", file=sys.stderr)
         sys.exit(1)
 
     # --- 3. Process files ---
@@ -65,9 +68,9 @@ def main():
     skipped_count = 0
     not_found_count = 0
 
-    print(f"\nProcessing files from: {args.output_aligned_dir}")
+    print(f"\nProcessing files from: {output_aligned_dir}")
 
-    for video_fname in os.listdir(args.output_aligned_dir):
+    for video_fname in os.listdir(output_aligned_dir):
         if not video_fname.endswith("_camera.mp4"):
             continue
 
@@ -94,8 +97,8 @@ def main():
 
         # --- Find corresponding JSON file ---
         json_fname = base_with_timestamp + ".json"
-        src_json_path = os.path.join(args.output_dir, json_fname)
-        src_video_path = os.path.join(args.output_aligned_dir, video_fname)
+        src_json_path = os.path.join(output_dir, json_fname)
+        src_video_path = os.path.join(output_aligned_dir, video_fname)
 
         if not os.path.exists(src_json_path):
             print(f"Warning: JSON file not found for {video_fname}, skipping.")
@@ -113,8 +116,8 @@ def main():
         new_video_fname = new_base_name + "_camera.mp4"
         new_json_fname = new_base_name + ".json"
 
-        dest_json_path = os.path.join(args.destination_dir, new_json_fname)
-        dest_video_path = os.path.join(args.destination_dir, new_video_fname)
+        dest_json_path = os.path.join(destination_dir, new_json_fname)
+        dest_video_path = os.path.join(destination_dir, new_video_fname)
 
         # --- Copy files ---
         try:

@@ -5,6 +5,7 @@ const {
   stopPathfinder,
   gotoWithTimeout,
   lookAtSmooth,
+  sneak,
 } = require("../utils/movement");
 const { placeAt, findPlaceReference, ensureItemInHand } = require("./builder");
 const { BaseEpisode } = require("./base-episode");
@@ -35,6 +36,7 @@ const getBuilderAdmireTicks = (blockCount) => {
 };
 
 const BUILD_BLOCK_TYPES = ["stone"]; // Only stone blocks for building
+const EPISODE_MIN_TICKS = 300;
 const PLACEMENT_STANDOFF_BLOCKS = 1; // Stand 2 blocks away from the structure while placing
 const ADJACENT_GOAL_RADIUS = 1.0; // Relaxed tolerance to avoid micro-jitter at the target point
 
@@ -92,30 +94,27 @@ function generatePlatformPositions(startPos, width, depth) {
 }
 
 /**
- * Calculate the center position of a structure for camera targeting at eye level
+ * Calculate the center position of a structure for lookAtSmooth
  * @param {string} structureType - Type of structure
  * @param {Vec3} basePos - Base position of structure
  * @param {number} height - Height of structure
  * @param {number} length - Length of structure (for wall)
  * @param {number} width - Width of structure (for platform)
- * @returns {Vec3} Center position to look at (at eye level ~1.6 blocks)
+ * @returns {Vec3} Center position to look at
  */
-function getStructureCenter(structureType, basePos, height, length = 5, width = 4) {
-  const EYE_LEVEL = 1.6; // Standard Minecraft player eye level
-  
+function getStructureCenterForViewing(structureType, basePos, height, length = 1, width = 1) {
+  // All structures are built along X axis with constant Z (Z offset = 0)
   if (structureType === "tower_2x1") {
-    // Look at eye level of tower (or middle if tower is shorter than eye level)
-    const lookHeight = Math.min(EYE_LEVEL, height / 2);
-    return basePos.offset(0, lookHeight, 0);
+    // Tower: single column of blocks at basePos.x
+    return basePos.offset(length / 2, 0, 0);
   } else if (structureType === "wall_2x2" || structureType === "wall_4x1") {
-    // Look at center of wall at eye level (or middle height if wall is shorter)
-    const lookHeight = Math.min(EYE_LEVEL, height / 2);
-    return basePos.offset(length / 2, lookHeight, 0);
+    // Wall: blocks span from basePos.x to basePos.x + (length - 1)
+    return basePos.offset(length / 2, 0, 0);
   } else if (structureType === "platform_2x2") {
-    // Look at center of platform at eye level
-    return basePos.offset(width / 2, EYE_LEVEL, width / 2);
+    // Platform: blocks span both X and Z axes
+    return basePos.offset(width / 2, 0, width / 2);
   }
-  return basePos.offset(0, EYE_LEVEL, 0);
+  return basePos.offset(0, 0, 0);
 }
 
 // ========== Local helpers for face selection, LOS, and fast placement (episode-scoped) ==========
@@ -485,8 +484,8 @@ function getOnStructureEvalPhaseFn(
       `[${bot.username}] 📍 Spawn position: ${initialSpawnPos.toString()}`
     );
     
-    // 🎬 Frame counting variables (for ML training segment tracking)
-    let frameCountStartTime = null;
+    // Track start tick for minimum episode duration
+    let startTick = null;
 
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
@@ -542,21 +541,15 @@ function getOnStructureEvalPhaseFn(
     // STEP 1b-sneak: Builder sneaks (acknowledgment gesture), Observer remains stationary
     if (isBuilder) {
       console.log(
-        `[${bot.username}] 🤫 STEP 1b-sneak: Sneaking for ${(5 + 10) / 20}s...`
+        `[${bot.username}] STEP 1b-sneak: Sneaking...`
       );
-      
-      // 🎬 START FRAME COUNTING - Mark the beginning of the ML training segment
-      frameCountStartTime = Date.now();
-      console.log(`[${bot.username}] 🎬 FRAME COUNTING START at ${frameCountStartTime}`);
-      
-      bot.setControlState("sneak", true);
-      await bot.waitForTicks(5);
-      bot.setControlState("sneak", false);
-      await bot.waitForTicks(10);
-      console.log(`[${bot.username}] ✅ Sneak complete`);
+      await sneak(bot);
+      // Record tick number after sneak
+      startTick = bot.time.age;
+      console.log(`[${bot.username}] ✅ Sneak complete, startTick: ${startTick}`);
     } else {
       console.log(
-        `[${bot.username}] 🧍 STEP 1b-sneak: Remaining stationary (observer role)`
+        `[${bot.username}] STEP 1b-sneak: Remaining stationary (observer role)`
       );
       // Observer waits equivalent time but does nothing
       await bot.waitForTicks(15);
@@ -593,15 +586,15 @@ function getOnStructureEvalPhaseFn(
       `[${bot.username}] 📐 STEP 3: Planning structure...`
     );
     
-    // Each bot independently chooses structure type and block type
-    const structureType = ALL_STRUCTURE_TYPES[Math.floor(Math.random() * ALL_STRUCTURE_TYPES.length)];
-    const blockType = BUILD_BLOCK_TYPES[Math.floor(Math.random() * BUILD_BLOCK_TYPES.length)];
+    // Both bots use shared RNG to select the same structure type and block type
+    const structureType = ALL_STRUCTURE_TYPES[Math.floor(sharedBotRng() * ALL_STRUCTURE_TYPES.length)];
+    const blockType = BUILD_BLOCK_TYPES[Math.floor(sharedBotRng() * BUILD_BLOCK_TYPES.length)];
     
     console.log(
       `[${bot.username}] 🎲 Randomly selected: ${structureType} with ${blockType}`
     );
     
-    const botPos = bot.entity.position.floored();
+    const botPos = builderSpawnPos.floored();
     let positions = [];
     let structureBasePos = null;
     let structureHeight = null;
@@ -660,15 +653,6 @@ function getOnStructureEvalPhaseFn(
       console.log(`[${bot.username}] ✅ Finished waiting (stationary)`);
     }
 
-    // Calculate structure center for viewing
-    const structureCenter = getStructureCenter(
-      structureType,
-      structureBasePos,
-      structureHeight,
-      structureLength,
-      structureWidth
-    );
-
     // STEP 5: Both bots move to the front of the structure (axially aligned)
     // This ensures both bots view the structure from the front, not the side
     console.log(
@@ -688,8 +672,8 @@ function getOnStructureEvalPhaseFn(
       
       // For walls built along X axis, "front" is along the Z axis
       // We want both bots to be axially aligned with the structure's center X
-      const FRONT_DISTANCE = 4; // Stand 4 blocks in front of the structure
-      const actualStructureCenterX = actualStructureBasePos.x + (structureLength - 1) / 2;
+      const FRONT_DISTANCE = 6; // Stand 4 blocks in front of the structure
+      const actualStructureCenterX = actualStructureBasePos.x + (structureLength) / 2;
       const frontZ = actualStructureBasePos.z - FRONT_DISTANCE; // Front is in -Z direction
       
       // Both bots stand side by side, axially aligned with structure center
@@ -712,19 +696,13 @@ function getOnStructureEvalPhaseFn(
       await gotoWithTimeout(bot, frontGoal, { timeoutTicks: 200 });
       console.log(`[${bot.username}] ✅ Moved to front of structure (axially aligned)`);
       
-      // Calculate the structure center for viewing (using actual structure position)
-      const viewCenter = getStructureCenter(
-        structureType,
-        actualStructureBasePos,
-        structureHeight,
-        structureLength,
-        structureWidth
-      );
+      // Calculate the structure center for viewing (using actualStructureCenterX)
+      const viewPosition = getStructureCenterForViewing(structureType, actualStructureBasePos, structureHeight, structureLength, structureWidth);
       
       // Look at the structure together
-      if (viewCenter) {
+      if (viewPosition) {
         console.log(`[${bot.username}] 👁️ Looking at structure from front...`);
-        await lookAtSmooth(bot, viewCenter, 90, { randomized: false, useEasing: false });
+        await lookAtSmooth(bot, viewPosition, 90, { randomized: false, useEasing: false });
         await bot.waitForTicks(getBuilderAdmireTicks(positions.length));
         console.log(`[${bot.username}] ✅ Admired structure from front position`);
       }
@@ -736,42 +714,18 @@ function getOnStructureEvalPhaseFn(
       stopPathfinder(bot);
     }
 
-    // 🎬 END FRAME COUNTING - Always execute, even if pathfinding fails
-    if (frameCountStartTime !== null) {
-      const frameCountEndTime = Date.now();
-      const durationMs = frameCountEndTime - frameCountStartTime;
-      const durationSeconds = durationMs / 1000;
-      const estimatedFrames = Math.round(durationSeconds * 20); // 20 FPS
-      
-      console.log(`[${bot.username}] 🎬 FRAME COUNTING END at ${frameCountEndTime}`);
-      console.log(`[${bot.username}] ⏱️  ML Training Segment Duration: ${durationSeconds.toFixed(2)}s`);
-      console.log(`[${bot.username}] 🎞️  Estimated Frames (at 20 FPS): ${estimatedFrames} frames`);
-      console.log(`[${bot.username}] 📊 Target: 256 frames | Actual: ${estimatedFrames} | Difference: ${estimatedFrames - 256} frames | Actions Duration: ${durationSeconds.toFixed(2)}s`);
-    }
-
-    // 🎯 DYNAMIC PADDING: Ensure exactly 300 frames (15 seconds) total
-    // This runs for BOTH builder and observer
-    if (frameCountStartTime !== null) {
-      const currentTime = Date.now();
-      const durationSeconds = (currentTime - frameCountStartTime) / 1000;
-      const targetTotalSeconds = 15.0; // 300 frames at 20 FPS
-      const remainingTime = targetTotalSeconds - durationSeconds;
-      
-      if (remainingTime > 0) {
-        const paddingFrames = Math.round(remainingTime * 20);
-        const remainingTicks = Math.round(remainingTime * 20); // 20 ticks/second in Minecraft
-        console.log(`[${bot.username}] ⏸️  Adding ${remainingTime.toFixed(2)}s padding (${paddingFrames} frames / ${remainingTicks} ticks) to reach 300 frames total...`);
+    // Wait for minimum ticks if needed (builder only)
+    if (startTick !== null) {
+      const endTick = bot.time.age;
+      const remainingTicks = EPISODE_MIN_TICKS - (endTick - startTick);
+      if (remainingTicks > 0) {
+        console.log(`[${bot.username}] waiting ${remainingTicks} more ticks to reach ${EPISODE_MIN_TICKS} total ticks`);
         await bot.waitForTicks(remainingTicks);
-        
-        const finalTime = Date.now();
-        const finalDuration = (finalTime - frameCountStartTime) / 1000;
-        const finalFrames = Math.round(finalDuration * 20);
-        const idleDuration = remainingTime;
-        console.log(`[${bot.username}] 🎬 FINAL RECORDING END at ${finalTime}`);
-        console.log(`[${bot.username}] 📊 Final Duration: ${finalDuration.toFixed(2)}s | Final Frames: ${finalFrames} | Actions Duration: ${durationSeconds.toFixed(2)}s | Idle Duration: ${idleDuration.toFixed(2)}s`);
       } else {
-        console.log(`[${bot.username}] ⚠️  Episode ran long (${durationSeconds.toFixed(2)}s), no padding needed`);
+        console.log(`[${bot.username}] already passed ${EPISODE_MIN_TICKS} ticks (elapsed: ${endTick - startTick})`);
       }
+    } else {
+      console.log(`[${bot.username}] startTick is null, skipping minimum ticks check`);
     }
 
     console.log(`[${bot.username}] ✅ STRUCTURE EVAL phase complete!`);
@@ -872,7 +826,7 @@ module.exports = {
   generateWallPositions,
   generateTowerPositions,
   generatePlatformPositions,
-  getStructureCenter,
+  getStructureCenterForViewing,
   getOnStructureEvalPhaseFn,
   placeMultipleWithDelay,
   StructureEvalEpisode,
