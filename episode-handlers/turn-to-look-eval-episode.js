@@ -40,7 +40,6 @@ function getOnTurnToLookPhaseFn(
       return;
     }
 
-    const startTick = bot.time.age;
     const me = bot.entity.position;
     const them = other.position;
 
@@ -51,6 +50,7 @@ function getOnTurnToLookPhaseFn(
     // ---- Phase 2: Signal beginning ----
     console.log(`[${bot.username}] Sneaking to signal beginning`);
     await sneak(bot);
+    const startTick = bot.time.age;
 
     // ---- Phase 3: Face a random direction ----
     const vx = them.x - me.x;

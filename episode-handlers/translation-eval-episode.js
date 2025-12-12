@@ -8,7 +8,7 @@ const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const ITERATIONS_NUM_PER_EPISODE = 1;
 const MIN_RUN_ACTIONS = 1;
 const MAX_RUN_ACTIONS = 1;
-const MIN_EPISODE_TICKS = 340;
+const EPISODE_MIN_TICKS = 300;
 
 function getOnWalkLookPhaseFn(
   bot,
@@ -21,12 +21,6 @@ function getOnWalkLookPhaseFn(
   args
 ) {
   return async (otherBotPosition) => {
-    // Track start tick on first iteration
-    if (iterationID === 0) {
-      episodeInstance.episodeStartTick = bot.time.age;
-      console.log(`[iter ${iterationID}] [${bot.username}] episode start tick: ${episodeInstance.episodeStartTick}`);
-    }
-    
     coordinator.sendToOtherBot(
       `walkLookPhase_${iterationID}`,
       bot.entity.position.clone(),
@@ -74,7 +68,6 @@ function getOnWalkLookPhaseFn(
       camera_speed_degrees_per_sec: CAMERA_SPEED_DEGREES_PER_SEC,
       min_run_actions: MIN_RUN_ACTIONS,
       max_run_actions: MAX_RUN_ACTIONS,
-      min_episode_ticks: MIN_EPISODE_TICKS,
     };
 
     console.log(
@@ -90,8 +83,20 @@ function getOnWalkLookPhaseFn(
     if (shouldThisBotWalk) {
       // Sneak to signal that eval should start, and which bot is walking.
       await sneak(bot);
+      // Record tick number after sneak
+      const startTick = bot.time.age;
       
       await run(bot, actionCount, /*lookAway*/ false, args, episodeInstance.constructor.MOVEMENT_CONSTANTS);
+      
+      // Wait for minimum ticks if needed
+      const endTick = bot.time.age;
+      const remainingTicks = EPISODE_MIN_TICKS - (endTick - startTick);
+      if (remainingTicks > 0) {
+        console.log(`[iter ${iterationID}] [${bot.username}] waiting ${remainingTicks} more ticks to reach ${EPISODE_MIN_TICKS} total ticks`);
+        await bot.waitForTicks(remainingTicks);
+      } else {
+        console.log(`[iter ${iterationID}] [${bot.username}] already passed ${EPISODE_MIN_TICKS} ticks (elapsed: ${endTick - startTick})`);
+      }
     } else {
       // Bot doesn't run, so no sleep is needed
       console.log(
@@ -100,20 +105,11 @@ function getOnWalkLookPhaseFn(
     }
 
     if (iterationID == ITERATIONS_NUM_PER_EPISODE - 1) {
-      // Wrap the stop phase setup in a function that waits for at least 300 ticks
-      const setupStopPhaseWithDelay = async () => {
-        const currentTick = bot.time.age;
-        const elapsedTicks = currentTick - episodeInstance.episodeStartTick;
-        const remainingTicks = MIN_EPISODE_TICKS - elapsedTicks;
-        
-        if (remainingTicks > 0) {
-          console.log(`[iter ${iterationID}] [${bot.username}] waiting ${remainingTicks} more ticks to reach ${MIN_EPISODE_TICKS} total ticks`);
-          await bot.waitForTicks(remainingTicks);
-        } else {
-          console.log(`[iter ${iterationID}] [${bot.username}] already passed ${MIN_EPISODE_TICKS} ticks (elapsed: ${elapsedTicks})`);
-        }
-        
-        return episodeInstance.getOnStopPhaseFn(
+      // Setup stop phase
+      coordinator.onceEvent(
+        "stopPhase",
+        episodeNum,
+        episodeInstance.getOnStopPhaseFn(
           bot,
           rcon,
           sharedBotRng,
@@ -121,16 +117,7 @@ function getOnWalkLookPhaseFn(
           args.other_bot_name,
           episodeNum,
           args
-        );
-      };
-      
-      coordinator.onceEvent(
-        "stopPhase",
-        episodeNum,
-        async (otherBotPosition) => {
-          const stopPhaseFn = await setupStopPhaseWithDelay();
-          await stopPhaseFn(otherBotPosition);
-        }
+        )
       );
       coordinator.sendToOtherBot(
         "stopPhase",
