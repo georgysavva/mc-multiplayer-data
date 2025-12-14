@@ -1,4 +1,4 @@
-// structureEvalNoPlace.js - Debug variant of structure eval that does NOT place blocks
+// structureNoPlaceEval.js - Debug variant of structure eval that does NOT place blocks
 // This episode performs all the same movements, looking, and timing as structureEval,
 // but skips the actual block placement. Useful for debugging movement/camera behavior.
 
@@ -265,10 +265,10 @@ async function buildStructureNoPlace(bot, positions, blockType, args) {
 }
 
 /**
- * Get the phase function for structure eval NO-PLACE episodes
+ * Get the phase function for structure no-place eval episodes
  * This is nearly identical to the original, but calls buildStructureNoPlace instead
  */
-function getOnStructureEvalNoPlacePhaseFn(
+function getOnStructureNoPlaceEvalPhaseFn(
   bot,
   rcon,
   sharedBotRng,
@@ -278,15 +278,15 @@ function getOnStructureEvalNoPlacePhaseFn(
   episodeInstance,
   args
 ) {
-  return async function onStructureEvalNoPlacePhase(otherBotPosition) {
+  return async function onStructureNoPlaceEvalPhase(otherBotPosition) {
     coordinator.sendToOtherBot(
-      `structureEvalNoPlacePhase_${iterationID}`,
+      `structureNoPlaceEvalPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `structureEvalNoPlacePhase_${iterationID} beginning`
+      `structureNoPlaceEvalPhase_${iterationID} beginning`
     );
 
-    console.log(`[${bot.username}] 🚀 [NO-PLACE] Starting STRUCTURE EVAL NO-PLACE phase ${iterationID}`);
+    console.log(`[${bot.username}] 🚀 [NO-PLACE] Starting STRUCTURE NO-PLACE EVAL phase ${iterationID}`);
 
     const initialSpawnPos = bot.entity.position.clone();
     console.log(`[${bot.username}] 📍 Spawn position: ${initialSpawnPos.toString()}`);
@@ -483,7 +483,7 @@ function getOnStructureEvalNoPlacePhaseFn(
       console.log(`[${bot.username}] startTick is null, skipping minimum ticks check`);
     }
 
-    console.log(`[${bot.username}] ✅ [NO-PLACE] STRUCTURE EVAL phase complete!`);
+    console.log(`[${bot.username}] ✅ [NO-PLACE] STRUCTURE NO-PLACE EVAL phase complete!`);
 
     // Transition to stop phase
     coordinator.onceEvent(
@@ -503,7 +503,7 @@ function getOnStructureEvalNoPlacePhaseFn(
       "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
-      `structureEvalNoPlacePhase_${iterationID} end`
+      `structureNoPlaceEvalPhase_${iterationID} end`
     );
 
     return buildResult;
@@ -511,10 +511,10 @@ function getOnStructureEvalNoPlacePhaseFn(
 }
 
 /**
- * StructureEvalNoPlaceEpisode - Debug variant that does NOT place blocks
+ * StructureNoPlaceEvalEpisode - Debug variant that does NOT place blocks
  * Useful for testing movement and camera behavior without modifying the world
  */
-class StructureEvalNoPlaceEpisode extends BaseEpisode {
+class StructureNoPlaceEvalEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 6;
   static INIT_MAX_BOTS_DISTANCE = 6;
   static WORKS_IN_NON_FLAT_WORLD = true;
@@ -545,9 +545,9 @@ class StructureEvalNoPlaceEpisode extends BaseEpisode {
     args
   ) {
     coordinator.onceEvent(
-      `structureEvalNoPlacePhase_${iterationID}`,
+      `structureNoPlaceEvalPhase_${iterationID}`,
       episodeNum,
-      getOnStructureEvalNoPlacePhaseFn(
+      getOnStructureNoPlaceEvalPhaseFn(
         bot,
         rcon,
         sharedBotRng,
@@ -559,7 +559,7 @@ class StructureEvalNoPlaceEpisode extends BaseEpisode {
       )
     );
     coordinator.sendToOtherBot(
-      `structureEvalNoPlacePhase_${iterationID}`,
+      `structureNoPlaceEvalPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
       "entryPoint end"
@@ -582,6 +582,6 @@ module.exports = {
   buildStructureNoPlace,
   placeMultipleWithDelayNoPlace,
   tryPlaceAtNoOp,
-  getOnStructureEvalNoPlacePhaseFn,
-  StructureEvalNoPlaceEpisode,
+  getOnStructureNoPlaceEvalPhaseFn,
+  StructureNoPlaceEvalEpisode,
 };
