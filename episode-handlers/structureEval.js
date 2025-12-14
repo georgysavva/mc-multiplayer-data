@@ -822,6 +822,7 @@ class StructureEvalEpisode extends BaseEpisode {
 }
 
 module.exports = {
+  // Main exports
   buildStructure,
   generateWallPositions,
   generateTowerPositions,
@@ -830,4 +831,22 @@ module.exports = {
   getOnStructureEvalPhaseFn,
   placeMultipleWithDelay,
   StructureEvalEpisode,
+  // Constants (for reuse in debug/no-place variant)
+  ALL_STRUCTURE_TYPES,
+  BUILD_BLOCK_TYPES,
+  EPISODE_MIN_TICKS,
+  PLACEMENT_STANDOFF_BLOCKS,
+  ADJACENT_GOAL_RADIUS,
+  CARDINALS,
+  // Timing functions (for reuse in debug/no-place variant)
+  getInitialEyeContactTicks,
+  getBlockPlaceDelayTicks,
+  getBuilderAdmireTicks,
+  // Local helper functions (for reuse in debug/no-place variant)
+  isAirLikeLocal,
+  reachMax,
+  inReachLocal,
+  faceCenterOf,
+  hasLineOfSightToFaceLocal,
+  findVisibleReachablePlaceReferenceLocal,
 };
