@@ -40,7 +40,7 @@ def parse_arguments():
     parser.add_argument(
         "--workers",
         type=int,
-        default=4,
+        default=8,
         help="Number of parallel workers (default: 4)",
     )
     parser.add_argument(
@@ -459,10 +459,19 @@ def discover_video_pairs(videos_dir: Path) -> Dict[str, Dict[str, Path]]:
     """
     Discover all video pairs in the aligned directory.
     Returns a dict mapping pair_key -> {"Alpha": path, "Bravo": path}
+    
+    If videos_dir/test exists, uses that directory for videos.
+    Otherwise, falls back to videos_dir/aligned.
     """
-    aligned_dir = videos_dir / "aligned"
+    # Check if test directory exists, otherwise use aligned
+    test_dir = videos_dir / "test"
+    if test_dir.exists():
+        aligned_dir = test_dir
+    else:
+        aligned_dir = videos_dir / "aligned"
+    
     if not aligned_dir.exists():
-        raise RuntimeError(f"Aligned directory not found: {aligned_dir}")
+        raise RuntimeError(f"Video directory not found: {aligned_dir}")
 
     pairs: Dict[str, Dict[str, Path]] = {}
 
@@ -544,13 +553,21 @@ def main():
     output_dir = Path(args.output_dir) if args.output_dir else videos_dir / "annotated"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    json_dir = videos_dir / "output"
+    # Check if test directory exists, otherwise use output for JSONs
+    test_dir = videos_dir / "test"
+    if test_dir.exists():
+        json_dir = test_dir
+        video_source_dir = test_dir
+    else:
+        json_dir = videos_dir / "output"
+        video_source_dir = videos_dir / "aligned"
+    
     if not json_dir.exists():
-        print(f"Error: Output directory not found: {json_dir}")
+        print(f"Error: JSON directory not found: {json_dir}")
         sys.exit(1)
 
     # Discover video pairs
-    print(f"Discovering video pairs in {videos_dir / 'aligned'}...")
+    print(f"Discovering video pairs in {video_source_dir}...")
     pairs = discover_video_pairs(videos_dir)
 
     # Filter to complete pairs only
