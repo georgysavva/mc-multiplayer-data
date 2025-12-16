@@ -594,6 +594,17 @@ function getOnStructureEvalPhaseFn(
       `[${bot.username}] 🎲 Randomly selected: ${structureType} with ${blockType}`
     );
     
+    // Record important episode metadata (like translation-eval-episode.js)
+    const builderBotName = isBuilder ? bot.username : args.other_bot_name;
+    const observerBotName = isBuilder ? args.other_bot_name : bot.username;
+    episodeInstance._evalMetadata = {
+      structure_type: structureType,
+      block_type: blockType,
+      builder_bot: builderBotName,
+      observer_bot: observerBotName,
+      role_assignment_mode: selectedRoleMode,
+    };
+    
     const botPos = builderSpawnPos.floored();
     let positions = [];
     let structureBasePos = null;
