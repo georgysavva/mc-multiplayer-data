@@ -4,6 +4,7 @@ Orchestration script to manage multiple Docker Compose instances for parallel da
 """
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -11,7 +12,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 import signal
 import yaml
@@ -495,10 +496,10 @@ class InstanceManager:
         else:
             print("  (none)")
 
-    def _process_single_recording(self, job, comparison_video, output_dir=None):
+    def _process_single_recording(self, job, comparison_video, output_dir=None, delay_video_by=0.0):
         """Process a single episode recording."""
         script_path = Path(__file__).parent / "postprocess" / "process_recordings.py"
-        
+
         cmd = [
             sys.executable,
             str(script_path),
@@ -507,6 +508,7 @@ class InstanceManager:
             "--camera-prefix", str(job['camera_prefix']),
             "--episode-file", str(job['episode_file']),
             "--output-dir", output_dir or "/mnt/disks/storage/data/mc_multiplayer_v1/batch1/aligned",
+            "--delay-video-by", str(delay_video_by),
         ]
 
         if comparison_video:
@@ -533,105 +535,89 @@ class InstanceManager:
             print(f"  Error processing {job['episode_file'].name}: {e}")
             return False
 
-    def postprocess_recordings(self, workers=4, comparison_video=False, debug=False, output_dir=None):
-        """Process camera recordings for all instances in parallel."""
-        print(f"Discovering episodes from orchestrated instances...")
-        
-        compose_files = self.get_compose_files()
-        if not compose_files:
-            print("No compose files found.")
+    def _parse_instance_from_filename(self, filename: str) -> int:
+        """Extract instance ID from filename like '..._instance_000.json'."""
+        import re
+        match = re.search(r'_instance_(\d+)', filename)
+        if match:
+            return int(match.group(1))
+        return 0
+
+    def postprocess_recordings(self, workers=4, comparison_video=False, debug=False, output_dir=None, delay_video_by=0.0):
+        """Process camera recordings for all instances in parallel.
+
+        Infers directory structure from output_dir:
+          output_dir = .../aligned (where aligned videos go)
+          root = output_dir.parent
+          actions = root/output/*.json
+          camera = root/camera/output_{alpha,bravo}/{instance}/
+        """
+        if not output_dir:
+            print("Error: --output-dir is required for postprocess")
             return
-        
+
+        output_dir = Path(output_dir)
+        root = output_dir.parent
+        actions_dir = root / "output"
+        camera_root = root / "camera"
+
+        print(f"Discovering episodes from {root}...")
+        if debug:
+            print(f"[DEBUG] Root: {root}")
+            print(f"[DEBUG] Actions dir: {actions_dir}")
+            print(f"[DEBUG] Camera root: {camera_root}")
+            print(f"[DEBUG] Output dir: {output_dir}")
+
+        if not actions_dir.exists():
+            print(f"Error: Actions directory not found: {actions_dir}")
+            return
+        if not camera_root.exists():
+            print(f"Error: Camera directory not found: {camera_root}")
+            return
+
         # Build list of all episode processing jobs
         jobs = []
-        project_root = Path.cwd()
-        
-        if debug:
-            print(f"[DEBUG] Project root: {project_root}")
-        
-        for compose_file in compose_files:
-            instance_id = self._instance_index_from_stem(compose_file.stem)
-            
-            # Parse compose file to get directories
-            with open(compose_file) as f:
-                config = yaml.safe_load(f)
-            
-            # Extract output directory from sender service
-            sender_service = config['services'].get(f'sender_alpha_instance_{instance_id}')
-            if not sender_service:
+
+        for json_path in sorted(actions_dir.glob("*.json")):
+            # Skip meta and episode_info files
+            if json_path.name.endswith("_meta.json") or json_path.name.endswith("_episode_info.json"):
                 continue
 
-            # Parse volume mount: /host/path:/output (actions output dir)
-            actions_output_dir = None
-            for vol in sender_service.get('volumes', []):
-                if ':/output' in vol:
-                    actions_output_dir = Path(vol.split(':')[0])
-                    break
-
-            if not actions_output_dir:
+            # Parse bot and instance from filename
+            if "_Alpha_" in json_path.name:
+                bot = "Alpha"
+            elif "_Bravo_" in json_path.name:
+                bot = "Bravo"
+            else:
                 continue
 
-            # Extract camera output directories from camera services
-            camera_alpha_service = config['services'].get(f'camera_alpha_instance_{instance_id}')
-            camera_bravo_service = config['services'].get(f'camera_bravo_instance_{instance_id}')
+            instance_id = self._parse_instance_from_filename(json_path.name)
+            camera_prefix = camera_root / f"output_{bot.lower()}" / str(instance_id)
 
-            camera_output_alpha = None
-            camera_output_bravo = None
-
-            if camera_alpha_service:
-                for vol in camera_alpha_service.get('volumes', []):
-                    if ':/output' in vol:
-                        camera_output_alpha = Path(vol.split(':')[0])
-                        break
-
-            if camera_bravo_service:
-                for vol in camera_bravo_service.get('volumes', []):
-                    if ':/output' in vol:
-                        camera_output_bravo = Path(vol.split(':')[0])
-                        break
-            
-            # Find all episode JSON files in actions output directory
-            for json_path in sorted(actions_output_dir.glob("*.json")):
-                # Skip non-episode files and those not belonging to this instance
-                instance_tag = f"_instance_{instance_id:03d}"
-                if (
-                    json_path.name.endswith("_meta.json")
-                    or json_path.name.endswith("_episode_info.json")
-                    or instance_tag not in json_path.name
-                ):
-                    continue
-                
-                # Determine bot from filename
-                if "_Alpha_" in json_path.name:
-                    bot = "Alpha"
-                    # Use camera output directory from compose file
-                    camera_prefix = camera_output_alpha or (project_root / "camera" / "output_alpha" / str(instance_id))
-                elif "_Bravo_" in json_path.name:
-                    bot = "Bravo"
-                    # Use camera output directory from compose file
-                    camera_prefix = camera_output_bravo or (project_root / "camera" / "output_bravo" / str(instance_id))
-                else:
-                    continue
-                
+            if not camera_prefix.exists():
                 if debug:
-                    print(f"[DEBUG] Episode: {json_path.name}")
-                    print(f"[DEBUG]   Bot: {bot}, Instance: {instance_id}")
-                    print(f"[DEBUG]   Camera prefix: {camera_prefix}")
-                    print(f"[DEBUG]   Output dir: {actions_output_dir}")
-                
-                jobs.append({
-                    'episode_file': json_path,
-                    'bot': bot,
-                    'instance_id': instance_id,
-                    'output_dir': actions_output_dir,
-                    'camera_prefix': camera_prefix,
-                })
+                    print(f"[DEBUG] Skipping {json_path.name}: camera prefix not found: {camera_prefix}")
+                continue
+
+            if debug:
+                print(f"[DEBUG] Episode: {json_path.name}")
+                print(f"[DEBUG]   Bot: {bot}, Instance: {instance_id}")
+                print(f"[DEBUG]   Camera prefix: {camera_prefix}")
+
+            jobs.append({
+                'episode_file': json_path,
+                'bot': bot,
+                'instance_id': instance_id,
+                'output_dir': actions_dir,
+                'camera_prefix': camera_prefix,
+            })
         
         if not jobs:
             print("No episodes found to process.")
             return
         
-        print(f"Found {len(jobs)} episodes to process across {len(compose_files)} instances")
+        unique_instances = len(set(job['instance_id'] for job in jobs))
+        print(f"Found {len(jobs)} episodes to process across {unique_instances} instances")
         print(f"Processing with {workers} parallel workers...\n")
         
         # Process jobs in parallel
@@ -641,7 +627,8 @@ class InstanceManager:
                     self._process_single_recording,
                     job,
                     comparison_video,
-                    output_dir
+                    output_dir,
+                    delay_video_by
                 ): job
                 for job in jobs
             }
@@ -730,6 +717,12 @@ def main():
         type=str,
         help="Directory for processed video outputs (default: batch1/aligned)",
     )
+    parser.add_argument(
+        "--delay-video-by",
+        type=float,
+        default=0,
+        help="Delay video by this many seconds (default: 0)",
+    )
 
     args = parser.parse_args()
 
@@ -746,7 +739,7 @@ def main():
     elif args.command == "recordings":
         manager.recordings()
     elif args.command == "postprocess":
-        manager.postprocess_recordings(args.workers, args.comparison_video, args.debug, args.output_dir)
+        manager.postprocess_recordings(args.workers, args.comparison_video, args.debug, args.output_dir, args.delay_video_by)
 
 
 if __name__ == "__main__":

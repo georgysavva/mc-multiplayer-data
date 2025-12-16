@@ -16,6 +16,9 @@ from typing import Any, Dict, Iterable, Iterator, List
 
 import cv2
 
+# Default delay to apply to video (shifts video earlier, making it appear delayed)
+DEFAULT_DELAY_VIDEO_BY_SEC = 0.0
+
 
 @dataclass
 class AlignmentInput:
@@ -26,6 +29,7 @@ class AlignmentInput:
     ffmpeg_path: str  # retained for CLI compatibility, unused internally
     margin_start: float  # unused but kept for backward compatibility
     margin_end: float    # unused but kept for backward compatibility
+    delay_video_by_sec: float = DEFAULT_DELAY_VIDEO_BY_SEC  # shift video earlier by this amount
 
 
 def _load_actions(path: Path) -> List[Dict[str, Any]]:
@@ -50,16 +54,22 @@ def _compute_frame_indices(
     actions: Iterable[Dict[str, Any]],
     camera_start_time_sec: float,
     fps: float,
+    delay_video_by_sec: float = 0.0,
 ) -> List[int]:
     """Compute camera frame indices from action timestamps.
     
     Each action has epochTime (wall-clock time in seconds) which we subtract
     from the camera's start time and multiply by FPS to get the frame index.
+    
+    delay_video_by_sec shifts the video earlier (uses frames from earlier in the
+    recording), making the video appear delayed relative to the actions.
     """
     indices: List[int] = []
     for entry in actions:
         action_time_sec = float(entry["epochTime"])
-        frame_idx = int(round((action_time_sec - camera_start_time_sec) * fps))
+        # Subtract delay to get an earlier frame from the video
+        effective_time_sec = action_time_sec - delay_video_by_sec
+        frame_idx = int(round((effective_time_sec - camera_start_time_sec) * fps))
         indices.append(frame_idx)
     return indices
 
@@ -195,7 +205,9 @@ def align_recording(config: AlignmentInput) -> Dict[str, Any]:
             )
     
     action_times_sec = [x["epochTime"] for x in actions]
-    frame_indices = _compute_frame_indices(actions, camera_start_time_sec, fps)
+    frame_indices = _compute_frame_indices(
+        actions, camera_start_time_sec, fps, config.delay_video_by_sec
+    )
 
     _write_frames_by_index(recording_path, frame_indices, fps, config.output_video_path)
 
@@ -222,6 +234,7 @@ def align_recording(config: AlignmentInput) -> Dict[str, Any]:
         "trim_duration_sec": duration_sec,
         "first_action_time_sec": first_action_time_sec,
         "last_action_time_sec": last_action_time_sec,
+        "delay_video_by_sec": config.delay_video_by_sec,
         "frame_mapping": mapping,
     }
 
@@ -241,6 +254,12 @@ def parse_args(argv: List[str]) -> AlignmentInput:
     parser.add_argument("--margin-start", type=float, default=0.0)
     parser.add_argument("--margin-end", type=float, default=0.0)
     parser.add_argument("--ffmpeg", default="ffmpeg")  # kept for CLI compatibility
+    parser.add_argument(
+        "--delay-video-by",
+        type=float,
+        default=DEFAULT_DELAY_VIDEO_BY_SEC,
+        help=f"Delay video by this many seconds (default: {DEFAULT_DELAY_VIDEO_BY_SEC})",
+    )
 
     args = parser.parse_args(argv)
 
@@ -256,6 +275,7 @@ def parse_args(argv: List[str]) -> AlignmentInput:
         ffmpeg_path=args.ffmpeg,
         margin_start=max(0.0, args.margin_start),
         margin_end=max(0.0, args.margin_end),
+        delay_video_by_sec=args.delay_video_by,
     )
 
 
