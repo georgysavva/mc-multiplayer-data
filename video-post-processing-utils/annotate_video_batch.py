@@ -16,8 +16,10 @@ Usage:
 
 import argparse
 import json
+import random
 import re
 import sys
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -48,6 +50,12 @@ def parse_arguments():
         type=str,
         default=None,
         help="Output directory for annotated videos (default: <videos_dir>/annotated)",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Limit the number of video pairs to process (default: no limit)",
     )
 
     return parser.parse_args()
@@ -444,6 +452,72 @@ def extract_player_type(video_name: str) -> Optional[str]:
     return None
 
 
+def extract_instance_id(pair_key: str) -> Optional[str]:
+    """
+    Extract instance ID from a pair key.
+    Pair key format: TIMESTAMP_EPISODE_instance_XXX
+    Returns: instance_XXX or None if not found
+    """
+    match = re.search(r"(instance_\d+)", pair_key)
+    if match:
+        return match.group(1)
+    return None
+
+
+def select_limited_pairs_stratified(
+    complete_pairs: Dict[str, Dict[str, Path]], limit: int
+) -> Dict[str, Dict[str, Path]]:
+    """
+    Randomly select a limited number of pairs, distributed evenly across instance IDs.
+    
+    Args:
+        complete_pairs: Dictionary of pair_key -> {"Alpha": path, "Bravo": path}
+        limit: Maximum number of pairs to select
+        
+    Returns:
+        Dictionary with selected pairs, evenly distributed across instances
+    """
+    # Group pairs by instance ID
+    instance_groups: Dict[str, List[str]] = defaultdict(list)
+    for pair_key in complete_pairs.keys():
+        instance_id = extract_instance_id(pair_key)
+        if instance_id:
+            instance_groups[instance_id].append(pair_key)
+        else:
+            # If no instance ID found, put in "unknown" group
+            instance_groups["unknown"].append(pair_key)
+    
+    num_instances = len(instance_groups)
+    if num_instances == 0:
+        return {}
+    
+    # Calculate base allocation per instance and remainder
+    base_per_instance = limit // num_instances
+    remainder = limit % num_instances
+    
+    selected_keys: List[str] = []
+    
+    # Sort instance IDs for consistent ordering when distributing remainder
+    sorted_instances = sorted(instance_groups.keys())
+    
+    for i, instance_id in enumerate(sorted_instances):
+        pairs_for_instance = instance_groups[instance_id]
+        
+        # Calculate how many to select from this instance
+        # Distribute remainder to first 'remainder' instances
+        num_to_select = base_per_instance + (1 if i < remainder else 0)
+        
+        # Don't select more than available
+        num_to_select = min(num_to_select, len(pairs_for_instance))
+        
+        # Randomly select from this instance
+        if num_to_select > 0:
+            selected = random.sample(pairs_for_instance, num_to_select)
+            selected_keys.extend(selected)
+    
+    return {k: complete_pairs[k] for k in selected_keys}
+
+
 def get_json_path_for_video(video_path: Path, output_dir: Path) -> Path:
     """
     Get the corresponding JSON path for a video.
@@ -594,6 +668,22 @@ def main():
     if not complete_pairs:
         print("No complete video pairs found to process.")
         sys.exit(0)
+
+    # Apply limit if specified - stratified random selection across instances
+    if args.limit and args.limit < len(complete_pairs):
+        original_count = len(complete_pairs)
+        complete_pairs = select_limited_pairs_stratified(complete_pairs, args.limit)
+        
+        # Count how many from each instance for reporting
+        instance_counts: Dict[str, int] = defaultdict(int)
+        for pair_key in complete_pairs.keys():
+            instance_id = extract_instance_id(pair_key) or "unknown"
+            instance_counts[instance_id] += 1
+        
+        print(f"Limiting to {len(complete_pairs)} video pairs (out of {original_count} total)")
+        print(f"Stratified selection across {len(instance_counts)} instances:")
+        for instance_id in sorted(instance_counts.keys()):
+            print(f"  - {instance_id}: {instance_counts[instance_id]} pairs")
 
     print(f"Processing {len(complete_pairs)} video pairs with {args.workers} workers...\n")
 
