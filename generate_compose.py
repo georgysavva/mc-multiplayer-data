@@ -163,7 +163,7 @@ def generate_compose_config(
     launch_host = os.path.join(project_root, "camera", "launch_minecraft.py")
     camera_package_json_host = os.path.join(project_root, "camera", "package.json")
     # If the only episode type is turnToLookEval, use the fixed seed "solaris"
-    if episode_types == "turnToLookEval":
+    if episode_types == "turnToLookEval" or episode_types == "turnToLookOppositeEval":
         seed = "solaris"
         print(f"turnToLookEval episode type passsed. Using fixed seed 'solaris' for all instances.")
     else:

@@ -60,8 +60,8 @@ function getOnLookAwayPhaseFn(
 
     // Look at the other bot smoothly at the start of the phase
     await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
-    // pick a look away direction randomly. -1 means left, 1 means right.
-    const lookAwayDirection = Math.random() < 0.5 ? -1 : 1;
+    // pick (the same) look away direction randomly. -1 means left, 1 means right.
+    const lookAwayDirection = sharedBotRng() < 0.5 ? -1 : 1;
     // pick a look away offset randomly between 90 +/- 22.5 degrees.
     const lookAwayOffsetDeg = 90 * lookAwayDirection + sharedBotRng() * 45 - 22.5;
     const freezeTicks = 20;

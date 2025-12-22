@@ -43,6 +43,7 @@ const { TranslationEvalEpisode } = require("./translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
 const { RotationEvalEpisode } = require("./rotation-eval-episode");
 const { TurnToLookEvalEpisode } = require("./turn-to-look-eval-episode");
+const { TurnToLookOppositeEvalEpisode } = require("./turn-to-look-opposite-eval-episode");
 const turnToLookEvalTpPoints = require("./turn-to-look-eval-episode-tp-points.json");
 
 // Map episode type strings to their class implementations
@@ -67,6 +68,7 @@ const episodeClassMap = {
   lookAwayEval: LookAwayEvalEpisode,
   rotationEval: RotationEvalEpisode,
   turnToLookEval: TurnToLookEvalEpisode,
+  turnToLookOppositeEval: TurnToLookOppositeEvalEpisode,
 };
 
 // List of eval episode classes for generic eval episode detection
@@ -77,6 +79,7 @@ const evalEpisodeClasses = [
   LookAwayEvalEpisode,
   RotationEvalEpisode,
   TurnToLookEvalEpisode,
+  TurnToLookOppositeEvalEpisode,
 ];
 
 /**
@@ -113,6 +116,7 @@ const defaultEpisodeTypes = [
   "lookAwayEval",
   "rotationEval",
   "turnToLookEval",
+  "turnToLookOppositeEval",
 ];
 
 const isCustomEpisodeTypes = process.env.EPISODE_TYPES && process.env.EPISODE_TYPES !== "all";

@@ -4,7 +4,7 @@ const { lookAtSmooth, sneak } = require("../utils/movement");
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const EPISODE_MIN_TICKS = 300;
 
-function getOnTurnToLookPhaseFn(
+function getOnTurnToLookOppositePhaseFn(
   bot,
   rcon,
   sharedBotRng,
@@ -19,10 +19,10 @@ function getOnTurnToLookPhaseFn(
     await bot.waitForTicks(2);
 
     coordinator.sendToOtherBot(
-      "turnToLookPhase",
+      "turnToLookOppositePhase",
       bot.entity.position.clone(),
       episodeNum,
-      "turnToLookPhase beginning"
+      "turnToLookOppositePhase beginning"
     );
 
     const otherName = args.other_bot_name;
@@ -59,9 +59,9 @@ function getOnTurnToLookPhaseFn(
     const nx = vx / mag;
     const nz = vz / mag;
 
-    // Rotate 90 degrees left or right
-    // direction = +1 or -1 chosen from sharedRng so both bots choose opposite sides deterministically
-    const dir = bot.username < otherName ? 1 : -1;
+    // Make both bots use the same rotation direction, which results in opposite facing directions
+    // because their base vectors (toward each other) are already opposite
+    const dir = 1;
 
     // rotated vector
     const sideX = -nz * dir;
@@ -106,19 +106,19 @@ function getOnTurnToLookPhaseFn(
       "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
-      "turnToLookPhase end"
+      "turnToLookOppositePhase end"
     );
   };
 }
 
-class TurnToLookEvalEpisode extends BaseEpisode {
+class TurnToLookOppositeEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
   async entryPoint(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, args) {
     coordinator.onceEvent(
-      "turnToLookPhase",
+      "turnToLookOppositePhase",
       episodeNum,
-      getOnTurnToLookPhaseFn(
+      getOnTurnToLookOppositePhaseFn(
         bot,
         rcon,
         sharedBotRng,
@@ -130,7 +130,7 @@ class TurnToLookEvalEpisode extends BaseEpisode {
     );
 
     coordinator.sendToOtherBot(
-      "turnToLookPhase",
+      "turnToLookOppositePhase",
       bot.entity.position.clone(),
       episodeNum,
       "teleportPhase end"
@@ -139,6 +139,6 @@ class TurnToLookEvalEpisode extends BaseEpisode {
 }
 
 module.exports = {
-  getOnTurnToLookPhaseFn,
-  TurnToLookEvalEpisode,
+  getOnTurnToLookOppositePhaseFn,
+  TurnToLookOppositeEvalEpisode,
 };
