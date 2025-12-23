@@ -900,15 +900,17 @@ async function teleport(
   }
 
   // Custom TP logic for TurnToLookEpisode
-  if (episodeInstance instanceof TurnToLookEvalEpisode && turnToLookEvalTpPoints && turnToLookEvalTpPoints.length > 0) {
-    await directTeleport(
-      bot,
-      rcon,
-      args.other_bot_name,
-      episodeNum,
-      turnToLookEvalTpPoints
-    );
-    return;
+  if (episodeInstance instanceof TurnToLookEvalEpisode || episodeInstance instanceof TurnToLookOppositeEvalEpisode) {
+    if (turnToLookEvalTpPoints && turnToLookEvalTpPoints.length > 0) {
+      await directTeleport(
+        bot,
+        rcon,
+        args.other_bot_name,
+        episodeNum,
+        turnToLookEvalTpPoints
+      );
+      return;
+    }
   }
 
   // Initialize teleport center once as the midpoint between this bot and the other bot
