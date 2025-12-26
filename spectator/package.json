@@ -1,9 +1,0 @@
-{
-  "name": "passive-spectator-bot",
-  "version": "1.0.0",
-  "main": "spectator.js",
-  "license": "MIT",
-  "dependencies": {
-    "mineflayer": "github:georgysavva/mineflayer"
-  }
-}

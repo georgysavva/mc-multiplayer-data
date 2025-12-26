@@ -6,7 +6,7 @@ python3 generate_compose.py \
  --compose_dir ./compose_configs \
  --base_port 25590 \
  --base_rcon_port 25600 \
- --receiver_port 8110 \
+ --act_recorder_port 8110 \
  --coord_port 8120 \
  --data_dir $BASE_DATA_DIR/$BATCH_NAME/data \
  --output_dir $BASE_DATA_DIR/$BATCH_NAME/output \

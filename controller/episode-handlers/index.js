@@ -456,13 +456,13 @@ async function clearBotInventory(bot, rcon) {
  * Get spawn phase handler function
  * @param {Bot} bot - Mineflayer bot instance
  * @param {string} host - Server host
- * @param {number} receiverPort - Receiver port
+ * @param {number} actRecorderPort - Act recorder port
  * @param {Function} sharedBotRng - Shared random number generator
  * @param {BotCoordinator} coordinator - Bot coordinator instance
  * @param {Object} args - Configuration arguments
  * @returns {Function} Spawn phase handler
  */
-function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
+function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
   return async () => {
     bot.pathfinder.thinkTimeout = 7500; // max total planning time per path (ms)
     bot.pathfinder.tickTimeout = 15; // max CPU per tick spent "thinking" (ms)
@@ -518,7 +518,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
 
     // Initialize viewer once for the entire program
     mineflayerViewerhl(bot, {
-      output: `${host}:${receiverPort}`,
+      output: `${host}:${actRecorderPort}`,
       width: 640,
       height: 360,
       frames: 400,

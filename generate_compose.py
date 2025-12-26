@@ -6,7 +6,7 @@ Each instance will have its own ports and output directories to avoid conflicts.
 Enhancements:
 - Support generating a mix of flatland and normal worlds via
   `--num_flatland_world` and `--num_normal_world`.
-- Add `--viewer_rendering_disabled` (default: 1) applied to senders/receivers.
+- Add `--viewer_rendering_disabled` (default: 1) applied to act_recorder/controller.
 - Keep `--bootstrap_wait_time` unchanged as an argument.
 - Set default `--iterations_num_per_episode` to 5.
 """
@@ -84,7 +84,7 @@ def generate_compose_config(
     instance_id,
     base_port,
     base_rcon_port,
-    receiver_port,
+    act_recorder_port,
     coord_port,
     data_dir_base,
     output_dir,
@@ -232,7 +232,7 @@ def generate_compose_config(
                     "retries": 12,
                 },
             },
-            f"sender_alpha_instance_{instance_id}": {
+            f"controller_alpha_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
                 "build": {
                     "context": project_root,
@@ -240,7 +240,7 @@ def generate_compose_config(
                 },
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"},
-                    f"receiver_alpha_instance_{instance_id}": {
+                    f"act_recorder_alpha_instance_{instance_id}": {
                         "condition": "service_started"
                     },
                 },
@@ -249,10 +249,10 @@ def generate_compose_config(
                 "environment": {
                     "BOT_NAME": "Alpha",
                     "OTHER_BOT_NAME": "Bravo",
-                    "RECEIVER_HOST": f"receiver_alpha_instance_{instance_id}",
-                    "RECEIVER_PORT": receiver_port,
+                    "ACT_RECORDER_HOST": f"act_recorder_alpha_instance_{instance_id}",
+                    "ACT_RECORDER_PORT": act_recorder_port,
                     "COORD_PORT": coord_port,
-                    "OTHER_COORD_HOST": f"sender_bravo_instance_{instance_id}",
+                    "OTHER_COORD_HOST": f"controller_bravo_instance_{instance_id}",
                     "OTHER_COORD_PORT": coord_port,
                     "BOT_RNG_SEED": str(12345 + instance_id),
                     "EPISODES_NUM": num_episodes,
@@ -282,9 +282,9 @@ def generate_compose_config(
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": "./entrypoint_senders.sh",
+                "command": "./controller/entrypoint.sh",
             },
-            f"sender_bravo_instance_{instance_id}": {
+            f"controller_bravo_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
                 "build": {
                     "context": project_root,
@@ -292,10 +292,10 @@ def generate_compose_config(
                 },
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"},
-                    f"receiver_bravo_instance_{instance_id}": {
+                    f"act_recorder_bravo_instance_{instance_id}": {
                         "condition": "service_started"
                     },
-                    f"sender_alpha_instance_{instance_id}": {
+                    f"controller_alpha_instance_{instance_id}": {
                         "condition": "service_started"
                     },
                 },
@@ -304,10 +304,10 @@ def generate_compose_config(
                 "environment": {
                     "BOT_NAME": "Bravo",
                     "OTHER_BOT_NAME": "Alpha",
-                    "RECEIVER_HOST": f"receiver_bravo_instance_{instance_id}",
-                    "RECEIVER_PORT": receiver_port,
+                    "ACT_RECORDER_HOST": f"act_recorder_bravo_instance_{instance_id}",
+                    "ACT_RECORDER_PORT": act_recorder_port,
                     "COORD_PORT": coord_port,
-                    "OTHER_COORD_HOST": f"sender_alpha_instance_{instance_id}",
+                    "OTHER_COORD_HOST": f"controller_alpha_instance_{instance_id}",
                     "OTHER_COORD_PORT": coord_port,
                     "BOT_RNG_SEED": str(12345 + instance_id),
                     "EPISODES_NUM": num_episodes,
@@ -337,12 +337,12 @@ def generate_compose_config(
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": "./entrypoint_senders.sh",
+                "command": "./controller/entrypoint.sh",
             },
-            f"receiver_alpha_instance_{instance_id}": {
+            f"act_recorder_alpha_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
                 "environment": {
-                    "PORT": receiver_port,
+                    "PORT": act_recorder_port,
                     "NAME": "Alpha",
                     "INSTANCE_ID": instance_id,
                     "EPISODE_START_ID": episode_start_id,
@@ -352,12 +352,12 @@ def generate_compose_config(
                 **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": "./entrypoint_receiver.sh",
+                "command": "./act_recorder/entrypoint.sh",
             },
-            f"receiver_bravo_instance_{instance_id}": {
+            f"act_recorder_bravo_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
                 "environment": {
-                    "PORT": receiver_port,
+                    "PORT": act_recorder_port,
                     "NAME": "Bravo",
                     "INSTANCE_ID": instance_id,
                     "EPISODE_START_ID": episode_start_id,
@@ -367,7 +367,7 @@ def generate_compose_config(
                 **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": "./entrypoint_receiver.sh",
+                "command": "./act_recorder/entrypoint.sh",
             },
             # Camera alpha: recording client
             f"camera_alpha_instance_{instance_id}": {
@@ -581,10 +581,10 @@ def main():
         help="Base RCON port (default: 25675)",
     )
     parser.add_argument(
-        "--receiver_port",
+        "--act_recorder_port",
         type=int,
         default=8090,
-        help="Receiver port for bridge network services (default: 8090)",
+        help="Act recorder port for bridge network services (default: 8090)",
     )
     parser.add_argument(
         "--coord_port",
@@ -670,7 +670,7 @@ def main():
         type=int,
         choices=[0, 1],
         default=1,
-        help="Disable viewer rendering for senders/receivers (default: 1)",
+        help="Disable viewer rendering for act_recorder/controller (default: 1)",
     )
     parser.add_argument(
         "--smoke_test",
@@ -711,12 +711,6 @@ def main():
         default="egl",
         choices=["egl", "x11", "auto"],
         help="GPU rendering mode: egl (headless), x11 (requires host X), auto (default: egl)",
-    )
-    parser.add_argument(
-        "--total_cpus",
-        type=int,
-        default=None,
-        help="Total number of CPU cores to distribute (default: auto-detect from system)",
     )
 
     args = parser.parse_args()
@@ -782,7 +776,7 @@ def main():
             i,
             args.base_port,
             args.base_rcon_port,
-            args.receiver_port,
+            args.act_recorder_port,
             args.coord_port,
             args.data_dir,
             args.output_dir,
@@ -914,7 +908,7 @@ def main():
         f"  Camera Bravo noVNC: {args.camera_bravo_novnc_base}..{args.camera_bravo_novnc_base + args.vnc_step * (total_instances - 1)}"
     )
     print(
-        "Bridge network services (receivers, senders) use internal communication only."
+        "Bridge network services (act_recorder, controller) use internal communication only."
     )
 
 

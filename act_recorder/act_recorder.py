@@ -176,7 +176,7 @@ def get_recv_buffer_used(sock):
     return buf[0]
 
 
-argparser = argparse.ArgumentParser(description="Receiver script")
+argparser = argparse.ArgumentParser(description="Act recorder script")
 argparser.add_argument("--name", type=str, required=True, help="minecraft bot name")
 argparser.add_argument(
     "--start_id",

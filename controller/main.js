@@ -1,7 +1,7 @@
 /**
  * Modularized Minecraft Bot Coordination System
  *
- * This is the new modular version of senders.js with improved code organization.
+ * This is the new modular version of controller.js with improved code organization.
  * All utility functions have been extracted into separate modules for better maintainability.
  */
 
@@ -50,7 +50,7 @@ async function main() {
   // Set up spawn event handler
   bot.once(
     "spawn",
-    getOnSpawnFn(bot, args.receiver_host, args.receiver_port, coordinator, args)
+    getOnSpawnFn(bot, args.act_recorder_host, args.act_recorder_port, coordinator, args)
   );
 
   // Handle system chat packets
