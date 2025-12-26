@@ -1,7 +1,7 @@
-const { lookAtSmooth, sneak, gotoWithTimeout } = require("../utils/movement");
-const { run } = require("../utils/random-movement");
-const { BaseEpisode } = require("./base-episode");
-const { GoalXZ } = require("../utils/bot-factory");
+const { lookAtSmooth, sneak, gotoWithTimeout } = require("../../utils/movement");
+const { run } = require("../../utils/random-movement");
+const { BaseEpisode } = require("../base-episode");
+const { GoalXZ } = require("../../utils/bot-factory");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 

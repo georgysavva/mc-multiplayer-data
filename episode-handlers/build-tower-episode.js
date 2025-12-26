@@ -9,7 +9,7 @@ const {
   ensureItemInHand,
   buildTowerUnderneath,
   fastPlaceBlock,
-} = require("./builder");
+} = require("../utils/building");
 const { BaseEpisode } = require("./base-episode");
 const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 

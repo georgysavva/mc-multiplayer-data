@@ -9,10 +9,10 @@ const {
   gotoWithTimeout,
   lookAtSmooth,
   sneak,
-} = require("../utils/movement");
-const { findPlaceReference, ensureItemInHand } = require("./builder");
-const { BaseEpisode } = require("./base-episode");
-const { ensureBotHasEnough, unequipHand } = require("../utils/items");
+} = require("../../utils/movement");
+const { findPlaceReference, ensureItemInHand } = require("../../utils/building");
+const { BaseEpisode } = require("../base-episode");
+const { ensureBotHasEnough, unequipHand } = require("../../utils/items");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Import shared functions and constants from structureEval.js

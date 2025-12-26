@@ -6,7 +6,7 @@ const {
   digWithTimeout,
   getScaffoldingBlockIds,
 } = require("../utils/movement");
-const { ensureItemInHand } = require("./builder");
+const { ensureItemInHand } = require("../utils/building");
 const { BaseEpisode } = require("./base-episode");
 const { unequipHand } = require("../utils/items");
 

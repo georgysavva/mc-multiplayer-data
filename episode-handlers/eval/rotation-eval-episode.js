@@ -1,5 +1,5 @@
-const { lookAtSmooth, sneak, lookSmooth } = require("../utils/movement");
-const { BaseEpisode } = require("./base-episode");
+const { lookAtSmooth, sneak, lookSmooth } = require("../../utils/movement");
+const { BaseEpisode } = require("../base-episode");
 
 // const {
 //   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,

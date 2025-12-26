@@ -6,7 +6,7 @@ const {
   placeAt,
   fastPlaceBlock,
   buildTowerUnderneath,
-} = require("./builder");
+} = require("../utils/building");
 const { BaseEpisode } = require("./base-episode");
 const { Movements, GoalNear } = require("../utils/bot-factory");
 const { ensureBotHasEnough, unequipHand } = require("../utils/items");

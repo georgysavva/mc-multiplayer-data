@@ -21,7 +21,7 @@
 
 const { Vec3 } = require("vec3");
 const { sleep } = require("../utils/helpers");
-const { placeAt, ensureItemInHand } = require("./builder");
+const { placeAt, ensureItemInHand } = require("../utils/building");
 const { BaseEpisode } = require("./base-episode");
 const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 const { decidePrimaryBot, rconTp } = require("../utils/coordination");

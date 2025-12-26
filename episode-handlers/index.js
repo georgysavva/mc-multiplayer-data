@@ -37,14 +37,14 @@ const { TowerBridgeEpisode } = require("./tower-bridge-episode");
 const { BuildHouseEpisode } = require("./build-house-episode");
 const { CollectorEpisode } = require("./collector-episode");
 const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
-const { StructureEvalEpisode } = require("./structureEval");
-const { StructureNoPlaceEvalEpisode } = require("./structureNoPlaceEval");
-const { TranslationEvalEpisode } = require("./translation-eval-episode");
-const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
-const { RotationEvalEpisode } = require("./rotation-eval-episode");
-const { TurnToLookEvalEpisode } = require("./turn-to-look-eval-episode");
-const { TurnToLookOppositeEvalEpisode } = require("./turn-to-look-opposite-eval-episode");
-const turnToLookEvalTpPoints = require("./turn-to-look-eval-episode-tp-points.json");
+const { StructureEvalEpisode } = require("./eval/structureEval");
+const { StructureNoPlaceEvalEpisode } = require("./eval/structureNoPlaceEval");
+const { TranslationEvalEpisode } = require("./eval/translation-eval-episode");
+const { LookAwayEvalEpisode } = require("./eval/look-away-eval-episode");
+const { RotationEvalEpisode } = require("./eval/rotation-eval-episode");
+const { TurnToLookEvalEpisode } = require("./eval/turn-to-look-eval-episode");
+const { TurnToLookOppositeEvalEpisode } = require("./eval/turn-to-look-opposite-eval-episode");
+const turnToLookEvalTpPoints = require("./eval/turn-to-look-eval-episode-tp-points.json");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {

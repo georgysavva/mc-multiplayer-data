@@ -6,11 +6,11 @@ const {
   gotoWithTimeout,
   lookAtSmooth,
   sneak,
-} = require("../utils/movement");
-const { placeAt, findPlaceReference, ensureItemInHand } = require("./builder");
-const { BaseEpisode } = require("./base-episode");
-const { pickRandom } = require("../utils/coordination");
-const { ensureBotHasEnough, unequipHand } = require("../utils/items");
+} = require("../../utils/movement");
+const { placeAt, findPlaceReference, ensureItemInHand } = require("../../utils/building");
+const { BaseEpisode } = require("../base-episode");
+const { pickRandom } = require("../../utils/coordination");
+const { ensureBotHasEnough, unequipHand } = require("../../utils/items");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior
