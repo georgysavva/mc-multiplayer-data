@@ -20,13 +20,6 @@ from typing import Optional
 
 import yaml
 
-from cpu_binning_utils import (
-    calculate_cpu_ranges,
-    cpuset_string_excluding,
-    get_no_hyper_threading_cpu_ranges,
-    get_physical_core0_cpus,
-    split_cpu_range,
-)
 
 
 def absdir(path: str) -> str:
@@ -720,13 +713,6 @@ def main():
         help="Minecraft graphics mode (0=Fast, 1=Fancy, 2=Fabulous, default: 1)",
     )
     parser.add_argument(
-        "--enable_cpu_pinning",
-        type=int,
-        default=0,
-        choices=[0, 1],
-        help="Enable CPU pinning to evenly distribute cores among instances (default: 0)",
-    )
-    parser.add_argument(
         "--enable_gpu",
         type=int,
         default=0,
@@ -751,13 +737,6 @@ def main():
         type=int,
         default=None,
         help="Total number of CPU cores to distribute (default: auto-detect from system)",
-    )
-    parser.add_argument(
-        "--no_hyper_threading",
-        type=int,
-        default=0,
-        choices=[0, 1],
-        help="Only use second logical cores (latter half of CPUs) to avoid hyperthreading (default: 0)",
     )
 
     args = parser.parse_args()
@@ -797,33 +776,6 @@ def main():
         total_instances = args.instances
         world_plan = ["normal"] * total_instances
 
-    # Calculate CPU pinning if enabled
-    cpu_ranges: list[tuple[int, int]] = []
-    physical_core0_cpus: set[int] = set()
-    if args.enable_cpu_pinning:
-        total_cpus = args.total_cpus if args.total_cpus else os.cpu_count()
-        if total_cpus is None:
-            print("Warning: Could not detect CPU count, disabling CPU pinning")
-            args.enable_cpu_pinning = 0
-        else:
-            if args.no_hyper_threading:
-                cpu_ranges = get_no_hyper_threading_cpu_ranges(total_cpus, total_instances)
-                # No need to exclude physical_core0_cpus when using only second logical cores
-                physical_core0_cpus = set()
-                usable_cpus = total_cpus - total_cpus // 2
-                print(f"CPU pinning enabled (no hyperthreading): using {usable_cpus} cores (CPUs {total_cpus // 2}-{total_cpus - 1}) across {total_instances} instances")
-            else:
-                cpu_ranges = calculate_cpu_ranges(total_cpus, total_instances)
-                physical_core0_cpus = get_physical_core0_cpus()
-                print(f"CPU pinning enabled: {total_cpus} cores across {total_instances} instances")
-                print(f"  Excluding physical core 0 siblings: {physical_core0_cpus}")       
-            for idx, (start, end) in enumerate(cpu_ranges):
-                (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start, end)
-                instance_cs = cpuset_string_excluding(start, end, physical_core0_cpus)
-                alpha_cs = instance_cs # cpuset_string_excluding(alpha_start, alpha_end, physical_core0_cpus)
-                bravo_cs = instance_cs #cpuset_string_excluding(bravo_start, bravo_end, physical_core0_cpus)
-                print(f"  Instance {idx}: {instance_cs} (camera_alpha: {alpha_cs}, camera_bravo: {bravo_cs})")
-
     # GPU configuration validation
     if args.enable_gpu and args.gpu_count > 1:
         raise ValueError(
@@ -849,14 +801,6 @@ def main():
         instance_cpuset = None
         camera_alpha_cpuset = None
         camera_bravo_cpuset = None
-        if args.enable_cpu_pinning and cpu_ranges:
-            start_cpu, end_cpu = cpu_ranges[i]
-            # Exclude physical core 0 siblings (they handle system interrupts)
-            instance_cpuset = cpuset_string_excluding(start_cpu, end_cpu, physical_core0_cpus)
-            # Split the instance's cores between the two camera bots
-            (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start_cpu, end_cpu)
-            camera_alpha_cpuset = cpuset_string_excluding(alpha_start, alpha_end, physical_core0_cpus)
-            camera_bravo_cpuset = cpuset_string_excluding(bravo_start, bravo_end, physical_core0_cpus)
         
         # Calculate GPU assignment for this instance (round-robin across available GPUs)
         gpu_device_id = i % args.gpu_count if args.enable_gpu else None
