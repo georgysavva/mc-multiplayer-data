@@ -1,7 +1,6 @@
 const mineflayer = require("mineflayer");
 
-// Local sleep helper to avoid relying on external utilities in the container
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const { sleep } = require("../utils/helpers");
 
 const MC_HOST = process.env.MC_HOST || "127.0.0.1";
 const MC_PORT = Number(process.env.MC_PORT || 25565);

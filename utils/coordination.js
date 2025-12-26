@@ -1,4 +1,3 @@
-const { Rcon } = require("rcon-client");
 const net = require("net");
 const EventEmitter = require("events");
 
