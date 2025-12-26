@@ -117,7 +117,6 @@ def generate_compose_config(
     cpuset_camera_alpha: Optional[str] = None,
     cpuset_camera_bravo: Optional[str] = None,
     # GPU settings
-    enable_gpu: bool = False,
     gpu_device_id: Optional[int] = None,
     gpu_mode: str = "egl",
     # Eval options
@@ -374,10 +373,10 @@ def generate_compose_config(
             },
             # Camera alpha: recording client
             f"camera_alpha_instance_{instance_id}": {
-                "image": "ojmichel/mineflayer-spectator-client:gpu" if enable_gpu else "ojmichel/mineflayer-spectator-client:latest",
+                "image": "ojmichel/mineflayer-spectator-client:gpu",
                 "build": {
                     "context": os.path.join(project_root, "camera"),
-                    "dockerfile": "Dockerfile.gpu" if enable_gpu else "Dockerfile",
+                    "dockerfile": "Dockerfile.gpu",
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",
@@ -407,8 +406,6 @@ def generate_compose_config(
                             "NVIDIA_DRIVER_CAPABILITIES": "all",
                             "NVIDIA_VISIBLE_DEVICES": gpu_device_id,
                         }
-                        if enable_gpu and gpu_device_id is not None
-                        else {}
                     ),
                 },
                 "runtime": "nvidia",
@@ -449,10 +446,10 @@ def generate_compose_config(
             },
             # Camera bravo: recording client
             f"camera_bravo_instance_{instance_id}": {
-                "image": "ojmichel/mineflayer-spectator-client:gpu" if enable_gpu else "ojmichel/mineflayer-spectator-client:latest",
+                "image": "ojmichel/mineflayer-spectator-client:gpu",
                 "build": {
                     "context": os.path.join(project_root, "camera"),
-                    "dockerfile": "Dockerfile.gpu" if enable_gpu else "Dockerfile",
+                    "dockerfile": "Dockerfile.gpu",
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",
@@ -482,8 +479,6 @@ def generate_compose_config(
                             "NVIDIA_DRIVER_CAPABILITIES": "all",
                             "NVIDIA_VISIBLE_DEVICES": gpu_device_id,
                         }
-                        if enable_gpu and gpu_device_id is not None
-                        else {}
                     ),
                 },
                 "runtime": "nvidia",
@@ -713,19 +708,6 @@ def main():
         help="Minecraft graphics mode (0=Fast, 1=Fancy, 2=Fabulous, default: 1)",
     )
     parser.add_argument(
-        "--enable_gpu",
-        type=int,
-        default=0,
-        choices=[0, 1],
-        help="Enable GPU rendering for camera containers (requires nvidia-container-toolkit, default: 0)",
-    )
-    parser.add_argument(
-        "--gpu_count",
-        type=int,
-        default=1,
-        help="Number of GPUs available to distribute among instances (default: 1)",
-    )
-    parser.add_argument(
         "--gpu_mode",
         type=str,
         default="egl",
@@ -777,21 +759,14 @@ def main():
         world_plan = ["normal"] * total_instances
 
     # GPU configuration validation
-    if args.enable_gpu and args.gpu_count > 1:
-        raise ValueError(
-            f"Multi-GPU support is currently broken due to an NVENC bug. "
-            f"Got --gpu_count={args.gpu_count}, but only GPU 0 can be used.\n"
-            f"See: https://forums.developer.nvidia.com/t/nvenc-and-nvdec-work-on-only-one-gpu-with-multi-gpu-setups-with-nvidia-container-toolkit-in-driver-565/347361\n"
-            f"Use --gpu_count=1 to run all instances on GPU 0."
-        )
+    gpu_count = 1
 
     # GPU configuration summary
-    if args.enable_gpu:
-        print(f"GPU rendering enabled: {args.gpu_count} GPUs available, mode={args.gpu_mode}")
-        print(f"  Instances will be distributed round-robin across GPUs")
-        for i in range(total_instances):
-            gpu_id = i % args.gpu_count
-            print(f"    Instance {i}: GPU {gpu_id}")
+    print(f"GPU rendering enabled: {gpu_count} GPUs available, mode={args.gpu_mode}")
+    print(f"  Instances will be distributed round-robin across GPUs")
+    for i in range(total_instances):
+        gpu_id = i % gpu_count
+        print(f"    Instance {i}: GPU {gpu_id}")
     
     print(f"Generating {total_instances} Docker Compose configurations...")
 
@@ -803,7 +778,7 @@ def main():
         camera_bravo_cpuset = None
         
         # Calculate GPU assignment for this instance (round-robin across available GPUs)
-        gpu_device_id = i % args.gpu_count if args.enable_gpu else None
+        gpu_device_id = i % gpu_count
         
         config = generate_compose_config(
             i,
@@ -842,7 +817,6 @@ def main():
             cpuset_camera_alpha=camera_alpha_cpuset,
             cpuset_camera_bravo=camera_bravo_cpuset,
             # GPU settings
-            enable_gpu=bool(args.enable_gpu),
             gpu_device_id=gpu_device_id,
             gpu_mode=args.gpu_mode,
             # Eval options
