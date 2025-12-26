@@ -373,10 +373,10 @@ def generate_compose_config(
             },
             # Camera alpha: recording client
             f"camera_alpha_instance_{instance_id}": {
-                "image": "ojmichel/mineflayer-spectator-client:gpu",
+                "image": "ojmichel/mineflayer-spectator-client:latest",
                 "build": {
                     "context": os.path.join(project_root, "camera"),
-                    "dockerfile": "Dockerfile.gpu",
+                    "dockerfile": "Dockerfile",
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",
@@ -446,10 +446,10 @@ def generate_compose_config(
             },
             # Camera bravo: recording client
             f"camera_bravo_instance_{instance_id}": {
-                "image": "ojmichel/mineflayer-spectator-client:gpu",
+                "image": "ojmichel/mineflayer-spectator-client:latest",
                 "build": {
                     "context": os.path.join(project_root, "camera"),
-                    "dockerfile": "Dockerfile.gpu",
+                    "dockerfile": "Dockerfile",
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",

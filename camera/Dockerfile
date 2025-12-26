@@ -68,7 +68,7 @@ RUN pip3 install --no-cache-dir \
 WORKDIR /app
 
 # Copy application scripts
-COPY entrypoint_gpu.sh /app/entrypoint.sh
+COPY entrypoint.sh /app/entrypoint.sh
 COPY launch_minecraft.py /app/launch_minecraft.py
 
 RUN chmod +x /app/entrypoint.sh
