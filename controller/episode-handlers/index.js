@@ -38,12 +38,10 @@ const { BuildHouseEpisode } = require("./build-house-episode");
 const { CollectorEpisode } = require("./collector-episode");
 const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
 const { StructureEvalEpisode } = require("./eval/structureEval");
-const { StructureNoPlaceEvalEpisode } = require("./eval/structureNoPlaceEval");
 const { TranslationEvalEpisode } = require("./eval/translation-eval-episode");
 const { LookAwayEvalEpisode } = require("./eval/look-away-eval-episode");
 const { RotationEvalEpisode } = require("./eval/rotation-eval-episode");
 const { TurnToLookEvalEpisode } = require("./eval/turn-to-look-eval-episode");
-const { TurnToLookOppositeEvalEpisode } = require("./eval/turn-to-look-opposite-eval-episode");
 const turnToLookEvalTpPoints = require("./eval/turn-to-look-eval-episode-tp-points.json");
 
 // Map episode type strings to their class implementations
@@ -62,24 +60,21 @@ const episodeClassMap = {
   buildHouse: BuildHouseEpisode,
   collector: CollectorEpisode,
   placeAndMine: PlaceAndMineEpisode,
+  // Eval episodes:
   structureEval: StructureEvalEpisode,
-  structureNoPlaceEval: StructureNoPlaceEvalEpisode,
   translationEval: TranslationEvalEpisode,
   lookAwayEval: LookAwayEvalEpisode,
   rotationEval: RotationEvalEpisode,
   turnToLookEval: TurnToLookEvalEpisode,
-  turnToLookOppositeEval: TurnToLookOppositeEvalEpisode,
 };
 
 // List of eval episode classes for generic eval episode detection
 const evalEpisodeClasses = [
   StructureEvalEpisode,
-  StructureNoPlaceEvalEpisode,
   TranslationEvalEpisode,
   LookAwayEvalEpisode,
   RotationEvalEpisode,
   TurnToLookEvalEpisode,
-  TurnToLookOppositeEvalEpisode,
 ];
 
 /**
