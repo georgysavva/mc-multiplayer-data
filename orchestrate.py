@@ -106,10 +106,10 @@ class InstanceManager:
         self.service_bases = [
             "prep_data_instance_{i}",
             "mc_instance_{i}",
-            "sender_alpha_instance_{i}",
-            "sender_bravo_instance_{i}",
-            "receiver_alpha_instance_{i}",
-            "receiver_bravo_instance_{i}",
+            "controller_alpha_instance_{i}",
+            "controller_bravo_instance_{i}",
+            "act_recorder_alpha_instance_{i}",
+            "act_recorder_bravo_instance_{i}",
             "camera_alpha_instance_{i}",
             "episode_starter_instance_{i}",
             "camera_bravo_instance_{i}",
@@ -227,13 +227,13 @@ class InstanceManager:
             print(f"❌ Error stopping {instance_name}: {e}")
             return False, instance_name
 
-    def wait_for_senders(self, instance_name, compose_file):
-        """Wait for sender services to complete for a single instance."""
+    def wait_for_controllers(self, instance_name, compose_file):
+        """Wait for controller services to complete for a single instance."""
         idx = self._instance_index_from_stem(instance_name)
-        sender_alpha = f"sender_alpha_instance_{idx}"
-        sender_bravo = f"sender_bravo_instance_{idx}"
+        controller_alpha = f"controller_alpha_instance_{idx}"
+        controller_bravo = f"controller_bravo_instance_{idx}"
         
-        print(f"[{instance_name}] Waiting for senders to complete...")
+        print(f"[{instance_name}] Waiting for controllers to complete...")
         
         try:
             cmd = [
@@ -243,21 +243,21 @@ class InstanceManager:
                 "-f",
                 str(compose_file),
                 "wait",
-                sender_alpha,
-                sender_bravo,
+                controller_alpha,
+                controller_bravo,
             ]
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=self.compose_dir.parent
             )
             
             if result.returncode == 0:
-                print(f"[{instance_name}] ✅ Senders completed successfully")
+                print(f"[{instance_name}] ✅ Controllers completed successfully")
                 return True
             else:
-                print(f"[{instance_name}] ⚠️ Sender wait failed: {result.stderr}")
+                print(f"[{instance_name}] ⚠️ Controller wait failed: {result.stderr}")
                 return False
         except Exception as e:
-            print(f"[{instance_name}] ❌ Error waiting for senders: {e}")
+            print(f"[{instance_name}] ❌ Error waiting for controllers: {e}")
             return False
 
     def start_all(self):
@@ -291,12 +291,12 @@ class InstanceManager:
             f"\n🎉 Started {len(self.running_instances)}/{total_instances} instances successfully"
         )
         
-        # Wait for all sender services to complete
-        print(f"\n⏳ Waiting for all sender services to complete...")
+        # Wait for all controller services to complete
+        print(f"\n⏳ Waiting for all controller services to complete...")
         
         with ThreadPoolExecutor(max_workers=total_instances) as executor:
             wait_futures = {
-                executor.submit(self.wait_for_senders, inst_name, cf): inst_name
+                executor.submit(self.wait_for_controllers, inst_name, cf): inst_name
                 for inst_name, cf in started_instances.items()
             }
             

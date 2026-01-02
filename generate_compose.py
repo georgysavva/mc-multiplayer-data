@@ -6,7 +6,7 @@ Each instance will have its own ports and output directories to avoid conflicts.
 Enhancements:
 - Support generating a mix of flatland and normal worlds via
   `--num_flatland_world` and `--num_normal_world`.
-- Add `--viewer_rendering_disabled` (default: 1) applied to senders/receivers.
+- Add `--viewer_rendering_disabled` (default: 1) applied to act_recorder/controller.
 - Keep `--bootstrap_wait_time` unchanged as an argument.
 - Set default `--iterations_num_per_episode` to 5.
 """
@@ -20,13 +20,6 @@ from typing import Optional
 
 import yaml
 
-from cpu_binning_utils import (
-    calculate_cpu_ranges,
-    cpuset_string_excluding,
-    get_no_hyper_threading_cpu_ranges,
-    get_physical_core0_cpus,
-    split_cpu_range,
-)
 
 
 def absdir(path: str) -> str:
@@ -91,7 +84,7 @@ def generate_compose_config(
     instance_id,
     base_port,
     base_rcon_port,
-    receiver_port,
+    act_recorder_port,
     coord_port,
     data_dir_base,
     output_dir,
@@ -124,7 +117,6 @@ def generate_compose_config(
     cpuset_camera_alpha: Optional[str] = None,
     cpuset_camera_bravo: Optional[str] = None,
     # GPU settings
-    enable_gpu: bool = False,
     gpu_device_id: Optional[int] = None,
     gpu_mode: str = "egl",
     # Eval options
@@ -159,8 +151,6 @@ def generate_compose_config(
 
     project_root = str(Path(__file__).resolve().parent)
 
-    entrypoint_host = os.path.join(project_root, "camera", "entrypoint.sh")
-    launch_host = os.path.join(project_root, "camera", "launch_minecraft.py")
     camera_package_json_host = os.path.join(project_root, "camera", "package.json")
     # If the only episode type is turnToLookEval, use the fixed seed "solaris"
     if episode_types == "turnToLookEval" or episode_types == "turnToLookOppositeEval":
@@ -242,7 +232,7 @@ def generate_compose_config(
                     "retries": 12,
                 },
             },
-            f"sender_alpha_instance_{instance_id}": {
+            f"controller_alpha_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
                 "build": {
                     "context": project_root,
@@ -250,7 +240,7 @@ def generate_compose_config(
                 },
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"},
-                    f"receiver_alpha_instance_{instance_id}": {
+                    f"act_recorder_alpha_instance_{instance_id}": {
                         "condition": "service_started"
                     },
                 },
@@ -259,10 +249,10 @@ def generate_compose_config(
                 "environment": {
                     "BOT_NAME": "Alpha",
                     "OTHER_BOT_NAME": "Bravo",
-                    "RECEIVER_HOST": f"receiver_alpha_instance_{instance_id}",
-                    "RECEIVER_PORT": receiver_port,
+                    "ACT_RECORDER_HOST": f"act_recorder_alpha_instance_{instance_id}",
+                    "ACT_RECORDER_PORT": act_recorder_port,
                     "COORD_PORT": coord_port,
-                    "OTHER_COORD_HOST": f"sender_bravo_instance_{instance_id}",
+                    "OTHER_COORD_HOST": f"controller_bravo_instance_{instance_id}",
                     "OTHER_COORD_PORT": coord_port,
                     "BOT_RNG_SEED": str(12345 + instance_id),
                     "EPISODES_NUM": num_episodes,
@@ -292,9 +282,9 @@ def generate_compose_config(
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": "./entrypoint_senders.sh",
+                "command": "./controller/entrypoint.sh",
             },
-            f"sender_bravo_instance_{instance_id}": {
+            f"controller_bravo_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
                 "build": {
                     "context": project_root,
@@ -302,10 +292,10 @@ def generate_compose_config(
                 },
                 "depends_on": {
                     f"mc_instance_{instance_id}": {"condition": "service_healthy"},
-                    f"receiver_bravo_instance_{instance_id}": {
+                    f"act_recorder_bravo_instance_{instance_id}": {
                         "condition": "service_started"
                     },
-                    f"sender_alpha_instance_{instance_id}": {
+                    f"controller_alpha_instance_{instance_id}": {
                         "condition": "service_started"
                     },
                 },
@@ -314,10 +304,10 @@ def generate_compose_config(
                 "environment": {
                     "BOT_NAME": "Bravo",
                     "OTHER_BOT_NAME": "Alpha",
-                    "RECEIVER_HOST": f"receiver_bravo_instance_{instance_id}",
-                    "RECEIVER_PORT": receiver_port,
+                    "ACT_RECORDER_HOST": f"act_recorder_bravo_instance_{instance_id}",
+                    "ACT_RECORDER_PORT": act_recorder_port,
                     "COORD_PORT": coord_port,
-                    "OTHER_COORD_HOST": f"sender_alpha_instance_{instance_id}",
+                    "OTHER_COORD_HOST": f"controller_alpha_instance_{instance_id}",
                     "OTHER_COORD_PORT": coord_port,
                     "BOT_RNG_SEED": str(12345 + instance_id),
                     "EPISODES_NUM": num_episodes,
@@ -347,12 +337,12 @@ def generate_compose_config(
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": "./entrypoint_senders.sh",
+                "command": "./controller/entrypoint.sh",
             },
-            f"receiver_alpha_instance_{instance_id}": {
+            f"act_recorder_alpha_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
                 "environment": {
-                    "PORT": receiver_port,
+                    "PORT": act_recorder_port,
                     "NAME": "Alpha",
                     "INSTANCE_ID": instance_id,
                     "EPISODE_START_ID": episode_start_id,
@@ -362,12 +352,12 @@ def generate_compose_config(
                 **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": "./entrypoint_receiver.sh",
+                "command": "./act_recorder/entrypoint.sh",
             },
-            f"receiver_bravo_instance_{instance_id}": {
+            f"act_recorder_bravo_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
                 "environment": {
-                    "PORT": receiver_port,
+                    "PORT": act_recorder_port,
                     "NAME": "Bravo",
                     "INSTANCE_ID": instance_id,
                     "EPISODE_START_ID": episode_start_id,
@@ -377,14 +367,14 @@ def generate_compose_config(
                 **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": "./entrypoint_receiver.sh",
+                "command": "./act_recorder/entrypoint.sh",
             },
             # Camera alpha: recording client
             f"camera_alpha_instance_{instance_id}": {
-                "image": "ojmichel/mineflayer-spectator-client:gpu" if enable_gpu else "ojmichel/mineflayer-spectator-client:latest",
+                "image": "ojmichel/mineflayer-spectator-client:latest",
                 "build": {
                     "context": os.path.join(project_root, "camera"),
-                    "dockerfile": "Dockerfile.gpu" if enable_gpu else "Dockerfile",
+                    "dockerfile": "Dockerfile",
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",
@@ -414,8 +404,6 @@ def generate_compose_config(
                             "NVIDIA_DRIVER_CAPABILITIES": "all",
                             "NVIDIA_VISIBLE_DEVICES": gpu_device_id,
                         }
-                        if enable_gpu and gpu_device_id is not None
-                        else {}
                     ),
                 },
                 "runtime": "nvidia",
@@ -456,10 +444,10 @@ def generate_compose_config(
             },
             # Camera bravo: recording client
             f"camera_bravo_instance_{instance_id}": {
-                "image": "ojmichel/mineflayer-spectator-client:gpu" if enable_gpu else "ojmichel/mineflayer-spectator-client:latest",
+                "image": "ojmichel/mineflayer-spectator-client:latest",
                 "build": {
                     "context": os.path.join(project_root, "camera"),
-                    "dockerfile": "Dockerfile.gpu" if enable_gpu else "Dockerfile",
+                    "dockerfile": "Dockerfile",
                 },
                 "restart": "unless-stopped",
                 "network_mode": "host",
@@ -489,8 +477,6 @@ def generate_compose_config(
                             "NVIDIA_DRIVER_CAPABILITIES": "all",
                             "NVIDIA_VISIBLE_DEVICES": gpu_device_id,
                         }
-                        if enable_gpu and gpu_device_id is not None
-                        else {}
                     ),
                 },
                 "runtime": "nvidia",
@@ -595,10 +581,10 @@ def main():
         help="Base RCON port (default: 25675)",
     )
     parser.add_argument(
-        "--receiver_port",
+        "--act_recorder_port",
         type=int,
         default=8090,
-        help="Receiver port for bridge network services (default: 8090)",
+        help="Act recorder port for bridge network services (default: 8090)",
     )
     parser.add_argument(
         "--coord_port",
@@ -684,7 +670,7 @@ def main():
         type=int,
         choices=[0, 1],
         default=1,
-        help="Disable viewer rendering for senders/receivers (default: 1)",
+        help="Disable viewer rendering for act_recorder/controller (default: 1)",
     )
     parser.add_argument(
         "--smoke_test",
@@ -720,44 +706,11 @@ def main():
         help="Minecraft graphics mode (0=Fast, 1=Fancy, 2=Fabulous, default: 1)",
     )
     parser.add_argument(
-        "--enable_cpu_pinning",
-        type=int,
-        default=0,
-        choices=[0, 1],
-        help="Enable CPU pinning to evenly distribute cores among instances (default: 0)",
-    )
-    parser.add_argument(
-        "--enable_gpu",
-        type=int,
-        default=0,
-        choices=[0, 1],
-        help="Enable GPU rendering for camera containers (requires nvidia-container-toolkit, default: 0)",
-    )
-    parser.add_argument(
-        "--gpu_count",
-        type=int,
-        default=1,
-        help="Number of GPUs available to distribute among instances (default: 1)",
-    )
-    parser.add_argument(
         "--gpu_mode",
         type=str,
         default="egl",
         choices=["egl", "x11", "auto"],
         help="GPU rendering mode: egl (headless), x11 (requires host X), auto (default: egl)",
-    )
-    parser.add_argument(
-        "--total_cpus",
-        type=int,
-        default=None,
-        help="Total number of CPU cores to distribute (default: auto-detect from system)",
-    )
-    parser.add_argument(
-        "--no_hyper_threading",
-        type=int,
-        default=0,
-        choices=[0, 1],
-        help="Only use second logical cores (latter half of CPUs) to avoid hyperthreading (default: 0)",
     )
 
     args = parser.parse_args()
@@ -797,49 +750,15 @@ def main():
         total_instances = args.instances
         world_plan = ["normal"] * total_instances
 
-    # Calculate CPU pinning if enabled
-    cpu_ranges: list[tuple[int, int]] = []
-    physical_core0_cpus: set[int] = set()
-    if args.enable_cpu_pinning:
-        total_cpus = args.total_cpus if args.total_cpus else os.cpu_count()
-        if total_cpus is None:
-            print("Warning: Could not detect CPU count, disabling CPU pinning")
-            args.enable_cpu_pinning = 0
-        else:
-            if args.no_hyper_threading:
-                cpu_ranges = get_no_hyper_threading_cpu_ranges(total_cpus, total_instances)
-                # No need to exclude physical_core0_cpus when using only second logical cores
-                physical_core0_cpus = set()
-                usable_cpus = total_cpus - total_cpus // 2
-                print(f"CPU pinning enabled (no hyperthreading): using {usable_cpus} cores (CPUs {total_cpus // 2}-{total_cpus - 1}) across {total_instances} instances")
-            else:
-                cpu_ranges = calculate_cpu_ranges(total_cpus, total_instances)
-                physical_core0_cpus = get_physical_core0_cpus()
-                print(f"CPU pinning enabled: {total_cpus} cores across {total_instances} instances")
-                print(f"  Excluding physical core 0 siblings: {physical_core0_cpus}")       
-            for idx, (start, end) in enumerate(cpu_ranges):
-                (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start, end)
-                instance_cs = cpuset_string_excluding(start, end, physical_core0_cpus)
-                alpha_cs = instance_cs # cpuset_string_excluding(alpha_start, alpha_end, physical_core0_cpus)
-                bravo_cs = instance_cs #cpuset_string_excluding(bravo_start, bravo_end, physical_core0_cpus)
-                print(f"  Instance {idx}: {instance_cs} (camera_alpha: {alpha_cs}, camera_bravo: {bravo_cs})")
-
     # GPU configuration validation
-    if args.enable_gpu and args.gpu_count > 1:
-        raise ValueError(
-            f"Multi-GPU support is currently broken due to an NVENC bug. "
-            f"Got --gpu_count={args.gpu_count}, but only GPU 0 can be used.\n"
-            f"See: https://forums.developer.nvidia.com/t/nvenc-and-nvdec-work-on-only-one-gpu-with-multi-gpu-setups-with-nvidia-container-toolkit-in-driver-565/347361\n"
-            f"Use --gpu_count=1 to run all instances on GPU 0."
-        )
+    gpu_count = 1
 
     # GPU configuration summary
-    if args.enable_gpu:
-        print(f"GPU rendering enabled: {args.gpu_count} GPUs available, mode={args.gpu_mode}")
-        print(f"  Instances will be distributed round-robin across GPUs")
-        for i in range(total_instances):
-            gpu_id = i % args.gpu_count
-            print(f"    Instance {i}: GPU {gpu_id}")
+    print(f"GPU rendering enabled: {gpu_count} GPUs available, mode={args.gpu_mode}")
+    print(f"  Instances will be distributed round-robin across GPUs")
+    for i in range(total_instances):
+        gpu_id = i % gpu_count
+        print(f"    Instance {i}: GPU {gpu_id}")
     
     print(f"Generating {total_instances} Docker Compose configurations...")
 
@@ -849,23 +768,15 @@ def main():
         instance_cpuset = None
         camera_alpha_cpuset = None
         camera_bravo_cpuset = None
-        if args.enable_cpu_pinning and cpu_ranges:
-            start_cpu, end_cpu = cpu_ranges[i]
-            # Exclude physical core 0 siblings (they handle system interrupts)
-            instance_cpuset = cpuset_string_excluding(start_cpu, end_cpu, physical_core0_cpus)
-            # Split the instance's cores between the two camera bots
-            (alpha_start, alpha_end), (bravo_start, bravo_end) = split_cpu_range(start_cpu, end_cpu)
-            camera_alpha_cpuset = cpuset_string_excluding(alpha_start, alpha_end, physical_core0_cpus)
-            camera_bravo_cpuset = cpuset_string_excluding(bravo_start, bravo_end, physical_core0_cpus)
         
         # Calculate GPU assignment for this instance (round-robin across available GPUs)
-        gpu_device_id = i % args.gpu_count if args.enable_gpu else None
+        gpu_device_id = i % gpu_count
         
         config = generate_compose_config(
             i,
             args.base_port,
             args.base_rcon_port,
-            args.receiver_port,
+            args.act_recorder_port,
             args.coord_port,
             args.data_dir,
             args.output_dir,
@@ -898,7 +809,6 @@ def main():
             cpuset_camera_alpha=camera_alpha_cpuset,
             cpuset_camera_bravo=camera_bravo_cpuset,
             # GPU settings
-            enable_gpu=bool(args.enable_gpu),
             gpu_device_id=gpu_device_id,
             gpu_mode=args.gpu_mode,
             # Eval options
@@ -998,7 +908,7 @@ def main():
         f"  Camera Bravo noVNC: {args.camera_bravo_novnc_base}..{args.camera_bravo_novnc_base + args.vnc_step * (total_instances - 1)}"
     )
     print(
-        "Bridge network services (receivers, senders) use internal communication only."
+        "Bridge network services (act_recorder, controller) use internal communication only."
     )
 
 
