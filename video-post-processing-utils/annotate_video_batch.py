@@ -2,9 +2,13 @@
 """
 Batch video annotation script that processes multiple Minecraft videos in parallel.
 
-Takes a parent directory containing:
-- aligned/: Directory with aligned video files
-- output/: Directory with action JSON files
+Takes either:
+1. A single directory containing:
+   - aligned/ or test/: Directory with aligned video files
+   - output/ or test/: Directory with action JSON files
+
+2. A parent directory containing multiple subdirectories, each with the above structure.
+   The script will automatically detect and process all subdirectories.
 
 For each video pair (Alpha and Bravo perspectives), this script:
 1. Annotates each video with action overlays
@@ -12,6 +16,7 @@ For each video pair (Alpha and Bravo perspectives), this script:
 
 Usage:
     python annotate_video_batch.py /path/to/videos_dir [--workers N] [--output-dir DIR]
+    python annotate_video_batch.py /path/to/parent_dir  # Auto-detects subdirectories
 """
 
 import argparse
@@ -43,7 +48,7 @@ def parse_arguments():
         "--workers",
         type=int,
         default=8,
-        help="Number of parallel workers (default: 4)",
+        help="Number of parallel workers (default: 8)",
     )
     parser.add_argument(
         "--output-dir",
@@ -529,6 +534,25 @@ def get_json_path_for_video(video_path: Path, output_dir: Path) -> Path:
     return output_dir / json_name
 
 
+def is_valid_videos_dir(directory: Path) -> bool:
+    """
+    Check if a directory is a valid videos directory (has aligned/ or test/ subdirectory).
+    """
+    return (directory / "test").exists() or (directory / "aligned").exists()
+
+
+def discover_subdirectories(parent_dir: Path) -> List[Path]:
+    """
+    Discover all subdirectories that contain valid video structures.
+    Returns list of paths to valid video directories.
+    """
+    valid_dirs = []
+    for subdir in sorted(parent_dir.iterdir()):
+        if subdir.is_dir() and is_valid_videos_dir(subdir):
+            valid_dirs.append(subdir)
+    return valid_dirs
+
+
 def discover_video_pairs(videos_dir: Path) -> Dict[str, Dict[str, Path]]:
     """
     Discover all video pairs in the aligned directory.
@@ -615,16 +639,26 @@ def process_video_pair(
         return False, f"Error processing {pair_key}: {str(e)}"
 
 
-def main():
-    args = parse_arguments()
-
-    videos_dir = Path(args.videos_dir)
-    if not videos_dir.exists():
-        print(f"Error: Videos directory not found: {videos_dir}")
-        sys.exit(1)
-
-    # Set up directories
-    output_dir = Path(args.output_dir) if args.output_dir else videos_dir / "annotated"
+def process_single_videos_dir(
+    videos_dir: Path,
+    output_dir: Path,
+    workers: int,
+    limit: Optional[int] = None,
+    dir_label: str = "",
+) -> Tuple[int, int, List[str]]:
+    """
+    Process a single videos directory containing aligned/ or test/ and output/.
+    
+    Args:
+        videos_dir: Path to directory with video files
+        output_dir: Path to output directory for annotated videos
+        workers: Number of parallel workers
+        limit: Optional limit on number of pairs to process
+        dir_label: Optional label for progress bar (e.g., subdirectory name)
+    
+    Returns:
+        Tuple of (successful_count, failed_count, list_of_failure_messages)
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Check if test directory exists, otherwise use output for JSONs
@@ -637,62 +671,32 @@ def main():
         video_source_dir = videos_dir / "aligned"
     
     if not json_dir.exists():
-        print(f"Error: JSON directory not found: {json_dir}")
-        sys.exit(1)
+        return 0, 0, [f"JSON directory not found: {json_dir}"]
 
     # Discover video pairs
-    print(f"Discovering video pairs in {video_source_dir}...")
-    pairs = discover_video_pairs(videos_dir)
+    try:
+        pairs = discover_video_pairs(videos_dir)
+    except RuntimeError as e:
+        return 0, 0, [str(e)]
 
     # Filter to complete pairs only
     complete_pairs = {k: v for k, v in pairs.items() if "Alpha" in v and "Bravo" in v}
-    incomplete_pairs = {k: v for k, v in pairs.items() if k not in complete_pairs}
-
-    # Print summary
-    print(f"\n{'='*60}")
-    print(f"Video Pairs Summary")
-    print(f"{'='*60}")
-    print(f"Total video pairs found: {len(pairs)}")
-    print(f"Complete pairs (Alpha + Bravo): {len(complete_pairs)}")
-    print(f"Incomplete pairs: {len(incomplete_pairs)}")
-    if incomplete_pairs:
-        print(f"\nIncomplete pairs (skipping):")
-        for key, videos in list(incomplete_pairs.items())[:5]:
-            players = list(videos.keys())
-            print(f"  - {key}: has {', '.join(players)} only")
-        if len(incomplete_pairs) > 5:
-            print(f"  ... and {len(incomplete_pairs) - 5} more")
-    print(f"\nOutput directory: {output_dir}")
-    print(f"{'='*60}\n")
 
     if not complete_pairs:
-        print("No complete video pairs found to process.")
-        sys.exit(0)
+        return 0, 0, []
 
     # Apply limit if specified - stratified random selection across instances
-    if args.limit and args.limit < len(complete_pairs):
-        original_count = len(complete_pairs)
-        complete_pairs = select_limited_pairs_stratified(complete_pairs, args.limit)
-        
-        # Count how many from each instance for reporting
-        instance_counts: Dict[str, int] = defaultdict(int)
-        for pair_key in complete_pairs.keys():
-            instance_id = extract_instance_id(pair_key) or "unknown"
-            instance_counts[instance_id] += 1
-        
-        print(f"Limiting to {len(complete_pairs)} video pairs (out of {original_count} total)")
-        print(f"Stratified selection across {len(instance_counts)} instances:")
-        for instance_id in sorted(instance_counts.keys()):
-            print(f"  - {instance_id}: {instance_counts[instance_id]} pairs")
-
-    print(f"Processing {len(complete_pairs)} video pairs with {args.workers} workers...\n")
+    if limit and limit < len(complete_pairs):
+        complete_pairs = select_limited_pairs_stratified(complete_pairs, limit)
 
     # Process pairs in parallel with progress bar
     successful = 0
     failed = 0
     failures = []
 
-    with ThreadPoolExecutor(max_workers=args.workers) as executor:
+    desc = f"Annotating {dir_label}" if dir_label else "Annotating videos"
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = {
             executor.submit(
                 process_video_pair, pair_key, pair_videos, output_dir, json_dir
@@ -700,7 +704,7 @@ def main():
             for pair_key, pair_videos in complete_pairs.items()
         }
 
-        with tqdm(total=len(complete_pairs), desc="Annotating videos", unit="pair") as pbar:
+        with tqdm(total=len(complete_pairs), desc=desc, unit="pair") as pbar:
             for future in as_completed(futures):
                 pair_key = futures[future]
                 try:
@@ -715,20 +719,158 @@ def main():
                     failures.append(f"Exception processing {pair_key}: {str(e)}")
                 pbar.update(1)
 
-    # Print final summary
-    print(f"\n{'='*60}")
-    print(f"Processing Complete")
-    print(f"{'='*60}")
-    print(f"Successful: {successful}/{len(complete_pairs)}")
-    print(f"Failed: {failed}/{len(complete_pairs)}")
-    if failures:
-        print(f"\nFailures:")
-        for msg in failures[:10]:
-            print(f"  - {msg}")
-        if len(failures) > 10:
-            print(f"  ... and {len(failures) - 10} more failures")
-    print(f"\nOutput saved to: {output_dir}")
-    print(f"{'='*60}")
+    return successful, failed, failures
+
+
+def main():
+    args = parse_arguments()
+
+    videos_dir = Path(args.videos_dir)
+    if not videos_dir.exists():
+        print(f"Error: Videos directory not found: {videos_dir}")
+        sys.exit(1)
+
+    # Check if this is a parent directory containing multiple video directories
+    subdirectories = discover_subdirectories(videos_dir)
+    is_parent_dir = len(subdirectories) > 0 and not is_valid_videos_dir(videos_dir)
+
+    if is_parent_dir:
+        # Parent directory mode: process each subdirectory
+        print(f"{'='*60}")
+        print(f"Parent Directory Mode")
+        print(f"{'='*60}")
+        print(f"Found {len(subdirectories)} video directories to process:")
+        for subdir in subdirectories:
+            print(f"  - {subdir.name}")
+        print(f"{'='*60}\n")
+
+        total_successful = 0
+        total_failed = 0
+        all_failures = []
+
+        for subdir in subdirectories:
+            # Set up output directory for this subdirectory
+            if args.output_dir:
+                # If custom output dir specified, create subdirectory within it
+                output_dir = Path(args.output_dir) / subdir.name
+            else:
+                output_dir = subdir / "annotated"
+
+            print(f"\n--- Processing {subdir.name} ---")
+            successful, failed, failures = process_single_videos_dir(
+                videos_dir=subdir,
+                output_dir=output_dir,
+                workers=args.workers,
+                limit=args.limit,
+                dir_label=subdir.name,
+            )
+            total_successful += successful
+            total_failed += failed
+            all_failures.extend([f"[{subdir.name}] {f}" for f in failures])
+
+            if successful + failed > 0:
+                print(f"  {subdir.name}: {successful} successful, {failed} failed")
+
+        # Print final summary
+        print(f"\n{'='*60}")
+        print(f"Overall Processing Complete")
+        print(f"{'='*60}")
+        print(f"Directories processed: {len(subdirectories)}")
+        print(f"Total successful: {total_successful}")
+        print(f"Total failed: {total_failed}")
+        if all_failures:
+            print(f"\nFailures:")
+            for msg in all_failures[:10]:
+                print(f"  - {msg}")
+            if len(all_failures) > 10:
+                print(f"  ... and {len(all_failures) - 10} more failures")
+        print(f"{'='*60}")
+
+    else:
+        # Single directory mode (original behavior)
+        output_dir = Path(args.output_dir) if args.output_dir else videos_dir / "annotated"
+        
+        # Check if test directory exists, otherwise use output for JSONs
+        test_dir = videos_dir / "test"
+        if test_dir.exists():
+            video_source_dir = test_dir
+        else:
+            video_source_dir = videos_dir / "aligned"
+
+        # Discover video pairs for summary
+        print(f"Discovering video pairs in {video_source_dir}...")
+        try:
+            pairs = discover_video_pairs(videos_dir)
+        except RuntimeError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+
+        # Filter to complete pairs only
+        complete_pairs = {k: v for k, v in pairs.items() if "Alpha" in v and "Bravo" in v}
+        incomplete_pairs = {k: v for k, v in pairs.items() if k not in complete_pairs}
+
+        # Print summary
+        print(f"\n{'='*60}")
+        print(f"Video Pairs Summary")
+        print(f"{'='*60}")
+        print(f"Total video pairs found: {len(pairs)}")
+        print(f"Complete pairs (Alpha + Bravo): {len(complete_pairs)}")
+        print(f"Incomplete pairs: {len(incomplete_pairs)}")
+        if incomplete_pairs:
+            print(f"\nIncomplete pairs (skipping):")
+            for key, videos in list(incomplete_pairs.items())[:5]:
+                players = list(videos.keys())
+                print(f"  - {key}: has {', '.join(players)} only")
+            if len(incomplete_pairs) > 5:
+                print(f"  ... and {len(incomplete_pairs) - 5} more")
+        print(f"\nOutput directory: {output_dir}")
+        print(f"{'='*60}\n")
+
+        if not complete_pairs:
+            print("No complete video pairs found to process.")
+            sys.exit(0)
+
+        # Apply limit if specified - stratified random selection across instances
+        limit_to_apply = args.limit
+        if limit_to_apply and limit_to_apply < len(complete_pairs):
+            original_count = len(complete_pairs)
+            
+            # Count how many from each instance for reporting
+            instance_counts: Dict[str, int] = defaultdict(int)
+            limited_pairs = select_limited_pairs_stratified(complete_pairs, limit_to_apply)
+            for pair_key in limited_pairs.keys():
+                instance_id = extract_instance_id(pair_key) or "unknown"
+                instance_counts[instance_id] += 1
+            
+            print(f"Limiting to {len(limited_pairs)} video pairs (out of {original_count} total)")
+            print(f"Stratified selection across {len(instance_counts)} instances:")
+            for instance_id in sorted(instance_counts.keys()):
+                print(f"  - {instance_id}: {instance_counts[instance_id]} pairs")
+
+        print(f"Processing {len(complete_pairs) if not limit_to_apply else min(limit_to_apply, len(complete_pairs))} video pairs with {args.workers} workers...\n")
+
+        successful, failed, failures = process_single_videos_dir(
+            videos_dir=videos_dir,
+            output_dir=output_dir,
+            workers=args.workers,
+            limit=args.limit,
+        )
+
+        # Print final summary
+        total = successful + failed
+        print(f"\n{'='*60}")
+        print(f"Processing Complete")
+        print(f"{'='*60}")
+        print(f"Successful: {successful}/{total}")
+        print(f"Failed: {failed}/{total}")
+        if failures:
+            print(f"\nFailures:")
+            for msg in failures[:10]:
+                print(f"  - {msg}")
+            if len(failures) > 10:
+                print(f"  ... and {len(failures) - 10} more failures")
+        print(f"\nOutput saved to: {output_dir}")
+        print(f"{'='*60}")
 
 
 if __name__ == "__main__":
