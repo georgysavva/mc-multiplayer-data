@@ -40,7 +40,8 @@ const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
 const { StructureEvalEpisode } = require("./structureEval");
 const { StructureNoPlaceEvalEpisode } = require("./structureNoPlaceEval");
 const { TranslationEvalEpisode } = require("./translation-eval-episode");
-const { LookAwayEvalEpisode } = require("./look-away-eval-episode");
+const { BothLookAwayEvalEpisode } = require("./both-look-away-eval-episode");
+const { OneLooksAwayEvalEpisode } = require("./one-looks-away-eval-episode");
 const { RotationEvalEpisode } = require("./rotation-eval-episode");
 const { TurnToLookEvalEpisode } = require("./turn-to-look-eval-episode");
 const { TurnToLookOppositeEvalEpisode } = require("./turn-to-look-opposite-eval-episode");
@@ -65,7 +66,8 @@ const episodeClassMap = {
   structureEval: StructureEvalEpisode,
   structureNoPlaceEval: StructureNoPlaceEvalEpisode,
   translationEval: TranslationEvalEpisode,
-  lookAwayEval: LookAwayEvalEpisode,
+  bothLookAwayEval: BothLookAwayEvalEpisode,
+  oneLooksAwayEval: OneLooksAwayEvalEpisode,
   rotationEval: RotationEvalEpisode,
   turnToLookEval: TurnToLookEvalEpisode,
   turnToLookOppositeEval: TurnToLookOppositeEvalEpisode,
@@ -76,7 +78,8 @@ const evalEpisodeClasses = [
   StructureEvalEpisode,
   StructureNoPlaceEvalEpisode,
   TranslationEvalEpisode,
-  LookAwayEvalEpisode,
+  BothLookAwayEvalEpisode,
+  OneLooksAwayEvalEpisode,
   RotationEvalEpisode,
   TurnToLookEvalEpisode,
   TurnToLookOppositeEvalEpisode,
@@ -113,7 +116,8 @@ const defaultEpisodeTypes = [
   "structureEval",
   "structureNoPlaceEval",
   "translationEval",
-  "lookAwayEval",
+  "bothLookAwayEval",
+  "oneLooksAwayEval",
   "rotationEval",
   "turnToLookEval",
   "turnToLookOppositeEval",
