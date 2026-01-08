@@ -2,7 +2,7 @@ const { lookAtSmooth, lookSmooth, sneak } = require("../utils/movement");
 const { sleep } = require("../utils/helpers");
 const { BaseEpisode } = require("./base-episode");
 
-const CAMERA_SPEED_DEGREES_PER_SEC = 30;
+const CAMERA_SPEED_DEGREES_PER_SEC = 171.8873;
 const ITERATIONS_NUM_PER_EPISODE = 1;
 const MIN_LOOK_AWAY_DURATION_SEC = 1.0;
 const MAX_LOOK_AWAY_DURATION_SEC = 1.0;

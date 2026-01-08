@@ -3,7 +3,7 @@ const { run } = require("../utils/random-movement");
 const { BaseEpisode } = require("./base-episode");
 const { GoalXZ } = require("../utils/bot-factory");
 
-const CAMERA_SPEED_DEGREES_PER_SEC = 30;
+const CAMERA_SPEED_DEGREES_PER_SEC = 171.8873;
 
 const ITERATIONS_NUM_PER_EPISODE = 1;
 const MIN_RUN_ACTIONS = 1;
@@ -77,7 +77,7 @@ function getOnWalkLookPhaseFn(
     );
 
     // Look at the other bot smoothly at the start of the phase
-    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC * 4, { randomized: false, useEasing: false });
+    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
 
     // Either run() or sleep() based on the mode
     if (shouldThisBotWalk) {
