@@ -129,6 +129,8 @@ def generate_compose_config(
     gpu_mode: str = "egl",
     # Eval options
     eval_time_set_day: int = 0,
+    # Flatland options
+    flatland_world_disable_structures: bool = False,
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -225,6 +227,11 @@ def generate_compose_config(
                             {
                                 "LEVEL_TYPE": "minecraft:flat",
                                 "GENERATOR_SETTINGS": "TERRAIN_SETTINGS_PLACEHOLDER",
+                                **(
+                                    {"GENERATE_STRUCTURES": "false"}
+                                    if flatland_world_disable_structures
+                                    else {}
+                                ),
                             }
                             if str(world_type).lower() == "flat"
                             else {}
@@ -701,6 +708,13 @@ def main():
         help="Set time to day at the start of eval episodes (default: 0)",
     )
     parser.add_argument(
+        "--flatland_world_disable_structures",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Disable structure generation for flatland worlds (default: 0)",
+    )
+    parser.add_argument(
         "--render_distance",
         type=int,
         default=8,
@@ -903,6 +917,8 @@ def main():
             gpu_mode=args.gpu_mode,
             # Eval options
             eval_time_set_day=args.eval_time_set_day,
+            # Flatland options
+            flatland_world_disable_structures=bool(args.flatland_world_disable_structures),
         )
 
         # Write compose file
