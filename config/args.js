@@ -41,6 +41,7 @@ function parseArgs() {
       smoke_test: 0,
       world_type: "flat",
       eval_time_set_day: 0,
+      enable_demo_mode: 0,
     },
   });
 }

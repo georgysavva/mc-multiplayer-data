@@ -62,4 +62,5 @@ exec node senders.js \
   --world_type "${WORLD_TYPE:-flat}" \
   --instance_id "${INSTANCE_ID:-0}" \
   --output_dir "${OUTPUT_DIR:-/output}" \
-  --eval_time_set_day "${EVAL_TIME_SET_DAY:-0}"
+  --eval_time_set_day "${EVAL_TIME_SET_DAY:-0}" \
+  --enable_demo_mode "${ENABLE_DEMO_MODE:-0}"

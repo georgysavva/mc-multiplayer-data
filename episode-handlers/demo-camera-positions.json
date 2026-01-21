@@ -1,0 +1,27 @@
+[
+  {
+    "spawn": {"x": 0, "y": 64, "z": 0},
+    "camera": {"x": 0, "y": 100, "z": 0, "yaw": 0, "pitch": -45},
+    "episode": "buildHouse"
+  },
+  {
+    "spawn": {"x": 100, "y": 64, "z": 100},
+    "camera": {"x": 100, "y": 100, "z": 100, "yaw": 45, "pitch": -45},
+    "episode": "buildHouse"
+  },
+  {
+    "spawn": {"x": -100, "y": 64, "z": 100},
+    "camera": {"x": -100, "y": 100, "z": 100, "yaw": 90, "pitch": -45},
+    "episode": "pvp"
+  },
+  {
+    "spawn": {"x": -100, "y": 64, "z": -100},
+    "camera": {"x": -100, "y": 100, "z": -100, "yaw": 135, "pitch": -45},
+    "episode": "pvp"
+  },
+  {
+    "spawn": {"x": -100, "y": 64, "z": -100},
+    "camera": {"x": -100, "y": 100, "z": -100, "yaw": 135, "pitch": -45},
+    "episode": "pvp"
+  }
+]

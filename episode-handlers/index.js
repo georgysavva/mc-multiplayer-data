@@ -56,8 +56,7 @@ try {
   // File doesn't exist or is invalid - demo mode disabled
 }
 
-// Check if demo mode is enabled via environment variable
-const ENABLE_DEMO_MODE = process.env.ENABLE_DEMO_MODE === "1";
+// Note: Demo mode is configured via args.enable_demo_mode (from ENABLE_DEMO_MODE env var)
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -592,7 +591,7 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
 
       // Select episode type
       let selectedEpisodeType;
-      if (ENABLE_DEMO_MODE && demoCameraPositions.length > 0) {
+      if (args.enable_demo_mode && demoCameraPositions.length > 0) {
         // Demo mode: use episode type from the positions JSON
         const posIndex = episodeNum % demoCameraPositions.length;
         const entry = demoCameraPositions[posIndex];
@@ -918,10 +917,10 @@ async function teleport(
   sharedBotRng,
   episodeNum
 ) {
-  // Set time to day for eval episodes if enabled
-  if (args.eval_time_set_day && isEvalEpisode(episodeInstance)) {
+  // Set time to day for eval episodes if enabled, or always in demo mode
+  if ((args.eval_time_set_day && isEvalEpisode(episodeInstance)) || args.enable_demo_mode) {
     const timeSetRes = await rcon.send("time set day");
-    console.log(`[${bot.username}] time set to day for eval episode, result=${timeSetRes}`);
+    console.log(`[${bot.username}] time set to day, result=${timeSetRes}`);
   }
 
   // Custom TP logic for TurnToLookEpisode
@@ -939,7 +938,7 @@ async function teleport(
   }
 
   // Demo mode teleport logic - uses spawn center from positions file
-  if (ENABLE_DEMO_MODE && demoCameraPositions.length > 0) {
+  if (args.enable_demo_mode && demoCameraPositions.length > 0) {
     const posIndex = episodeNum % demoCameraPositions.length;
     const entry = demoCameraPositions[posIndex];
     const spawn = entry.spawn;
