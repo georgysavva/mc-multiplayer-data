@@ -16,8 +16,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import org.bukkit.Location;
-
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -91,7 +89,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
     private void sendUsage(CommandSender sender) {
         sender.sendMessage(ChatColor.YELLOW + "Usage:");
         sender.sendMessage(ChatColor.YELLOW + "/episode start <controller> <camera> <skin> [repeat...]");
-        sender.sendMessage(ChatColor.YELLOW + "  [demoCamera <name> <spawnX> <spawnY> <spawnZ> <camX> <camY> <camZ> <yaw> <pitch>]");
+        sender.sendMessage(ChatColor.YELLOW + "  [demoCamera <name>]");
         sender.sendMessage(ChatColor.YELLOW + "/episode stop");
     }
 
@@ -136,37 +134,16 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             return;
         }
 
-        // Parse demo camera config: <name> <spawnX> <spawnY> <spawnZ> <camX> <camY> <camZ> <yaw> <pitch>
-        // yaw comes before pitch to match Minecraft's /tp command format
-        DemoCameraConfig demoCameraConfig = null;
+        // Parse demo camera config: just the name (positioning is handled by bots)
+        String demoCameraName = null;
         if (demoArgs.length > 0) {
-            if (demoArgs.length != 9) {
+            if (demoArgs.length != 1) {
                 if (starter != null)
-                    starter.sendMessage(ChatColor.RED + "Demo camera requires: <name> <spawnX> <spawnY> <spawnZ> <camX> <camY> <camZ> <yaw> <pitch>");
+                    starter.sendMessage(ChatColor.RED + "Demo camera requires: <name>");
                 return;
             }
-            try {
-                String fcName = demoArgs[0];
-                // Spawn center for players
-                double spawnX = Double.parseDouble(demoArgs[1]);
-                double spawnY = Double.parseDouble(demoArgs[2]);
-                double spawnZ = Double.parseDouble(demoArgs[3]);
-                // Camera position
-                double camX = Double.parseDouble(demoArgs[4]);
-                double camY = Double.parseDouble(demoArgs[5]);
-                double camZ = Double.parseDouble(demoArgs[6]);
-                // Rotation: yaw (rotx) before pitch (roty) per Minecraft format
-                float camYaw = Float.parseFloat(demoArgs[7]);
-                float camPitch = Float.parseFloat(demoArgs[8]);
-                demoCameraConfig = new DemoCameraConfig(fcName, spawnX, spawnY, spawnZ, camX, camY, camZ, camYaw, camPitch);
-                getLogger().info("Demo camera configured: " + fcName + 
-                    " spawn=(" + spawnX + ", " + spawnY + ", " + spawnZ + ")" +
-                    " camera=(" + camX + ", " + camY + ", " + camZ + ") yaw=" + camYaw + " pitch=" + camPitch);
-            } catch (NumberFormatException e) {
-                if (starter != null)
-                    starter.sendMessage(ChatColor.RED + "Invalid demo camera coordinates: " + e.getMessage());
-                return;
-            }
+            demoCameraName = demoArgs[0];
+            getLogger().info("Demo camera configured: " + demoCameraName);
         }
 
         Map<String, File> availableSkins = skinManager.loadSkins();
@@ -245,24 +222,15 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             skinManager.applySharedSkin(controller, camera, cfg.skin);
         }
 
-        // Setup demo camera if configured
-        if (demoCameraConfig != null) {
-            Player demoCamera = Bukkit.getPlayerExact(demoCameraConfig.name);
+        // Setup demo camera if configured (positioning is handled by bots via RCON /tp)
+        if (demoCameraName != null) {
+            Player demoCamera = Bukkit.getPlayerExact(demoCameraName);
             if (demoCamera != null) {
                 demoCameras.add(demoCamera.getUniqueId());
-                Location demoLoc = new Location(
-                    demoCamera.getWorld(),
-                    demoCameraConfig.camX,
-                    demoCameraConfig.camY,
-                    demoCameraConfig.camZ,
-                    demoCameraConfig.yaw,
-                    demoCameraConfig.pitch
-                );
-                cameraManager.prepareDemoCamera(demoCamera, demoLoc);
-                getLogger().info("Demo camera " + demoCameraConfig.name + " positioned at " + demoLoc +
-                    " (spawn center: " + demoCameraConfig.spawnX + ", " + demoCameraConfig.spawnY + ", " + demoCameraConfig.spawnZ + ")");
+                cameraManager.prepareDemoCamera(demoCamera);
+                getLogger().info("Demo camera registered: " + demoCameraName);
             } else {
-                getLogger().warning("Demo camera player not found: " + demoCameraConfig.name);
+                getLogger().warning("Demo camera player not found: " + demoCameraName);
             }
         }
 
@@ -491,30 +459,4 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         }
     }
 
-    private static class DemoCameraConfig {
-        final String name;
-        // Spawn center for players
-        final double spawnX;
-        final double spawnY;
-        final double spawnZ;
-        // Camera position
-        final double camX;
-        final double camY;
-        final double camZ;
-        final float yaw;   // rotx in Minecraft format
-        final float pitch; // roty in Minecraft format
-
-        DemoCameraConfig(String name, double spawnX, double spawnY, double spawnZ,
-                          double camX, double camY, double camZ, float yaw, float pitch) {
-            this.name = name;
-            this.spawnX = spawnX;
-            this.spawnY = spawnY;
-            this.spawnZ = spawnZ;
-            this.camX = camX;
-            this.camY = camY;
-            this.camZ = camZ;
-            this.yaw = yaw;
-            this.pitch = pitch;
-        }
-    }
 }

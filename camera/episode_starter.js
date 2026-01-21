@@ -1,5 +1,4 @@
 import { Rcon } from 'rcon-client';
-import { readFileSync, existsSync } from 'fs';
 
 const {
   RCON_HOST = '127.0.0.1',
@@ -9,28 +8,12 @@ const {
   EPISODE_START_COMMAND = 'episode start',
   EPISODE_START_RETRIES = '15',
   EPISODE_PLAYER_CHECK_INTERVAL_MS = '2000',
-  // Demo mode camera configuration
-  DEMO_CAMERA_POSITIONS_FILE = '',
-  DEMO_CAMERA_NAME = 'CameraDemo',
-  EPISODE_START_ID = '0',
+  DEMO_CAMERA_NAME = '',
 } = process.env;
 
 const requiredPlayers = parsePlayers(EPISODE_REQUIRED_PLAYERS);
 const maxAttempts = Number(EPISODE_START_RETRIES);
 const retryDelayMs = Number(EPISODE_PLAYER_CHECK_INTERVAL_MS) || 2000;
-const episodeStartId = Number(EPISODE_START_ID) || 0;
-
-// Load demo camera positions if configured
-let demoCameraPositions = [];
-if (DEMO_CAMERA_POSITIONS_FILE && existsSync(DEMO_CAMERA_POSITIONS_FILE)) {
-  try {
-    const content = readFileSync(DEMO_CAMERA_POSITIONS_FILE, 'utf-8');
-    demoCameraPositions = JSON.parse(content);
-    console.log(`[episode-starter] Loaded ${demoCameraPositions.length} demo camera positions from ${DEMO_CAMERA_POSITIONS_FILE}`);
-  } catch (err) {
-    console.warn(`[episode-starter] Failed to load demo camera positions: ${err.message}`);
-  }
-}
 
 async function connect() {
   return Rcon.connect({
@@ -104,17 +87,10 @@ async function triggerCommand() {
     return;
   }
 
-  // Append demo camera args if positions are configured
-  // Format: demoCamera <name> <spawnX> <spawnY> <spawnZ> <camX> <camY> <camZ> <yaw> <pitch>
-  // yaw comes before pitch to match Minecraft's /tp command format
-  if (demoCameraPositions.length > 0) {
-    const posIndex = episodeStartId % demoCameraPositions.length;
-    const entry = demoCameraPositions[posIndex];
-    const spawn = entry.spawn;
-    const cam = entry.camera;
-    const demoCameraArgs = `demoCamera ${DEMO_CAMERA_NAME} ${spawn.x} ${spawn.y} ${spawn.z} ${cam.x} ${cam.y} ${cam.z} ${cam.yaw} ${cam.pitch}`;
-    command = `${command} ${demoCameraArgs}`;
-    console.log(`[episode-starter] Using position ${posIndex}: spawn=(${spawn.x}, ${spawn.y}, ${spawn.z}), camera=(${cam.x}, ${cam.y}, ${cam.z}) yaw=${cam.yaw} pitch=${cam.pitch}`);
+  // Append demo camera name if configured (positioning is handled by bots in index.js)
+  if (DEMO_CAMERA_NAME) {
+    command = `${command} demoCamera ${DEMO_CAMERA_NAME}`;
+    console.log(`[episode-starter] Registering demo camera: ${DEMO_CAMERA_NAME}`);
   }
 
   try {

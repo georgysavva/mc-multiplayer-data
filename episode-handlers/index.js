@@ -56,7 +56,6 @@ try {
   // File doesn't exist or is invalid - demo mode disabled
 }
 
-// Note: Demo mode is configured via args.enable_demo_mode (from ENABLE_DEMO_MODE env var)
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -949,6 +948,7 @@ async function teleport(
     // Teleport demo camera to position with rotation (yaw before pitch per Minecraft format)
     const demoCameraName = "CameraDemo";
     const tpCameraCmd = `tp ${demoCameraName} ${cam.x} ${cam.y} ${cam.z} ${cam.yaw} ${cam.pitch}`;
+    console.log(`[${bot.username}] Demo camera tp command: ${tpCameraCmd}`);
     try {
       const tpCamResult = await rcon.send(tpCameraCmd);
       console.log(`[${bot.username}] Demo camera tp result: ${tpCamResult}`);

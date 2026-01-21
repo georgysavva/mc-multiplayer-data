@@ -151,7 +151,6 @@ def generate_compose_config(
     camera_data_demo_base: str = "",
     camera_demo_vnc_base: int = 0,
     camera_demo_novnc_base: int = 0,
-    demo_camera_positions_file: str = "",
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -482,21 +481,12 @@ def generate_compose_config(
                     "EPISODE_REQUIRED_PLAYERS": "Alpha,CameraAlpha,Bravo,CameraBravo,SpectatorAlpha,SpectatorBravo" + (",CameraDemo" if enable_demo_mode else ""),
                     "EPISODE_START_COMMAND": "episode start Alpha CameraAlpha technoblade.png Bravo CameraBravo test.png",
                     "EPISODE_START_ID": str(episode_start_id),
-                    **(
-                        {
-                            "DEMO_CAMERA_POSITIONS_FILE": "/app/demo-camera-positions.json",
-                            "DEMO_CAMERA_NAME": "CameraDemo",
-                        }
-                        if enable_demo_mode and demo_camera_positions_file else {}
-                    ),
+                    **({"DEMO_CAMERA_NAME": "CameraDemo"} if enable_demo_mode else {}),
                 },
                 "volumes": [
                     f"{os.path.join(project_root, 'camera', 'episode_starter.js')}:/app/episode_starter.js:ro",
                     f"{camera_package_json_host}:/app/package.json:ro",
-                ] + (
-                    [f"{demo_camera_positions_file}:/app/demo-camera-positions.json:ro"]
-                    if enable_demo_mode and demo_camera_positions_file else []
-                ),
+                ],
                 "command": [
                     "sh",
                     "-c",
@@ -580,6 +570,9 @@ def generate_compose_config(
                             "RENDER_DISTANCE": render_distance,
                             "SIMULATION_DISTANCE": simulation_distance,
                             "GRAPHICS_MODE": graphics_mode,
+                            # Demo camera specific settings
+                            "HIDE_GUI": "1",
+                            "FOV": "50",
                             **(
                                 {
                                     "NVIDIA_DRIVER_CAPABILITIES": "all",
@@ -895,12 +888,6 @@ def main():
         default=6903,
         help="Base noVNC port for demo camera (default: 6903)",
     )
-    parser.add_argument(
-        "--demo_camera_positions_file",
-        default=None,
-        help="Path to JSON file with demo camera positions per episode",
-    )
-
     args = parser.parse_args()
     # Ensure required dirs are absolute
     args.output_dir = absdir(args.output_dir)
@@ -938,12 +925,6 @@ def main():
             )
         else:
             args.camera_data_demo_base = absdir(args.camera_data_demo_base)
-        if args.demo_camera_positions_file is None:
-            args.demo_camera_positions_file = os.path.join(
-                project_root, "episode-handlers", "demo-camera-positions.json"
-            )
-        if not os.path.isabs(args.demo_camera_positions_file):
-            args.demo_camera_positions_file = os.path.abspath(args.demo_camera_positions_file)
 
     # Create compose directory
     compose_dir = Path(args.compose_dir)
@@ -1074,7 +1055,6 @@ def main():
             camera_data_demo_base=args.camera_data_demo_base if args.enable_demo_mode else "",
             camera_demo_vnc_base=args.camera_demo_vnc_base,
             camera_demo_novnc_base=args.camera_demo_novnc_base,
-            demo_camera_positions_file=args.demo_camera_positions_file if args.enable_demo_mode else "",
         )
 
         # Write compose file

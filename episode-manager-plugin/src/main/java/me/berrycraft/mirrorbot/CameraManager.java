@@ -199,15 +199,12 @@ public class CameraManager implements Listener {
     }
 
     /**
-     * Prepare a demo camera: teleport to location and set look direction.
-     * Demo cameras don't follow any player - they stay at their position.
+     * Prepare a demo camera: set to spectator mode for automatic floating.
+     * Demo cameras don't follow any player - positioning is handled via RCON /tp by bots.
+     * Spectator mode is ideal: floats automatically, invisible to other players.
      */
-    public void prepareDemoCamera(Player cam, Location loc) {
-        disableCollisions(cam);
-        applyCameraPhysics(cam);
-        cam.setGameMode(GameMode.SURVIVAL);
-        // Teleport to the fixed location with specified yaw/pitch
-        cam.teleport(loc);
+    public void prepareDemoCamera(Player cam) {
+        cam.setGameMode(GameMode.SPECTATOR);
     }
 
     public void restorePlayer(Player p) {

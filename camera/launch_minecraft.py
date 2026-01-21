@@ -83,6 +83,17 @@ def build_launch_command(version: str, minecraft_dir: Path) -> list[str]:
     ensure_option(minecraft_dir, "accessibilityOnboarded", "true")
     ensure_option(minecraft_dir, "tutorialStep", "none")
 
+    # Optional: hide GUI (F1 mode) and set FOV
+    # FOV is normalized: 0.0 = 30°, 1.0 = 110°, so FOV 50: (x-30)/(110-30) = 0.25
+    if os.environ.get("HIDE_GUI", "0") == "1":
+        ensure_option(minecraft_dir, "hideGui", "true")
+    fov_env = os.environ.get("FOV")
+    if fov_env:
+        # Convert degrees to normalized value (30-110 range)
+        fov_normalized = (float(fov_env) - 30) / 80
+        fov_normalized = max(0.0, min(1.0, fov_normalized))  # Clamp to 0-1
+        ensure_option(minecraft_dir, "fov", str(fov_normalized))
+
     options = {
         "username": login["name"],
         "uuid": login["uuid"],
