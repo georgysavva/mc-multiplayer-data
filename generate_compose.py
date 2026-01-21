@@ -44,13 +44,20 @@ def camera_paths(
     bravo_base: str,
     data_alpha_base: str,
     data_bravo_base: str,
+    demo_base: str = "",
+    data_demo_base: str = "",
 ) -> dict:
-    return {
+    paths = {
         "alpha_output_host": os.path.join(alpha_base, str(instance_id)),
         "bravo_output_host": os.path.join(bravo_base, str(instance_id)),
         "alpha_data_host": os.path.join(data_alpha_base, str(instance_id)),
         "bravo_data_host": os.path.join(data_bravo_base, str(instance_id)),
     }
+    if demo_base:
+        paths["demo_output_host"] = os.path.join(demo_base, str(instance_id))
+    if data_demo_base:
+        paths["demo_data_host"] = os.path.join(data_demo_base, str(instance_id))
+    return paths
 
 
 def camera_ports(
@@ -62,8 +69,10 @@ def camera_ports(
     display_base: int,
     vnc_step: int,
     display_step: int,
+    demo_vnc_base: int = 0,
+    demo_novnc_base: int = 0,
 ) -> dict:
-    return {
+    ports = {
         "alpha_vnc": alpha_vnc_base + vnc_step * instance_id,
         "alpha_novnc": alpha_novnc_base + vnc_step * instance_id,
         "bravo_vnc": bravo_vnc_base + vnc_step * instance_id,
@@ -71,6 +80,11 @@ def camera_ports(
         "alpha_display": f":{display_base + display_step * instance_id}",
         "bravo_display": f":{display_base + display_step * instance_id + 1}",
     }
+    if demo_vnc_base > 0:
+        ports["demo_vnc"] = demo_vnc_base + vnc_step * instance_id
+        ports["demo_novnc"] = demo_novnc_base + vnc_step * instance_id
+        ports["demo_display"] = f":{display_base + display_step * instance_id + 2}"
+    return ports
 
 
 def generate_terrain_settings(biome, surface_block):
@@ -131,6 +145,13 @@ def generate_compose_config(
     eval_time_set_day: int = 0,
     # Flatland options
     flatland_world_disable_structures: bool = False,
+    # Demo mode options
+    enable_demo_mode: bool = False,
+    camera_output_demo_base: str = "",
+    camera_data_demo_base: str = "",
+    camera_demo_vnc_base: int = 0,
+    camera_demo_novnc_base: int = 0,
+    demo_camera_positions_file: str = "",
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -147,6 +168,8 @@ def generate_compose_config(
         camera_output_bravo_base,
         camera_data_alpha_base,
         camera_data_bravo_base,
+        demo_base=camera_output_demo_base if enable_demo_mode else "",
+        data_demo_base=camera_data_demo_base if enable_demo_mode else "",
     )
     cam_ports = camera_ports(
         instance_id,
@@ -157,6 +180,8 @@ def generate_compose_config(
         display_base,
         vnc_step,
         display_step,
+        demo_vnc_base=camera_demo_vnc_base if enable_demo_mode else 0,
+        demo_novnc_base=camera_demo_novnc_base if enable_demo_mode else 0,
     )
 
     project_root = str(Path(__file__).resolve().parent)
@@ -296,6 +321,7 @@ def generate_compose_config(
                     "INSTANCE_ID": instance_id,
                     "OUTPUT_DIR": "/output",
                     "EVAL_TIME_SET_DAY": eval_time_set_day,
+                    "ENABLE_DEMO_MODE": "1" if enable_demo_mode else "0",
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -351,6 +377,7 @@ def generate_compose_config(
                     "INSTANCE_ID": instance_id,
                     "OUTPUT_DIR": "/output",
                     "EVAL_TIME_SET_DAY": eval_time_set_day,
+                    "ENABLE_DEMO_MODE": "1" if enable_demo_mode else "0",
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -441,6 +468,10 @@ def generate_compose_config(
                     f"camera_alpha_instance_{instance_id}": {
                         "condition": "service_started"
                     },
+                    **(
+                        {f"camera_demo_instance_{instance_id}": {"condition": "service_started"}}
+                        if enable_demo_mode else {}
+                    ),
                 },
                 "working_dir": "/app",
                 "environment": {
@@ -448,13 +479,24 @@ def generate_compose_config(
                     "RCON_PORT": rcon_port,
                     "RCON_PASSWORD": "research",
                     "EPISODE_START_RETRIES": "300",
-                    "EPISODE_REQUIRED_PLAYERS": "Alpha,CameraAlpha,Bravo,CameraBravo,SpectatorAlpha,SpectatorBravo",
+                    "EPISODE_REQUIRED_PLAYERS": "Alpha,CameraAlpha,Bravo,CameraBravo,SpectatorAlpha,SpectatorBravo" + (",CameraDemo" if enable_demo_mode else ""),
                     "EPISODE_START_COMMAND": "episode start Alpha CameraAlpha technoblade.png Bravo CameraBravo test.png",
+                    "EPISODE_START_ID": str(episode_start_id),
+                    **(
+                        {
+                            "DEMO_CAMERA_POSITIONS_FILE": "/app/demo-camera-positions.json",
+                            "DEMO_CAMERA_NAME": "CameraDemo",
+                        }
+                        if enable_demo_mode and demo_camera_positions_file else {}
+                    ),
                 },
                 "volumes": [
                     f"{os.path.join(project_root, 'camera', 'episode_starter.js')}:/app/episode_starter.js:ro",
                     f"{camera_package_json_host}:/app/package.json:ro",
-                ],
+                ] + (
+                    [f"{demo_camera_positions_file}:/app/demo-camera-positions.json:ro"]
+                    if enable_demo_mode and demo_camera_positions_file else []
+                ),
                 "command": [
                     "sh",
                     "-c",
@@ -506,6 +548,56 @@ def generate_compose_config(
                     f"{cam_paths['bravo_output_host']}:/output",
                 ],
             },
+            **(
+                {
+                    # Demo camera: recording client at fixed position
+                    f"camera_demo_instance_{instance_id}": {
+                        "image": "ojmichel/mineflayer-spectator-client:gpu" if enable_gpu else "ojmichel/mineflayer-spectator-client:latest",
+                        "build": {
+                            "context": os.path.join(project_root, "camera"),
+                            "dockerfile": "Dockerfile.gpu" if enable_gpu else "Dockerfile",
+                        },
+                        "restart": "unless-stopped",
+                        "network_mode": "host",
+                        **({"cpuset": cpuset} if cpuset else {}),
+                        "depends_on": {
+                            f"mc_instance_{instance_id}": {"condition": "service_healthy"}
+                        },
+                        "environment": {
+                            "MC_VERSION": "1.21",
+                            "MC_HOST": "127.0.0.1",
+                            "MC_PORT": mc_port,
+                            "CAMERA_NAME": "CameraDemo",
+                            "DISPLAY": cam_ports.get("demo_display", ":101"),
+                            "VNC_PORT": str(cam_ports.get("demo_vnc", 5903)),
+                            "NOVNC_PORT": str(cam_ports.get("demo_novnc", 6903)),
+                            "WIDTH": "1280",
+                            "HEIGHT": "720",
+                            "FPS": "20",
+                            "VNC_PASSWORD": "research",
+                            "ENABLE_RECORDING": "1",
+                            "RECORDING_PATH": "/output/camera_demo.mkv",
+                            "RENDER_DISTANCE": render_distance,
+                            "SIMULATION_DISTANCE": simulation_distance,
+                            "GRAPHICS_MODE": graphics_mode,
+                            **(
+                                {
+                                    "NVIDIA_DRIVER_CAPABILITIES": "all",
+                                    "NVIDIA_VISIBLE_DEVICES": gpu_device_id,
+                                }
+                                if enable_gpu and gpu_device_id is not None
+                                else {}
+                            ),
+                        },
+                        "runtime": "nvidia",
+                        "volumes": [
+                            f"{cam_paths.get('demo_data_host', '/tmp/camera_demo_data')}:/root",
+                            f"{cam_paths.get('demo_output_host', '/tmp/camera_demo_output')}:/output",
+                        ],
+                    },
+                }
+                if enable_demo_mode else {}
+            ),
             # Passive spectator alpha
             f"spectator_alpha_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
@@ -773,6 +865,41 @@ def main():
         choices=[0, 1],
         help="Only use second logical cores (latter half of CPUs) to avoid hyperthreading (default: 0)",
     )
+    # Demo mode options
+    parser.add_argument(
+        "--enable_demo_mode",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Enable demo mode with fixed camera and per-episode positions/types (default: 0)",
+    )
+    parser.add_argument(
+        "--camera_output_demo_base",
+        default=None,
+        help="Absolute base dir for per-instance Demo Camera outputs",
+    )
+    parser.add_argument(
+        "--camera_data_demo_base",
+        default=None,
+        help="Absolute base dir for per-instance Demo Camera data",
+    )
+    parser.add_argument(
+        "--camera_demo_vnc_base",
+        type=int,
+        default=5903,
+        help="Base VNC port for demo camera (default: 5903)",
+    )
+    parser.add_argument(
+        "--camera_demo_novnc_base",
+        type=int,
+        default=6903,
+        help="Base noVNC port for demo camera (default: 6903)",
+    )
+    parser.add_argument(
+        "--demo_camera_positions_file",
+        default=None,
+        help="Path to JSON file with demo camera positions per episode",
+    )
 
     args = parser.parse_args()
     # Ensure required dirs are absolute
@@ -795,6 +922,28 @@ def main():
         )
     else:
         args.camera_data_bravo_base = absdir(args.camera_data_bravo_base)
+
+    # Demo camera directory defaults
+    if args.enable_demo_mode:
+        if args.camera_output_demo_base is None:
+            # Default to sibling of alpha/bravo output dirs
+            args.camera_output_demo_base = absdir(
+                os.path.join(os.path.dirname(args.camera_output_alpha_base), "output_demo")
+            )
+        else:
+            args.camera_output_demo_base = absdir(args.camera_output_demo_base)
+        if args.camera_data_demo_base is None:
+            args.camera_data_demo_base = absdir(
+                os.path.join(project_root, "camera", "data_demo")
+            )
+        else:
+            args.camera_data_demo_base = absdir(args.camera_data_demo_base)
+        if args.demo_camera_positions_file is None:
+            args.demo_camera_positions_file = os.path.join(
+                project_root, "episode-handlers", "demo-camera-positions.json"
+            )
+        if not os.path.isabs(args.demo_camera_positions_file):
+            args.demo_camera_positions_file = os.path.abspath(args.demo_camera_positions_file)
 
     # Create compose directory
     compose_dir = Path(args.compose_dir)
@@ -919,6 +1068,13 @@ def main():
             eval_time_set_day=args.eval_time_set_day,
             # Flatland options
             flatland_world_disable_structures=bool(args.flatland_world_disable_structures),
+            # Demo mode options
+            enable_demo_mode=bool(args.enable_demo_mode),
+            camera_output_demo_base=args.camera_output_demo_base if args.enable_demo_mode else "",
+            camera_data_demo_base=args.camera_data_demo_base if args.enable_demo_mode else "",
+            camera_demo_vnc_base=args.camera_demo_vnc_base,
+            camera_demo_novnc_base=args.camera_demo_novnc_base,
+            demo_camera_positions_file=args.demo_camera_positions_file if args.enable_demo_mode else "",
         )
 
         # Write compose file
@@ -971,11 +1127,16 @@ def main():
             args.camera_output_bravo_base,
             args.camera_data_alpha_base,
             args.camera_data_bravo_base,
+            demo_base=args.camera_output_demo_base if args.enable_demo_mode else "",
+            data_demo_base=args.camera_data_demo_base if args.enable_demo_mode else "",
         )
         os.makedirs(cp["alpha_output_host"], exist_ok=True)
         os.makedirs(cp["bravo_output_host"], exist_ok=True)
         os.makedirs(cp["alpha_data_host"], exist_ok=True)
         os.makedirs(cp["bravo_data_host"], exist_ok=True)
+        if args.enable_demo_mode:
+            os.makedirs(cp["demo_output_host"], exist_ok=True)
+            os.makedirs(cp["demo_data_host"], exist_ok=True)
 
         print(f"Generated: {compose_file}")
 

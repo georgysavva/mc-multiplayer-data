@@ -198,6 +198,18 @@ public class CameraManager implements Listener {
         applyCameraPhysics(cam);
     }
 
+    /**
+     * Prepare a demo camera: teleport to location and set look direction.
+     * Demo cameras don't follow any player - they stay at their position.
+     */
+    public void prepareDemoCamera(Player cam, Location loc) {
+        disableCollisions(cam);
+        applyCameraPhysics(cam);
+        cam.setGameMode(GameMode.SURVIVAL);
+        // Teleport to the fixed location with specified yaw/pitch
+        cam.teleport(loc);
+    }
+
     public void restorePlayer(Player p) {
         enableCollisions(p);
         resetCameraPhysics(p);

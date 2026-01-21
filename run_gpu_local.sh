@@ -2,6 +2,9 @@
 BASE_DATA_DIR=${BASE_DATA_DIR:-"/mnt/data/dl3957/mc_multiplayer_v2_gpu"}
 BATCH_NAME=${BATCH_NAME:-"batch2"}
 
+# Set to 1 to enable demo mode (fixed birds-eye camera with per-episode positions)
+ENABLE_DEMO_MODE=${ENABLE_DEMO_MODE:-0}
+
 python3 generate_compose.py \
  --compose_dir ./compose_configs \
  --base_port 25590 \
@@ -23,7 +26,10 @@ python3 generate_compose.py \
  --viewer_rendering_disabled 1 \
  --enable_gpu 1 \
  --gpu_count 1 \
- --gpu_mode egl
+ --gpu_mode egl \
+ --enable_demo_mode $ENABLE_DEMO_MODE \
+ --camera_output_demo_base $BASE_DATA_DIR/$BATCH_NAME/camera/output_demo \
+ --camera_data_demo_base $BASE_DATA_DIR/$BATCH_NAME/camera/data_demo
 
 python3 orchestrate.py start --build --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
 python3 orchestrate.py status --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"

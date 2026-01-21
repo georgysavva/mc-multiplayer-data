@@ -113,6 +113,7 @@ class InstanceManager:
             "camera_alpha_instance_{i}",
             "episode_starter_instance_{i}",
             "camera_bravo_instance_{i}",
+            "camera_demo_instance_{i}",
             "spectator_alpha_instance_{i}",
             "spectator_bravo_instance_{i}",
         ]
@@ -483,6 +484,7 @@ class InstanceManager:
         root = Path.cwd()
         alpha_root = root / "camera" / "output_alpha"
         bravo_root = root / "camera" / "output_bravo"
+        demo_root = root / "camera" / "output_demo"
         print("[orchestrate] camera recordings (alpha):")
         if alpha_root.exists():
             for p in sorted(alpha_root.rglob("camera_*.mp4")):
@@ -492,6 +494,12 @@ class InstanceManager:
         print("[orchestrate] camera recordings (bravo):")
         if bravo_root.exists():
             for p in sorted(bravo_root.rglob("camera_*.mp4")):
+                print(f"  {p}")
+        else:
+            print("  (none)")
+        print("[orchestrate] camera recordings (demo):")
+        if demo_root.exists():
+            for p in sorted(demo_root.rglob("camera_*.mp4")):
                 print(f"  {p}")
         else:
             print("  (none)")

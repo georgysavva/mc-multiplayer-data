@@ -47,6 +47,18 @@ const { TurnToLookEvalEpisode } = require("./turn-to-look-eval-episode");
 const { TurnToLookOppositeEvalEpisode } = require("./turn-to-look-opposite-eval-episode");
 const turnToLookEvalTpPoints = require("./turn-to-look-eval-episode-tp-points.json");
 
+// Load demo camera positions if the file exists
+let demoCameraPositions = [];
+try {
+  demoCameraPositions = require("./demo-camera-positions.json");
+  console.log(`[index] Loaded ${demoCameraPositions.length} demo camera positions`);
+} catch (err) {
+  // File doesn't exist or is invalid - demo mode disabled
+}
+
+// Check if demo mode is enabled via environment variable
+const ENABLE_DEMO_MODE = process.env.ENABLE_DEMO_MODE === "1";
+
 // Map episode type strings to their class implementations
 const episodeClassMap = {
   straightLineWalk: StraightLineEpisode,
@@ -578,11 +590,20 @@ function getOnSpawnFn(bot, host, receiverPort, coordinator, args) {
       const botsRngSeedWithEpisode = `${botsRngBaseSeed}_${episodeNum}`;
       const sharedBotRng = seedrandom(botsRngSeedWithEpisode);
 
-      // Select episode type (weighted by inverse sqrt of typical length)
-      const selectedEpisodeType =
-        args.smoke_test === 1
-          ? episodeConfig.episodeType
-          : selectWeightedEpisodeType(sortedEligible, sharedBotRng, args.uniform_weights, !isCustomEpisodeTypes);
+      // Select episode type
+      let selectedEpisodeType;
+      if (ENABLE_DEMO_MODE && demoCameraPositions.length > 0) {
+        // Demo mode: use episode type from the positions JSON
+        const posIndex = episodeNum % demoCameraPositions.length;
+        const entry = demoCameraPositions[posIndex];
+        selectedEpisodeType = entry.episode;
+        console.log(`[${bot.username}] Demo mode: using episode type "${selectedEpisodeType}" from position ${posIndex}`);
+      } else if (args.smoke_test === 1) {
+        selectedEpisodeType = episodeConfig.episodeType;
+      } else {
+        // Normal mode: weighted random selection
+        selectedEpisodeType = selectWeightedEpisodeType(sortedEligible, sharedBotRng, args.uniform_weights, !isCustomEpisodeTypes);
+      }
 
       console.log(
         `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
@@ -915,6 +936,37 @@ async function teleport(
       );
       return;
     }
+  }
+
+  // Demo mode teleport logic - uses spawn center from positions file
+  if (ENABLE_DEMO_MODE && demoCameraPositions.length > 0) {
+    const posIndex = episodeNum % demoCameraPositions.length;
+    const entry = demoCameraPositions[posIndex];
+    const spawn = entry.spawn;
+    const cam = entry.camera;
+
+    console.log(`[${bot.username}] Using demo camera position ${posIndex}: spawn=(${spawn.x}, ${spawn.y}, ${spawn.z}), camera=(${cam.x}, ${cam.y}, ${cam.z}) yaw=${cam.yaw} pitch=${cam.pitch}`);
+
+    // Teleport demo camera to position with rotation (yaw before pitch per Minecraft format)
+    const demoCameraName = "CameraDemo";
+    const tpCameraCmd = `tp ${demoCameraName} ${cam.x} ${cam.y} ${cam.z} ${cam.yaw} ${cam.pitch}`;
+    try {
+      const tpCamResult = await rcon.send(tpCameraCmd);
+      console.log(`[${bot.username}] Demo camera tp result: ${tpCamResult}`);
+    } catch (err) {
+      console.warn(`[${bot.username}] Failed to teleport demo camera: ${err.message}`);
+    }
+
+    // Convert spawn to format expected by directTeleport: [[x, y, z], ...]
+    const spawnPoints = [[spawn.x, spawn.y, spawn.z]];
+    await directTeleport(
+      bot,
+      rcon,
+      args.other_bot_name,
+      episodeNum,
+      spawnPoints
+    );
+    return;
   }
 
   // Initialize teleport center once as the midpoint between this bot and the other bot

@@ -16,6 +16,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import org.bukkit.Location;
+
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +31,9 @@ public class EpisodeManager extends JavaPlugin implements Listener {
     private final Map<String, File> activeSkinSelections  = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> activeSpectatorsByController = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> controllerBySpectator = new ConcurrentHashMap<>();
+    
+    // Demo camera state
+    private final Set<UUID> demoCameras = ConcurrentHashMap.newKeySet();
 
     private boolean episodeRunning = false;
 
@@ -86,6 +91,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
     private void sendUsage(CommandSender sender) {
         sender.sendMessage(ChatColor.YELLOW + "Usage:");
         sender.sendMessage(ChatColor.YELLOW + "/episode start <controller> <camera> <skin> [repeat...]");
+        sender.sendMessage(ChatColor.YELLOW + "  [demoCamera <name> <spawnX> <spawnY> <spawnZ> <camX> <camY> <camZ> <yaw> <pitch>]");
         sender.sendMessage(ChatColor.YELLOW + "/episode stop");
     }
 
@@ -101,10 +107,66 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             return;
         }
 
-        if (args.length == 0 || args.length % 3 != 0) {
+        if (args.length == 0) {
             if (starter != null)
                 starter.sendMessage(ChatColor.RED + "You must supply triples: <controller> <camera> <skin>");
             return;
+        }
+
+        // Find where demoCamera args start (if any)
+        int demoCameraIndex = -1;
+        for (int i = 0; i < args.length; i++) {
+            if ("demoCamera".equalsIgnoreCase(args[i])) {
+                demoCameraIndex = i;
+                break;
+            }
+        }
+
+        // Split args into controller/camera pairs and demo camera config
+        String[] pairArgs = demoCameraIndex >= 0 
+            ? Arrays.copyOfRange(args, 0, demoCameraIndex)
+            : args;
+        String[] demoArgs = demoCameraIndex >= 0
+            ? Arrays.copyOfRange(args, demoCameraIndex + 1, args.length)
+            : new String[0];
+
+        if (pairArgs.length == 0 || pairArgs.length % 3 != 0) {
+            if (starter != null)
+                starter.sendMessage(ChatColor.RED + "You must supply triples: <controller> <camera> <skin>");
+            return;
+        }
+
+        // Parse demo camera config: <name> <spawnX> <spawnY> <spawnZ> <camX> <camY> <camZ> <yaw> <pitch>
+        // yaw comes before pitch to match Minecraft's /tp command format
+        DemoCameraConfig demoCameraConfig = null;
+        if (demoArgs.length > 0) {
+            if (demoArgs.length != 9) {
+                if (starter != null)
+                    starter.sendMessage(ChatColor.RED + "Demo camera requires: <name> <spawnX> <spawnY> <spawnZ> <camX> <camY> <camZ> <yaw> <pitch>");
+                return;
+            }
+            try {
+                String fcName = demoArgs[0];
+                // Spawn center for players
+                double spawnX = Double.parseDouble(demoArgs[1]);
+                double spawnY = Double.parseDouble(demoArgs[2]);
+                double spawnZ = Double.parseDouble(demoArgs[3]);
+                // Camera position
+                double camX = Double.parseDouble(demoArgs[4]);
+                double camY = Double.parseDouble(demoArgs[5]);
+                double camZ = Double.parseDouble(demoArgs[6]);
+                // Rotation: yaw (rotx) before pitch (roty) per Minecraft format
+                float camYaw = Float.parseFloat(demoArgs[7]);
+                float camPitch = Float.parseFloat(demoArgs[8]);
+                demoCameraConfig = new DemoCameraConfig(fcName, spawnX, spawnY, spawnZ, camX, camY, camZ, camYaw, camPitch);
+                getLogger().info("Demo camera configured: " + fcName + 
+                    " spawn=(" + spawnX + ", " + spawnY + ", " + spawnZ + ")" +
+                    " camera=(" + camX + ", " + camY + ", " + camZ + ") yaw=" + camYaw + " pitch=" + camPitch);
+            } catch (NumberFormatException e) {
+                if (starter != null)
+                    starter.sendMessage(ChatColor.RED + "Invalid demo camera coordinates: " + e.getMessage());
+                return;
+            }
         }
 
         Map<String, File> availableSkins = skinManager.loadSkins();
@@ -116,10 +178,10 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         Map<String, String> pairMap = new LinkedHashMap<>();
         List<StartConfig> configs = new ArrayList<>();
 
-        for (int i = 0; i < args.length; i += 3) {
-            String ctrl = args[i];
-            String cam = args[i + 1];
-            String skinKey = args[i + 2];
+        for (int i = 0; i < pairArgs.length; i += 3) {
+            String ctrl = pairArgs[i];
+            String cam = pairArgs[i + 1];
+            String skinKey = pairArgs[i + 2];
 
             if (pairMap.containsKey(ctrl)) {
                 starter.sendMessage(ChatColor.RED + "Duplicate controller: " + ctrl);
@@ -150,6 +212,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         activeCameraControllers.clear();
         activeSpectatorsByController.clear();
         controllerBySpectator.clear();
+        demoCameras.clear();
 
         for (StartConfig cfg : configs) {
 
@@ -182,6 +245,27 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             skinManager.applySharedSkin(controller, camera, cfg.skin);
         }
 
+        // Setup demo camera if configured
+        if (demoCameraConfig != null) {
+            Player demoCamera = Bukkit.getPlayerExact(demoCameraConfig.name);
+            if (demoCamera != null) {
+                demoCameras.add(demoCamera.getUniqueId());
+                Location demoLoc = new Location(
+                    demoCamera.getWorld(),
+                    demoCameraConfig.camX,
+                    demoCameraConfig.camY,
+                    demoCameraConfig.camZ,
+                    demoCameraConfig.yaw,
+                    demoCameraConfig.pitch
+                );
+                cameraManager.prepareDemoCamera(demoCamera, demoLoc);
+                getLogger().info("Demo camera " + demoCameraConfig.name + " positioned at " + demoLoc +
+                    " (spawn center: " + demoCameraConfig.spawnX + ", " + demoCameraConfig.spawnY + ", " + demoCameraConfig.spawnZ + ")");
+            } else {
+                getLogger().warning("Demo camera player not found: " + demoCameraConfig.name);
+            }
+        }
+
         refreshEpisodeVisibility();
         cameraManager.startFollowingTask();
 
@@ -207,6 +291,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         activePairs.clear();
         activeCameraControllers.clear();
         activeSkinSelections.clear();
+        demoCameras.clear();
         for (UUID spectatorId : controllerBySpectator.keySet()) {
             Player spectator = Bukkit.getPlayer(spectatorId);
             if (spectator != null) spectator.setGameMode(GameMode.SURVIVAL);
@@ -231,11 +316,16 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             boolean participant =
                     controllerToCamera.containsKey(spectator.getName()) ||
                     controllerToCamera.containsValue(spectator.getName()) ||
-                    isSpectator(spectator);
+                    isSpectator(spectator) ||
+                    isDemoCamera(spectator);
 
             if (!participant) {
                 for (UUID camId : activeCameraControllers.keySet()) {
                     Player cam = Bukkit.getPlayer(camId);
+                    if (cam != null) spectator.hidePlayer(this, cam);
+                }
+                for (UUID demoCamId : demoCameras) {
+                    Player cam = Bukkit.getPlayer(demoCamId);
                     if (cam != null) spectator.hidePlayer(this, cam);
                 }
             }
@@ -259,6 +349,20 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                 else camera.showPlayer(this, other);
             }
         }
+
+        // Demo cameras hide all other cameras
+        for (UUID demoCamId : demoCameras) {
+            Player demoCam = Bukkit.getPlayer(demoCamId);
+            if (demoCam == null) continue;
+
+            for (Player other : Bukkit.getOnlinePlayers()) {
+                if (isCamera(other) && !other.equals(demoCam)) {
+                    demoCam.hidePlayer(this, other);
+                } else {
+                    demoCam.showPlayer(this, other);
+                }
+            }
+        }
     }
 
     private void resetAllVisibility() {
@@ -276,6 +380,10 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         }
         for (String camName : controllerToCamera.values()) {
             Player cam = Bukkit.getPlayerExact(camName);
+            if (cam != null) p.hidePlayer(this, cam);
+        }
+        for (UUID demoCamId : demoCameras) {
+            Player cam = Bukkit.getPlayer(demoCamId);
             if (cam != null) p.hidePlayer(this, cam);
         }
     }
@@ -328,11 +436,16 @@ public class EpisodeManager extends JavaPlugin implements Listener {
 
     public boolean isCamera(Player p) {
         return activeCameraControllers.containsKey(p.getUniqueId()) ||
-               controllerToCamera.containsValue(p.getName());
+               controllerToCamera.containsValue(p.getName()) ||
+               demoCameras.contains(p.getUniqueId());
     }
 
     public boolean isSpectator(Player p) {
         return controllerBySpectator.containsKey(p.getUniqueId());
+    }
+
+    public boolean isDemoCamera(Player p) {
+        return demoCameras.contains(p.getUniqueId());
     }
 
     public Map<Player, Player> getActivePairs() { return activePairs; }
@@ -375,6 +488,33 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             this.controller = c;
             this.camera = m;
             this.skin = s;
+        }
+    }
+
+    private static class DemoCameraConfig {
+        final String name;
+        // Spawn center for players
+        final double spawnX;
+        final double spawnY;
+        final double spawnZ;
+        // Camera position
+        final double camX;
+        final double camY;
+        final double camZ;
+        final float yaw;   // rotx in Minecraft format
+        final float pitch; // roty in Minecraft format
+
+        DemoCameraConfig(String name, double spawnX, double spawnY, double spawnZ,
+                          double camX, double camY, double camZ, float yaw, float pitch) {
+            this.name = name;
+            this.spawnX = spawnX;
+            this.spawnY = spawnY;
+            this.spawnZ = spawnZ;
+            this.camX = camX;
+            this.camY = camY;
+            this.camZ = camZ;
+            this.yaw = yaw;
+            this.pitch = pitch;
         }
     }
 }
