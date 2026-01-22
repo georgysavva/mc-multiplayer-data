@@ -188,8 +188,12 @@ def generate_compose_config(
     entrypoint_host = os.path.join(project_root, "camera", "entrypoint.sh")
     launch_host = os.path.join(project_root, "camera", "launch_minecraft.py")
     camera_package_json_host = os.path.join(project_root, "camera", "package.json")
+    # If demo mode is enabled, use the fixed seed "solaris-figures"
     # If the only episode type is turnToLookEval, use the fixed seed "solaris"
-    if episode_types == "turnToLookEval" or episode_types == "turnToLookOppositeEval":
+    if enable_demo_mode:
+        seed = "solaris-figures"
+        print(f"Demo mode enabled. Using fixed seed 'solaris-figures' for all instances.")
+    elif episode_types == "turnToLookEval" or episode_types == "turnToLookOppositeEval":
         seed = "solaris"
         print(f"turnToLookEval episode type passsed. Using fixed seed 'solaris' for all instances.")
     else:
