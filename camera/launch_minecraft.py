@@ -82,11 +82,10 @@ def build_launch_command(version: str, minecraft_dir: Path) -> list[str]:
     ensure_option(minecraft_dir, "skipQuickPlayFirstLaunchPrompt", "true")
     ensure_option(minecraft_dir, "accessibilityOnboarded", "true")
     ensure_option(minecraft_dir, "tutorialStep", "none")
+    ensure_option(minecraft_dir, "chatVisibility", "2")  # 2 = hidden
 
-    # Optional: hide GUI (F1 mode) and set FOV
+    # Optional: set FOV
     # FOV is normalized: as fov_normalized = (fov_desired - 70) / 40
-    if os.environ.get("HIDE_GUI", "0") == "1":
-        ensure_option(minecraft_dir, "hideGui", "true")
     fov_env = os.environ.get("FOV")
     if fov_env:
         fov_normalized = (float(fov_env) - 70) / 40
