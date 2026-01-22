@@ -482,7 +482,10 @@ def generate_compose_config(
                     "RCON_PORT": rcon_port,
                     "RCON_PASSWORD": "research",
                     "EPISODE_START_RETRIES": "300",
-                    "EPISODE_REQUIRED_PLAYERS": "Alpha,CameraAlpha,Bravo,CameraBravo,SpectatorAlpha,SpectatorBravo" + (",CameraDemo" if enable_demo_mode else ""),
+                    "EPISODE_REQUIRED_PLAYERS": (
+                        "Alpha,CameraAlpha,Bravo,CameraBravo,CameraDemo" if enable_demo_mode 
+                        else "Alpha,CameraAlpha,Bravo,CameraBravo,SpectatorAlpha,SpectatorBravo"
+                    ),
                     "EPISODE_START_COMMAND": "episode start Alpha CameraAlpha technoblade.png Bravo CameraBravo test.png",
                     "EPISODE_START_ID": str(episode_start_id),
                     **({"DEMO_CAMERA_NAME": "CameraDemo"} if enable_demo_mode else {}),
@@ -565,8 +568,9 @@ def generate_compose_config(
                             "DISPLAY": cam_ports.get("demo_display", ":101"),
                             "VNC_PORT": str(cam_ports.get("demo_vnc", 5903)),
                             "NOVNC_PORT": str(cam_ports.get("demo_novnc", 6903)),
-                            "WIDTH": "1280",
-                            "HEIGHT": "720",
+                            # Demo camera at 1440p for high quality
+                            "WIDTH": "2560",
+                            "HEIGHT": "1440",
                             "FPS": "20",
                             "VNC_PASSWORD": "research",
                             "ENABLE_RECORDING": "1",
@@ -575,8 +579,10 @@ def generate_compose_config(
                             "SIMULATION_DISTANCE": simulation_distance,
                             "GRAPHICS_MODE": graphics_mode,
                             # Demo camera specific settings
-                            "HIDE_GUI": "1",
-                            "FOV": "50",
+                            "FOV": "45",
+                            # High quality NVENC encoding (not real-time)
+                            "NVENC_PRESET": "p7",
+                            "NVENC_TUNE": "hq",
                             **(
                                 {
                                     "NVIDIA_DRIVER_CAPABILITIES": "all",
@@ -595,54 +601,64 @@ def generate_compose_config(
                 }
                 if enable_demo_mode else {}
             ),
-            # Passive spectator alpha
-            f"spectator_alpha_instance_{instance_id}": {
-                "image": "ojmichel/mc-multiplayer-base:latest",
-                "build": {
-                    "context": project_root,
-                    "dockerfile": "Dockerfile",
-                },
-                "restart": "unless-stopped",
-                **({"cpuset": cpuset} if cpuset else {}),
-                "depends_on": {
-                    f"mc_instance_{instance_id}": {"condition": "service_healthy"}
-                },
-                "working_dir": "/usr/src/app",
-                "environment": {
-                    "MC_HOST": "host.docker.internal",
-                    "MC_PORT": mc_port,
-                    "MC_USERNAME": "SpectatorAlpha",
-                },
-                "extra_hosts": [
-                    "host.docker.internal:host-gateway",
-                ],
-                "networks": [f"mc_network_{instance_id}"],
-                "command": ["node", "spectator/spectator.js"],
-            },
-            # Passive spectator bravo
-            f"spectator_bravo_instance_{instance_id}": {
-                "image": "ojmichel/mc-multiplayer-base:latest",
-                "build": {
-                    "context": project_root,
-                    "dockerfile": "Dockerfile",
-                },
-                "restart": "unless-stopped",
-                **({"cpuset": cpuset} if cpuset else {}),
-                "depends_on": {
-                    f"mc_instance_{instance_id}": {"condition": "service_healthy"}
-                },
-                "working_dir": "/usr/src/app",
-                "environment": {
-                    "MC_HOST": "host.docker.internal",
-                    "MC_PORT": mc_port,
-                    "MC_USERNAME": "SpectatorBravo",
-                },
-                "extra_hosts": [
-                    "host.docker.internal:host-gateway",
-                ],
-                "networks": [f"mc_network_{instance_id}"],
-                "command": ["node", "spectator/spectator.js"],
-            },
+            # Passive spectator alpha (only when not in demo mode)
+            **(
+                {
+                    f"spectator_alpha_instance_{instance_id}": {
+                        "image": "ojmichel/mc-multiplayer-base:latest",
+                        "build": {
+                            "context": project_root,
+                            "dockerfile": "Dockerfile",
+                        },
+                        "restart": "unless-stopped",
+                        **({"cpuset": cpuset} if cpuset else {}),
+                        "depends_on": {
+                            f"mc_instance_{instance_id}": {"condition": "service_healthy"}
+                        },
+                        "working_dir": "/usr/src/app",
+                        "environment": {
+                            "MC_HOST": "host.docker.internal",
+                            "MC_PORT": mc_port,
+                            "MC_USERNAME": "SpectatorAlpha",
+                        },
+                        "extra_hosts": [
+                            "host.docker.internal:host-gateway",
+                        ],
+                        "networks": [f"mc_network_{instance_id}"],
+                        "command": ["node", "spectator/spectator.js"],
+                    },
+                }
+                if not enable_demo_mode else {}
+            ),
+            # Passive spectator bravo (only when not in demo mode)
+            **(
+                {
+                    f"spectator_bravo_instance_{instance_id}": {
+                        "image": "ojmichel/mc-multiplayer-base:latest",
+                        "build": {
+                            "context": project_root,
+                            "dockerfile": "Dockerfile",
+                        },
+                        "restart": "unless-stopped",
+                        **({"cpuset": cpuset} if cpuset else {}),
+                        "depends_on": {
+                            f"mc_instance_{instance_id}": {"condition": "service_healthy"}
+                        },
+                        "working_dir": "/usr/src/app",
+                        "environment": {
+                            "MC_HOST": "host.docker.internal",
+                            "MC_PORT": mc_port,
+                            "MC_USERNAME": "SpectatorBravo",
+                        },
+                        "extra_hosts": [
+                            "host.docker.internal:host-gateway",
+                        ],
+                        "networks": [f"mc_network_{instance_id}"],
+                        "command": ["node", "spectator/spectator.js"],
+                    },
+                }
+                if not enable_demo_mode else {}
+            ),
         },
     }
 
@@ -930,6 +946,15 @@ def main():
         else:
             args.camera_data_demo_base = absdir(args.camera_data_demo_base)
 
+        # When demo mode is enabled, we have 3 cameras (Alpha, Bravo, Demo)
+        # so vnc_step and display_step must be at least 3 to avoid port collisions
+        if args.vnc_step < 3:
+            print(f"[INFO] Demo mode enabled: increasing vnc_step from {args.vnc_step} to 3 to avoid port collisions")
+            args.vnc_step = 3
+        if args.display_step < 3:
+            print(f"[INFO] Demo mode enabled: increasing display_step from {args.display_step} to 3 to avoid display collisions")
+            args.display_step = 3
+
     # Create compose directory
     compose_dir = Path(args.compose_dir)
     compose_dir.mkdir(exist_ok=True)
@@ -1152,12 +1177,32 @@ def main():
     assert len(alpha_novncs) == total_instances, "alpha noVNC port collisions detected"
     assert len(bravo_vncs) == total_instances, "bravo VNC port collisions detected"
     assert len(bravo_novncs) == total_instances, "bravo noVNC port collisions detected"
+    # Check Alpha vs Bravo collisions
+    assert alpha_vncs.isdisjoint(bravo_vncs), "Alpha/Bravo VNC port collision detected"
+    assert alpha_novncs.isdisjoint(bravo_novncs), "Alpha/Bravo noVNC port collision detected"
     print(
         f"  Camera Alpha noVNC: {args.camera_alpha_novnc_base}..{args.camera_alpha_novnc_base + args.vnc_step * (total_instances - 1)}"
     )
     print(
         f"  Camera Bravo noVNC: {args.camera_bravo_novnc_base}..{args.camera_bravo_novnc_base + args.vnc_step * (total_instances - 1)}"
     )
+    if args.enable_demo_mode:
+        demo_vncs = {
+            args.camera_demo_vnc_base + args.vnc_step * i for i in range(total_instances)
+        }
+        demo_novncs = {
+            args.camera_demo_novnc_base + args.vnc_step * i for i in range(total_instances)
+        }
+        assert len(demo_vncs) == total_instances, "demo VNC port collisions detected"
+        assert len(demo_novncs) == total_instances, "demo noVNC port collisions detected"
+        # Check Demo vs Alpha/Bravo collisions
+        assert demo_vncs.isdisjoint(alpha_vncs), "Demo/Alpha VNC port collision detected"
+        assert demo_vncs.isdisjoint(bravo_vncs), "Demo/Bravo VNC port collision detected"
+        assert demo_novncs.isdisjoint(alpha_novncs), "Demo/Alpha noVNC port collision detected"
+        assert demo_novncs.isdisjoint(bravo_novncs), "Demo/Bravo noVNC port collision detected"
+        print(
+            f"  Camera Demo noVNC: {args.camera_demo_novnc_base}..{args.camera_demo_novnc_base + args.vnc_step * (total_instances - 1)}"
+        )
     print(
         "Bridge network services (receivers, senders) use internal communication only."
     )

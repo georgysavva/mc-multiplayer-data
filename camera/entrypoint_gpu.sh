@@ -156,12 +156,20 @@ EOF
   echo "[client] recording metadata saved to ${RECORDING_META_PATH}"
   
   # Use GPU-accelerated encoding if available (NVENC)
+  # NVENC_PRESET: p1-p7 (p1=fastest, p7=highest quality), default p4
+  # NVENC_TUNE: hq for high quality, ll for low latency, ull for ultra low latency
+  NVENC_PRESET="${NVENC_PRESET:-p4}"
+  NVENC_TUNE="${NVENC_TUNE:-}"
   if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q h264_nvenc; then
-    echo "[client] Using NVENC hardware encoding (MKV)"
+    TUNE_OPTS=""
+    if [ -n "$NVENC_TUNE" ]; then
+      TUNE_OPTS="-tune $NVENC_TUNE"
+    fi
+    echo "[client] Using NVENC hardware encoding (MKV) - preset=$NVENC_PRESET tune=$NVENC_TUNE"
     ffmpeg -hide_banner -loglevel info -y \
       -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" \
       -f x11grab -i "${DISPLAY}.0" \
-      -c:v h264_nvenc -preset p4 -pix_fmt yuv420p "$RECORDING_PATH" &
+      -c:v h264_nvenc -preset "$NVENC_PRESET" $TUNE_OPTS -pix_fmt yuv420p "$RECORDING_PATH" &
   else
     echo "[client] Using CPU encoding (libx264, MKV)"
     ffmpeg -hide_banner -loglevel info -y \

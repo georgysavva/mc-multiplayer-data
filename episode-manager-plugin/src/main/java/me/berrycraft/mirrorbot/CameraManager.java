@@ -198,15 +198,6 @@ public class CameraManager implements Listener {
         applyCameraPhysics(cam);
     }
 
-    /**
-     * Prepare a demo camera: set to spectator mode for automatic floating.
-     * Demo cameras don't follow any player - positioning is handled via RCON /tp by bots.
-     * Spectator mode is ideal: floats automatically, invisible to other players.
-     */
-    public void prepareDemoCamera(Player cam) {
-        cam.setGameMode(GameMode.SPECTATOR);
-    }
-
     public void restorePlayer(Player p) {
         enableCollisions(p);
         resetCameraPhysics(p);

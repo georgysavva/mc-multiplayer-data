@@ -210,24 +210,27 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             activePairs.put(controller, camera);
             activeCameraControllers.put(camera.getUniqueId(), controller.getUniqueId());
 
-            // Optional spectator bot (e.g., SpectatorAlpha)
-            Player spectator = Bukkit.getPlayerExact("Spectator" + cfg.controller);
-            if (spectator != null) {
-                spectator.setGameMode(GameMode.SPECTATOR);
-                activeSpectatorsByController.put(controller.getUniqueId(), spectator.getUniqueId());
-                controllerBySpectator.put(spectator.getUniqueId(), controller.getUniqueId());
+            // Only create spectator bots when demo camera is NOT configured
+            // (demo camera replaces the individual spectator bots)
+            if (demoCameraName == null) {
+                Player spectator = Bukkit.getPlayerExact("Spectator" + cfg.controller);
+                if (spectator != null) {
+                    spectator.setGameMode(GameMode.SPECTATOR);
+                    activeSpectatorsByController.put(controller.getUniqueId(), spectator.getUniqueId());
+                    controllerBySpectator.put(spectator.getUniqueId(), controller.getUniqueId());
+                }
             }
 
             cameraManager.prepareCamera(camera);
             skinManager.applySharedSkin(controller, camera, cfg.skin);
         }
 
-        // Setup demo camera if configured (positioning is handled by bots via RCON /tp)
         if (demoCameraName != null) {
             Player demoCamera = Bukkit.getPlayerExact(demoCameraName);
             if (demoCamera != null) {
                 demoCameras.add(demoCamera.getUniqueId());
-                cameraManager.prepareDemoCamera(demoCamera);
+                // the demoCamera is set to Spectator mode and replaces the usual spectator bots
+                demoCamera.setGameMode(GameMode.SPECTATOR);
                 getLogger().info("Demo camera registered: " + demoCameraName);
             } else {
                 getLogger().warning("Demo camera player not found: " + demoCameraName);
@@ -279,22 +282,17 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         // Everyone sees everyone first
         resetAllVisibility();
 
-        // Hide cameras from spectators
-        for (Player spectator : Bukkit.getOnlinePlayers()) {
+        // Hide all cameras from non-participants (not controllers, cameras, spectators), e.g. demo cameras
+        for (Player p : Bukkit.getOnlinePlayers()) {
             boolean participant =
-                    controllerToCamera.containsKey(spectator.getName()) ||
-                    controllerToCamera.containsValue(spectator.getName()) ||
-                    isSpectator(spectator) ||
-                    isDemoCamera(spectator);
+                    controllerToCamera.containsKey(p.getName()) ||
+                    controllerToCamera.containsValue(p.getName()) ||
+                    isSpectator(p);
 
             if (!participant) {
                 for (UUID camId : activeCameraControllers.keySet()) {
                     Player cam = Bukkit.getPlayer(camId);
-                    if (cam != null) spectator.hidePlayer(this, cam);
-                }
-                for (UUID demoCamId : demoCameras) {
-                    Player cam = Bukkit.getPlayer(demoCamId);
-                    if (cam != null) spectator.hidePlayer(this, cam);
+                    if (cam != null) p.hidePlayer(this, cam);
                 }
             }
         }
@@ -317,20 +315,6 @@ public class EpisodeManager extends JavaPlugin implements Listener {
                 else camera.showPlayer(this, other);
             }
         }
-
-        // Demo cameras hide all other cameras
-        for (UUID demoCamId : demoCameras) {
-            Player demoCam = Bukkit.getPlayer(demoCamId);
-            if (demoCam == null) continue;
-
-            for (Player other : Bukkit.getOnlinePlayers()) {
-                if (isCamera(other) && !other.equals(demoCam)) {
-                    demoCam.hidePlayer(this, other);
-                } else {
-                    demoCam.showPlayer(this, other);
-                }
-            }
-        }
     }
 
     private void resetAllVisibility() {
@@ -348,10 +332,6 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         }
         for (String camName : controllerToCamera.values()) {
             Player cam = Bukkit.getPlayerExact(camName);
-            if (cam != null) p.hidePlayer(this, cam);
-        }
-        for (UUID demoCamId : demoCameras) {
-            Player cam = Bukkit.getPlayer(demoCamId);
             if (cam != null) p.hidePlayer(this, cam);
         }
     }
@@ -372,6 +352,11 @@ public class EpisodeManager extends JavaPlugin implements Listener {
         // If this is a camera that rejoined, reapply physics
         if (isCamera(p)) {
             cameraManager.prepareCamera(p);
+        }
+
+        // Restore demo camera state if they reconnect mid-episode
+        if (isDemoCamera(p)) {
+            p.setGameMode(GameMode.SPECTATOR);
         }
 
         // Restore spectator state if they reconnect mid-episode
@@ -404,8 +389,7 @@ public class EpisodeManager extends JavaPlugin implements Listener {
 
     public boolean isCamera(Player p) {
         return activeCameraControllers.containsKey(p.getUniqueId()) ||
-               controllerToCamera.containsValue(p.getName()) ||
-               demoCameras.contains(p.getUniqueId());
+               controllerToCamera.containsValue(p.getName());
     }
 
     public boolean isSpectator(Player p) {
@@ -430,6 +414,8 @@ public class EpisodeManager extends JavaPlugin implements Listener {
 
     private void attachSpectatorIfMatches(Player p) {
         if (!episodeRunning) return;
+        // Skip spectator attachment in demo mode (demo camera replaces spectator bots)
+        if (!demoCameras.isEmpty()) return;
         if (controllerBySpectator.containsKey(p.getUniqueId())) return;
 
         for (String controllerName : controllerToCamera.keySet()) {
@@ -458,5 +444,4 @@ public class EpisodeManager extends JavaPlugin implements Listener {
             this.skin = s;
         }
     }
-
 }
