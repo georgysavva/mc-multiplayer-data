@@ -87,7 +87,6 @@ async function triggerCommand() {
     return;
   }
 
-  // Append demo camera name if configured (positioning is handled by bots in index.js)
   if (DEMO_CAMERA_NAME) {
     command = `${command} demoCamera ${DEMO_CAMERA_NAME}`;
     console.log(`[episode-starter] Registering demo camera: ${DEMO_CAMERA_NAME}`);
