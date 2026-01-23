@@ -1,7 +1,7 @@
 [
   {
     "spawn": {"x": 326, "y": 67, "z": -1226},
-    "camera": {"x": 340, "y": 78, "z": -1236, "yaw": 50.2, "pitch": 29.7}
+    "camera": {"x": 340, "y": 78, "z": -1236, "yaw": 50.2, "pitch": 29.7},
     "episode": "buildHouse"
   },
   {
