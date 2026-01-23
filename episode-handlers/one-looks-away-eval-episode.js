@@ -96,14 +96,14 @@ function getOnOneLooksAwayPhaseFn(
       console.log(
         `[iter ${iterationID}] [${bot.username}] looking away (offset: ${lookAwayOffsetDeg.toFixed(1)}°)`
       );
-      await lookSmooth(bot, newYaw, originalPitch, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
+      await lookSmooth(bot, newYaw, originalPitch, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: true });
       await bot.waitForTicks(freezeTicks);
 
       // Look back at the other bot
       console.log(
         `[iter ${iterationID}] [${bot.username}] looking back at other bot`
       );
-      await lookSmooth(bot, originalYaw, originalPitch, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
+      await lookSmooth(bot, originalYaw, originalPitch, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: true });
       
       // Record tick number
       const endTick = bot.time.age;

@@ -76,7 +76,7 @@ function getOnTurnToLookOppositePhaseFn(
       dir: dir,
     };
 
-    await lookAtSmooth(bot, facePos, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
+    await lookAtSmooth(bot, facePos, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: true });
 
     // ---- Phase 4: Ensure minimum ticks ----
     const endTick = bot.time.age;

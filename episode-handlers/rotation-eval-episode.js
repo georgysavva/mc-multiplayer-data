@@ -72,7 +72,7 @@ function getOnRotatePhaseFn(
       const newYaw = originalYaw + (rotationDegrees * Math.PI / 180);
       
       console.log(`[${bot.username}] Rotating from ${(originalYaw * 180 / Math.PI).toFixed(1)}° to ${(newYaw * 180 / Math.PI).toFixed(1)}°`);
-      await lookSmooth(bot, newYaw, originalPitch, THIS_CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
+      await lookSmooth(bot, newYaw, originalPitch, THIS_CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: true });
       // Record tick number
       const endTick = bot.time.age;
       const remainingTicks = EPISODE_MIN_TICKS - (endTick - startTick);
