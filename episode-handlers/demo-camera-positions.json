@@ -17,17 +17,17 @@
   {
     "spawn": {"x": 473, "y": 64, "z": -1222},
     "camera": {"x": 460, "y": 80, "z": -1214, "yaw": -119.5, "pitch": 44.9},
-    "episode": "bridgeBuilding"
+    "episode": "towerBridge"
   },
   {
     "spawn": {"x": 163, "y": 80, "z": -1653},
     "camera": {"x": 172, "y": 97, "z": -1662, "yaw": 42.4, "pitch": 49.2},
-    "episode": "bridgeBuilding"
+    "episode": "towerBridge"
   },
   {
     "spawn": {"x": 266, "y": 64, "z": -1796},
     "camera": {"x": 252, "y": 78, "z": -1790, "yaw": -112.1, "pitch": 35.7},
-    "episode": "bridgeBuilding"
+    "episode": "towerBridge"
   },
   {
     "spawn": {"x": -4915, "y": 72, "z": 2553},
