@@ -1,6 +1,6 @@
 # Base data directory and batch configuration
 BASE_DATA_DIR=${BASE_DATA_DIR:-"/mnt/data/dl3957/mc_multiplayer_demo"}
-BATCH_NAME=${BATCH_NAME:-"remaining_5"}
+BATCH_NAME=${BATCH_NAME:-"all_8"}
 
 # Set to 1 to enable demo mode (fixed birds-eye camera with per-episode positions)
 ENABLE_DEMO_MODE=${ENABLE_DEMO_MODE:-1}
@@ -20,7 +20,7 @@ python3 generate_compose.py \
  --smoke_test 0 \
  --num_flatland_world 0 \
  --num_normal_world 1 \
- --num_episodes 15 \
+ --num_episodes 24 \
  --iterations_num_per_episode 1 \
  --eval_time_set_day 0 \
  --viewer_rendering_disabled 1 \
