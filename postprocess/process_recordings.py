@@ -40,9 +40,9 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser.add_argument(
         "--bot",
         type=str,
-        choices=["Alpha", "Bravo"],
+        choices=["Alpha", "Bravo", "Demo"],
         required=True,
-        help="Which bot to process",
+        help="Which bot to process (Demo uses Alpha's action JSONs but demo camera)",
     )
     parser.add_argument(
         "--output-dir",
@@ -67,6 +67,12 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         default=DEFAULT_DELAY_VIDEO_BY_SEC,
         help=f"Delay video by this many seconds (default: {DEFAULT_DELAY_VIDEO_BY_SEC})",
     )
+    parser.add_argument(
+        "--instance-filter",
+        type=int,
+        default=None,
+        help="Only process action files matching this instance ID (e.g., 0 for _instance_000)",
+    )
     return parser.parse_args(list(argv))
 
 
@@ -76,8 +82,9 @@ def build_bot_config(
     """Return BotConfig mapping for the selected bot.
 
     - Output directory defaults to ./aligned/<bot> unless overridden by --output-dir.
-    - camera_prefix may already be an output_{alpha|bravo}/<instance> directory
+    - camera_prefix may already be an output_{alpha|bravo|demo}/<instance> directory
       (as in orchestration); handle both prefixed and non-prefixed forms.
+    - Demo bot uses Alpha's action JSONs but the demo camera.
     """
     output_dir = (output_base or Path.cwd() / "aligned")
     if bot == "Alpha":
@@ -94,7 +101,7 @@ def build_bot_config(
                 output_dir=output_dir,
             )
         }
-    else:
+    elif bot == "Bravo":
         # If camera_prefix already points into output_bravo, use it directly
         if "output_bravo" in str(camera_prefix):
             camera_meta = camera_prefix / "camera_bravo_meta.json"
@@ -104,6 +111,21 @@ def build_bot_config(
             "Bravo": BotConfig(
                 name="Bravo",
                 actions_suffix="_Bravo_",
+                camera_meta=camera_meta,
+                output_dir=output_dir,
+            )
+        }
+    else:  # Demo
+        # Demo uses Alpha's action JSONs (for timestamps) but the demo camera.
+        # The output filename will replace "Alpha" with "Demo".
+        if "output_demo" in str(camera_prefix):
+            camera_meta = camera_prefix / "camera_demo_meta.json"
+        else:
+            camera_meta = camera_prefix / "output_demo" / "camera_demo_meta.json"
+        return {
+            "Demo": BotConfig(
+                name="Demo",
+                actions_suffix="_Alpha_",  # Match Alpha's action files
                 camera_meta=camera_meta,
                 output_dir=output_dir,
             )
@@ -205,16 +227,42 @@ def build_side_by_side(
     )
 
 
+def _get_output_stem(actions_path: Path, config: BotConfig) -> str:
+    """Get the output filename stem, replacing Alpha with Demo if needed."""
+    stem = actions_path.stem
+    # For Demo, replace Alpha with Demo in the filename
+    if config.name == "Demo":
+        stem = stem.replace("_Alpha_", "_Demo_")
+    return stem
+
+
+def _extract_instance_id(filename: str) -> Optional[int]:
+    """Extract instance ID from filename like '..._instance_000.json'."""
+    import re
+    match = re.search(r'_instance_(\d+)', filename)
+    if match:
+        return int(match.group(1))
+    return None
+
+
 def process_actions(
     actions_dir: Path,
     configs: Dict[str, BotConfig],
     generate_comparison: bool = False,
     delay_video_by_sec: float = DEFAULT_DELAY_VIDEO_BY_SEC,
+    instance_filter: Optional[int] = None,
 ) -> int:
     actions_processed = 0
     for actions_path in sorted(actions_dir.glob("*.json")):
         if actions_path.name.endswith("_meta.json"):
             continue
+        
+        # Filter by instance if specified
+        if instance_filter is not None:
+            file_instance = _extract_instance_id(actions_path.name)
+            if file_instance != instance_filter:
+                continue
+        
         config = bot_for_actions(actions_path, configs)
         if config is None:
             continue
@@ -222,8 +270,9 @@ def process_actions(
         ensure_metadata(config.camera_meta)
         config.output_dir.mkdir(parents=True, exist_ok=True)
 
-        output_video = config.output_dir / f"{actions_path.stem}_camera.mp4"
-        output_meta = config.output_dir / f"{actions_path.stem}_camera_meta.json"
+        output_stem = _get_output_stem(actions_path, config)
+        output_video = config.output_dir / f"{output_stem}_camera.mp4"
+        output_meta = config.output_dir / f"{output_stem}_camera_meta.json"
 
         alignment_input = AlignmentInput(
             actions_path=actions_path,
@@ -294,8 +343,9 @@ def process_single_episode(
         ensure_metadata(config.camera_meta)
         config.output_dir.mkdir(parents=True, exist_ok=True)
 
-        output_video = config.output_dir / f"{episode_path.stem}_camera.mp4"
-        output_meta = config.output_dir / f"{episode_path.stem}_camera_meta.json"
+        output_stem = _get_output_stem(episode_path, config)
+        output_video = config.output_dir / f"{output_stem}_camera.mp4"
+        output_meta = config.output_dir / f"{output_stem}_camera_meta.json"
 
         alignment_input = AlignmentInput(
             actions_path=episode_path,
@@ -363,7 +413,8 @@ def main(argv: Iterable[str]) -> int:
 
     # Otherwise process all episodes under --actions-dir
     processed = process_actions(
-        actions_dir, configs, args.comparison_video, args.delay_video_by
+        actions_dir, configs, args.comparison_video, args.delay_video_by,
+        instance_filter=args.instance_filter
     )
     if processed == 0:
         print("[align] no action traces found; nothing to do")

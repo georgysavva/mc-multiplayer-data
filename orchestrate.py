@@ -585,6 +585,12 @@ class InstanceManager:
 
         # Build list of all episode processing jobs
         jobs = []
+        
+        # Check if demo camera recordings exist
+        demo_root = camera_root / "output_demo"
+        has_demo = demo_root.exists()
+        if has_demo:
+            print("Demo camera recordings detected - will also process Demo videos")
 
         for json_path in sorted(actions_dir.glob("*.json")):
             # Skip meta and episode_info files
@@ -619,6 +625,22 @@ class InstanceManager:
                 'output_dir': actions_dir,
                 'camera_prefix': camera_prefix,
             })
+            
+            # Also create a Demo job for Alpha episodes (Demo uses Alpha's action files)
+            if has_demo and bot == "Alpha":
+                demo_camera_prefix = demo_root / str(instance_id)
+                if demo_camera_prefix.exists():
+                    if debug:
+                        print(f"[DEBUG] Demo episode: {json_path.name}")
+                        print(f"[DEBUG]   Instance: {instance_id}")
+                        print(f"[DEBUG]   Demo camera prefix: {demo_camera_prefix}")
+                    jobs.append({
+                        'episode_file': json_path,
+                        'bot': "Demo",
+                        'instance_id': instance_id,
+                        'output_dir': actions_dir,
+                        'camera_prefix': demo_camera_prefix,
+                    })
         
         if not jobs:
             print("No episodes found to process.")

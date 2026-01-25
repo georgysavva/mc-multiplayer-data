@@ -301,7 +301,8 @@ def get_annotated_path(original_video_path: str, done_dir: str) -> str:
     return os.path.join(done_dir, annotated_filename)
 
 
-def extract_episodes_from_recordings(output_dir: str, camera_prefix: str, script_dir: str) -> bool:
+def extract_episodes_from_recordings(output_dir: str, camera_prefix: str, script_dir: str, 
+                                      include_demo: bool = True) -> bool:
     """
     Extract individual episodes from camera recordings using process_recordings.py.
     
@@ -309,6 +310,7 @@ def extract_episodes_from_recordings(output_dir: str, camera_prefix: str, script
         output_dir: Base output directory containing action JSONs
         camera_prefix: Directory containing camera recordings
         script_dir: Directory containing the processing scripts
+        include_demo: Whether to also extract Demo camera recordings (default True)
         
     Returns:
         True if successful, False otherwise
@@ -373,6 +375,65 @@ def extract_episodes_from_recordings(output_dir: str, camera_prefix: str, script
             print(f"STDERR: {e.stderr}")
         return False
     
+    # Process Demo recordings (if demo camera exists and include_demo is True)
+    if include_demo:
+        # Check if demo camera recordings exist - could be in output_demo/ directly
+        # or in instance subdirectories like output_demo/0/, output_demo/1/
+        demo_base = os.path.join(camera_prefix, "output_demo")
+        
+        # Find all instance directories or check if meta exists directly
+        demo_instances = []
+        if os.path.exists(demo_base):
+            # Check for instance subdirectories (0, 1, 2, ...)
+            for entry in os.listdir(demo_base):
+                instance_path = os.path.join(demo_base, entry)
+                if os.path.isdir(instance_path):
+                    instance_meta = os.path.join(instance_path, "camera_demo_meta.json")
+                    if os.path.exists(instance_meta):
+                        demo_instances.append(instance_path)
+            
+            # If no instance subdirectories, check if meta exists directly in output_demo
+            if not demo_instances:
+                direct_meta = os.path.join(demo_base, "camera_demo_meta.json")
+                if os.path.exists(direct_meta):
+                    demo_instances.append(demo_base)
+        
+        if demo_instances:
+            print(f"\nProcessing Demo recordings ({len(demo_instances)} instance(s))...")
+            for demo_camera_prefix in sorted(demo_instances):
+                instance_name = os.path.basename(demo_camera_prefix) if demo_camera_prefix != demo_base else "default"
+                print(f"  Processing Demo instance: {instance_name}")
+                demo_cmd = [
+                    sys.executable, process_script,
+                    "--bot", "Demo",
+                    "--actions-dir", output_dir,
+                    "--camera-prefix", demo_camera_prefix,
+                    "--output-dir", output_dir
+                ]
+                # Add instance filter if the instance name is a number
+                if instance_name.isdigit():
+                    demo_cmd.extend(["--instance-filter", instance_name])
+                
+                print(f"  Running: {' '.join(demo_cmd)}")
+                try:
+                    result = subprocess.run(demo_cmd, capture_output=True, text=True, check=True)
+                    print(f"  ✓ Demo instance {instance_name} extracted successfully")
+                    if result.stdout:
+                        # Only print last few lines to avoid clutter
+                        lines = result.stdout.strip().split('\n')
+                        for line in lines[-5:]:
+                            print(f"    {line}")
+                except subprocess.CalledProcessError as e:
+                    print(f"  ✗ Demo instance {instance_name} extraction failed with return code {e.returncode}")
+                    if e.stdout:
+                        print(f"    STDOUT: {e.stdout[-500:]}")  # Last 500 chars
+                    if e.stderr:
+                        print(f"    STDERR: {e.stderr[-500:]}")
+                    # Don't return False for Demo failures - it's optional
+                    print("    (Continuing despite Demo extraction failure)")
+        else:
+            print("\nSkipping Demo recordings (no demo camera found)")
+    
     print("\n✓ Episode extraction completed successfully")
     return True
 
@@ -435,6 +496,11 @@ Examples:
         action="store_true", 
         help="Reprocess episodes even if already processed"
     )
+    parser.add_argument(
+        "--no-demo",
+        action="store_true",
+        help="Skip Demo camera extraction (default: include Demo if available)"
+    )
 
     args = parser.parse_args()
 
@@ -455,7 +521,8 @@ Examples:
 
     # Step 1: Extract episodes from camera recordings (unless skipped)
     if not args.skip_extraction and not args.alignment_only:
-        if not extract_episodes_from_recordings(output_dir, camera_prefix, script_dir):
+        include_demo = not args.no_demo
+        if not extract_episodes_from_recordings(output_dir, camera_prefix, script_dir, include_demo):
             print("\nERROR: Episode extraction failed. Aborting.")
             sys.exit(1)
     else:
