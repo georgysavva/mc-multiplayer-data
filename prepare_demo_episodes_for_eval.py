@@ -1,0 +1,258 @@
+#!/usr/bin/env python3
+"""
+Prepare demo episodes for evaluation: copies/renames files and generates eval metadata.
+
+Outputs:
+  - episode_type_mapping.json: post-rename episode -> episode type
+  - eval_ids.json: [(ep_idx, alpha_start, alpha_end, bravo_start, bravo_end), ...]
+  - segment_mapping.json: segment index -> episode details
+  - demo_segments/: segmented Demo camera videos (256-frame segments)
+"""
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+from collections import Counter, defaultdict
+from pathlib import Path
+
+from tqdm import tqdm
+
+from prepare_episodes_for_eval import process_episodes_dir
+
+FPS = 20  # Minecraft recording FPS
+
+
+def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_size: int = 256):
+    """Build eval metadata from an episodes directory."""
+    output_dir = Path(episodes_dir) / "output"
+    aligned_dir = Path(episodes_dir) / "aligned"
+    
+    if not output_dir.exists() or not aligned_dir.exists():
+        return {}, [], [], {}
+    
+    # Build (episode_num, instance_id) -> episode_type from episode_info.json files
+    type_mapping = {}
+    for info_file in output_dir.glob('*_episode_info.json'):
+        match = re.match(r'^\d+_\d+_(\d+)_\w+_instance_(\d+)_episode_info\.json$', info_file.name)
+        if match:
+            try:
+                with open(info_file) as f:
+                    type_mapping[(match.group(1), match.group(2))] = json.load(f).get('episode_type', 'unknown')
+            except (json.JSONDecodeError, IOError):
+                pass
+    
+    # Collect episode data from video files (Alpha, Bravo, and Demo)
+    episodes_data = defaultdict(dict)
+    demo_videos = {}  # (episode_num, instance_id) -> video_path
+    episode_type_mapping = {}
+    
+    for video_fname in sorted(os.listdir(aligned_dir)):
+        match = re.match(r'^(\d+_\d+)_(\d+)_(\w+)_instance_(\d+)_camera\.mp4$', video_fname)
+        if not match:
+            continue
+        
+        timestamp, episode_num, name, instance_id = match.groups()
+        if ignore_first_episode and episode_num == "000000":
+            continue
+        
+        key = (episode_num, instance_id)
+        
+        # Track Demo videos separately
+        if name == "Demo":
+            demo_videos[key] = aligned_dir / video_fname
+            continue
+        
+        if name not in ['Alpha', 'Bravo']:
+            continue
+        
+        json_path = output_dir / f"{timestamp}_{episode_num}_{name}_instance_{instance_id}.json"
+        if not json_path.exists():
+            continue
+        
+        try:
+            with open(json_path) as f:
+                frame_count = len(json.load(f))
+        except (json.JSONDecodeError, IOError):
+            continue
+        
+        post_rename = f"{episode_num}_{name}_instance_{instance_id}"
+        episode_type_mapping[post_rename] = type_mapping.get(key, 'unknown')
+        episodes_data[key][name] = {'frame_count': frame_count, 'post_rename': post_rename}
+    
+    # Verify all episodes have Alpha, Bravo, AND Demo perspectives
+    valid_episodes = []
+    for episode_num, instance_id in sorted(episodes_data.keys()):
+        pair = episodes_data[(episode_num, instance_id)]
+        key = (episode_num, instance_id)
+        
+        if 'Alpha' not in pair or 'Bravo' not in pair:
+            continue
+        
+        if key not in demo_videos:
+            raise RuntimeError(
+                f"Episode {episode_num} instance {instance_id} is missing Demo camera perspective. "
+                f"Found Alpha and Bravo but no Demo video in {aligned_dir}"
+            )
+        
+        valid_episodes.append(key)
+    
+    # Generate eval_ids and segment_mapping
+    eval_ids, segment_mapping = [], []
+    
+    for ep_idx, (episode_num, instance_id) in enumerate(valid_episodes):
+        pair = episodes_data[(episode_num, instance_id)]
+        
+        min_frames = min(pair['Alpha']['frame_count'], pair['Bravo']['frame_count'])
+        episode_type = type_mapping.get((episode_num, instance_id), 'unknown')
+        
+        for seg_idx in range(min_frames // segment_size):
+            start, end = seg_idx * segment_size, (seg_idx + 1) * segment_size
+            eval_ids.append((ep_idx, start, end, start, end))
+            segment_mapping.append({
+                'segment_idx': len(segment_mapping),
+                'episode_name': f"{episode_num}_instance_{instance_id}",
+                'episode_type': episode_type,
+                'alpha_episode': pair['Alpha']['post_rename'],
+                'bravo_episode': pair['Bravo']['post_rename'],
+                'start_frame': start, 'end_frame': end,
+            })
+    
+    return episode_type_mapping, eval_ids, segment_mapping, demo_videos
+
+
+def segment_demo_videos(segment_mapping: list, demo_videos: dict, output_dir: Path, segment_size: int):
+    """Segment Demo camera videos based on segment_mapping and save to output_dir."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    segments_created = 0
+    for segment in tqdm(segment_mapping, desc="Segmenting demo videos", unit="segment"):
+        # Parse episode_num and instance_id from episode_name (e.g., "000001_instance_000")
+        parts = segment['episode_name'].split('_instance_')
+        if len(parts) != 2:
+            continue
+        episode_num, instance_id = parts[0], parts[1]
+        
+        # Handle prefixed episode names (e.g., "subdir/000001_instance_000")
+        if '/' in episode_num:
+            episode_num = episode_num.split('/')[-1]
+        
+        key = (episode_num, instance_id)
+        if key not in demo_videos:
+            continue
+        
+        src_video = demo_videos[key]
+        start_frame = segment['start_frame']
+        segment_idx = segment['segment_idx']
+        
+        # Calculate time range
+        start_time = start_frame / FPS
+        duration = segment_size / FPS
+        
+        # Output filename: segment_000000_000001_instance_000.mp4
+        out_fname = f"segment_{segment_idx:06d}_{segment['episode_name'].replace('/', '_')}.mp4"
+        out_path = output_dir / out_fname
+        
+        if out_path.exists():
+            segments_created += 1
+            continue
+        
+        # Use ffmpeg to extract segment
+        cmd = [
+            'ffmpeg', '-y', '-ss', str(start_time), '-i', str(src_video),
+            '-t', str(duration), '-c:v', 'libx264', '-preset', 'fast',
+            '-crf', '18', '-an', str(out_path)
+        ]
+        
+        try:
+            subprocess.run(cmd, capture_output=True, check=True)
+            segments_created += 1
+        except subprocess.CalledProcessError as e:
+            print(f"Warning: Failed to create segment {segment_idx} from {src_video.name}: {e.stderr.decode()[:200]}")
+    
+    return segments_created
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Prepare demo episodes for evaluation.")
+    parser.add_argument("--episodes-dir", required=True, help="Episodes directory or parent of multiple")
+    parser.add_argument("--destination-dir", required=True, help="Output directory")
+    parser.add_argument("--ignore-first-episode", action="store_true")
+    parser.add_argument("--segment-size", type=int, default=256)
+    parser.add_argument("--skip-demo-segments", action="store_true", help="Skip segmenting Demo camera videos")
+    args = parser.parse_args()
+
+    if not os.path.isdir(args.episodes_dir):
+        sys.exit(f"Error: Directory not found: {args.episodes_dir}")
+
+    is_single = os.path.isdir(os.path.join(args.episodes_dir, "output"))
+    all_type_mapping, all_eval_ids, all_segment_mapping = {}, [], []
+    all_demo_videos = {}
+    total_copied = 0
+
+    if is_single:
+        dirs = [(args.episodes_dir, os.path.join(args.destination_dir, "test"), None)]
+    else:
+        dirs = [(os.path.join(args.episodes_dir, d), os.path.join(args.destination_dir, d, "test"), d)
+                for d in sorted(os.listdir(args.episodes_dir))
+                if os.path.isdir(os.path.join(args.episodes_dir, d, "output"))]
+
+    for src, dst, prefix in dirs:
+        result = process_episodes_dir(src, dst, args.ignore_first_episode)
+        if result:
+            total_copied += result[0]
+            print(f"Processed: {prefix or 'episodes'} -> {result[0]} file pairs")
+        
+        type_map, eval_ids, segments, demo_videos = build_eval_metadata(src, args.ignore_first_episode, args.segment_size)
+        
+        ep_offset = len(set(s['episode_name'] for s in all_segment_mapping))
+        segment_offset = len(all_segment_mapping)
+        
+        for k, v in type_map.items():
+            all_type_mapping[f"{prefix}/{k}" if prefix else k] = v
+        for e in eval_ids:
+            all_eval_ids.append((e[0] + ep_offset, e[1], e[2], e[3], e[4]))
+        for s in segments:
+            s_new = {**s, 'segment_idx': s['segment_idx'] + segment_offset}
+            if prefix:
+                s_new.update({k: f"{prefix}/{s[k]}" for k in ['episode_name', 'alpha_episode', 'bravo_episode']})
+            all_segment_mapping.append(s_new)
+        
+        # Collect demo videos with prefix
+        for key, path in demo_videos.items():
+            all_demo_videos[key] = path
+
+    # Pad eval_ids to be a multiple of 32 by repeating the last segment
+    if all_eval_ids:
+        remainder = len(all_eval_ids) % 32
+        if remainder != 0:
+            padding_needed = 32 - remainder
+            last_segment = all_eval_ids[-1]
+            all_eval_ids.extend([last_segment] * padding_needed)
+            print(f"Padded eval_ids with {padding_needed} repeats of last segment to reach {len(all_eval_ids)} (multiple of 32)")
+
+    # Save outputs
+    os.makedirs(args.destination_dir, exist_ok=True)
+    
+    for name, data in [('episode_type_mapping.json', all_type_mapping),
+                       ('eval_ids.json', all_eval_ids),
+                       ('segment_mapping.json', all_segment_mapping)]:
+        with open(os.path.join(args.destination_dir, name), 'w') as f:
+            json.dump(data, f, indent=2)
+        print(f"Saved {name}: {len(data)} entries")
+
+    # Segment Demo camera videos
+    if not args.skip_demo_segments and all_demo_videos:
+        demo_segments_dir = Path(args.destination_dir) / "demo_segments"
+        segments_created = segment_demo_videos(
+            all_segment_mapping, all_demo_videos, demo_segments_dir, args.segment_size
+        )
+        print(f"Created {segments_created} demo segments in {demo_segments_dir}")
+
+    print(f"\nEpisode types: {dict(Counter(all_type_mapping.values()))}")
+
+
+if __name__ == "__main__":
+    main()

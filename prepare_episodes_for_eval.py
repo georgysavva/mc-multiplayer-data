@@ -62,9 +62,14 @@ def process_episodes_dir(episodes_dir, destination_dir, ignore_first_episode):
             skipped_count += 1
             continue
             
-        # The episode ID is the 3rd part (index 2)
-        # e.g., "000031" from "20251111_071151_000031_Alpha_instance_000"
+        # The episode ID is the 3rd part (index 2), name is the 4th part (index 3)
+        # e.g., "000031" and "Alpha" from "20251111_071151_000031_Alpha_instance_000"
         episode_id = parts[2]
+        bot_name = parts[3] if len(parts) > 3 else None
+
+        # --- Skip Demo camera (video-only, no action JSON) ---
+        if bot_name == "Demo":
+            continue
 
         # --- Check for episode 0 ignore rule ---
         if ignore_first_episode and episode_id == "000000":
@@ -121,13 +126,13 @@ def main():
              "or (2) a parent directory containing multiple episode directories."
     )
     parser.add_argument(
-        "--destination_dir",
+        "--destination-dir",
         type=str,
         required=True,
         help="Path to the new destination directory for renamed files."
     )
     parser.add_argument(
-        "--ignore_first_episode",
+        "--ignore-first-episode",
         action="store_true",
         help="If set, ignore the first episode (e.g., ..._instance_000) for each instance."
     )
