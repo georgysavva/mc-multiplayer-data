@@ -261,17 +261,11 @@ function findVisibleOres(bot, oreIds) {
 }
 
 /**
- * Get random cardinal direction (north, south, east, west)
+ * Get direction (always north -Z)
  * @returns {Object} Direction object with name and offset
  */
 function getRandomDirection() {
-  const directions = [
-    { name: "north", offset: new Vec3(0, 0, -1) },
-    { name: "south", offset: new Vec3(0, 0, 1) },
-    { name: "east", offset: new Vec3(1, 0, 0) },
-    { name: "west", offset: new Vec3(-1, 0, 0) },
-  ];
-  return directions[Math.floor(Math.random() * directions.length)];
+  return { name: "north", offset: new Vec3(0, 0, -1) };
 }
 
 /**
@@ -365,33 +359,23 @@ async function executeMiningTask(bot, mcData, oreIds, taskSpec) {
   // Place torch before mining
   await placeTorch(bot, mcData, oreIds, 2400);
 
-  // Collect visible ores
-  const visibleOres = findVisibleOres(bot, oreIds);
-  if (visibleOres.length > 0) {
-    const maxOresToMine = Math.min(visibleOres.length, MAX_ORES_TO_MINE);
-    console.log(`[${bot.username}] Collecting ${maxOresToMine} visible ores`);
-
-    for (let i = 0; i < maxOresToMine; i++) {
-      const ore = visibleOres[i];
-      console.log(
-        `[${bot.username}] Mining ${ore.name} at (${ore.position.x.toFixed(
-          1
-        )}, ${ore.position.y.toFixed(1)}, ${ore.position.z.toFixed(1)})`
-      );
-
-      bot.pathfinder.setGoal(
-        new GoalBlock(ore.position.x, ore.position.y, ore.position.z)
-      );
-
-      // Wait for goal_reached or timeout
-      await Promise.race([
-        new Promise((resolve) => bot.once("goal_reached", resolve)),
-        sleep(ORE_MINING_TIMEOUT_MS),
-      ]);
-
-      bot.pathfinder.setGoal(null);
-    }
-  }
+  // Ore collection disabled - bot always moves North
+  // const visibleOres = findVisibleOres(bot, oreIds);
+  // if (visibleOres.length > 0) {
+  //   const maxOresToMine = Math.min(visibleOres.length, MAX_ORES_TO_MINE);
+  //   console.log(`[${bot.username}] Collecting ${maxOresToMine} visible ores`);
+  //   for (let i = 0; i < maxOresToMine; i++) {
+  //     const ore = visibleOres[i];
+  //     bot.pathfinder.setGoal(
+  //       new GoalBlock(ore.position.x, ore.position.y, ore.position.z)
+  //     );
+  //     await Promise.race([
+  //       new Promise((resolve) => bot.once("goal_reached", resolve)),
+  //       sleep(ORE_MINING_TIMEOUT_MS),
+  //     ]);
+  //     bot.pathfinder.setGoal(null);
+  //   }
+  // }
 
   // Execute the main task based on specification
   if (taskSpec.type === "directional") {

@@ -13,31 +13,60 @@ const {
 } = require("./constants");
 const { lookSmooth, stopAll, jump, land_pos } = require("./movement");
 
+// World direction yaw values (in radians)
+// In Minecraft/mineflayer: yaw=0 faces North (-Z), yaw=π/2 faces West (-X)
+const WORLD_DIRECTION_YAW = {
+  north: 0,           // -Z
+  south: Math.PI,     // +Z
+  east: -Math.PI / 2, // +X
+  west: Math.PI / 2,  // -X
+};
+
 async function walk(bot, distance, lookAway, flipCameraInReturn, args, customConstants = {}) {
   // Allow overriding constants per episode type
   const jumpProb = customConstants.JUMP_PROBABILITY ?? JUMP_PROBABILITY;
+  const fixedWorldDirection = customConstants.FIXED_WORLD_DIRECTION; // e.g., 'north', 'south', 'east', 'west'
   
   const startPos = bot.entity.position.clone();
-  const dir = choice(["forward", "back", "left", "right"]);
   const walkTimeoutMs = args.walk_timeout * 1000; // Convert to milliseconds
   // Save bot's original pitch and yaw
   const originalYaw = bot.entity.yaw;
   const originalPitch = bot.entity.pitch;
-  console.log(
-    `[${
-      bot.username
-    }] Walking ${dir} for ${distance} blocks from position (${startPos.x.toFixed(
-      2
-    )}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}) with ${
-      args.walk_timeout
-    }s timeout lookAway: ${lookAway} flipCameraInReturn: ${flipCameraInReturn}`
-  );
+
+  // Determine direction: use fixed world direction or random
+  let dir;
+  let walkYaw;
+  if (fixedWorldDirection && WORLD_DIRECTION_YAW[fixedWorldDirection] !== undefined) {
+    // Use fixed world direction - rotate to face that direction and walk forward
+    dir = "forward";
+    walkYaw = WORLD_DIRECTION_YAW[fixedWorldDirection];
+    console.log(
+      `[${bot.username}] Walking ${fixedWorldDirection} (fixed) for ${distance} blocks from position (${startPos.x.toFixed(
+        2
+      )}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}) with ${
+        args.walk_timeout
+      }s timeout lookAway: ${lookAway} flipCameraInReturn: ${flipCameraInReturn}`
+    );
+    // Rotate to face the fixed direction before walking
+    await lookSmooth(bot, walkYaw, originalPitch, DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC);
+  } else {
+    dir = choice(["forward", "back", "left", "right"]);
+    console.log(
+      `[${bot.username}] Walking ${dir} for ${distance} blocks from position (${startPos.x.toFixed(
+        2
+      )}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}) with ${
+        args.walk_timeout
+      }s timeout lookAway: ${lookAway} flipCameraInReturn: ${flipCameraInReturn}`
+    );
+  }
+
   if (lookAway) {
     // Pick a random angle between -90 and +90 degrees behind the bot's current yaw
     // "Behind" means add 180 degrees (π radians), then offset by [-90, +90] degrees
+    const currentYaw = bot.entity.yaw; // Use current yaw (may have been updated for fixed direction)
     const behindOffsetDeg = Math.random() * 180 - 90; // [-90, +90]
     const behindOffsetRad = (behindOffsetDeg * Math.PI) / 180;
-    const newYaw = originalYaw + Math.PI + behindOffsetRad;
+    const newYaw = currentYaw + Math.PI + behindOffsetRad;
     // Keep pitch the same
     await lookSmooth(
       bot,
