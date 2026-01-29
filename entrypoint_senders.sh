@@ -63,4 +63,5 @@ exec node senders.js \
   --instance_id "${INSTANCE_ID:-0}" \
   --output_dir "${OUTPUT_DIR:-/output}" \
   --eval_time_set_day "${EVAL_TIME_SET_DAY:-0}" \
-  --enable_demo_mode "${ENABLE_DEMO_MODE:-0}"
+  --enable_demo_mode "${ENABLE_DEMO_MODE:-0}" \
+  --enable_demo_camera "${ENABLE_DEMO_CAMERA:-0}"

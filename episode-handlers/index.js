@@ -56,6 +56,77 @@ try {
   // File doesn't exist or is invalid - demo mode disabled
 }
 
+const SPECTATOR_NAMES = ["SpectatorAlpha", "SpectatorBravo"];
+
+/**
+ * Compute camera position from bot positions (center of Alpha and Bravo + offset)
+ * @param {Object} bot - Mineflayer bot instance
+ * @param {string} otherBotName - Name of the other bot
+ * @returns {Object|null} Camera position with x, y, z, yaw, pitch
+ */
+function computeCameraFromBots(bot, otherBotName) {
+  const otherPlayer = bot.players[otherBotName];
+  if (!otherPlayer || !otherPlayer.entity) {
+    console.warn(`[${bot.username}] Other bot ${otherBotName} not found for camera calculation`);
+    return null;
+  }
+  
+  const myPos = bot.entity.position;
+  const otherPos = otherPlayer.entity.position;
+  
+  const centerX = (myPos.x + otherPos.x) / 2;
+  const centerY = (myPos.y + otherPos.y) / 2;
+  const centerZ = (myPos.z + otherPos.z) / 2;
+  
+  const cameraX = centerX + 10;
+  const cameraY = centerY + 7;
+  const cameraZ = centerZ + 10;
+  
+  // Calculate yaw to look at the center
+  const dx = centerX - cameraX;
+  const dz = centerZ - cameraZ;
+  const yaw = (Math.atan2(-dx, dz) * 180) / Math.PI;
+  
+  return {
+    x: cameraX,
+    y: cameraY,
+    z: cameraZ,
+    yaw,
+    pitch: 33,
+  };
+}
+
+async function teleportSpectatorsFromBots(rcon, bot, otherBotName) {
+  const camera = computeCameraFromBots(bot, otherBotName);
+  if (!camera) {
+    return;
+  }
+  for (const name of SPECTATOR_NAMES) {
+    const tpCmd = `tp ${name} ${camera.x} ${camera.y} ${camera.z} ${camera.yaw} ${camera.pitch}`;
+    console.log(`[${bot.username}] Spectator tp: ${tpCmd}`);
+    try {
+      await rcon.send(tpCmd);
+    } catch (err) {
+      console.warn(`[${bot.username}] Failed to teleport ${name}: ${err.message}`);
+    }
+  }
+}
+
+async function teleportDemoCameraFromBots(rcon, bot, otherBotName) {
+  const camera = computeCameraFromBots(bot, otherBotName);
+  if (!camera) {
+    return;
+  }
+  const name = "CameraDemo";
+  const tpCmd = `tp ${name} ${camera.x} ${camera.y} ${camera.z} ${camera.yaw} ${camera.pitch}`;
+  console.log(`[${bot.username}] Demo camera tp: ${tpCmd}`);
+  try {
+    await rcon.send(tpCmd);
+  } catch (err) {
+    console.warn(`[${bot.username}] Failed to teleport ${name}: ${err.message}`);
+  }
+}
+
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
@@ -932,6 +1003,15 @@ async function teleport(
         episodeNum,
         turnToLookEvalTpPoints
       );
+      
+      // Teleport spectators and demo camera after bots are positioned
+      if (!args.enable_demo_mode && isEvalEpisode(episodeInstance)) {
+        await sleep(500); // Wait for positions to update
+        await teleportSpectatorsFromBots(rcon, bot, args.other_bot_name);
+        if (args.enable_demo_camera) {
+          await teleportDemoCameraFromBots(rcon, bot, args.other_bot_name);
+        }
+      }
       return;
     }
   }
@@ -1041,6 +1121,15 @@ async function teleport(
     } else {
       success = true;
       await sleep(5000);
+      
+      // Teleport spectators and demo camera after bots are positioned
+      if (!args.enable_demo_mode && isEvalEpisode(episodeInstance)) {
+        await teleportSpectatorsFromBots(rcon, bot, args.other_bot_name);
+        if (args.enable_demo_camera) {
+          await teleportDemoCameraFromBots(rcon, bot, args.other_bot_name);
+        }
+      }
+      
       break;
     }
   }

@@ -1,122 +1,27 @@
 [
   {
-    "spawn": {"x": 326, "y": 67, "z": -1226},
-    "camera": {"x": 340, "y": 78, "z": -1236, "yaw": 50.2, "pitch": 29.7},
-    "episode": "buildHouse"
+    "spawn": {"x": -2176, "y": 114, "z": -523},
+    "camera": {"x": -2161, "y": 125, "z": -511, "yaw": 128, "pitch": 33.6},
+    "episode": "buildStructure"
   },
   {
-    "spawn": {"x": 258, "y": 67, "z": -661}, 
-    "camera": {"x": 251, "y": 78, "z": -673, "yaw": -32.8, "pitch": 33.1},
-    "episode": "buildHouse"
+    "spawn": {"x": -1968, "y": 64, "z": -749},
+    "camera": {"x": -1949, "y": 82, "z": -737, "yaw": 122.2, "pitch": 35.5},
+    "episode": "buildTower"
   },
   {
-    "spawn": {"x": 477, "y": 64, "z": -998},
-    "camera": {"x": 465, "y": 72, "z": -1000, "yaw": -70.9, "pitch": 25.6},
-    "episode": "buildHouse"
+    "spawn": {"x": -5682, "y": 135, "z": 2361},
+    "camera": {"x": -5676, "y": 142, "z": 2377, "yaw": 160.3, "pitch": 25.9},
+    "episode": "mine"
   },
   {
-    "spawn": {"x": 473, "y": 64, "z": -1222},
-    "camera": {"x": 460, "y": 80, "z": -1214, "yaw": -119.5, "pitch": 44.9},
-    "episode": "towerBridge"
+    "spawn": {"x": -2603, "y": 64, "z": -1154},
+    "camera": {"x": -2596, "y": 73, "z": -1166, "yaw": 30.1, "pitch": 36.6},
+    "episode": "walkLookAway"
   },
   {
-    "spawn": {"x": 163, "y": 80, "z": -1653},
-    "camera": {"x": 172, "y": 97, "z": -1662, "yaw": 42.4, "pitch": 49.2},
-    "episode": "towerBridge"
-  },
-  {
-    "spawn": {"x": 266, "y": 64, "z": -1796},
-    "camera": {"x": 252, "y": 78, "z": -1790, "yaw": -112.1, "pitch": 35.7},
-    "episode": "towerBridge"
-  },
-  {
-    "spawn": {"x": -4915, "y": 72, "z": 2553},
-    "camera": {"x": -4905, "y": 81, "z": 2546, "yaw": 50.2, "pitch": 36},
-    "episode": "pvp"
-  },
-  {
-    "spawn": {"x": -5031, "y": 64, "z": 2702},
-    "camera": {"x": -5022, "y": 72, "z": 2695, "yaw": 53.4, "pitch": 36.8},
-    "episode": "pvp"
-  },
-  {
-    "spawn": {"x": -5171, "y": 112, "z": 2211},
-    "camera": {"x": -5163, "y": 116, "z": 2223, "yaw": 146.3, "pitch": 15.8},
-    "episode": "pvp"
-  },
-  {
-    "spawn": {"x": 243, "y": 64, "z": -695},
-    "camera": {"x": 238, "y": 72, "z": -680, "yaw": -162, "pitch": 29.4},
-    "episode": "pve"
-  },
-  {
-    "spawn": {"x": -241, "y": 67, "z": -321},
-    "camera": {"x": -247, "y": 77, "z": -309, "yaw": -159, "pitch": 47},
-    "episode": "pve"
-  },
-  {
-    "spawn": {"x": 151, "y": 69, "z": 1444},
-    "camera": {"x": 161, "y": 75, "z": 1449, "yaw": 124, "pitch": 29},
-    "episode": "pve"
-  },
-  {
-    "spawn": {"x": 161, "y": 70, "z": 1949},
-    "camera": {"x": 153, "y": 78, "z": 1960, "yaw": -157, "pitch": 32},
-    "episode": "chase"
-  },
-  {
-    "spawn": {"x": 153, "y": 76, "z": 2472},
-    "camera": {"x": 145, "y": 84, "z": 2484, "yaw": -160, "pitch": 25.8},
-    "episode": "chase"
-  },
-  {
-    "spawn": {"x": 170, "y": 81, "z": 2976},
-    "camera": {"x": 161, "y": 90, "z": 2985, "yaw": -147, "pitch": 30.4},
-    "episode": "chase"
-  },
-  {
-    "spawn": {"x": 163, "y": 117, "z": 3904},
-    "camera": {"x": 158, "y": 122, "z": 3912, "yaw": -157.5, "pitch": 29.7},
-    "episode": "walkLook"
-  },
-  {
-    "spawn": {"x": 274, "y": 110, "z": 4413},
-    "camera": {"x": 282, "y": 116, "z": 4422, "yaw": 157, "pitch": 23},
-    "episode": "walkLook"
-  },
-  {
-    "spawn": {"x": 215, "y": 72, "z": 4810},
-    "camera": {"x": 208, "y": 79, "z": 4818, "yaw": -158, "pitch": 27.3},
-    "episode": "walkLook"
-  },
-  {
-    "spawn": {"x": 58, "y": 69, "z": 5927},
-    "camera": {"x": 58, "y": 74, "z": 5932, "yaw": 179, "pitch": 49},
-    "episode": "placeAndMine"
-  },
-  {
-    "spawn": {"x": 593, "y": 68, "z": 4862},
-    "camera": {"x": 594, "y": 72, "z": 4867, "yaw": 170, "pitch": 45.3},
-    "episode": "placeAndMine"
-  },
-  {
-    "spawn": {"x": 1075, "y": 63, "z": 4885},
-    "camera": {"x": 1082, "y": 68, "z": 4888, "yaw": 122, "pitch": 33.4},
-    "episode": "placeAndMine"
-  },
-  {
-    "spawn": {"x": 504, "y": 104, "z": 3936},
-    "camera": {"x": 493, "y": 97, "z": 3936, "yaw": -105, "pitch": -15.8},
-    "episode": "collector"
-  },
-  {
-    "spawn": {"x": 833, "y": 37, "z": 3994},
-    "camera": {"x": 818, "y": 35, "z": 3996, "yaw": -127, "pitch": 12.6},
-    "episode": "collector"
-  },
-  {
-    "spawn": {"x": 1307, "y": 37, "z": 3889},
-    "camera": {"x": 1292, "y": 37, "z": 3894, "yaw": -128, "pitch": 17.4},
-    "episode": "collector"
+    "spawn": {"x": -3119, "y": 120, "z": -2007},
+    "camera": {"x": -3129, "y": 129, "z": -2021, "yaw": -36, "pitch": 31.2},
+    "episode": "orbit"
   }
 ]

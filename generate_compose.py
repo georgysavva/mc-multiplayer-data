@@ -147,6 +147,7 @@ def generate_compose_config(
     flatland_world_disable_structures: bool = False,
     # Demo mode options
     enable_demo_mode: bool = False,
+    enable_demo_camera: bool = False,
     camera_output_demo_base: str = "",
     camera_data_demo_base: str = "",
     camera_demo_vnc_base: int = 0,
@@ -161,14 +162,16 @@ def generate_compose_config(
     # Directories - each instance gets its own data subdirectory
     data_dir = f"{data_dir_base}/{instance_id}"
 
+    demo_camera_enabled = enable_demo_mode or enable_demo_camera
+
     cam_paths = camera_paths(
         instance_id,
         camera_output_alpha_base,
         camera_output_bravo_base,
         camera_data_alpha_base,
         camera_data_bravo_base,
-        demo_base=camera_output_demo_base if enable_demo_mode else "",
-        data_demo_base=camera_data_demo_base if enable_demo_mode else "",
+        demo_base=camera_output_demo_base if demo_camera_enabled else "",
+        data_demo_base=camera_data_demo_base if demo_camera_enabled else "",
     )
     cam_ports = camera_ports(
         instance_id,
@@ -179,8 +182,8 @@ def generate_compose_config(
         display_base,
         vnc_step,
         display_step,
-        demo_vnc_base=camera_demo_vnc_base if enable_demo_mode else 0,
-        demo_novnc_base=camera_demo_novnc_base if enable_demo_mode else 0,
+        demo_vnc_base=camera_demo_vnc_base if demo_camera_enabled else 0,
+        demo_novnc_base=camera_demo_novnc_base if demo_camera_enabled else 0,
     )
 
     project_root = str(Path(__file__).resolve().parent)
@@ -189,13 +192,25 @@ def generate_compose_config(
     launch_host = os.path.join(project_root, "camera", "launch_minecraft.py")
     camera_package_json_host = os.path.join(project_root, "camera", "package.json")
     # If demo mode is enabled, use the fixed seed "solaris-figures"
-    # If the only episode type is turnToLookEval, use the fixed seed "solaris"
+    # If all episode types are turnToLook eval variants, use the fixed seed "solaris"
+    def _parse_episode_types(value: str) -> list[str]:
+        if not value or value == "all":
+            return []
+        return [t.strip() for t in str(value).split(",") if t.strip()]
+
+    def _is_turn_to_look_only(value: str) -> bool:
+        types = _parse_episode_types(value)
+        if not types:
+            return False
+        allowed = {"turnToLookEval", "turnToLookOppositeEval"}
+        return all(t in allowed for t in types)
+
     if enable_demo_mode:
         seed = "solaris-figures"
         print(f"Demo mode enabled. Using fixed seed 'solaris-figures' for all instances.")
-    elif episode_types == "turnToLookEval" or episode_types == "turnToLookOppositeEval":
+    elif _is_turn_to_look_only(episode_types):
         seed = "solaris"
-        print(f"turnToLookEval episode type passsed. Using fixed seed 'solaris' for all instances.")
+        print("TurnToLook eval-only run. Using fixed seed 'solaris' for all instances.")
     else:
         seed = str(instance_id) + str(int(time.time()))
     config = {
@@ -325,6 +340,7 @@ def generate_compose_config(
                     "OUTPUT_DIR": "/output",
                     "EVAL_TIME_SET_DAY": eval_time_set_day,
                     "ENABLE_DEMO_MODE": "1" if enable_demo_mode else "0",
+                    "ENABLE_DEMO_CAMERA": "1" if demo_camera_enabled else "0",
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -381,6 +397,7 @@ def generate_compose_config(
                     "OUTPUT_DIR": "/output",
                     "EVAL_TIME_SET_DAY": eval_time_set_day,
                     "ENABLE_DEMO_MODE": "1" if enable_demo_mode else "0",
+                    "ENABLE_DEMO_CAMERA": "1" if demo_camera_enabled else "0",
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -473,7 +490,7 @@ def generate_compose_config(
                     },
                     **(
                         {f"camera_demo_instance_{instance_id}": {"condition": "service_started"}}
-                        if enable_demo_mode else {}
+                        if demo_camera_enabled else {}
                     ),
                 },
                 "working_dir": "/app",
@@ -483,12 +500,13 @@ def generate_compose_config(
                     "RCON_PASSWORD": "research",
                     "EPISODE_START_RETRIES": "300",
                     "EPISODE_REQUIRED_PLAYERS": (
-                        "Alpha,CameraAlpha,Bravo,CameraBravo,CameraDemo" if enable_demo_mode 
+                        "Alpha,CameraAlpha,Bravo,CameraBravo,CameraDemo,SpectatorAlpha,SpectatorBravo"
+                        if demo_camera_enabled
                         else "Alpha,CameraAlpha,Bravo,CameraBravo,SpectatorAlpha,SpectatorBravo"
                     ),
                     "EPISODE_START_COMMAND": "episode start Alpha CameraAlpha technoblade.png Bravo CameraBravo test.png",
                     "EPISODE_START_ID": str(episode_start_id),
-                    **({"DEMO_CAMERA_NAME": "CameraDemo"} if enable_demo_mode else {}),
+                    **({"DEMO_CAMERA_NAME": "CameraDemo"} if demo_camera_enabled else {}),
                 },
                 "volumes": [
                     f"{os.path.join(project_root, 'camera', 'episode_starter.js')}:/app/episode_starter.js:ro",
@@ -599,7 +617,7 @@ def generate_compose_config(
                         ],
                     },
                 }
-                if enable_demo_mode else {}
+                if demo_camera_enabled else {}
             ),
             # Passive spectator alpha (only when not in demo mode)
             **(
@@ -764,6 +782,18 @@ def main():
         help="Number of episodes to run (default: 5)",
     )
     parser.add_argument(
+        "--num_episodes_normal",
+        type=int,
+        default=None,
+        help="Override number of episodes for normal-world instances",
+    )
+    parser.add_argument(
+        "--num_episodes_flat",
+        type=int,
+        default=None,
+        help="Override number of episodes for flat-world instances",
+    )
+    parser.add_argument(
         "--episode_start_id",
         type=int,
         default=0,
@@ -784,6 +814,16 @@ def main():
         "--episode_types",
         default="all",
         help="Comma-separated episode types to run (default: all)",
+    )
+    parser.add_argument(
+        "--episode_types_normal",
+        default=None,
+        help="Override episode types for normal-world instances",
+    )
+    parser.add_argument(
+        "--episode_types_flat",
+        default=None,
+        help="Override episode types for flat-world instances",
     )
     parser.add_argument(
         "--iterations_num_per_episode",
@@ -887,6 +927,13 @@ def main():
         help="Enable demo mode with fixed camera and per-episode positions/types (default: 0)",
     )
     parser.add_argument(
+        "--enable_demo_camera",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Enable demo camera recording without demo-mode episode selection (default: 0)",
+    )
+    parser.add_argument(
         "--camera_output_demo_base",
         default=None,
         help="Absolute base dir for per-instance Demo Camera outputs",
@@ -931,7 +978,8 @@ def main():
         args.camera_data_bravo_base = absdir(args.camera_data_bravo_base)
 
     # Demo camera directory defaults
-    if args.enable_demo_mode:
+    demo_camera_enabled = args.enable_demo_mode or args.enable_demo_camera
+    if demo_camera_enabled:
         if args.camera_output_demo_base is None:
             # Default to sibling of alpha/bravo output dirs
             args.camera_output_demo_base = absdir(
@@ -946,13 +994,13 @@ def main():
         else:
             args.camera_data_demo_base = absdir(args.camera_data_demo_base)
 
-        # When demo mode is enabled, we have 3 cameras (Alpha, Bravo, Demo)
+        # When demo camera is enabled, we have 3 cameras (Alpha, Bravo, Demo)
         # so vnc_step and display_step must be at least 3 to avoid port collisions
         if args.vnc_step < 3:
-            print(f"[INFO] Demo mode enabled: increasing vnc_step from {args.vnc_step} to 3 to avoid port collisions")
+            print(f"[INFO] Demo camera enabled: increasing vnc_step from {args.vnc_step} to 3 to avoid port collisions")
             args.vnc_step = 3
         if args.display_step < 3:
-            print(f"[INFO] Demo mode enabled: increasing display_step from {args.display_step} to 3 to avoid display collisions")
+            print(f"[INFO] Demo camera enabled: increasing display_step from {args.display_step} to 3 to avoid display collisions")
             args.display_step = 3
 
     # Create compose directory
@@ -1018,6 +1066,20 @@ def main():
 
     for i in range(total_instances):
         world_type = world_plan[i]
+        if world_type == "flat":
+            episode_types_for_instance = (
+                args.episode_types_flat or args.episode_types
+            )
+            num_episodes_for_instance = (
+                args.num_episodes_flat if args.num_episodes_flat is not None else args.num_episodes
+            )
+        else:
+            episode_types_for_instance = (
+                args.episode_types_normal or args.episode_types
+            )
+            num_episodes_for_instance = (
+                args.num_episodes_normal if args.num_episodes_normal is not None else args.num_episodes
+            )
         # Calculate cpuset string for this instance if CPU pinning is enabled
         instance_cpuset = None
         camera_alpha_cpuset = None
@@ -1042,11 +1104,11 @@ def main():
             args.coord_port,
             args.data_dir,
             args.output_dir,
-            args.num_episodes,
+            num_episodes_for_instance,
             args.episode_start_id,
             args.bootstrap_wait_time,
             args.episode_category,
-            args.episode_types,
+            episode_types_for_instance,
             args.iterations_num_per_episode,
             args.smoke_test,
             args.viewer_rendering_disabled,
@@ -1080,8 +1142,9 @@ def main():
             flatland_world_disable_structures=bool(args.flatland_world_disable_structures),
             # Demo mode options
             enable_demo_mode=bool(args.enable_demo_mode),
-            camera_output_demo_base=args.camera_output_demo_base if args.enable_demo_mode else "",
-            camera_data_demo_base=args.camera_data_demo_base if args.enable_demo_mode else "",
+            enable_demo_camera=bool(args.enable_demo_camera),
+            camera_output_demo_base=args.camera_output_demo_base if (args.enable_demo_mode or args.enable_demo_camera) else "",
+            camera_data_demo_base=args.camera_data_demo_base if (args.enable_demo_mode or args.enable_demo_camera) else "",
             camera_demo_vnc_base=args.camera_demo_vnc_base,
             camera_demo_novnc_base=args.camera_demo_novnc_base,
         )
