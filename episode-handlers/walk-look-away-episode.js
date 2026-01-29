@@ -60,7 +60,7 @@ function getOnWalkLookAwayPhaseFn(
 
     // Either run() or sleep() based on the mode
     if (shouldThisBotWalk) {
-      await run(bot, actionCount, /*lookAway*/ true, args);
+      await run(bot, actionCount, /*lookAway*/ true, args, { FIXED_WORLD_DIRECTION: 'north' });
     } else {
       // Bot doesn't run, so no sleep is needed
       console.log(

@@ -187,19 +187,9 @@ async function runFromChaser(
   // Calculate horizontal distance for normalization
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
 
-  // Normalize direction vector (handle case where bots are at same position)
-  let normalizedDx, normalizedDz;
-  if (horizontalDistance > 0) {
-    normalizedDx = dx / horizontalDistance;
-    normalizedDz = dz / horizontalDistance;
-  } else {
-    // If bots are at same position, default to North direction
-    normalizedDx = 0;
-    normalizedDz = -1;
-    console.log(
-      `[${bot.username}] ⚠️ Bots at same position, defaulting to North direction`
-    );
-  }
+  // Always run North (-Z) for demo determinism
+  const normalizedDx = 0;
+  const normalizedDz = -1;
 
   // Calculate escape destination: C = A + 100 * d
   const escapeDistance = 100;
