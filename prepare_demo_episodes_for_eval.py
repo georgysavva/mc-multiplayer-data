@@ -25,8 +25,18 @@ from prepare_episodes_for_eval import process_episodes_dir
 FPS = 20  # Minecraft recording FPS
 
 
-def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_size: int = 256):
-    """Build eval metadata from an episodes directory."""
+def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_size: int = 256,
+                        default_stride: int = 40, long_video_stride: int = 120, long_video_threshold: int = 1200):
+    """Build eval metadata from an episodes directory.
+    
+    Args:
+        episodes_dir: Path to the episodes directory
+        ignore_first_episode: Whether to skip episode 000000
+        segment_size: Length of each segment in frames (default: 256)
+        default_stride: Stride between segment starts for short videos (default: 40)
+        long_video_stride: Stride for videos longer than long_video_threshold (default: 120)
+        long_video_threshold: Frame count threshold for using long_video_stride (default: 1200)
+    """
     output_dir = Path(episodes_dir) / "output"
     aligned_dir = Path(episodes_dir) / "aligned"
     
@@ -108,8 +118,13 @@ def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_s
         min_frames = min(pair['Alpha']['frame_count'], pair['Bravo']['frame_count'])
         episode_type = type_mapping.get((episode_num, instance_id), 'unknown')
         
-        for seg_idx in range(min_frames // segment_size):
-            start, end = seg_idx * segment_size, (seg_idx + 1) * segment_size
+        # Use longer stride for videos exceeding the threshold (e.g., 1 minute at 20 FPS)
+        stride = long_video_stride if min_frames > long_video_threshold else default_stride
+        
+        # Generate overlapping segments with the determined stride
+        start = 0
+        while start + segment_size <= min_frames:
+            end = start + segment_size
             eval_ids.append((ep_idx, start, end, start, end))
             segment_mapping.append({
                 'segment_idx': len(segment_mapping),
@@ -119,6 +134,7 @@ def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_s
                 'bravo_episode': pair['Bravo']['post_rename'],
                 'start_frame': start, 'end_frame': end,
             })
+            start += stride
     
     return episode_type_mapping, eval_ids, segment_mapping, demo_videos
 
@@ -180,7 +196,10 @@ def main():
     parser.add_argument("--episodes-dir", required=True, help="Episodes directory or parent of multiple")
     parser.add_argument("--destination-dir", required=True, help="Output directory")
     parser.add_argument("--ignore-first-episode", action="store_true")
-    parser.add_argument("--segment-size", type=int, default=256)
+    parser.add_argument("--segment-size", type=int, default=256, help="Length of each segment in frames")
+    parser.add_argument("--default-stride", type=int, default=40, help="Stride between segment starts for short videos")
+    parser.add_argument("--long-video-stride", type=int, default=120, help="Stride for videos longer than threshold")
+    parser.add_argument("--long-video-threshold", type=int, default=1200, help="Frame count threshold for long video stride (1200 = 1 minute at 20 FPS)")
     parser.add_argument("--skip-demo-segments", action="store_true", help="Skip segmenting Demo camera videos")
     args = parser.parse_args()
 
@@ -205,7 +224,10 @@ def main():
             total_copied += result[0]
             print(f"Processed: {prefix or 'episodes'} -> {result[0]} file pairs")
         
-        type_map, eval_ids, segments, demo_videos = build_eval_metadata(src, args.ignore_first_episode, args.segment_size)
+        type_map, eval_ids, segments, demo_videos = build_eval_metadata(
+            src, args.ignore_first_episode, args.segment_size,
+            args.default_stride, args.long_video_stride, args.long_video_threshold
+        )
         
         ep_offset = len(set(s['episode_name'] for s in all_segment_mapping))
         segment_offset = len(all_segment_mapping)
