@@ -153,17 +153,22 @@ def _has_wallclock_timestamps(
 def _match_actions_to_frames(
     actions: List[Dict[str, Any]],
     frame_timestamps: List[float],
+    fps: float,
     delay_video_by_sec: float = 0.0,
 ) -> Tuple[List[int], Dict[str, Any]]:
-    """Match each action to the closest video frame using absolute timestamps.
+    """Match each action to the first video frame at or after the action time.
 
     Both ``action_times`` (from ``epochTime``) and ``frame_timestamps`` are
-    non-decreasing sequences.  For each action we find the frame whose
-    timestamp is closest (could be slightly before or after the action time),
-    advancing a frame pointer so that each frame is used at most once.
+    non-decreasing sequences.  For each action we find the first frame whose
+    timestamp is >= the action's effective time.
+
+    Frames are **not** consumed: if a frame was dropped and two consecutive
+    actions both land on the same frame, that frame is reused (duplicate).
+    This avoids additive drift -- after the duplicate the sequences resync
+    immediately.
 
     Returns ``(frame_indices, diagnostics)`` where *frame_indices* has one
-    entry per action (the index into the recording to extract) and
+    entry per matched action (the index into the recording to extract) and
     *diagnostics* is a dict with alignment quality stats.
     """
     n_actions = len(actions)
@@ -180,29 +185,22 @@ def _match_actions_to_frames(
     for action_idx, action_time in enumerate(action_times):
         effective_time = action_time - delay_video_by_sec
 
-        # Advance frame_ptr to find the best matching frame.
-        # "Best" = frame whose timestamp is closest to effective_time,
-        # but we never go backwards (frame_ptr only increases).
+        # Advance frame_ptr to the first frame at or after effective_time.
+        # frame_ptr never goes backwards, so this is O(n+m) overall.
+        while frame_ptr < n_frames and frame_timestamps[frame_ptr] < effective_time:
+            frame_ptr += 1
+
         if frame_ptr >= n_frames:
             # No more frames -- remaining actions are unmatched at the end
             unmatched_actions_end = n_actions - action_idx
             break
 
-        # Advance past frames that are too early: move forward while the
-        # *next* frame is still closer to effective_time than the current one.
-        while (frame_ptr + 1 < n_frames and
-               abs(frame_timestamps[frame_ptr + 1] - effective_time) <=
-               abs(frame_timestamps[frame_ptr] - effective_time)):
-            frame_ptr += 1
-
-        # Record the match
+        # Record the match.  Do NOT advance frame_ptr: the same frame may
+        # be the correct match for the next action too (dropped-frame case).
         matched_frame = frame_ptr
         delta = frame_timestamps[matched_frame] - effective_time
         time_deltas.append(delta)
         frame_indices.append(matched_frame)
-
-        # Consume this frame so the next action gets the next (or later) frame.
-        frame_ptr += 1
 
     # --- Compute boundary statistics ---
     skipped_frames_start = 0
@@ -220,7 +218,7 @@ def _match_actions_to_frames(
             else:
                 break
 
-    # --- Check for duplicate frame usage ---
+    # --- Check for duplicate frame usage (indicates dropped frames) ---
     frame_usage = Counter(frame_indices)
     duplicate_frames = {idx: cnt for idx, cnt in frame_usage.items() if cnt > 1}
 
@@ -241,6 +239,20 @@ def _match_actions_to_frames(
             continue  # within end grace period
         interior_unconsumed.append(i)
 
+    # --- Check for dropped frames (large inter-frame gaps) ---
+    # A gap significantly larger than 1/fps suggests x11grab missed a frame.
+    expected_interval = 1.0 / fps
+    gap_threshold = expected_interval * 1.8  # e.g. 90ms for 20fps (50ms expected)
+    dropped_frame_gaps: List[Dict[str, Any]] = []
+    for i in range(1, n_frames):
+        gap = frame_timestamps[i] - frame_timestamps[i - 1]
+        if gap > gap_threshold and (frame_timestamps[i - 1] - rec_start) > _BOUNDARY_GRACE_SEC:
+            dropped_frame_gaps.append({
+                "between_frames": [i - 1, i],
+                "gap_sec": round(gap, 4),
+                "expected_frames_missed": round(gap / expected_interval) - 1,
+            })
+
     diagnostics = {
         "n_actions": n_actions,
         "n_frames": n_frames,
@@ -255,6 +267,7 @@ def _match_actions_to_frames(
         "max_delta_sec": max(time_deltas) if time_deltas else 0.0,
         "duplicate_frame_count": len(duplicate_frames),
         "interior_unconsumed_count": len(interior_unconsumed),
+        "dropped_frame_gaps": len(dropped_frame_gaps),
     }
 
     return frame_indices, diagnostics
@@ -431,18 +444,19 @@ def _build_action_mapping(
 # ---------------------------------------------------------------------------
 
 def _print_wallclock_warnings(diagnostics: Dict[str, Any]) -> None:
-    """Print warnings for duplicate frame usage and interior unconsumed frames."""
+    """Print compact warnings for alignment quality issues."""
+    parts: List[str] = []
+    gaps = diagnostics.get("dropped_frame_gaps", 0)
+    if gaps:
+        parts.append(f"{gaps} dropped-frame gap(s)")
     dup = diagnostics.get("duplicate_frame_count", 0)
-    if dup > 0:
-        print(f"[align] WARNING: {dup} frame(s) consumed more than once "
-              f"(multiple actions mapped to the same video frame)",
-              file=sys.stderr)
-
+    if dup:
+        parts.append(f"{dup} duplicate frame(s)")
     interior = diagnostics.get("interior_unconsumed_count", 0)
-    if interior > 0:
-        print(f"[align] WARNING: {interior} interior frame(s) unconsumed "
-              f"(outside the {_BOUNDARY_GRACE_SEC:.0f}s start/end grace period)",
-              file=sys.stderr)
+    if interior:
+        parts.append(f"{interior} interior unconsumed frame(s)")
+    if parts:
+        print(f"[align] WARNING: {'; '.join(parts)}", file=sys.stderr)
 
 
 def align_recording(config: AlignmentInput) -> Dict[str, Any]:
@@ -503,7 +517,7 @@ def align_recording(config: AlignmentInput) -> Dict[str, Any]:
     print(f"[align] Using wallclock timestamps ({len(frame_timestamps)} frames extracted)")
 
     frame_indices, diagnostics = _match_actions_to_frames(
-        actions, frame_timestamps, config.delay_video_by_sec,
+        actions, frame_timestamps, fps, config.delay_video_by_sec,
     )
 
     if not frame_indices:
