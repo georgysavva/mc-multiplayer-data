@@ -139,6 +139,10 @@ if [ "$ENABLE_RECORDING" = "1" ]; then
   RECORDING_META_PATH=${RECORDING_META_PATH:-${RECORDING_PATH%.*}_meta.json}
   RECORDING_START_TS=$(date +%s.%N)
   RECORDING_START_ISO=$(date -u +"%Y-%m-%dT%H:%M:%S.%NZ")
+
+  # Update metadata to reflect that MKV PTS values are absolute Unix timestamps.
+  # Per-frame timestamps are extracted from the MKV container via ffprobe at
+  # post-processing time (see align_camera_video.py).
   cat >"${RECORDING_META_PATH}" <<EOF
 {
   "recording_path": "${RECORDING_PATH}",
@@ -150,24 +154,39 @@ if [ "$ENABLE_RECORDING" = "1" ]; then
   "display": "${DISPLAY}",
   "camera_name": "${CAMERA_NAME:-}",
   "gpu_mode": "${GPU_MODE}",
-  "note": "Frame index ~= round((wall_time_seconds - start_epoch_seconds) * fps)"
+  "wallclock_timestamps": true,
+  "note": "MKV PTS values are absolute Unix epoch timestamps. Use ffprobe to extract per-frame times."
 }
 EOF
   echo "[client] recording metadata saved to ${RECORDING_META_PATH}"
-  
-  # Use GPU-accelerated encoding if available (NVENC)
+
+  # Common ffmpeg flags for absolute-timestamp recording:
+  #   -use_wallclock_as_timestamps 1  (input): x11grab uses the real system clock
+  #                                            as PTS for every captured frame.
+  #   -copyts                        (output): preserve the large epoch PTS values
+  #                                            instead of resetting to zero.
+  #   -vsync 0 / -fps_mode passthrough:       do not duplicate/drop frames; record
+  #                                            exactly what arrives from x11grab.
+  #   -bf 0:                                   disable B-frames so packet decode
+  #                                            order matches presentation order,
+  #                                            keeping PTS monotonically increasing
+  #                                            in the container (simplifies ffprobe
+  #                                            extraction at postprocessing time).
+
   if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q h264_nvenc; then
-    echo "[client] Using NVENC hardware encoding (MKV)"
+    echo "[client] Using NVENC hardware encoding (MKV) with wallclock timestamps"
     ffmpeg -hide_banner -loglevel info -y \
-      -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" \
-      -f x11grab -i "${DISPLAY}.0" \
-      -c:v h264_nvenc -preset p4 -pix_fmt yuv420p "$RECORDING_PATH" &
+      -use_wallclock_as_timestamps 1 \
+      -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "${DISPLAY}.0" \
+      -copyts -vsync 0 \
+      -c:v h264_nvenc -preset p4 -bf 0 -pix_fmt yuv420p "$RECORDING_PATH" &
   else
-    echo "[client] Using CPU encoding (libx264, MKV)"
+    echo "[client] Using CPU encoding (libx264, MKV) with wallclock timestamps"
     ffmpeg -hide_banner -loglevel info -y \
-      -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" \
-      -f x11grab -i "${DISPLAY}.0" \
-      -codec:v libx264 -preset veryfast -pix_fmt yuv420p "$RECORDING_PATH" &
+      -use_wallclock_as_timestamps 1 \
+      -f x11grab -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" -i "${DISPLAY}.0" \
+      -copyts -vsync 0 \
+      -codec:v libx264 -preset veryfast -bf 0 -pix_fmt yuv420p "$RECORDING_PATH" &
   fi
   FFMPEG_PID=$!
   PIDS="$PIDS $FFMPEG_PID"
