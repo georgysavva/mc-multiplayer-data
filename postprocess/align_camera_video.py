@@ -30,9 +30,6 @@ import cv2
 # ---------------------------------------------------------------------------
 ALLOW_LEGACY_ALIGNMENT = False
 
-# Default delay to apply to video (shifts video earlier, making it appear delayed)
-DEFAULT_DELAY_VIDEO_BY_SEC = 0.0
-
 # Unconsumed frames within this many seconds of the recording start/end are
 # considered normal (the camera typically starts before and ends after the
 # episode actions).
@@ -48,7 +45,6 @@ class AlignmentInput:
     ffmpeg_path: str  # retained for CLI compatibility, unused internally
     margin_start: float  # unused but kept for backward compatibility
     margin_end: float    # unused but kept for backward compatibility
-    delay_video_by_sec: float = DEFAULT_DELAY_VIDEO_BY_SEC  # shift video earlier by this amount
 
 
 def _load_actions(path: Path) -> List[Dict[str, Any]]:
@@ -154,7 +150,6 @@ def _match_actions_to_frames(
     actions: List[Dict[str, Any]],
     frame_timestamps: List[float],
     fps: float,
-    delay_video_by_sec: float = 0.0,
 ) -> Tuple[List[int], Dict[str, Any]]:
     """Match each action to the first video frame at or after the action time.
 
@@ -183,11 +178,9 @@ def _match_actions_to_frames(
     unmatched_actions_end = 0          # actions after last available frame
 
     for action_idx, action_time in enumerate(action_times):
-        effective_time = action_time - delay_video_by_sec
-
-        # Advance frame_ptr to the first frame at or after effective_time.
+        # Advance frame_ptr to the first frame at or after action_time.
         # frame_ptr never goes backwards, so this is O(n+m) overall.
-        while frame_ptr < n_frames and frame_timestamps[frame_ptr] < effective_time:
+        while frame_ptr < n_frames and frame_timestamps[frame_ptr] < action_time:
             frame_ptr += 1
 
         if frame_ptr >= n_frames:
@@ -198,7 +191,7 @@ def _match_actions_to_frames(
         # Record the match.  Do NOT advance frame_ptr: the same frame may
         # be the correct match for the next action too (dropped-frame case).
         matched_frame = frame_ptr
-        delta = frame_timestamps[matched_frame] - effective_time
+        delta = frame_timestamps[matched_frame] - action_time
         time_deltas.append(delta)
         frame_indices.append(matched_frame)
 
@@ -209,11 +202,11 @@ def _match_actions_to_frames(
         skipped_frames_start = frame_indices[0]
         skipped_frames_end = max(0, n_frames - 1 - frame_indices[-1])
 
-    # Count actions whose effective time falls before the first frame
+    # Count actions whose time falls before the first frame
     unmatched_actions_start = 0
     if frame_timestamps and action_times:
         for t in action_times:
-            if (t - delay_video_by_sec) < frame_timestamps[0]:
+            if t < frame_timestamps[0]:
                 unmatched_actions_start += 1
             else:
                 break
@@ -281,22 +274,16 @@ def _compute_frame_indices(
     actions: Iterable[Dict[str, Any]],
     camera_start_time_sec: float,
     fps: float,
-    delay_video_by_sec: float = 0.0,
 ) -> List[int]:
     """Compute camera frame indices from action timestamps (legacy mode).
-    
+
     Each action has epochTime (wall-clock time in seconds) which we subtract
     from the camera's start time and multiply by FPS to get the frame index.
-    
-    delay_video_by_sec shifts the video earlier (uses frames from earlier in the
-    recording), making the video appear delayed relative to the actions.
     """
     indices: List[int] = []
     for entry in actions:
         action_time_sec = float(entry["epochTime"])
-        # Subtract delay to get an earlier frame from the video
-        effective_time_sec = action_time_sec - delay_video_by_sec
-        frame_idx = int(round((effective_time_sec - camera_start_time_sec) * fps))
+        frame_idx = int(round((action_time_sec - camera_start_time_sec) * fps))
         indices.append(frame_idx)
     return indices
 
@@ -389,7 +376,6 @@ def _build_action_mapping_wallclock(
     actions: List[Dict[str, Any]],
     frame_indices: List[int],
     frame_timestamps: List[float],
-    delay_video_by_sec: float,
 ) -> List[Dict[str, Any]]:
     """Build frame-to-action mapping for wallclock-timestamp alignment."""
     mapping: List[Dict[str, Any]] = []
@@ -404,7 +390,7 @@ def _build_action_mapping_wallclock(
                 "relative_time_ms": float(entry.get("relativeTimeMs", 0.0)),
                 "frame_index": frame_idx,
                 "frame_time_sec": frame_time_sec,
-                "delta_sec": frame_time_sec - (action_time_sec - delay_video_by_sec),
+                "delta_sec": frame_time_sec - action_time_sec,
             }
         )
     return mapping
@@ -517,7 +503,7 @@ def align_recording(config: AlignmentInput) -> Dict[str, Any]:
     print(f"[align] Using wallclock timestamps ({len(frame_timestamps)} frames extracted)")
 
     frame_indices, diagnostics = _match_actions_to_frames(
-        actions, frame_timestamps, fps, config.delay_video_by_sec,
+        actions, frame_timestamps, fps,
     )
 
     if not frame_indices:
@@ -530,7 +516,7 @@ def align_recording(config: AlignmentInput) -> Dict[str, Any]:
 
     action_times_sec = [float(a["epochTime"]) for a in matched_actions]
     mapping = _build_action_mapping_wallclock(
-        matched_actions, frame_indices, frame_timestamps, config.delay_video_by_sec,
+        matched_actions, frame_indices, frame_timestamps,
     )
 
     output_metadata = {
@@ -546,7 +532,6 @@ def align_recording(config: AlignmentInput) -> Dict[str, Any]:
         "total_video_frames": len(frame_timestamps),
         "first_action_time_sec": min(action_times_sec) if action_times_sec else None,
         "last_action_time_sec": max(action_times_sec) if action_times_sec else None,
-        "delay_video_by_sec": config.delay_video_by_sec,
         "diagnostics": diagnostics,
         "frame_mapping": mapping,
     }
@@ -588,7 +573,7 @@ def _align_legacy(
 
     action_times_sec = [x["epochTime"] for x in actions]
     frame_indices = _compute_frame_indices(
-        actions, camera_start_time_sec, fps, config.delay_video_by_sec
+        actions, camera_start_time_sec, fps,
     )
 
     _write_frames_by_index(recording_path, frame_indices, fps, config.output_video_path)
@@ -617,7 +602,6 @@ def _align_legacy(
         "trim_duration_sec": duration_sec,
         "first_action_time_sec": first_action_time_sec,
         "last_action_time_sec": last_action_time_sec,
-        "delay_video_by_sec": config.delay_video_by_sec,
         "frame_mapping": mapping,
     }
 
@@ -637,12 +621,6 @@ def parse_args(argv: List[str]) -> AlignmentInput:
     parser.add_argument("--margin-start", type=float, default=0.0)
     parser.add_argument("--margin-end", type=float, default=0.0)
     parser.add_argument("--ffmpeg", default="ffmpeg")  # kept for CLI compatibility
-    parser.add_argument(
-        "--delay-video-by",
-        type=float,
-        default=DEFAULT_DELAY_VIDEO_BY_SEC,
-        help=f"Delay video by this many seconds (default: {DEFAULT_DELAY_VIDEO_BY_SEC})",
-    )
 
     args = parser.parse_args(argv)
 
@@ -658,7 +636,6 @@ def parse_args(argv: List[str]) -> AlignmentInput:
         ffmpeg_path=args.ffmpeg,
         margin_start=max(0.0, args.margin_start),
         margin_end=max(0.0, args.margin_end),
-        delay_video_by_sec=args.delay_video_by,
     )
 
 
