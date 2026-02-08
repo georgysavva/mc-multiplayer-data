@@ -360,7 +360,7 @@ def generate_compose_config(
                 **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": "./act_recorder/entrypoint.sh",
+                "command": "./controller/act_recorder/entrypoint.sh",
             },
             f"act_recorder_bravo_instance_{instance_id}": {
                 "image": "ojmichel/mc-multiplayer-base:latest",
@@ -375,7 +375,7 @@ def generate_compose_config(
                 **({"cpuset": cpuset} if cpuset else {}),
                 "volumes": [f"{output_dir}:/output"],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": "./act_recorder/entrypoint.sh",
+                "command": "./controller/act_recorder/entrypoint.sh",
             },
             # Camera alpha: recording client
             f"camera_alpha_instance_{instance_id}": {
