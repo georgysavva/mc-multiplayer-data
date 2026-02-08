@@ -15,7 +15,7 @@ async function unequipHand(bot, itemType = null) {
     console.log(
       `[${
         bot?.username || "unknown"
-      }] Cannot unequip - bot not properly initialized`
+      }] Cannot unequip - bot not properly initialized`,
     );
     return false;
   }
@@ -38,7 +38,7 @@ async function unequipHand(bot, itemType = null) {
       !displayName.includes(itemType.toLowerCase())
     ) {
       console.log(
-        `[${bot.username}] Item in hand (${itemName}) is not a ${itemType}, skipping unequip`
+        `[${bot.username}] Item in hand (${itemName}) is not a ${itemType}, skipping unequip`,
       );
       return true;
     }
@@ -61,7 +61,7 @@ async function ensureBotHasEnough(
   bot,
   rcon,
   itemName = "stone",
-  targetCount = 128
+  targetCount = 128,
 ) {
   // @ts-ignore: module provides runtime data but no TS types in this project
   const mcData = require("minecraft-data")(bot.version);
@@ -73,21 +73,21 @@ async function ensureBotHasEnough(
   const have = bot.inventory.count(item.id, null);
   const need = Math.max(0, targetCount - have);
   console.log(
-    `[${bot.username}] inventory ${itemName}: have=${have}, target=${targetCount}, need=${need}`
+    `[${bot.username}] inventory ${itemName}: have=${have}, target=${targetCount}, need=${need}`,
   );
   if (need === 0) return;
 
   const cmd = `give ${bot.username} minecraft:${itemName} ${need}`;
   const res = await rcon.send(cmd);
   console.log(
-    `[${bot.username}] ensureBotHasEnough: ${cmd} -> ${String(res).trim()}`
+    `[${bot.username}] ensureBotHasEnough: ${cmd} -> ${String(res).trim()}`,
   );
 
   // brief wait for inventory to update, then verify
   await sleep(800);
   const after = bot.inventory.count(item.id, null);
   console.log(
-    `[${bot.username}] inventory ${itemName}: now ${after}/${targetCount}`
+    `[${bot.username}] inventory ${itemName}: now ${after}/${targetCount}`,
   );
 }
 

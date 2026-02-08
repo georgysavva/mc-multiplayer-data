@@ -1,6 +1,12 @@
 // tower-bridge-episode.js - Episode where bots build towers then bridge towards each other
 const { Vec3 } = require("vec3");
-const { sleep, initializePathfinder, stopPathfinder, gotoWithTimeout, getScaffoldingBlockIds } = require("../utils/movement");
+const {
+  sleep,
+  initializePathfinder,
+  stopPathfinder,
+  gotoWithTimeout,
+  getScaffoldingBlockIds,
+} = require("../utils/movement");
 const {
   ensureItemInHand,
   placeAt,
@@ -30,7 +36,7 @@ const BRIDGE_GOAL_DISTANCE = 1.0; // How close to get to midpoint (blocks) - pre
  */
 async function buildBridgeWithPathfinder(bot, targetPos, args) {
   console.log(
-    `[${bot.username}] 🌉 Building bridge with pathfinder to (${targetPos.x}, ${targetPos.y}, ${targetPos.z})`
+    `[${bot.username}] 🌉 Building bridge with pathfinder to (${targetPos.x}, ${targetPos.y}, ${targetPos.z})`,
   );
 
   const startPos = bot.entity.position.clone();
@@ -42,7 +48,7 @@ async function buildBridgeWithPathfinder(bot, targetPos, args) {
   const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
 
   console.log(
-    `[${bot.username}] 📐 Distance to target: ${horizontalDistance.toFixed(2)} blocks`
+    `[${bot.username}] 📐 Distance to target: ${horizontalDistance.toFixed(2)} blocks`,
   );
 
   // 1. Ensure we have blocks in inventory
@@ -51,13 +57,11 @@ async function buildBridgeWithPathfinder(bot, targetPos, args) {
   // Estimate blocks needed (distance * 1.5 for safety margin)
   const estimatedBlocks = Math.ceil(horizontalDistance * 1.5);
   console.log(
-    `[${bot.username}] 📦 Estimated blocks needed: ~${estimatedBlocks}`
+    `[${bot.username}] 📦 Estimated blocks needed: ~${estimatedBlocks}`,
   );
 
   // 2. Configure pathfinder movements with scaffolding enabled
-  console.log(
-    `[${bot.username}] � Configuring pathfinder with scaffolding...`
-  );
+  console.log(`[${bot.username}] � Configuring pathfinder with scaffolding...`);
   const movements = new Movements(bot, mcData);
 
   // Movement capabilities
@@ -74,7 +78,7 @@ async function buildBridgeWithPathfinder(bot, targetPos, args) {
   movements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
 
   console.log(
-    `[${bot.username}] ✅ Pathfinder configured with ${movements.scafoldingBlocks.length} scaffolding block types`
+    `[${bot.username}] ✅ Pathfinder configured with ${movements.scafoldingBlocks.length} scaffolding block types`,
   );
 
   // Apply movements to pathfinder
@@ -90,14 +94,14 @@ async function buildBridgeWithPathfinder(bot, targetPos, args) {
     targetPos.x,
     targetPos.y,
     targetPos.z,
-    BRIDGE_GOAL_DISTANCE
+    BRIDGE_GOAL_DISTANCE,
   );
 
   console.log(
-    `[${bot.username}] 🎯 Setting pathfinder goal (within ${BRIDGE_GOAL_DISTANCE} blocks of target)`
+    `[${bot.username}] 🎯 Setting pathfinder goal (within ${BRIDGE_GOAL_DISTANCE} blocks of target)`,
   );
   console.log(
-    `[${bot.username}] 🚀 Starting pathfinder - will automatically place blocks as needed!`
+    `[${bot.username}] 🚀 Starting pathfinder - will automatically place blocks as needed!`,
   );
 
   // Track pathfinding events for debugging
@@ -106,7 +110,7 @@ async function buildBridgeWithPathfinder(bot, targetPos, args) {
     blocksPlaced++;
     if (blocksPlaced % 5 === 0) {
       console.log(
-        `[${bot.username}] 🧱 Pathfinder has placed ~${blocksPlaced} blocks so far...`
+        `[${bot.username}] 🧱 Pathfinder has placed ~${blocksPlaced} blocks so far...`,
       );
     }
   };
@@ -125,10 +129,10 @@ async function buildBridgeWithPathfinder(bot, targetPos, args) {
 
     console.log(`[${bot.username}] 🏁 Bridge building complete!`);
     console.log(
-      `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`
+      `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`,
     );
     console.log(
-      `[${bot.username}]    Blocks placed: ~${blocksPlaced} (estimated)`
+      `[${bot.username}]    Blocks placed: ~${blocksPlaced} (estimated)`,
     );
     console.log(`[${bot.username}] ✅ Successfully reached midpoint!`);
 
@@ -142,20 +146,20 @@ async function buildBridgeWithPathfinder(bot, targetPos, args) {
     const distanceTraveled = startPos.distanceTo(endPos);
 
     console.log(
-      `[${bot.username}] ⚠️ Pathfinding did not complete: ${error.message}`
+      `[${bot.username}] ⚠️ Pathfinding did not complete: ${error.message}`,
     );
     console.log(
-      `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`
+      `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`,
     );
     console.log(
-      `[${bot.username}]    Blocks placed: ~${blocksPlaced} (estimated)`
+      `[${bot.username}]    Blocks placed: ~${blocksPlaced} (estimated)`,
     );
 
     // Check if we got close enough despite the error
     const finalDistance = endPos.distanceTo(targetPos);
     if (finalDistance < BRIDGE_GOAL_DISTANCE * 2) {
       console.log(
-        `[${bot.username}] ✅ Close enough to target (${finalDistance.toFixed(2)} blocks)`
+        `[${bot.username}] ✅ Close enough to target (${finalDistance.toFixed(2)} blocks)`,
       );
       return {
         success: true,
@@ -199,25 +203,27 @@ function getOnTowerBridgePhaseFn(
   iterationID,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async function onTowerBridgePhase(otherBotPosition) {
     coordinator.sendToOtherBot(
       `towerBridgePhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `towerBridgePhase_${iterationID} beginning`
+      `towerBridgePhase_${iterationID} beginning`,
     );
 
     console.log(
-      `[${bot.username}] 🚀 Starting TOWER-BRIDGE phase ${iterationID}`
+      `[${bot.username}] 🚀 Starting TOWER-BRIDGE phase ${iterationID}`,
     );
     console.log(
-      `[${bot.username}] 🎬 TOWER-BRIDGE EPISODE - Episode ${episodeNum}, Iteration ${iterationID}`
+      `[${bot.username}] 🎬 TOWER-BRIDGE EPISODE - Episode ${episodeNum}, Iteration ${iterationID}`,
     );
 
     // Initialize pathfinder with full capabilities for optimal movement
-    console.log(`[${bot.username}] 🧭 Initializing pathfinder with full capabilities...`);
+    console.log(
+      `[${bot.username}] 🧭 Initializing pathfinder with full capabilities...`,
+    );
     initializePathfinder(bot, {
       allowSprinting: false, // No sprinting to maintain control during building
       allowParkour: true, // Allow jumping gaps
@@ -231,7 +237,7 @@ function getOnTowerBridgePhaseFn(
 
     // STEP 2: Initial eye contact
     console.log(
-      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
+      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`,
     );
     let actualOtherBotPosition = null;
     try {
@@ -243,20 +249,20 @@ function getOnTowerBridgePhaseFn(
         await sleep(INITIAL_EYE_CONTACT_MS);
       } else {
         console.log(
-          `[${bot.username}] ⚠️ Could not find other bot entity, using passed position`
+          `[${bot.username}] ⚠️ Could not find other bot entity, using passed position`,
         );
         actualOtherBotPosition = otherBotPosition.clone();
       }
     } catch (lookError) {
       console.log(
-        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`,
       );
       actualOtherBotPosition = otherBotPosition.clone();
     }
 
     // // STEP 3: Move backward to increase distance for longer bridges
     console.log(
-      `[${bot.username}] 🚶 STEP 3: Moving backward SKIPPED MANUALLY...`
+      `[${bot.username}] 🚶 STEP 3: Moving backward SKIPPED MANUALLY...`,
     );
     // const startPos = bot.entity.position.clone();
 
@@ -293,7 +299,7 @@ function getOnTowerBridgePhaseFn(
 
     // STEP 4: Build tower underneath (8 blocks high)
     console.log(
-      `[${bot.username}] 🗼 STEP 4: Building ${TOWER_HEIGHT}-block tower...`
+      `[${bot.username}] 🗼 STEP 4: Building ${TOWER_HEIGHT}-block tower...`,
     );
     const towerResult = await buildTowerUnderneath(bot, TOWER_HEIGHT, args, {
       blockType: TOWER_BLOCK_TYPE,
@@ -303,14 +309,14 @@ function getOnTowerBridgePhaseFn(
 
     if (towerResult.failed > 2) {
       console.log(
-        `[${bot.username}] ⚠️ Tower build failed significantly, aborting episode...`
+        `[${bot.username}] ⚠️ Tower build failed significantly, aborting episode...`,
       );
       throw new Error("Tower build failed significantly, aborting episode...");
     }
 
     if (towerResult.failed > 0 || towerResult.heightGained < TOWER_HEIGHT - 1) {
       console.log(
-        `[${bot.username}] ⚠️ Tower build incomplete, but continuing...`
+        `[${bot.username}] ⚠️ Tower build incomplete, but continuing...`,
       );
     }
 
@@ -319,17 +325,17 @@ function getOnTowerBridgePhaseFn(
 
     // STEP 5: Enable sneaking to prevent falling off tower
     console.log(
-      `[${bot.username}] 🐢 STEP 5: Enabling sneak mode (crouch) to prevent falling...`
+      `[${bot.username}] 🐢 STEP 5: Enabling sneak mode (crouch) to prevent falling...`,
     );
     bot.setControlState("sneak", true);
     await sleep(500);
     console.log(
-      `[${bot.username}] ✅ Sneak mode enabled - safe to build bridge!`
+      `[${bot.username}] ✅ Sneak mode enabled - safe to build bridge!`,
     );
 
     // STEP 6: Look at each other from top of towers
     console.log(
-      `[${bot.username}] 👀 STEP 6: Looking at other bot from tower top...`
+      `[${bot.username}] 👀 STEP 6: Looking at other bot from tower top...`,
     );
     try {
       const otherEntity2 = bot.players[args.other_bot_name]?.entity;
@@ -338,20 +344,20 @@ function getOnTowerBridgePhaseFn(
         const targetPos = otherEntity2.position.offset(
           0,
           otherEntity2.height,
-          0
+          0,
         );
         await bot.lookAt(targetPos, false);
         await sleep(INITIAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {
       console.log(
-        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`,
       );
     }
 
     // STEP 7: Calculate midpoint at new height
     console.log(
-      `[${bot.username}] 📐 STEP 7: Calculating midpoint at tower height...`
+      `[${bot.username}] 📐 STEP 7: Calculating midpoint at tower height...`,
     );
     const myPos = bot.entity.position.clone();
 
@@ -364,25 +370,25 @@ function getOnTowerBridgePhaseFn(
     const midpoint = new Vec3(
       Math.floor((myPos.x + actualOtherBotPosition.x) / 2),
       Math.floor(myPos.y), // Same Y level (top of tower)
-      Math.floor((myPos.z + actualOtherBotPosition.z) / 2)
+      Math.floor((myPos.z + actualOtherBotPosition.z) / 2),
     );
 
     console.log(
       `[${bot.username}] 📍 My position: ${myPos.x.toFixed(
-        2
-      )}, ${myPos.y.toFixed(2)}, ${myPos.z.toFixed(2)}`
+        2,
+      )}, ${myPos.y.toFixed(2)}, ${myPos.z.toFixed(2)}`,
     );
     console.log(
       `[${
         bot.username
       }] 📍 Other bot position: ${actualOtherBotPosition.x.toFixed(
-        2
+        2,
       )}, ${actualOtherBotPosition.y.toFixed(
-        2
-      )}, ${actualOtherBotPosition.z.toFixed(2)}`
+        2,
+      )}, ${actualOtherBotPosition.z.toFixed(2)}`,
     );
     console.log(
-      `[${bot.username}] 🎯 Midpoint (original): ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`
+      `[${bot.username}] 🎯 Midpoint (original): ${midpoint.x}, ${midpoint.y}, ${midpoint.z}`,
     );
 
     // Snap to shared cardinal line based on which axis has more distance
@@ -397,10 +403,10 @@ function getOnTowerBridgePhaseFn(
       targetPoint = new Vec3(
         midpoint.x,
         midpoint.y,
-        Math.floor((myPos.z + actualOtherBotPosition.z) / 2)
+        Math.floor((myPos.z + actualOtherBotPosition.z) / 2),
       );
       console.log(
-        `[${bot.username}] 🧭 Building along X-axis (East/West) - shared Z at ${targetPoint.z}`
+        `[${bot.username}] 🧭 Building along X-axis (East/West) - shared Z at ${targetPoint.z}`,
       );
     } else {
       // Bots are farther apart in Z direction, so build along Z-axis
@@ -408,25 +414,29 @@ function getOnTowerBridgePhaseFn(
       targetPoint = new Vec3(
         Math.floor((myPos.x + actualOtherBotPosition.x) / 2),
         midpoint.y,
-        midpoint.z
+        midpoint.z,
       );
       console.log(
-        `[${bot.username}] 🧭 Building along Z-axis (North/South) - shared X at ${targetPoint.x}`
+        `[${bot.username}] 🧭 Building along Z-axis (North/South) - shared X at ${targetPoint.x}`,
       );
     }
 
     console.log(
-      `[${bot.username}] 🎯 Target point (shared cardinal): ${targetPoint.x}, ${targetPoint.y}, ${targetPoint.z}`
+      `[${bot.username}] 🎯 Target point (shared cardinal): ${targetPoint.x}, ${targetPoint.y}, ${targetPoint.z}`,
     );
 
     // STEP 8: Build bridge towards midpoint
     console.log(
-      `[${bot.username}] 🌉 STEP 8: Building bridge towards midpoint...`
+      `[${bot.username}] 🌉 STEP 8: Building bridge towards midpoint...`,
     );
-    const bridgeResult = await buildBridgeWithPathfinder(bot, targetPoint, args);
+    const bridgeResult = await buildBridgeWithPathfinder(
+      bot,
+      targetPoint,
+      args,
+    );
 
     console.log(
-      `[${bot.username}] ✅ Bridge building complete! Placed ${bridgeResult.blocksPlaced} blocks`
+      `[${bot.username}] ✅ Bridge building complete! Placed ${bridgeResult.blocksPlaced} blocks`,
     );
 
     // Disable sneaking after bridge is complete
@@ -442,20 +452,20 @@ function getOnTowerBridgePhaseFn(
         const targetPos = otherEntity4.position.offset(
           0,
           otherEntity4.height,
-          0
+          0,
         );
         await bot.lookAt(targetPos, false);
         await sleep(FINAL_EYE_CONTACT_MS);
       }
     } catch (lookError) {
       console.log(
-        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`,
       );
     }
 
     console.log(`[${bot.username}] ✅ TOWER-BRIDGE phase complete!`);
     console.log(
-      `[${bot.username}] 📊 Final stats: Tower ${towerResult.heightGained} blocks, Bridge ${bridgeResult.blocksPlaced} blocks`
+      `[${bot.username}] 📊 Final stats: Tower ${towerResult.heightGained} blocks, Bridge ${bridgeResult.blocksPlaced} blocks`,
     );
 
     // Clean up pathfinder
@@ -473,14 +483,14 @@ function getOnTowerBridgePhaseFn(
         coordinator,
         args.other_bot_name,
         episodeNum,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
-      `towerBridgePhase_${iterationID} end`
+      `towerBridgePhase_${iterationID} end`,
     );
 
     return { towerResult, bridgeResult };
@@ -495,7 +505,16 @@ class TowerBridgeEpisode extends BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = 20;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
+  async setupEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args,
+    botPosition,
+    otherBotPosition,
+  ) {
     await ensureBotHasEnough(bot, rcon, BRIDGE_BLOCK_TYPE, 64);
     await unequipHand(bot);
     return {
@@ -511,7 +530,7 @@ class TowerBridgeEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     coordinator.onceEvent(
       `towerBridgePhase_${iterationID}`,
@@ -524,14 +543,14 @@ class TowerBridgeEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `towerBridgePhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      "entryPoint end"
+      "entryPoint end",
     );
   }
 
@@ -541,7 +560,7 @@ class TowerBridgeEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    args
+    args,
   ) {}
 }
 

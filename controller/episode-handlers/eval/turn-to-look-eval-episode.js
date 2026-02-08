@@ -11,7 +11,7 @@ function getOnTurnToLookPhaseFn(
   coordinator,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (otherBotPosition) => {
     bot.pathfinder.setGoal(null);
@@ -22,7 +22,7 @@ function getOnTurnToLookPhaseFn(
       "turnToLookPhase",
       bot.entity.position.clone(),
       episodeNum,
-      "turnToLookPhase beginning"
+      "turnToLookPhase beginning",
     );
 
     const otherName = args.other_bot_name;
@@ -33,7 +33,7 @@ function getOnTurnToLookPhaseFn(
         "stopPhase",
         bot.entity.position.clone(),
         episodeNum,
-        "missing other bot"
+        "missing other bot",
       );
       return;
     }
@@ -55,7 +55,7 @@ function getOnTurnToLookPhaseFn(
     const vz = them.z - me.z;
 
     // Normalize horizontal vector
-    const mag = Math.sqrt(vx*vx + vz*vz) || 1;
+    const mag = Math.sqrt(vx * vx + vz * vz) || 1;
     const nx = vx / mag;
     const nz = vz / mag;
 
@@ -68,7 +68,9 @@ function getOnTurnToLookPhaseFn(
     const sideZ = nx * dir;
 
     const facePos = bot.entity.position.offset(sideX, 0, sideZ);
-    console.log(`[${bot.username}] Facing sideways (${sideX.toFixed(2)}, ${sideZ.toFixed(2)})`);
+    console.log(
+      `[${bot.username}] Facing sideways (${sideX.toFixed(2)}, ${sideZ.toFixed(2)})`,
+    );
 
     episodeInstance._evalMetadata = {
       camera_speed_degrees_per_sec: CAMERA_SPEED_DEGREES_PER_SEC,
@@ -76,14 +78,19 @@ function getOnTurnToLookPhaseFn(
       dir: dir,
     };
 
-    await lookAtSmooth(bot, facePos, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
+    await lookAtSmooth(bot, facePos, CAMERA_SPEED_DEGREES_PER_SEC, {
+      randomized: false,
+      useEasing: false,
+    });
 
     // ---- Phase 4: Ensure minimum ticks ----
     const endTick = bot.time.age;
     const elapsed = endTick - startTick;
     const remaining = EPISODE_MIN_TICKS - elapsed;
     if (remaining > 0) {
-      console.log(`[${bot.username}] Waiting ${remaining} ticks to reach ${EPISODE_MIN_TICKS}`);
+      console.log(
+        `[${bot.username}] Waiting ${remaining} ticks to reach ${EPISODE_MIN_TICKS}`,
+      );
       await bot.waitForTicks(remaining);
     }
 
@@ -98,15 +105,15 @@ function getOnTurnToLookPhaseFn(
         coordinator,
         args.other_bot_name,
         episodeNum,
-        args
-      )
+        args,
+      ),
     );
 
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
-      "turnToLookPhase end"
+      "turnToLookPhase end",
     );
   };
 }
@@ -114,7 +121,15 @@ function getOnTurnToLookPhaseFn(
 class TurnToLookEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async entryPoint(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, args) {
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args,
+  ) {
     coordinator.onceEvent(
       "turnToLookPhase",
       episodeNum,
@@ -125,15 +140,15 @@ class TurnToLookEvalEpisode extends BaseEpisode {
         coordinator,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
 
     coordinator.sendToOtherBot(
       "turnToLookPhase",
       bot.entity.position.clone(),
       episodeNum,
-      "teleportPhase end"
+      "teleportPhase end",
     );
   }
 }

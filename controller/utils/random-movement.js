@@ -13,10 +13,17 @@ const {
 } = require("./constants");
 const { lookSmooth, stopAll, jump, land_pos } = require("./movement");
 
-async function walk(bot, distance, lookAway, flipCameraInReturn, args, customConstants = {}) {
+async function walk(
+  bot,
+  distance,
+  lookAway,
+  flipCameraInReturn,
+  args,
+  customConstants = {},
+) {
   // Allow overriding constants per episode type
   const jumpProb = customConstants.JUMP_PROBABILITY ?? JUMP_PROBABILITY;
-  
+
   const startPos = bot.entity.position.clone();
   const dir = choice(["forward", "back", "left", "right"]);
   const walkTimeoutMs = args.walk_timeout * 1000; // Convert to milliseconds
@@ -27,10 +34,10 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args, customCon
     `[${
       bot.username
     }] Walking ${dir} for ${distance} blocks from position (${startPos.x.toFixed(
-      2
+      2,
     )}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}) with ${
       args.walk_timeout
-    }s timeout lookAway: ${lookAway} flipCameraInReturn: ${flipCameraInReturn}`
+    }s timeout lookAway: ${lookAway} flipCameraInReturn: ${flipCameraInReturn}`,
   );
   if (lookAway) {
     // Pick a random angle between -90 and +90 degrees behind the bot's current yaw
@@ -43,7 +50,7 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args, customCon
       bot,
       newYaw,
       originalPitch,
-      DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
+      DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
     );
   }
 
@@ -57,7 +64,7 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args, customCon
       // Check for timeout
       if (Date.now() - forwardStartTime > walkTimeoutMs) {
         console.log(
-          `[${bot.username}] Walk timeout (${args.walk_timeout}s) reached while walking ${dir}`
+          `[${bot.username}] Walk timeout (${args.walk_timeout}s) reached while walking ${dir}`,
         );
         break;
       }
@@ -71,10 +78,10 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args, customCon
   const reachedPos = bot.entity.position.clone();
   console.log(
     `[${bot.username}] Reached distance ${actualDistance.toFixed(
-      2
+      2,
     )} blocks at position (${reachedPos.x.toFixed(2)}, ${reachedPos.y.toFixed(
-      2
-    )}, ${reachedPos.z.toFixed(2)})`
+      2,
+    )}, ${reachedPos.z.toFixed(2)})`,
   );
 
   // Randomly jump before returning based on jump probability
@@ -85,8 +92,8 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args, customCon
     const jumpDurationMs = Math.floor(jumpDurationSec * 1000);
     console.log(
       `[${bot.username}] Jumping for ${jumpDurationSec.toFixed(
-        1
-      )}s before returning`
+        1,
+      )}s before returning`,
     );
     await jump(bot, jumpDurationMs);
   }
@@ -96,7 +103,7 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args, customCon
       bot,
       bot.entity.yaw + Math.PI,
       bot.entity.pitch,
-      DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
+      DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
     );
     console.log(`[${bot.username}] Flipped camera in return`);
     returnDir = dir;
@@ -112,7 +119,7 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args, customCon
   }
   // Now return to the starting position by walking in the reverse direction
   console.log(
-    `[${bot.username}] Returning to starting position by walking ${returnDir}`
+    `[${bot.username}] Returning to starting position by walking ${returnDir}`,
   );
 
   bot.setControlState(returnDir, true);
@@ -124,7 +131,7 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args, customCon
       // Check for timeout
       if (Date.now() - returnStartTime > walkTimeoutMs) {
         console.log(
-          `[${bot.username}] Walk timeout (${args.walk_timeout}s) reached while returning via ${returnDir}`
+          `[${bot.username}] Walk timeout (${args.walk_timeout}s) reached while returning via ${returnDir}`,
         );
         break;
       }
@@ -137,8 +144,8 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args, customCon
   const finalDistance = bot.entity.position.distanceTo(startPos);
   console.log(
     `[${bot.username}] Returned to within ${finalDistance.toFixed(
-      2
-    )} blocks of starting position`
+      2,
+    )} blocks of starting position`,
   );
 
   // Randomly jump after returning to start position
@@ -149,8 +156,8 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args, customCon
     const jumpDurationMs = Math.floor(jumpDurationSec * 1000);
     console.log(
       `[${bot.username}] Jumping for ${jumpDurationSec.toFixed(
-        1
-      )}s after returning to start`
+        1,
+      )}s after returning to start`,
     );
     await jump(bot, jumpDurationMs);
   }
@@ -159,7 +166,7 @@ async function walk(bot, distance, lookAway, flipCameraInReturn, args, customCon
       bot,
       originalYaw,
       originalPitch,
-      DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC
+      DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
     );
   }
 }
@@ -168,7 +175,7 @@ async function run(bot, actionCount, lookAway, args, customConstants = {}) {
   // Allow overriding constants per episode type
   const minWalkDist = customConstants.MIN_WALK_DISTANCE ?? MIN_WALK_DISTANCE;
   const maxWalkDist = customConstants.MAX_WALK_DISTANCE ?? MAX_WALK_DISTANCE;
-  
+
   const actions = [];
   if (lookAway) {
     actions.push(() =>
@@ -178,8 +185,8 @@ async function run(bot, actionCount, lookAway, args, customConstants = {}) {
         lookAway,
         /*flipCameraInReturn*/ true,
         args,
-        customConstants
-      )
+        customConstants,
+      ),
     );
     actions.push(() =>
       walk(
@@ -188,8 +195,8 @@ async function run(bot, actionCount, lookAway, args, customConstants = {}) {
         lookAway,
         /*flipCameraInReturn*/ false,
         args,
-        customConstants
-      )
+        customConstants,
+      ),
     );
   } else {
     actions.push(() =>
@@ -199,8 +206,8 @@ async function run(bot, actionCount, lookAway, args, customConstants = {}) {
         lookAway,
         /*flipCameraInReturn*/ false,
         args,
-        customConstants
-      )
+        customConstants,
+      ),
     );
   }
 
@@ -215,8 +222,8 @@ async function run(bot, actionCount, lookAway, args, customConstants = {}) {
     const sleepTimeMs = Math.floor(sleepTimeSec * 1000);
     console.log(
       `[${bot.username}] Sleeping for ${sleepTimeSec.toFixed(
-        2
-      )}s before action ${i + 1}`
+        2,
+      )}s before action ${i + 1}`,
     );
     await sleep(sleepTimeMs);
 

@@ -34,14 +34,14 @@ async function chaseRunner(
   coordinator,
   otherBotName,
   episodeNum,
-  chaseDurationMs
+  chaseDurationMs,
 ) {
   console.log(
     `[${
       bot.username
     }] 🏃 Starting PURE pathfinder chase of ${otherBotName} for ${
       chaseDurationMs / 1000
-    }s`
+    }s`,
   );
 
   initializePathfinder(bot, {
@@ -51,7 +51,7 @@ async function chaseRunner(
     allowEntityDetection: true,
   });
   console.log(
-    `[${bot.username}] ✅ Pure pathfinder movements configured for intelligent chase`
+    `[${bot.username}] ✅ Pure pathfinder movements configured for intelligent chase`,
   );
 
   const startTime = Date.now();
@@ -73,8 +73,8 @@ async function chaseRunner(
           `[${
             bot.username
           }] 🎯 CHASING: distance to ${otherBotName} = ${distance.toFixed(
-            2
-          )} blocks`
+            2,
+          )} blocks`,
         );
 
         // Update camera to look at runner periodically
@@ -90,33 +90,33 @@ async function chaseRunner(
           // Update goal every second
           if (distance > MIN_CHASE_DISTANCE) {
             console.log(
-              `[${bot.username}] 🤖 Setting pure pathfinder goal for intelligent chase`
+              `[${bot.username}] 🤖 Setting pure pathfinder goal for intelligent chase`,
             );
 
             // Use GoalNear like the GPS example - this is the correct way
             const { x: playerX, y: playerY, z: playerZ } = targetPos;
             bot.pathfinder.setGoal(
-              new GoalNear(playerX, playerY, playerZ, MIN_CHASE_DISTANCE)
+              new GoalNear(playerX, playerY, playerZ, MIN_CHASE_DISTANCE),
             );
             console.log(
               `[${
                 bot.username
               }] ✅ Pure pathfinder GoalNear set to (${playerX.toFixed(
-                1
-              )}, ${playerY.toFixed(1)}, ${playerZ.toFixed(1)})`
+                1,
+              )}, ${playerY.toFixed(1)}, ${playerZ.toFixed(1)})`,
             );
           } else {
             // Too close, stop pathfinder
             bot.pathfinder.setGoal(null);
             console.log(
-              `[${bot.username}] 🛑 Too close to ${otherBotName}, stopping pathfinder`
+              `[${bot.username}] 🛑 Too close to ${otherBotName}, stopping pathfinder`,
             );
           }
           lastGoalUpdate = now;
         }
       } else {
         console.log(
-          `[${bot.username}] ❌ Cannot see ${otherBotName}, stopping chase`
+          `[${bot.username}] ❌ Cannot see ${otherBotName}, stopping chase`,
         );
         bot.pathfinder.setGoal(null);
         stopAll(bot);
@@ -142,12 +142,12 @@ async function runFromChaser(
   coordinator,
   otherBotName,
   episodeNum,
-  chaseDurationMs
+  chaseDurationMs,
 ) {
   console.log(
     `[${bot.username}] 🏃‍♂️ Starting pathfinder escape from ${otherBotName} for ${
       chaseDurationMs / 1000
-    }s`
+    }s`,
   );
 
   // Initialize pathfinder with full capabilities for running - can dig/place to escape
@@ -159,7 +159,9 @@ async function runFromChaser(
     allowEntityDetection: true,
   });
 
-  console.log(`[${bot.username}] ✅ Pathfinder initialized for escape with full capabilities`);
+  console.log(
+    `[${bot.username}] ✅ Pathfinder initialized for escape with full capabilities`,
+  );
 
   // Get chaser's initial position to calculate escape destination
   let chaserPos = null;
@@ -170,7 +172,7 @@ async function runFromChaser(
     // Fallback to bot's current position if chaser not visible
     chaserPos = bot.entity.position;
     console.log(
-      `[${bot.username}] ⚠️ Cannot see ${otherBotName}, using own position as reference`
+      `[${bot.username}] ⚠️ Cannot see ${otherBotName}, using own position as reference`,
     );
   }
 
@@ -197,7 +199,7 @@ async function runFromChaser(
     normalizedDx = 0;
     normalizedDz = -1;
     console.log(
-      `[${bot.username}] ⚠️ Bots at same position, defaulting to North direction`
+      `[${bot.username}] ⚠️ Bots at same position, defaulting to North direction`,
     );
   }
 
@@ -211,10 +213,10 @@ async function runFromChaser(
     `[${
       bot.username
     }] 🎯 Deterministic escape: Running directly away from ${otherBotName} to (${escapeX.toFixed(
-      1
+      1,
     )}, ${escapeY.toFixed(1)}, ${escapeZ.toFixed(
-      1
-    )}) - ${escapeDistance} blocks away`
+      1,
+    )}) - ${escapeDistance} blocks away`,
   );
 
   const startTime = Date.now();
@@ -224,7 +226,7 @@ async function runFromChaser(
     // Set the single escape goal using GoalNear
     bot.pathfinder.setGoal(new GoalNear(escapeX, escapeY, escapeZ, 2));
     console.log(
-      `[${bot.username}] ✅ Single escape GoalNear set - will pathfind here for entire chase duration`
+      `[${bot.username}] ✅ Single escape GoalNear set - will pathfind here for entire chase duration`,
     );
 
     while (Date.now() - startTime < chaseDurationMs) {
@@ -266,30 +268,30 @@ function getOnChasePhaseFn(
   otherBotName,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       `chasePhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `chasePhase_${iterationID} beginning`
+      `chasePhase_${iterationID} beginning`,
     );
 
     console.log(
-      `[${bot.username}] 🎬 Starting pathfinder-enhanced chase phase ${iterationID}`
+      `[${bot.username}] 🎬 Starting pathfinder-enhanced chase phase ${iterationID}`,
     );
 
     const isChaser = decidePrimaryBot(bot, sharedBotRng, args);
 
     console.log(
-      `[${bot.username}] 🎭 I am the ${isChaser ? "🏃 CHASER" : "🏃‍♂️ RUNNER"}`
+      `[${bot.username}] 🎭 I am the ${isChaser ? "🏃 CHASER" : "🏃‍♂️ RUNNER"}`,
     );
 
     const chaseDurationMs =
       CHASE_DURATION_MS_MIN +
       Math.floor(
-        sharedBotRng() * (CHASE_DURATION_MS_MAX - CHASE_DURATION_MS_MIN + 1)
+        sharedBotRng() * (CHASE_DURATION_MS_MAX - CHASE_DURATION_MS_MIN + 1),
       );
     // Execute appropriate behavior using pathfinder-enhanced functions
     if (isChaser) {
@@ -298,7 +300,7 @@ function getOnChasePhaseFn(
         coordinator,
         otherBotName,
         episodeNum,
-        chaseDurationMs
+        chaseDurationMs,
       );
     } else {
       await runFromChaser(
@@ -306,7 +308,7 @@ function getOnChasePhaseFn(
         coordinator,
         otherBotName,
         episodeNum,
-        chaseDurationMs
+        chaseDurationMs,
       );
     }
 
@@ -321,14 +323,14 @@ function getOnChasePhaseFn(
         coordinator,
         otherBotName,
         episodeNum,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
-      `chasePhase_${iterationID} end`
+      `chasePhase_${iterationID} end`,
     );
   };
 }
@@ -343,7 +345,7 @@ class ChaseEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     coordinator.onceEvent(
       `chasePhase_${iterationID}`,
@@ -357,14 +359,14 @@ class ChaseEpisode extends BaseEpisode {
         args.other_bot_name,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `chasePhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      "teleportPhase end"
+      "teleportPhase end",
     );
   }
 
@@ -374,7 +376,7 @@ class ChaseEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    args
+    args,
   ) {
     // optional teardown
   }

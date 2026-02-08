@@ -1,5 +1,10 @@
 const Vec3 = require("vec3").Vec3;
-const { Movements, GoalNear, GoalBlock, GoalFollow } = require("../utils/bot-factory");
+const {
+  Movements,
+  GoalNear,
+  GoalBlock,
+  GoalFollow,
+} = require("../utils/bot-factory");
 const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 const {
   stopAll,
@@ -65,7 +70,7 @@ function isMyTurn(bot, sharedBotRng, args) {
   const myIndex = botNames.indexOf(bot.username);
 
   // If random < 0.5, first bot in sorted order is primary
-  return (randomValue < 0.5) === (myIndex === 0);
+  return randomValue < 0.5 === (myIndex === 0);
 }
 
 // ============================================================================
@@ -125,7 +130,7 @@ function canPlaceTorch(bot, pos) {
   const toBot = new Vec3(
     eyePosition.x - pos.x,
     eyePosition.y - pos.y,
-    eyePosition.z - pos.z
+    eyePosition.z - pos.z,
   );
 
   // Sort directions by how well they point towards the bot
@@ -152,11 +157,19 @@ function canPlaceTorch(bot, pos) {
  * @param {number} maxTryTime - Maximum time to try placing torch (default 6 seconds)
  * @param {Function} stopRetryCondition - Function to check if torch placement should stop (default false)
  */
-async function placeTorch(bot, mcData, oreIds, maxTryTime = 6000, stopRetryCondition = () => false) {
+async function placeTorch(
+  bot,
+  mcData,
+  oreIds,
+  maxTryTime = 6000,
+  stopRetryCondition = () => false,
+) {
   const isSolid = (b) =>
     b && b.boundingBox === "block" && !b.name.includes("leaves");
   try {
-    const torchSlot = bot.inventory.findInventoryItem(mcData.itemsByName.torch.id);
+    const torchSlot = bot.inventory.findInventoryItem(
+      mcData.itemsByName.torch.id,
+    );
     if (!torchSlot) {
       console.log(`[${bot.username}] No torch in inventory`);
       return;
@@ -192,12 +205,16 @@ async function placeTorch(bot, mcData, oreIds, maxTryTime = 6000, stopRetryCondi
     for (const blockPos of sortedPositions) {
       // Check stop condition first
       if (stopRetryCondition()) {
-        console.log(`[${bot.username}] Torch placement stopped due to stopRetryCondition`);
+        console.log(
+          `[${bot.username}] Torch placement stopped due to stopRetryCondition`,
+        );
         return;
       }
 
       if (Date.now() - startTime > maxTryTime) {
-        console.log(`[${bot.username}] Torch placement loop timed out after ${maxTryTime}ms`);
+        console.log(
+          `[${bot.username}] Torch placement loop timed out after ${maxTryTime}ms`,
+        );
         return;
       }
 
@@ -215,15 +232,20 @@ async function placeTorch(bot, mcData, oreIds, maxTryTime = 6000, stopRetryCondi
 
       try {
         await bot.waitForTicks(2);
-        console.log(`[${bot.username}] Attempting to place torch at ${blockPos}`);
-        // this may block up to 800ms 
+        console.log(
+          `[${bot.username}] Attempting to place torch at ${blockPos}`,
+        );
+        // this may block up to 800ms
         await bot.placeBlock(block, faceVector);
         await bot.waitForTicks(2);
         console.log(`[${bot.username}] Torch placed at ${blockPos}`);
         return;
       } catch (error) {
         // Print Error and continue to next position
-        console.log(`[${bot.username}] Failed to place torch at ${blockPos}:`, error.message);
+        console.log(
+          `[${bot.username}] Failed to place torch at ${blockPos}:`,
+          error.message,
+        );
       }
     }
   } catch (error) {
@@ -253,10 +275,14 @@ function findVisibleOres(bot, oreIds) {
       isBlockVisible(bot, block)
     ) {
       visibleOres.push(block);
-      console.log(`[${bot.username}] Found visible ${block.name} at ${block.position}`);
+      console.log(
+        `[${bot.username}] Found visible ${block.name} at ${block.position}`,
+      );
     }
   }
-  console.log(`[${bot.username}] Found ${visibleOres.length} visible ores out of ${oreBlocks.length} nearby ores`);
+  console.log(
+    `[${bot.username}] Found ${visibleOres.length} visible ores out of ${oreBlocks.length} nearby ores`,
+  );
   return visibleOres;
 }
 
@@ -291,7 +317,7 @@ function getNextTaskSpec(botUsername, lastTaskSpec, taskRepeatCount) {
     taskSpec = lastTaskSpec;
     newRepeatCount = 2;
     console.log(
-      `[${botUsername}] Task 2/2: ${taskSpec.type} ${taskSpec.direction.name} (repeat)`
+      `[${botUsername}] Task 2/2: ${taskSpec.type} ${taskSpec.direction.name} (repeat)`,
     );
   } else {
     // Create new random task specification (first execution)
@@ -305,7 +331,7 @@ function getNextTaskSpec(botUsername, lastTaskSpec, taskRepeatCount) {
     taskSpec = { type: taskType, direction: direction, distance: distance };
     newRepeatCount = 1;
     console.log(
-      `[${botUsername}] Task 1/2: ${taskSpec.type} ${taskSpec.direction.name}`
+      `[${botUsername}] Task 1/2: ${taskSpec.type} ${taskSpec.direction.name}`,
     );
   }
 
@@ -320,14 +346,16 @@ function getNextTaskSpec(botUsername, lastTaskSpec, taskRepeatCount) {
  */
 function performDirectionalMining(bot, direction, distance) {
   console.log(
-    `[${bot.username}] Directional mining: ${direction.name}, distance ${distance}`
+    `[${bot.username}] Directional mining: ${direction.name}, distance ${distance}`,
   );
 
   const startPos = bot.entity.position;
   const targetPos = startPos.plus(direction.offset.scaled(distance));
 
   // Set pathfinding goal
-  bot.pathfinder.setGoal(new GoalNear(targetPos.x, targetPos.y, targetPos.z, 1));
+  bot.pathfinder.setGoal(
+    new GoalNear(targetPos.x, targetPos.y, targetPos.z, 1),
+  );
 }
 
 /**
@@ -337,7 +365,9 @@ function performDirectionalMining(bot, direction, distance) {
  * @param {number} depth - Depth to mine
  */
 function performStaircaseMining(bot, direction, depth) {
-  console.log(`[${bot.username}] Staircase mining: ${direction.name}, depth ${depth}`);
+  console.log(
+    `[${bot.username}] Staircase mining: ${direction.name}, depth ${depth}`,
+  );
 
   const startPos = bot.entity.position;
   const targetY = Math.max(startPos.y - depth, 5); // Go down by depth, but not below y=5
@@ -359,7 +389,7 @@ function performStaircaseMining(bot, direction, depth) {
  */
 async function executeMiningTask(bot, mcData, oreIds, taskSpec) {
   console.log(
-    `[${bot.username}] Executing task: ${taskSpec.type} ${taskSpec.direction.name}`
+    `[${bot.username}] Executing task: ${taskSpec.type} ${taskSpec.direction.name}`,
   );
 
   // Place torch before mining
@@ -375,12 +405,12 @@ async function executeMiningTask(bot, mcData, oreIds, taskSpec) {
       const ore = visibleOres[i];
       console.log(
         `[${bot.username}] Mining ${ore.name} at (${ore.position.x.toFixed(
-          1
-        )}, ${ore.position.y.toFixed(1)}, ${ore.position.z.toFixed(1)})`
+          1,
+        )}, ${ore.position.y.toFixed(1)}, ${ore.position.z.toFixed(1)})`,
       );
 
       bot.pathfinder.setGoal(
-        new GoalBlock(ore.position.x, ore.position.y, ore.position.z)
+        new GoalBlock(ore.position.x, ore.position.y, ore.position.z),
       );
 
       // Wait for goal_reached or timeout
@@ -436,7 +466,7 @@ async function mineAsLeader(
   mcData,
   oreIds,
   episodeNum,
-  iterationID
+  iterationID,
 ) {
   console.log(`[${bot.username}] Starting leader mining mode`);
 
@@ -451,7 +481,7 @@ async function mineAsLeader(
     const { taskSpec, newRepeatCount } = getNextTaskSpec(
       bot.username,
       lastTaskSpec,
-      taskRepeatCount
+      taskRepeatCount,
     );
     lastTaskSpec = taskSpec;
     taskRepeatCount = newRepeatCount;
@@ -481,9 +511,11 @@ async function followAndPlaceTorches(
   leaderName,
   mcData,
   oreIds,
-  isLeaderDone
+  isLeaderDone,
 ) {
-  console.log(`[${bot.username}] Starting follower mode - following ${leaderName}`);
+  console.log(
+    `[${bot.username}] Starting follower mode - following ${leaderName}`,
+  );
 
   setMovementsForCollector(bot);
 
@@ -496,7 +528,10 @@ async function followAndPlaceTorches(
   // Continue until leader signals completion
   const leaderBot = bot.players[leaderName];
   // dynamic goal to follow leader
-  bot.pathfinder.setGoal(new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE), true);
+  bot.pathfinder.setGoal(
+    new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE),
+    true,
+  );
   while (!isLeaderDone()) {
     // Place torch periodically while following
     const now = Date.now();
@@ -505,14 +540,21 @@ async function followAndPlaceTorches(
       bot.pathfinder.setGoal(null);
       await placeTorch(bot, mcData, oreIds, 2400, () => isLeaderDone());
       lastTorchPlaceTime = now;
-      await bot.lookAt(leaderBot.entity.position.offset(0, leaderBot.entity.height, 0));
-      bot.pathfinder.setGoal(new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE), true);
+      await bot.lookAt(
+        leaderBot.entity.position.offset(0, leaderBot.entity.height, 0),
+      );
+      bot.pathfinder.setGoal(
+        new GoalFollow(leaderBot.entity, FOLLOWER_NEAR_DISTANCE),
+        true,
+      );
       // Check if leader finished while placing torch
       if (isLeaderDone()) {
         break;
       }
       if (bot.time.age - startTick > FOLLOWER_TIMEOUT_TICKS) {
-        console.log(`[${bot.username}] Follower mining timed out after ${FOLLOWER_TIMEOUT_TICKS} ticks`);
+        console.log(
+          `[${bot.username}] Follower mining timed out after ${FOLLOWER_TIMEOUT_TICKS} ticks`,
+        );
         break;
       }
     }
@@ -520,7 +562,9 @@ async function followAndPlaceTorches(
     await bot.waitForTicks(5);
   }
 
-  console.log(`[${bot.username}] Leader finished mining, follower mode complete`);
+  console.log(
+    `[${bot.username}] Leader finished mining, follower mode complete`,
+  );
   bot.pathfinder.setGoal(null);
 }
 
@@ -545,7 +589,7 @@ async function independentMining(bot, mcData, oreIds) {
     const { taskSpec, newRepeatCount } = getNextTaskSpec(
       bot.username,
       lastTaskSpec,
-      taskRepeatCount
+      taskRepeatCount,
     );
     lastTaskSpec = taskSpec;
     taskRepeatCount = newRepeatCount;
@@ -557,7 +601,9 @@ async function independentMining(bot, mcData, oreIds) {
     await bot.waitForTicks(10);
   }
 
-  console.log(`[${bot.username}] Independent mining complete - 2 repetitions done`);
+  console.log(
+    `[${bot.username}] Independent mining complete - 2 repetitions done`,
+  );
   bot.pathfinder.setGoal(null);
 }
 
@@ -586,7 +632,7 @@ async function meetupPhase(bot, otherBotName) {
     // Set GoalFollow (non-dynamic to avoid continuous updates)
     bot.pathfinder.setGoal(
       new GoalFollow(targetBot.entity, FOLLOWER_NEAR_DISTANCE),
-      false
+      false,
     );
 
     // Wait for goal_reached or timeout (with proper cleanup)
@@ -638,14 +684,14 @@ async function miningPhase(
   otherBotName,
   episodeNum,
   cycle,
-  args
+  args,
 ) {
   console.log(`[${bot.username}] MINING PHASE`);
 
   // Get minecraft data and ore IDs
   const mcData = require("minecraft-data")(bot.version);
   const oreIds = VALUABLE_ORES.map(
-    (oreName) => mcData.blocksByName[oreName]?.id
+    (oreName) => mcData.blocksByName[oreName]?.id,
   ).filter((id) => id !== undefined);
 
   // SYMMETRIC RNG CONSUMPTION: Both bots decide mode together
@@ -653,7 +699,7 @@ async function miningPhase(
   console.log(
     `[${bot.username}] Mode: ${
       isLeaderFollowerMode ? "LEADER-FOLLOWER" : "INDEPENDENT"
-    }`
+    }`,
   );
 
   if (isLeaderFollowerMode) {
@@ -669,7 +715,9 @@ async function miningPhase(
 
       // Wait a bit before sending "done" to follower to ensure listener is set up
       if (bot.time.age - startTick < 40) {
-        console.log(`[${bot.username}] Leader mining took less than 40 ticks, waiting for remaining ticks`);
+        console.log(
+          `[${bot.username}] Leader mining took less than 40 ticks, waiting for remaining ticks`,
+        );
         await bot.waitForTicks(40 - (bot.time.age - startTick));
       }
       // Signal completion to follower
@@ -677,7 +725,7 @@ async function miningPhase(
         `done_${cycle}`,
         bot.entity.position.clone(),
         episodeNum,
-        "leader_done"
+        "leader_done",
       );
     } else {
       // Set up listener for leader done signal
@@ -693,7 +741,7 @@ async function miningPhase(
         otherBotName,
         mcData,
         oreIds,
-        () => leaderDone
+        () => leaderDone,
       );
     }
   } else {
@@ -726,25 +774,19 @@ function getCyclePhaseFn(
   cycle,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (otherBotPosition) => {
-    console.log(
-      `[${bot.username}] ========================================`
-    );
-    console.log(
-      `[${bot.username}] Cycle ${cycle}/${MAX_MINING_CYCLES}`
-    );
-    console.log(
-      `[${bot.username}] ========================================`
-    );
+    console.log(`[${bot.username}] ========================================`);
+    console.log(`[${bot.username}] Cycle ${cycle}/${MAX_MINING_CYCLES}`);
+    console.log(`[${bot.username}] ========================================`);
 
     // Send acknowledgment
     coordinator.sendToOtherBot(
       `cycle_${cycle}`,
       bot.entity.position.clone(),
       episodeNum,
-      `cycle_${cycle} beginning`
+      `cycle_${cycle} beginning`,
     );
 
     // Meetup phase
@@ -758,7 +800,7 @@ function getCyclePhaseFn(
       args.other_bot_name,
       episodeNum,
       cycle,
-      args
+      args,
     );
 
     // Set up next phase
@@ -775,14 +817,14 @@ function getCyclePhaseFn(
           nextCycle,
           episodeNum,
           episodeInstance,
-          args
-        )
+          args,
+        ),
       );
       coordinator.sendToOtherBot(
         `cycle_${nextCycle}`,
         bot.entity.position.clone(),
         episodeNum,
-        `cycle_${cycle} end`
+        `cycle_${cycle} end`,
       );
     } else {
       // Last cycle, set up stop phase
@@ -796,28 +838,22 @@ function getCyclePhaseFn(
           coordinator,
           args.other_bot_name,
           episodeNum,
-          args
-        )
+          args,
+        ),
       );
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
         episodeNum,
-        `cycle_${cycle} end`
+        `cycle_${cycle} end`,
       );
 
+      console.log(`[${bot.username}] ========================================`);
+      console.log(`[${bot.username}] COLLECTOR EPISODE COMPLETE`);
       console.log(
-        `[${bot.username}] ========================================`
+        `[${bot.username}] Completed ${MAX_MINING_CYCLES} cycles successfully`,
       );
-      console.log(
-        `[${bot.username}] COLLECTOR EPISODE COMPLETE`
-      );
-      console.log(
-        `[${bot.username}] Completed ${MAX_MINING_CYCLES} cycles successfully`
-      );
-      console.log(
-        `[${bot.username}] ========================================`
-      );
+      console.log(`[${bot.username}] ========================================`);
     }
   };
 }
@@ -829,7 +865,16 @@ class CollectorEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
   static INIT_MIN_BOTS_DISTANCE = 0;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
+  async setupEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args,
+    botPosition,
+    otherBotPosition,
+  ) {
     await ensureBotHasEnough(bot, rcon, "torch", 128);
     await unequipHand(bot);
     return {
@@ -845,17 +890,13 @@ class CollectorEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
+    console.log(`[${bot.username}] ========================================`);
     console.log(
-      `[${bot.username}] ========================================`
+      `[${bot.username}] COLLECTOR EPISODE START - Episode ${episodeNum}`,
     );
-    console.log(
-      `[${bot.username}] COLLECTOR EPISODE START - Episode ${episodeNum}`
-    );
-    console.log(
-      `[${bot.username}] ========================================`
-    );
+    console.log(`[${bot.username}] ========================================`);
 
     // Set up listener for first cycle, then send message to start
     // This follows the coordinator pattern from coordinator_readme.md
@@ -870,14 +911,14 @@ class CollectorEpisode extends BaseEpisode {
         1, // cycle number
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `cycle_1`,
       bot.entity.position.clone(),
       episodeNum,
-      "entryPoint end"
+      "entryPoint end",
     );
   }
 
@@ -887,7 +928,7 @@ class CollectorEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    args
+    args,
   ) {
     console.log(`[${bot.username}] Tearing down collector episode`);
     // Stop pathfinder and clear any remaining goals
@@ -906,5 +947,3 @@ module.exports = {
   placeTorch,
   findVisibleOres,
 };
-
-

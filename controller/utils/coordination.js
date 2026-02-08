@@ -9,7 +9,7 @@ function pickRandom(array, sharedBotRng) {
 function decidePrimaryBot(bot, sharedBotRng, args) {
   const primaryBotName = pickRandom(
     [bot.username, args.other_bot_name],
-    sharedBotRng
+    sharedBotRng,
   );
   return bot.username === primaryBotName;
 }
@@ -52,7 +52,7 @@ class BotCoordinator extends EventEmitter {
     ]);
 
     console.log(
-      `[${this.botName}] All connections established - server ready: ${serverReady}, client ready: ${clientReady}`
+      `[${this.botName}] All connections established - server ready: ${serverReady}, client ready: ${clientReady}`,
     );
     return { serverReady, clientReady };
   }
@@ -78,23 +78,23 @@ class BotCoordinator extends EventEmitter {
                 const listenerCount = this.listenerCount(message.eventName);
                 if (listenerCount > 0) {
                   console.log(
-                    `[${this.botName} Server] Received: ${message.eventName} (${listenerCount} listeners) - emitting`
+                    `[${this.botName} Server] Received: ${message.eventName} (${listenerCount} listeners) - emitting`,
                   );
                   this.emit(message.eventName, message.eventParams);
                 } else {
                   console.log(
-                    `[${this.botName} Server] Received: ${message.eventName} (no listeners)`
+                    `[${this.botName} Server] Received: ${message.eventName} (no listeners)`,
                   );
                 }
               } catch (err) {
                 console.error(
                   `[${
                     this.botName
-                  } Server] Parse error: ${err}, message: ${data.toString()}`
+                  } Server] Parse error: ${err}, message: ${data.toString()}`,
                 );
                 console.error(
                   `[${this.botName} Server] Problematic line:`,
-                  line
+                  line,
                 );
               }
             }
@@ -110,7 +110,7 @@ class BotCoordinator extends EventEmitter {
 
       this.server.listen(this.coordPort, () => {
         console.log(
-          `[${this.botName} Server] Listening on port ${this.coordPort}, waiting for other bot to connect...`
+          `[${this.botName} Server] Listening on port ${this.coordPort}, waiting for other bot to connect...`,
         );
       });
     });
@@ -123,16 +123,16 @@ class BotCoordinator extends EventEmitter {
           { host: this.otherCoordHost, port: this.otherCoordPort },
           () => {
             console.log(
-              `[${this.botName} Client] Connected to other bot's server at ${this.otherCoordHost}:${this.otherCoordPort}`
+              `[${this.botName} Client] Connected to other bot's server at ${this.otherCoordHost}:${this.otherCoordPort}`,
             );
             resolve(true);
-          }
+          },
         );
 
         this.clientConnection.on("error", (err) => {
           console.log(
             `[${this.botName} Client] Connection failed, retrying in 2s:`,
-            err.message
+            err.message,
           );
           setTimeout(attemptConnection, 2000);
         });
@@ -153,12 +153,12 @@ class BotCoordinator extends EventEmitter {
     if (this.clientConnection) {
       const message = JSON.stringify({ eventName, eventParams });
       console.log(
-        `[sendToOtherBot] ${location}: Sending ${eventName} via client connection`
+        `[sendToOtherBot] ${location}: Sending ${eventName} via client connection`,
       );
       this.clientConnection.write(message + "\n");
     } else {
       console.log(
-        `[sendToOtherBot] ${location}: No client connection available for ${eventName}`
+        `[sendToOtherBot] ${location}: No client connection available for ${eventName}`,
       );
     }
   }
@@ -195,7 +195,7 @@ class BotCoordinator extends EventEmitter {
         console.log(
           `[${this.botName}] Waiting for ${
             this.executingEvents.size
-          } event(s) to finish: ${[...this.executingEvents.keys()].join(", ")}`
+          } event(s) to finish: ${[...this.executingEvents.keys()].join(", ")}`,
         );
         lastLogTime = now;
       }

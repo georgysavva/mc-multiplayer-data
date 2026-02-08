@@ -8,27 +8,30 @@
 
 ### Static Properties
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `INIT_MIN_BOTS_DISTANCE` | `MIN_BOTS_DISTANCE` | Minimum distance bots should maintain during episode |
-| `INIT_MAX_BOTS_DISTANCE` | `MAX_BOTS_DISTANCE` | Maximum distance bots should maintain during episode |
-| `WORKS_IN_NON_FLAT_WORLD` | `false` | Whether episode is compatible with non-flat world types |
+| Property                  | Default             | Description                                             |
+| ------------------------- | ------------------- | ------------------------------------------------------- |
+| `INIT_MIN_BOTS_DISTANCE`  | `MIN_BOTS_DISTANCE` | Minimum distance bots should maintain during episode    |
+| `INIT_MAX_BOTS_DISTANCE`  | `MAX_BOTS_DISTANCE` | Maximum distance bots should maintain during episode    |
+| `WORKS_IN_NON_FLAT_WORLD` | `false`             | Whether episode is compatible with non-flat world types |
 
 ### Constructor
 
 ```javascript
-constructor(sharedBotRng)
+constructor(sharedBotRng);
 ```
 
 **Parameters:**
+
 - `sharedBotRng` - Shared random number generator (currently unused in base class)
 
 ### Lifecycle Methods
 
 #### async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args)
+
 Optional setup hook called before episode execution. No-op by default.
 
 **Parameters:**
+
 - `bot` - Mineflayer bot instance
 - `rcon` - RCON connection
 - `sharedBotRng` - Shared random number generator
@@ -39,9 +42,11 @@ Optional setup hook called before episode execution. No-op by default.
 **Returns:** `Promise<void>`
 
 #### async entryPoint(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, args)
+
 **Abstract method** - Main episode logic that must be implemented by subclasses.
 
 **Parameters:**
+
 - `bot` - Mineflayer bot instance
 - `rcon` - RCON connection
 - `sharedBotRng` - Shared random number generator
@@ -53,9 +58,11 @@ Optional setup hook called before episode execution. No-op by default.
 **Returns:** `Promise<any>`
 
 #### async tearDownEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args)
+
 Optional cleanup hook called after episode completion. No-op by default.
 
 **Parameters:**
+
 - `bot` - Mineflayer bot instance
 - `rcon` - RCON connection
 - `sharedBotRng` - Shared random number generator
@@ -68,9 +75,11 @@ Optional cleanup hook called after episode completion. No-op by default.
 ### Phase Management
 
 #### getOnStopPhaseFn(bot, rcon, sharedBotRng, coordinator, otherBotName, episodeNum, args)
+
 Creates the stop phase handler function that manages episode termination.
 
 **Stop Phase Sequence:**
+
 1. Sets `_episodeStopping = true` to prevent duplicate stops
 2. Emits "endepisode" event to stop recording
 3. Waits for recording to end
@@ -80,6 +89,7 @@ Creates the stop phase handler function that manages episode termination.
 **Returns:** `Function` - Async function handling stop phase
 
 #### getOnStoppedPhaseFn(bot, sharedBotRng, coordinator, otherBotName, episodeNum, episodeResolve)
+
 Creates the stopped phase handler that resolves the episode promise.
 
 **Returns:** `Function` - Async function handling stopped phase
@@ -96,14 +106,37 @@ class MyCustomEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 5;
   static INIT_MAX_BOTS_DISTANCE = 15;
 
-  async entryPoint(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, args) {
+  async entryPoint(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    iterationID,
+    episodeNum,
+    args,
+  ) {
     // Implement episode logic here
 
     // Transition to stop phase when complete
-    coordinator.onceEvent("stopPhase", episodeNum,
-      this.getOnStopPhaseFn(bot, rcon, sharedBotRng, coordinator, args.other_bot_name, episodeNum, args)
+    coordinator.onceEvent(
+      "stopPhase",
+      episodeNum,
+      this.getOnStopPhaseFn(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        args.other_bot_name,
+        episodeNum,
+        args,
+      ),
     );
-    coordinator.sendToOtherBot("stopPhase", bot.entity.position.clone(), episodeNum, "episode complete");
+    coordinator.sendToOtherBot(
+      "stopPhase",
+      bot.entity.position.clone(),
+      episodeNum,
+      "episode complete",
+    );
   }
 }
 
@@ -113,6 +146,7 @@ module.exports = { MyCustomEpisode };
 ## Error Handling
 
 The base class provides comprehensive error handling:
+
 - Episode-scoped error capture
 - Automatic transition to stop phase on errors
 - Prevention of duplicate stop sequences
@@ -121,6 +155,7 @@ The base class provides comprehensive error handling:
 ## Integration
 
 Base episodes integrate with the coordinator system through:
+
 - Phase-based communication patterns
 - Shared random number generation
 - Recording lifecycle management

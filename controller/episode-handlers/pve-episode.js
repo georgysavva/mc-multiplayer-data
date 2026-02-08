@@ -30,7 +30,7 @@ const HOSTILE_MOBS_SUMMON_IDS = [
   "minecraft:husk",
 ];
 const HOSTILE_ENTITY_NAMES = new Set(
-  HOSTILE_MOBS_SUMMON_IDS.map((id) => id.split(":")[1])
+  HOSTILE_MOBS_SUMMON_IDS.map((id) => id.split(":")[1]),
 );
 
 /**
@@ -71,7 +71,7 @@ function isInForwardFOV(bot, targetPos, fovDegrees = FOV_DEGREES) {
 async function spawnWithRconAround(
   bot,
   rcon,
-  { mob, count, maxRadius, minRadius }
+  { mob, count, maxRadius, minRadius },
 ) {
   const { x, y, z } = bot.entity.position;
 
@@ -125,7 +125,7 @@ async function spawnWithRconAround(
 function isHostileMobFilter(
   bot,
   maxDistance = VIEW_DISTANCE,
-  checkFOV = false
+  checkFOV = false,
 ) {
   return (e) => {
     if (!e || !HOSTILE_ENTITY_NAMES.has(e.name)) {
@@ -152,7 +152,7 @@ function getNearestHostile(bot, maxDistance = VIEW_DISTANCE, checkFOV = false) {
     console.log(
       `[${bot.username}] No hostile mob ${
         checkFOV ? "in FOV" : ""
-      } within ${maxDistance.toFixed(1)} blocks.`
+      } within ${maxDistance.toFixed(1)} blocks.`,
     );
     return;
   }
@@ -160,7 +160,7 @@ function getNearestHostile(bot, maxDistance = VIEW_DISTANCE, checkFOV = false) {
   const msg =
     `[${bot.username}] Nearest hostile: name=${mob.name}, type=${mob.type}, displayName=${mob.displayName} @ ${dist} blocks ` +
     `pos(${mob.position.x.toFixed(1)},${mob.position.y.toFixed(
-      1
+      1,
     )},${mob.position.z.toFixed(1)})`;
   console.log(msg);
   return mob;
@@ -199,8 +199,8 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
         `[${
           bot.username
         }] Timeout waiting for hostile mob within ${MELEE_RANGE.toFixed(
-          1
-        )} blocks.`
+          1,
+        )} blocks.`,
       );
       return; // Exit guardAndFight early
     }
@@ -210,7 +210,7 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
       console.log(
         `[${
           bot.username
-        }] nothing to guard no hostile mob in ${MELEE_RANGE.toFixed(1)} blocks.`
+        }] nothing to guard no hostile mob in ${MELEE_RANGE.toFixed(1)} blocks.`,
       );
       continue;
     }
@@ -229,7 +229,7 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
     // Check for timeout
     if (Date.now() - combatStartTime > TIMEOUT_MS) {
       console.log(
-        `[${bot.username}] Timeout waiting for target defeat, stopping combat.`
+        `[${bot.username}] Timeout waiting for target defeat, stopping combat.`,
       );
       await bot.pvp.stop();
       return; // Exit guardAndFight early
@@ -248,7 +248,7 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
     guardPosition.x,
     guardPosition.y,
     guardPosition.z,
-    1
+    1,
   );
   let reached = false;
   for (let attempt = 0; attempt < 2 && !reached; attempt++) {
@@ -260,7 +260,7 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
       console.log(
         `[${bot.username}] goto to guard failed (attempt ${
           attempt + 1
-        }): ${msg}`
+        }): ${msg}`,
       );
       // Ignore PathStopped and retry once after clearing goal
       bot.pathfinder.setGoal(null);
@@ -273,7 +273,7 @@ async function guardAndFight(bot, guardPosition, otherBotGuardPosition) {
   await lookAtSmooth(bot, otherBotGuardPosition, CAMERA_SPEED_DEGREES_PER_SEC);
   await sleep(
     LOCK_EYE_DURATION_MIN +
-      Math.random() * (LOCK_EYE_DURATION_MAX - LOCK_EYE_DURATION_MIN)
+      Math.random() * (LOCK_EYE_DURATION_MAX - LOCK_EYE_DURATION_MIN),
   );
 }
 
@@ -286,20 +286,20 @@ function getOnPVEFightPhaseFn(
   episodeNum,
   episodeInstance,
   args,
-  phaseDataOur
+  phaseDataOur,
 ) {
   return async (phaseDataOther) => {
     coordinator.sendToOtherBot(
       `pvePhase_fight_${iterationID}`,
       phaseDataOur,
       episodeNum,
-      `pvePhase_fight_${iterationID} beginning`
+      `pvePhase_fight_${iterationID} beginning`,
     );
     let mob = null;
     await sleep(1000);
     const distToOther = horizontalDistanceTo(
       phaseDataOur.guardPosition,
-      phaseDataOther.guardPosition
+      phaseDataOther.guardPosition,
     );
     const mobDistMax = distToOther / 4;
     const mobDistMin = mobDistMax / 2;
@@ -318,7 +318,7 @@ function getOnPVEFightPhaseFn(
             Math.floor(Math.random() * HOSTILE_MOBS_SUMMON_IDS.length)
           ];
         console.log(
-          `[${bot.username}] No mob in FOV, Spawning mob ${mobI} ${chosenMob} in FOV.`
+          `[${bot.username}] No mob in FOV, Spawning mob ${mobI} ${chosenMob} in FOV.`,
         );
         await spawnWithRconAround(bot, rcon, {
           mob: chosenMob,
@@ -331,8 +331,8 @@ function getOnPVEFightPhaseFn(
         `[${
           bot.username
         }] iteration ${iterationID} mob ${mobI} starting PvE, health=${bot.health.toFixed(
-          1
-        )}/20 food=${bot.food}`
+          1,
+        )}/20 food=${bot.food}`,
       );
 
       await guardAndFight(bot, ourGuardPosition, otherGuardPosition);
@@ -341,8 +341,8 @@ function getOnPVEFightPhaseFn(
         `[${
           bot.username
         }] iteration ${iterationID} mob ${mobI} finished PvE, health=${bot.health.toFixed(
-          1
-        )}/20 food=${bot.food}`
+          1,
+        )}/20 food=${bot.food}`,
       );
     }
     coordinator.onceEvent(
@@ -355,14 +355,14 @@ function getOnPVEFightPhaseFn(
         coordinator,
         args.other_bot_name,
         episodeNum,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
-      `pvePhase_${iterationID} end`
+      `pvePhase_${iterationID} end`,
     );
   };
 }
@@ -373,14 +373,14 @@ function getOnPVEPhaseFn(
   coordinator,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (phaseDataOther) => {
     coordinator.sendToOtherBot(
       `pvePhase`,
       { position: bot.entity.position.clone() },
       episodeNum,
-      `pvePhase beginning`
+      `pvePhase beginning`,
     );
 
     const iterationID = 0;
@@ -399,14 +399,14 @@ function getOnPVEPhaseFn(
         episodeNum,
         episodeInstance,
         args,
-        nextPhaseDataOur
-      )
+        nextPhaseDataOur,
+      ),
     );
     coordinator.sendToOtherBot(
       `pvePhase_fight_${iterationID}`,
       nextPhaseDataOur,
       episodeNum,
-      `pvePhase end`
+      `pvePhase end`,
     );
     return;
   };
@@ -417,10 +417,19 @@ class PveEpisode extends BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = 25;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
+  async setupEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args,
+    botPosition,
+    otherBotPosition,
+  ) {
     const difficultyRes = await rcon.send("difficulty easy"); // or hard
     console.log(
-      `[${bot.username}] set difficulty to easy, difficultyRes=${difficultyRes}`
+      `[${bot.username}] set difficulty to easy, difficultyRes=${difficultyRes}`,
     );
 
     // Wait for the item to be added to inventory
@@ -441,7 +450,7 @@ class PveEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     coordinator.onceEvent(
       `pvePhase`,
@@ -453,14 +462,14 @@ class PveEpisode extends BaseEpisode {
         coordinator,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `pvePhase`,
       { position: bot.entity.position.clone() },
       episodeNum,
-      "entryPoint end"
+      "entryPoint end",
     );
   }
 
@@ -470,12 +479,12 @@ class PveEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    args
+    args,
   ) {
     // optional teardown
     const difficultyRes = await rcon.send("difficulty peaceful"); // or hard
     console.log(
-      `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`
+      `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`,
     );
   }
 }

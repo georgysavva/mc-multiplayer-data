@@ -13,7 +13,7 @@ async function main() {
   const mineflayerVersion =
     (require("mineflayer/package.json") || {}).version || "unknown";
   console.log(
-    `[${MC_USERNAME}] mineflayer ${mineflayerVersion}; target ${MC_HOST}:${MC_PORT}`
+    `[${MC_USERNAME}] mineflayer ${mineflayerVersion}; target ${MC_HOST}:${MC_PORT}`,
   );
 
   await connectWithRetry({ delayMs: INITIAL_DELAY_MS });
@@ -21,7 +21,7 @@ async function main() {
 
 async function connectWithRetry({ delayMs }) {
   console.log(
-    `[${MC_USERNAME}] connecting in ${delayMs}ms to ${MC_HOST}:${MC_PORT}`
+    `[${MC_USERNAME}] connecting in ${delayMs}ms to ${MC_HOST}:${MC_PORT}`,
   );
   await sleep(delayMs);
 
@@ -38,14 +38,12 @@ async function connectWithRetry({ delayMs }) {
 
   bot.on("kicked", (reason) => {
     console.log(
-      `[${MC_USERNAME}] kicked: ${reason}, reconnecting in ${RETRY_MS}ms`
+      `[${MC_USERNAME}] kicked: ${reason}, reconnecting in ${RETRY_MS}ms`,
     );
   });
 
   bot.on("end", async () => {
-    console.log(
-      `[${MC_USERNAME}] disconnected, reconnecting in ${RETRY_MS}ms`
-    );
+    console.log(`[${MC_USERNAME}] disconnected, reconnecting in ${RETRY_MS}ms`);
     await connectWithRetry({ delayMs: RETRY_MS });
   });
 

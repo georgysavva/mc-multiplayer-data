@@ -23,7 +23,6 @@ const MIN_SPAWN_DISTANCE = 8; // Minimum distance between bots at spawn
 const MAX_SPAWN_DISTANCE = 15; // Maximum distance between bots at spawn
 const INITIAL_EYE_CONTACT_MS = 500; // Initial look duration
 
-
 /**
  * Main PVP combat loop using mineflayer-pvp plugin
  * @param {Bot} bot - Mineflayer bot instance
@@ -32,7 +31,7 @@ const INITIAL_EYE_CONTACT_MS = 500; // Initial look duration
  */
 async function pvpCombatLoop(bot, targetBotName, durationMs) {
   console.log(
-    `[${bot.username}] ⚔️ Starting PVP combat loop (using pvp plugin) for ${durationMs / 1000}s`
+    `[${bot.username}] ⚔️ Starting PVP combat loop (using pvp plugin) for ${durationMs / 1000}s`,
   );
 
   const startTime = Date.now();
@@ -44,7 +43,7 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
     if (attacker === bot.entity && victim.username === targetBotName) {
       totalAttacks++;
       console.log(
-        `[${bot.username}] ⚔️ Attack #${totalAttacks} on ${targetBotName}`
+        `[${bot.username}] ⚔️ Attack #${totalAttacks} on ${targetBotName}`,
       );
     }
   };
@@ -75,7 +74,7 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
           ? bot.entity.position.distanceTo(targetEntity.position)
           : -1;
         console.log(
-          `[${bot.username}] ❤️ Health: ${bot.health}/20 | Distance: ${distance.toFixed(2)} blocks`
+          `[${bot.username}] ❤️ Health: ${bot.health}/20 | Distance: ${distance.toFixed(2)} blocks`,
         );
         lastHealthLog = Date.now();
       }
@@ -105,7 +104,7 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
     const duration = Date.now() - startTime;
     console.log(`[${bot.username}] 🏁 Combat complete! Stats:`);
     console.log(
-      `[${bot.username}]    Duration: ${(duration / 1000).toFixed(1)}s`
+      `[${bot.username}]    Duration: ${(duration / 1000).toFixed(1)}s`,
     );
     console.log(`[${bot.username}]    Total attacks detected: ${totalAttacks}`);
     console.log(`[${bot.username}]    Final health: ${bot.health}/20`);
@@ -114,7 +113,7 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
         `[${bot.username}]    Attacks per second: ${(
           totalAttacks /
           (duration / 1000)
-        ).toFixed(2)}`
+        ).toFixed(2)}`,
       );
     }
   }
@@ -140,24 +139,24 @@ function getOnPvpPhaseFn(
   iterationID,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (otherBotPosition) => {
     const startTime = Date.now();
     console.log(
-      `[${bot.username}] ⚔️ PVP EPISODE STARTING - Episode ${episodeNum}, Iteration ${iterationID}`
+      `[${bot.username}] ⚔️ PVP EPISODE STARTING - Episode ${episodeNum}, Iteration ${iterationID}`,
     );
     console.log(
       `[${bot.username}] 🕐 Episode start time: ${new Date(
-        startTime
-      ).toISOString()}`
+        startTime,
+      ).toISOString()}`,
     );
 
     coordinator.sendToOtherBot(
       `pvpPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `pvpPhase_${iterationID} beginning`
+      `pvpPhase_${iterationID} beginning`,
     );
 
     console.log(`[${bot.username}] 🚀 Starting PVP phase ${iterationID}`);
@@ -170,12 +169,12 @@ function getOnPvpPhaseFn(
     try {
       await lookAtBot(bot, args.other_bot_name, 180);
       console.log(
-        `[${bot.username}] ✅ Initial eye contact established with ${args.other_bot_name}`
+        `[${bot.username}] ✅ Initial eye contact established with ${args.other_bot_name}`,
       );
       await sleep(INITIAL_EYE_CONTACT_MS);
     } catch (lookError) {
       console.log(
-        `[${bot.username}] ⚠️ Failed initial look: ${lookError.message}`
+        `[${bot.username}] ⚠️ Failed initial look: ${lookError.message}`,
       );
     }
 
@@ -187,32 +186,32 @@ function getOnPvpPhaseFn(
     console.log(`[${bot.username}] 📍 STEP 3: Got coordinates`);
     console.log(
       `[${bot.username}]    My position: (${myPosition.x.toFixed(
-        1
-      )}, ${myPosition.y.toFixed(1)}, ${myPosition.z.toFixed(1)})`
+        1,
+      )}, ${myPosition.y.toFixed(1)}, ${myPosition.z.toFixed(1)})`,
     );
     console.log(
       `[${bot.username}]    ${
         args.other_bot_name
       } position: (${otherPosition.x.toFixed(1)}, ${otherPosition.y.toFixed(
-        1
-      )}, ${otherPosition.z.toFixed(1)})`
+        1,
+      )}, ${otherPosition.z.toFixed(1)})`,
     );
     console.log(
-      `[${bot.username}]    Distance: ${initialDistance.toFixed(2)} blocks`
+      `[${bot.username}]    Distance: ${initialDistance.toFixed(2)} blocks`,
     );
 
     // Check if spawn distance is appropriate
     if (initialDistance < MIN_SPAWN_DISTANCE) {
       console.log(
         `[${bot.username}] ⚠️ Bots spawned too close (${initialDistance.toFixed(
-          2
-        )} < ${MIN_SPAWN_DISTANCE})`
+          2,
+        )} < ${MIN_SPAWN_DISTANCE})`,
       );
     } else if (initialDistance > MAX_SPAWN_DISTANCE) {
       console.log(
         `[${bot.username}] ⚠️ Bots spawned too far (${initialDistance.toFixed(
-          2
-        )} > ${MAX_SPAWN_DISTANCE})`
+          2,
+        )} > ${MAX_SPAWN_DISTANCE})`,
       );
     } else {
       console.log(`[${bot.username}] ✅ Spawn distance is appropriate`);
@@ -222,7 +221,6 @@ function getOnPvpPhaseFn(
     console.log(`[${bot.username}] 🗡️ STEP 4: Equipping sword...`);
     await equipSword(bot);
 
-
     await sleep(500); // Brief pause after equipping
 
     // STEP 5-7: Enter combat loop
@@ -230,7 +228,7 @@ function getOnPvpPhaseFn(
     const pvpDurationMS =
       PVP_DURATION_MS_MIN +
       Math.floor(
-        sharedBotRng() * (PVP_DURATION_MS_MAX - PVP_DURATION_MS_MIN + 1)
+        sharedBotRng() * (PVP_DURATION_MS_MAX - PVP_DURATION_MS_MIN + 1),
       );
     await pvpCombatLoop(bot, args.other_bot_name, pvpDurationMS);
 
@@ -242,8 +240,8 @@ function getOnPvpPhaseFn(
     console.log(`[${bot.username}] 🏁 PVP episode completed in ${duration}ms`);
     console.log(
       `[${bot.username}] 🕐 Episode end time: ${new Date(
-        endTime
-      ).toISOString()}`
+        endTime,
+      ).toISOString()}`,
     );
 
     // Transition to stop phase
@@ -258,18 +256,18 @@ function getOnPvpPhaseFn(
         coordinator,
         args.other_bot_name,
         episodeNum,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
-      `pvpPhase_${iterationID} end`
+      `pvpPhase_${iterationID} end`,
     );
 
     console.log(
-      `[${bot.username}] ✅ PVP phase ${iterationID} transition complete`
+      `[${bot.username}] ✅ PVP phase ${iterationID} transition complete`,
     );
   };
 }
@@ -282,7 +280,16 @@ class PvpEpisode extends BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = MAX_SPAWN_DISTANCE;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
+  async setupEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args,
+    botPosition,
+    otherBotPosition,
+  ) {
     // No setup needed - swords are equipped during the episode
     // Wait for the item to be added to inventory
     await giveRandomSword(bot, rcon);
@@ -302,7 +309,7 @@ class PvpEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     coordinator.onceEvent(
       `pvpPhase_${iterationID}`,
@@ -315,14 +322,14 @@ class PvpEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `pvpPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      "entryPoint end"
+      "entryPoint end",
     );
   }
 
@@ -332,9 +339,8 @@ class PvpEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    args
-  ) {
-  }
+    args,
+  ) {}
 }
 
 module.exports = {

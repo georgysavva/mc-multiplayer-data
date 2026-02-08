@@ -16,14 +16,14 @@ function getOnLookAwayPhaseFn(
   iterationID,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       `lookAwayPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `lookAwayPhase_${iterationID} beginning`
+      `lookAwayPhase_${iterationID} beginning`,
     );
 
     // Deterministic mode selection based on episode number
@@ -36,7 +36,7 @@ function getOnLookAwayPhaseFn(
     const selectedMode = "both_look_away";
 
     console.log(
-      `[iter ${iterationID}] [${bot.username}] starting look away phase - mode: ${selectedMode}`
+      `[iter ${iterationID}] [${bot.username}] starting look away phase - mode: ${selectedMode}`,
     );
 
     // Determine if this bot should look away based on the selected mode
@@ -46,11 +46,19 @@ function getOnLookAwayPhaseFn(
     switch (selectedMode) {
       case "lower_name_looks_away":
         shouldThisBotLookAway = bot.username < args.other_bot_name;
-        botsChosen = [bot.username < args.other_bot_name ? bot.username : args.other_bot_name];
+        botsChosen = [
+          bot.username < args.other_bot_name
+            ? bot.username
+            : args.other_bot_name,
+        ];
         break;
       case "bigger_name_looks_away":
         shouldThisBotLookAway = bot.username > args.other_bot_name;
-        botsChosen = [bot.username > args.other_bot_name ? bot.username : args.other_bot_name];
+        botsChosen = [
+          bot.username > args.other_bot_name
+            ? bot.username
+            : args.other_bot_name,
+        ];
         break;
       case "both_look_away":
         shouldThisBotLookAway = true;
@@ -59,13 +67,17 @@ function getOnLookAwayPhaseFn(
     }
 
     // Look at the other bot smoothly at the start of the phase
-    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
+    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC, {
+      randomized: false,
+      useEasing: false,
+    });
     // pick (the same) look away direction randomly. -1 means left, 1 means right.
     const lookAwayDirection = sharedBotRng() < 0.5 ? -1 : 1;
     // pick a look away offset randomly between 90 +/- 22.5 degrees.
-    const lookAwayOffsetDeg = 90 * lookAwayDirection + sharedBotRng() * 45 - 22.5;
+    const lookAwayOffsetDeg =
+      90 * lookAwayDirection + sharedBotRng() * 45 - 22.5;
     const freezeTicks = 20;
-    
+
     episodeInstance._evalMetadata = {
       bots_chosen: botsChosen,
       mode: selectedMode,
@@ -78,7 +90,7 @@ function getOnLookAwayPhaseFn(
     console.log(
       `[iter ${iterationID}] [${bot.username}] will ${
         shouldThisBotLookAway ? "look away" : "keep looking"
-      } during this phase`
+      } during this phase`,
     );
 
     // Either look away or stay looking based on the mode
@@ -87,35 +99,52 @@ function getOnLookAwayPhaseFn(
       await sneak(bot);
       // Record tick number
       const startTick = bot.time.age;
-      
+
       // Save bot's original pitch and yaw
       const originalYaw = bot.entity.yaw;
       const originalPitch = bot.entity.pitch;
-      const newYaw = originalYaw + Math.PI + lookAwayOffsetDeg * Math.PI / 180;
+      const newYaw =
+        originalYaw + Math.PI + (lookAwayOffsetDeg * Math.PI) / 180;
 
       console.log(
-        `[iter ${iterationID}] [${bot.username}] looking away (offset: ${lookAwayOffsetDeg.toFixed(1)}°)`
+        `[iter ${iterationID}] [${bot.username}] looking away (offset: ${lookAwayOffsetDeg.toFixed(1)}°)`,
       );
-      await lookSmooth(bot, newYaw, originalPitch, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
+      await lookSmooth(
+        bot,
+        newYaw,
+        originalPitch,
+        CAMERA_SPEED_DEGREES_PER_SEC,
+        { randomized: false, useEasing: false },
+      );
       await bot.waitForTicks(freezeTicks);
 
       // Look back at the other bot
       console.log(
-        `[iter ${iterationID}] [${bot.username}] looking back at other bot`
+        `[iter ${iterationID}] [${bot.username}] looking back at other bot`,
       );
-      await lookSmooth(bot, originalYaw, originalPitch, CAMERA_SPEED_DEGREES_PER_SEC, { randomized: false, useEasing: false });
-      
+      await lookSmooth(
+        bot,
+        originalYaw,
+        originalPitch,
+        CAMERA_SPEED_DEGREES_PER_SEC,
+        { randomized: false, useEasing: false },
+      );
+
       // Record tick number
       const endTick = bot.time.age;
       const remainingTicks = EPISODE_MIN_TICKS - (endTick - startTick);
       if (remainingTicks > 0) {
-        console.log(`[${bot.username}] Waiting ${remainingTicks} more ticks to reach ${EPISODE_MIN_TICKS} total ticks`);
+        console.log(
+          `[${bot.username}] Waiting ${remainingTicks} more ticks to reach ${EPISODE_MIN_TICKS} total ticks`,
+        );
         await bot.waitForTicks(remainingTicks);
       } else {
-        console.log(`[${bot.username}] Already passed ${EPISODE_MIN_TICKS} ticks (elapsed: ${endTick - startTick})`);
+        console.log(
+          `[${bot.username}] Already passed ${EPISODE_MIN_TICKS} ticks (elapsed: ${endTick - startTick})`,
+        );
       }
     } else {
-        // Do nothing
+      // Do nothing
     }
 
     if (iterationID == ITERATIONS_NUM_PER_EPISODE - 1) {
@@ -129,14 +158,14 @@ function getOnLookAwayPhaseFn(
           coordinator,
           args.other_bot_name,
           episodeNum,
-          args
-        )
+          args,
+        ),
       );
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
         episodeNum,
-        `lookAwayPhase_${iterationID} end`
+        `lookAwayPhase_${iterationID} end`,
       );
       return;
     }
@@ -152,21 +181,21 @@ function getOnLookAwayPhaseFn(
         nextIterationID,
         episodeNum,
         episodeInstance,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `lookAwayPhase_${nextIterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `lookAwayPhase_${iterationID} end`
+      `lookAwayPhase_${iterationID} end`,
     );
   };
 }
 
 class LookAwayEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
-  static INIT_MIN_BOTS_DISTANCE = 10;  // Override: bots spawn 10-12 blocks apart
+  static INIT_MIN_BOTS_DISTANCE = 10; // Override: bots spawn 10-12 blocks apart
   static INIT_MAX_BOTS_DISTANCE = 12;
 
   async entryPoint(
@@ -176,7 +205,7 @@ class LookAwayEvalEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     coordinator.onceEvent(
       `lookAwayPhase_${iterationID}`,
@@ -189,14 +218,14 @@ class LookAwayEvalEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `lookAwayPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      "teleportPhase end"
+      "teleportPhase end",
     );
   }
 }
@@ -205,4 +234,3 @@ module.exports = {
   getOnLookAwayPhaseFn,
   LookAwayEvalEpisode,
 };
-

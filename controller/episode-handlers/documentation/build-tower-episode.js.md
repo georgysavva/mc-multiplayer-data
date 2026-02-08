@@ -8,21 +8,24 @@
 
 ### Static Properties
 
-| Property | Value | Description |
-|----------|-------|-------------|
-| `INIT_MIN_BOTS_DISTANCE` | `8` | Minimum distance between bots |
-| `INIT_MAX_BOTS_DISTANCE` | `15` | Maximum distance between bots |
-| `WORKS_IN_NON_FLAT_WORLD` | `true` | Supports non-flat worlds |
+| Property                  | Value  | Description                   |
+| ------------------------- | ------ | ----------------------------- |
+| `INIT_MIN_BOTS_DISTANCE`  | `8`    | Minimum distance between bots |
+| `INIT_MAX_BOTS_DISTANCE`  | `15`   | Maximum distance between bots |
+| `WORKS_IN_NON_FLAT_WORLD` | `true` | Supports non-flat worlds      |
 
 ## Episode Characteristics
 
 ### Individual Construction
+
 - Each bot builds independently
 - No coordination required between bots
 - Deterministic but separate tower construction
 
 ### Pillar Jumping Technique
+
 The episode uses the classic Minecraft tower building method:
+
 1. Place block at feet level
 2. Jump multiple times to reach new height
 3. Repeat until desired tower height
@@ -30,17 +33,17 @@ The episode uses the classic Minecraft tower building method:
 
 ## Configuration Constants
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `MIN_TOWER_HEIGHT` | `8` | Minimum tower height in blocks |
-| `MAX_TOWER_HEIGHT` | `12` | Maximum tower height in blocks |
-| `TOWER_BLOCK_TYPE` | `"oak_planks"` | Block type used for towers |
-| `INITIAL_EYE_CONTACT_MS` | `1500` | Initial eye contact duration |
-| `FINAL_EYE_CONTACT_MS` | `1500` | Final eye contact duration |
-| `JUMP_DURATION_MS` | `50` | How long to hold jump button |
-| `PLACE_RETRY_DELAY_MS` | `20` | Delay between place attempts |
-| `MAX_PLACE_ATTEMPTS` | `10` | Maximum placement attempts per block |
-| `SETTLE_DELAY_MS` | `200` | Delay to settle after placing |
+| Constant                 | Value          | Description                          |
+| ------------------------ | -------------- | ------------------------------------ |
+| `MIN_TOWER_HEIGHT`       | `8`            | Minimum tower height in blocks       |
+| `MAX_TOWER_HEIGHT`       | `12`           | Maximum tower height in blocks       |
+| `TOWER_BLOCK_TYPE`       | `"oak_planks"` | Block type used for towers           |
+| `INITIAL_EYE_CONTACT_MS` | `1500`         | Initial eye contact duration         |
+| `FINAL_EYE_CONTACT_MS`   | `1500`         | Final eye contact duration           |
+| `JUMP_DURATION_MS`       | `50`           | How long to hold jump button         |
+| `PLACE_RETRY_DELAY_MS`   | `20`           | Delay between place attempts         |
+| `MAX_PLACE_ATTEMPTS`     | `10`           | Maximum placement attempts per block |
+| `SETTLE_DELAY_MS`        | `200`          | Delay to settle after placing        |
 
 ## Episode Flow
 
@@ -78,9 +81,11 @@ for (let i = 0; i < towerHeight; i++) {
 ## Key Functions
 
 ### getOnBuildTowerPhaseFn()
+
 Main phase handler for tower building episodes.
 
 **Parameters:**
+
 - `bot` - Mineflayer bot instance
 - `rcon` - RCON connection
 - `sharedBotRng` - Shared random number generator
@@ -95,12 +100,14 @@ Main phase handler for tower building episodes.
 ### buildTowerUnderneath() - Core Building Logic
 
 **Parameters:**
+
 - `bot` - Mineflayer bot instance
 - `towerHeight` - Desired tower height
 - `args` - Configuration arguments
 - `options` - Building options
 
 **Options:**
+
 ```javascript
 {
   blockType: "oak_planks",        // Block type to place
@@ -114,6 +121,7 @@ Main phase handler for tower building episodes.
 ```
 
 **Algorithm:**
+
 1. Ensure correct block is equipped
 2. Look down once for consistent camera angle
 3. Build tower block by block using pillar jumping
@@ -122,9 +130,11 @@ Main phase handler for tower building episodes.
 6. Track and return success/failure statistics
 
 ### generateTowerPositions() - Legacy Function
+
 Creates vertical tower positions (not used in current implementation).
 
 **Parameters:**
+
 - `basePos` - Base position
 - `height` - Tower height
 
@@ -133,6 +143,7 @@ Creates vertical tower positions (not used in current implementation).
 ## Dependencies
 
 ### Required Imports
+
 - `ensureItemInHand, buildTowerUnderneath, fastPlaceBlock` from `./builder`
 - `initializePathfinder, stopPathfinder` from `../utils/movement`
 - `BaseEpisode` from `./base-episode`
@@ -141,11 +152,13 @@ Creates vertical tower positions (not used in current implementation).
 ## Integration Points
 
 ### Builder System Integration
+
 - Uses `buildTowerUnderneath()` for core building logic
 - Leverages `fastPlaceBlock()` for spam placement during jumps
 - Integrates with inventory management systems
 
 ### Coordinator Integration
+
 - Phase-based communication via `buildTowerPhase_${iterationID}`
 - Proper stop phase transitions
 - Episode recording lifecycle support
@@ -153,6 +166,7 @@ Creates vertical tower positions (not used in current implementation).
 ## Usage Examples
 
 ### Episode Execution
+
 ```javascript
 // Episode automatically handles:
 // - Random height selection (8-12 blocks)
@@ -163,12 +177,13 @@ Creates vertical tower positions (not used in current implementation).
 ```
 
 ### Manual Tower Building
+
 ```javascript
 // Direct usage of buildTowerUnderneath
 const result = await buildTowerUnderneath(bot, 10, args, {
   blockType: "oak_planks",
   enableRetry: true,
-  breakOnFailure: false
+  breakOnFailure: false,
 });
 
 console.log(`Built ${result.success}/${10} blocks`);
@@ -177,6 +192,7 @@ console.log(`Built ${result.success}/${10} blocks`);
 ## Technical Details
 
 ### Pillar Jumping Implementation
+
 The classic Minecraft tower building technique:
 
 1. **Block Placement**: Place block directly below current position
@@ -186,11 +202,13 @@ The classic Minecraft tower building technique:
 5. **Retry Logic**: Retry failed blocks up to limit
 
 ### Camera Control
+
 - **Initial Setup**: Look down once (-1.45 radians pitch)
 - **Consistency**: Maintains same camera angle throughout building
 - **No Dynamic Look**: Camera stays fixed during construction
 
 ### Error Handling
+
 - **Height Verification**: Checks actual height gain after each block
 - **Retry Mechanism**: Retries failed blocks with fresh ground detection
 - **Failure Handling**: Configurable break-on-failure behavior
@@ -199,16 +217,19 @@ The classic Minecraft tower building technique:
 ## Testing Considerations
 
 ### Deterministic Behavior
+
 - Random height selection uses shared RNG
 - Position calculations relative to spawn location
 - Consistent camera angles for reproducible results
 
 ### Performance Characteristics
+
 - Fast placement via `fastPlaceBlock()` (no delays)
 - Minimal pathfinding usage (direct placement)
 - Memory efficient (no complex state tracking)
 
 ### Edge Cases
+
 - **Ground Detection**: Handles various block types as valid ground
 - **Height Limits**: Respects world height limits
 - **Inventory Management**: Ensures sufficient block supply
@@ -216,10 +237,10 @@ The classic Minecraft tower building technique:
 
 ## Differences from Other Building Episodes
 
-| Aspect | Build Tower | Build Structure | Build House |
-|--------|-------------|-----------------|-------------|
-| Coordination | None | Role-based | Work division |
-| Technique | Pillar jumping | Block placement | Block placement |
-| Structure | Single column | Various shapes | Complex building |
-| Pathfinding | Minimal | Moderate | Extensive |
-| Complexity | Low | Medium | High |
+| Aspect       | Build Tower    | Build Structure | Build House      |
+| ------------ | -------------- | --------------- | ---------------- |
+| Coordination | None           | Role-based      | Work division    |
+| Technique    | Pillar jumping | Block placement | Block placement  |
+| Structure    | Single column  | Various shapes  | Complex building |
+| Pathfinding  | Minimal        | Moderate        | Extensive        |
+| Complexity   | Low            | Medium          | High             |

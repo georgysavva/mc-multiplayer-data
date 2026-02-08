@@ -54,14 +54,14 @@ function getOnBuildHouseSetupPhaseFn(
   iterationID,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (phaseDataOther) => {
     coordinator.sendToOtherBot(
       `buildHouseSetupPhase_${iterationID}`,
       { position: bot.entity.position.clone() },
       episodeNum,
-      `buildHouseSetupPhase_${iterationID} beginning`
+      `buildHouseSetupPhase_${iterationID} beginning`,
     );
 
     // Capture our position for the build phase
@@ -82,14 +82,14 @@ function getOnBuildHouseSetupPhaseFn(
         episodeNum,
         episodeInstance,
         args,
-        buildPhaseDataOur
-      )
+        buildPhaseDataOur,
+      ),
     );
     coordinator.sendToOtherBot(
       `buildHousePhase_${iterationID}`,
       buildPhaseDataOur,
       episodeNum,
-      `buildHouseSetupPhase_${iterationID} end`
+      `buildHouseSetupPhase_${iterationID} end`,
     );
   };
 }
@@ -116,25 +116,26 @@ function getOnBuildHousePhaseFn(
   episodeNum,
   episodeInstance,
   args,
-  phaseDataOur
+  phaseDataOur,
 ) {
   return async function onBuildHousePhase(phaseDataOther) {
     coordinator.sendToOtherBot(
       `buildHousePhase_${iterationID}`,
       phaseDataOur,
       episodeNum,
-      `buildHousePhase_${iterationID} beginning`
+      `buildHousePhase_${iterationID} beginning`,
     );
 
-
-    console.log(`[${bot.username}] 🏠 Starting BUILD HOUSE phase ${iterationID}`);
+    console.log(
+      `[${bot.username}] 🏠 Starting BUILD HOUSE phase ${iterationID}`,
+    );
 
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
 
     // STEP 2: Initial eye contact
     console.log(
-      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
+      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`,
     );
     try {
       const otherEntity = bot.players[args.other_bot_name]?.entity;
@@ -145,35 +146,35 @@ function getOnBuildHousePhaseFn(
       }
     } catch (lookError) {
       console.log(
-        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`,
       );
     }
 
     // STEP 3: Determine world origin for house (midpoint between bots)
     console.log(`[${bot.username}] 📐 STEP 3: Planning house location...`);
-    
+
     // Reconstruct Vec3 from received position data (positions are serialized when sent between bots)
     const botPos = new Vec3(
       phaseDataOur.position.x,
       phaseDataOur.position.y,
-      phaseDataOur.position.z
+      phaseDataOur.position.z,
     ).floored();
     const otherBotPos = new Vec3(
       phaseDataOther.position.x,
       phaseDataOther.position.y,
-      phaseDataOther.position.z
+      phaseDataOther.position.z,
     ).floored();
-    
+
     // Use the higher Y level between bots to ensure consistent elevation
     const maxBotY = Math.max(botPos.y, otherBotPos.y);
     const worldOrigin = new Vec3(
       Math.floor((botPos.x + otherBotPos.x) / 2),
       Math.floor(maxBotY), // Use higher Y level for consistency
-      Math.floor((botPos.z + otherBotPos.z) / 2)
+      Math.floor((botPos.z + otherBotPos.z) / 2),
     );
 
     console.log(
-      `[${bot.username}] 🏗️ House origin: (${worldOrigin.x}, ${worldOrigin.y}, ${worldOrigin.z})`
+      `[${bot.username}] 🏗️ House origin: (${worldOrigin.x}, ${worldOrigin.y}, ${worldOrigin.z})`,
     );
 
     // STEP 4: Generate blueprint and convert to world coordinates
@@ -188,9 +189,7 @@ function getOnBuildHousePhaseFn(
       worldPos: rotateLocalToWorld(target, worldOrigin, ORIENTATION),
     }));
 
-    console.log(
-      `[${bot.username}]    Total blocks: ${worldTargets.length}`
-    );
+    console.log(`[${bot.username}]    Total blocks: ${worldTargets.length}`);
 
     // STEP 5: Initialize pathfinder for building
     console.log(`[${bot.username}] 🚶 STEP 5: Initializing pathfinder...`);
@@ -212,29 +211,35 @@ function getOnBuildHousePhaseFn(
         if (bot._episodeStopping) {
           phaseAborted = true;
           console.log(
-            `[${bot.username}] 🛑 Stop requested before ${phaseName} phase, aborting build loop`
+            `[${bot.username}] 🛑 Stop requested before ${phaseName} phase, aborting build loop`,
           );
           break;
         }
 
-        console.log(`[${bot.username}] ═══════════════════════════════════════`);
-        console.log(`[${bot.username}] 🔨 Building phase: ${phaseName.toUpperCase()}`);
-        console.log(`[${bot.username}] 🕐 Phase start time: ${new Date().toISOString()}`);
-        
+        console.log(
+          `[${bot.username}] ═══════════════════════════════════════`,
+        );
+        console.log(
+          `[${bot.username}] 🔨 Building phase: ${phaseName.toUpperCase()}`,
+        );
+        console.log(
+          `[${bot.username}] 🕐 Phase start time: ${new Date().toISOString()}`,
+        );
+
         // Get all targets for this phase
         const phaseTargets = worldTargets.filter((t) => t.phase === phaseName);
-        
+
         // Split work between bots using X-axis split
         const { alphaTargets, bravoTargets } = splitWorkByXAxis(
           phaseTargets,
           args.bot_name,
-          args.other_bot_name
+          args.other_bot_name,
         );
-        
+
         // Determine which half based on proximity to house origin
         const botIsOnWestSide = botPos.x < worldOrigin.x;
         const otherBotIsOnWestSide = otherBotPos.x < worldOrigin.x;
-        
+
         // If conflict (both bots on same side), use bot identity as tie-breaker
         let myTargets;
         if (botIsOnWestSide === otherBotIsOnWestSide) {
@@ -242,26 +247,28 @@ function getOnBuildHousePhaseFn(
           const isAlphaBot = bot.username < args.other_bot_name;
           myTargets = isAlphaBot ? alphaTargets : bravoTargets;
           console.log(
-            `[${bot.username}] ⚠️ Both bots on ${botIsOnWestSide ? 'WEST' : 'EAST'} side - using tie-breaker (${isAlphaBot ? 'WEST' : 'EAST'} half)`
+            `[${bot.username}] ⚠️ Both bots on ${botIsOnWestSide ? "WEST" : "EAST"} side - using tie-breaker (${isAlphaBot ? "WEST" : "EAST"} half)`,
           );
         } else {
           // No conflict - use proximity-based assignment
           myTargets = botIsOnWestSide ? alphaTargets : bravoTargets;
           console.log(
-            `[${bot.username}] ✅ Using proximity-based assignment (${botIsOnWestSide ? 'WEST' : 'EAST'} half)`
+            `[${bot.username}] ✅ Using proximity-based assignment (${botIsOnWestSide ? "WEST" : "EAST"} half)`,
           );
         }
-        
+
         console.log(
-          `[${bot.username}] 📍 Spawn position: (${botPos.x}, ${botPos.z}), House origin: (${worldOrigin.x}, ${worldOrigin.z})`
+          `[${bot.username}] 📍 Spawn position: (${botPos.x}, ${botPos.z}), House origin: (${worldOrigin.x}, ${worldOrigin.z})`,
         );
         console.log(
-          `[${bot.username}] 🏗️ Assigned ${myTargets.length}/${phaseTargets.length} blocks`
+          `[${bot.username}] 🏗️ Assigned ${myTargets.length}/${phaseTargets.length} blocks`,
         );
-        
+
         // Build this bot's assigned blocks
         if (myTargets.length > 0) {
-          console.log(`[${bot.username}] 🏗️ Starting to build my ${myTargets.length} blocks...`);
+          console.log(
+            `[${bot.username}] 🏗️ Starting to build my ${myTargets.length} blocks...`,
+          );
           const result = await buildPhase(bot, myTargets, {
             args: args,
             delayMs: BLOCK_PLACE_DELAY_MS,
@@ -272,28 +279,34 @@ function getOnBuildHousePhaseFn(
           if (result.aborted) {
             phaseAborted = true;
             console.log(
-              `[${bot.username}] 🛑 ${phaseName} phase aborted due to stop request`
+              `[${bot.username}] 🛑 ${phaseName} phase aborted due to stop request`,
             );
             break;
           }
-          
+
           // Check for catastrophic failure (more than 50% failed)
           if (result.failed > myTargets.length * 0.5) {
             console.log(
-              `[${bot.username}] ❌ Phase ${phaseName} failed significantly: ${result.failed}/${myTargets.length} blocks failed`
+              `[${bot.username}] ❌ Phase ${phaseName} failed significantly: ${result.failed}/${myTargets.length} blocks failed`,
             );
             throw new Error(
-              `Phase ${phaseName} failed: ${result.failed}/${myTargets.length} blocks failed`
+              `Phase ${phaseName} failed: ${result.failed}/${myTargets.length} blocks failed`,
             );
           }
         } else {
-          console.log(`[${bot.username}] ⏭️ No blocks assigned to me in this phase, skipping...`);
+          console.log(
+            `[${bot.username}] ⏭️ No blocks assigned to me in this phase, skipping...`,
+          );
         }
-        
+
         // Wait for other bot to finish this phase
-        console.log(`[${bot.username}]    Waiting for ${args.other_bot_name}...`);
+        console.log(
+          `[${bot.username}]    Waiting for ${args.other_bot_name}...`,
+        );
         await sleep(1000); // Give other bot time to catch up
-        console.log(`[${bot.username}] ✅ Phase ${phaseName} complete at ${new Date().toISOString()}`);
+        console.log(
+          `[${bot.username}] ✅ Phase ${phaseName} complete at ${new Date().toISOString()}`,
+        );
       }
 
       if (!phaseAborted) {
@@ -301,14 +314,14 @@ function getOnBuildHousePhaseFn(
       }
     } catch (buildError) {
       console.error(
-        `[${bot.username}] ❌ Building failed: ${buildError.message}`
+        `[${bot.username}] ❌ Building failed: ${buildError.message}`,
       );
-      
+
       // Stop pathfinder immediately using setGoal(null)
       if (bot.pathfinder) {
         bot.pathfinder.setGoal(null);
       }
-      
+
       // Re-throw the error so episode system handles it properly
       throw buildError;
     }
@@ -318,14 +331,14 @@ function getOnBuildHousePhaseFn(
 
     if (bot._episodeStopping) {
       console.log(
-        `[${bot.username}] 🛑 Stop phase already in progress, skipping admiration/stop transition`
+        `[${bot.username}] 🛑 Stop phase already in progress, skipping admiration/stop transition`,
       );
       return;
     }
 
     // STEP 8: Exit through door and admire the house
     console.log(`[${bot.username}] 🚪 STEP 8: Exiting and admiring house...`);
-    
+
     // Re-initialize pathfinder for admiration movement
     initializePathfinder(bot, {
       allowSprinting: false,
@@ -334,12 +347,16 @@ function getOnBuildHousePhaseFn(
       canPlaceOn: true, // Disable scaffolding - let bots jump down from roof
       allowEntityDetection: true,
     });
-    
-    const doorWorldPos = rotateLocalToWorld({ x: 2, y: 1, z: 0 }, worldOrigin, ORIENTATION);
-    
+
+    const doorWorldPos = rotateLocalToWorld(
+      { x: 2, y: 1, z: 0 },
+      worldOrigin,
+      ORIENTATION,
+    );
+
     // STEP 9: Exit house and admire from 15 blocks away
     await admireHouse(bot, doorWorldPos, ORIENTATION, { backOff: 15 });
-    
+
     stopPathfinder(bot);
 
     console.log(`[${bot.username}] ✅ BUILD HOUSE phase complete!`);
@@ -354,14 +371,14 @@ function getOnBuildHousePhaseFn(
         coordinator,
         args.other_bot_name,
         episodeNum,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       phaseDataOur,
       episodeNum,
-      `buildHousePhase_${iterationID} end`
+      `buildHousePhase_${iterationID} end`,
     );
   };
 }
@@ -381,9 +398,18 @@ class BuildHouseEpisode extends BaseEpisode {
     console.log(`[BuildHouseEpisode] Selected materials:`, this.materials);
   }
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
+  async setupEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args,
+    botPosition,
+    otherBotPosition,
+  ) {
     console.log(`[${bot.username}] 🏠 Setting up house building episode...`);
-    
+
     // Generate blueprint to calculate material needs
     const blueprint = makeHouseBlueprint5x5({
       materials: this.materials,
@@ -391,25 +417,28 @@ class BuildHouseEpisode extends BaseEpisode {
 
     // Calculate material counts
     const materialCounts = calculateMaterialCounts(blueprint);
-    
+
     // Add extra blocks for scaffolding (100% more = 2x total)
     // Pathfinder now uses correct block types for scaffolding, so we need more materials
     const safetyMaterials = {};
     for (const [block, count] of Object.entries(materialCounts)) {
       safetyMaterials[block] = Math.ceil(count * 2.0); // 2x for scaffolding consumption
     }
-    
-    console.log(`[${bot.username}] 📦 Giving building materials (2x for scaffolding):`, safetyMaterials);
-    
+
+    console.log(
+      `[${bot.username}] 📦 Giving building materials (2x for scaffolding):`,
+      safetyMaterials,
+    );
+
     // Use ensureBotHasEnough for each material (matches working episodes)
     for (const [blockType, count] of Object.entries(safetyMaterials)) {
       await ensureBotHasEnough(bot, rcon, blockType, count);
     }
-    
+
     // Return unchanged positions since we don't move bots during setup
-    return { 
-      botPositionNew: botPosition, 
-      otherBotPositionNew: otherBotPosition 
+    return {
+      botPositionNew: botPosition,
+      otherBotPositionNew: otherBotPosition,
     };
   }
 
@@ -420,12 +449,12 @@ class BuildHouseEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     const phaseDataOur = {
-      position: bot.entity.position.clone()
+      position: bot.entity.position.clone(),
     };
-    
+
     coordinator.onceEvent(
       `buildHouseSetupPhase_${iterationID}`,
       episodeNum,
@@ -437,14 +466,14 @@ class BuildHouseEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `buildHouseSetupPhase_${iterationID}`,
       phaseDataOur,
       episodeNum,
-      "entryPoint end"
+      "entryPoint end",
     );
   }
 
@@ -454,7 +483,7 @@ class BuildHouseEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    args
+    args,
   ) {
     console.log(`[${bot.username}] 🧹 Cleaning up house building episode...`);
     // Clean up pathfinder if still active

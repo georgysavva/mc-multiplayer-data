@@ -7,18 +7,21 @@
 ## Core Responsibilities
 
 ### Episode Management
+
 - Episode type selection and instantiation
 - Lifecycle coordination (setup → execution → teardown)
 - Error handling and recovery
 - Recording integration
 
 ### Bot Coordination
+
 - Multi-bot synchronization
 - Phase-based communication
 - Position management and teleportation
 - World state setup
 
 ### System Integration
+
 - RCON communication for server control
 - Camera management and recording
 - Inventory and effect management
@@ -30,11 +33,23 @@
 
 ```javascript
 const episodeTypes = [
-  "straightLineWalk", "chase", "orbit", "walkLook",
-  "buildHouse", "walkLookAway", "pvp", "pve",
-  "buildStructure", "buildTower", "mine", "towerBridge",
-  "collector", "structureEval", "translationEval",
-  "lookAwayEval", "rotationEval"
+  "straightLineWalk",
+  "chase",
+  "orbit",
+  "walkLook",
+  "buildHouse",
+  "walkLookAway",
+  "pvp",
+  "pve",
+  "buildStructure",
+  "buildTower",
+  "mine",
+  "towerBridge",
+  "collector",
+  "structureEval",
+  "translationEval",
+  "lookAwayEval",
+  "rotationEval",
 ];
 ```
 
@@ -42,11 +57,11 @@ const episodeTypes = [
 
 ```javascript
 const episodeClassMap = {
-  "buildHouse": BuildHouseEpisode,
-  "buildTower": BuildTowerEpisode,
-  "buildStructure": BuildStructureEpisode,
-  "chase": ChaseEpisode,
-  "collector": CollectorEpisode,
+  buildHouse: BuildHouseEpisode,
+  buildTower: BuildTowerEpisode,
+  buildStructure: BuildStructureEpisode,
+  chase: ChaseEpisode,
+  collector: CollectorEpisode,
   // ... additional mappings
 };
 ```
@@ -54,11 +69,13 @@ const episodeClassMap = {
 ### Selection Logic
 
 #### Normal Mode
+
 - Random selection from eligible episodes
 - Filtering based on world type compatibility
 - Shared RNG for deterministic behavior
 
 #### Smoke Test Mode
+
 - Sequential execution of all eligible episodes
 - Alphabetical ordering for predictable testing
 - Single episode per type
@@ -66,15 +83,18 @@ const episodeClassMap = {
 ## Core Functions
 
 ### runSingleEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, episodeInstance, args)
+
 Main episode execution orchestrator.
 
 **Responsibilities:**
+
 1. **Setup**: Error handlers, death detection, episode state initialization
 2. **Execution**: Coordinate phase transitions and episode logic
 3. **Cleanup**: Stop pathfinding, clear goals, teardown episode
 4. **Recovery**: Handle errors and ensure proper state cleanup
 
 **Error Handling:**
+
 - Episode-scoped error capture
 - Process-level exception handling
 - Bot death detection and episode termination
@@ -111,23 +131,28 @@ Bot Spawn
 ### Phase Handlers
 
 #### getOnTeleportPhaseFn()
+
 Handles initial bot positioning and teleportation.
 
 **Logic:**
+
 - Primary bot performs teleportation using RCON
 - Secondary bot waits for positioning
 - Validates episode compatibility with world type
 
 #### Teleportation System (teleport())
+
 Uses Minecraft's `spreadplayers` command for coordinated positioning.
 
 **Parameters:**
+
 - Center point (calculated from bot positions)
 - Radius (configurable, default 3000 blocks)
 - Minimum/maximum bot distances
 - Retry logic for failed placements
 
 **Algorithm:**
+
 1. Calculate center point between bots
 2. Expand radius on failures (up to 10 attempts)
 3. Use spreadplayers for collision-free positioning
@@ -136,9 +161,11 @@ Uses Minecraft's `spreadplayers` command for coordinated positioning.
 ## Bot and World Setup
 
 ### setupBotAndWorldOnce(bot, rcon)
+
 One-time setup for each bot (called once per bot).
 
 **Effects Applied:**
+
 - Resistance (permanent, max level)
 - Water breathing (permanent)
 - Fall damage immunity
@@ -150,16 +177,20 @@ One-time setup for each bot (called once per bot).
 - Bot tagging for coordination
 
 ### setupCameraPlayerOnce(bot, rcon)
+
 Camera player protection setup (called once per camera).
 
 **Effects Applied:**
+
 - Resistance and water breathing for camera bots
 - Fall damage immunity
 
 ### setupBotAndCameraForEpisode(bot, rcon, args)
+
 Per-episode setup for bots and cameras.
 
 **Actions:**
+
 - Saturation effects for hunger management
 - Camera saturation (if enabled)
 - Inventory clearing and tool giving
@@ -170,12 +201,14 @@ Per-episode setup for bots and cameras.
 ### Environment Variables
 
 #### EPISODE_TYPES
+
 - **Purpose**: Filter episode types to run
 - **Format**: Comma-separated list
 - **Default**: All available episode types
 - **Example**: `EPISODE_TYPES=buildHouse,chase,collector`
 
 #### SMOKE_TEST
+
 - **Purpose**: Enable smoke test mode
 - **Values**: `1` for enabled, `0` or unset for disabled
 - **Behavior**: Run all eligible episodes once each
@@ -183,16 +216,19 @@ Per-episode setup for bots and cameras.
 ### Configuration Arguments
 
 #### Episode Control
+
 - `episodes_num`: Number of episodes to run (default: configured value)
 - `start_episode_id`: Starting episode number (default: 0)
 - `world_type`: World type for episode filtering ("flat" or "normal")
 
 #### Teleportation
+
 - `teleport`: Enable/disable teleportation (default: configured)
 - `teleport_radius`: Maximum teleport distance (default: 3000)
 - `teleport_min_distance`: Minimum jump distance (default: 1000)
 
 #### Recording and Cameras
+
 - `enable_camera_wait`: Wait for cameras before starting
 - `camera_ready_retries`: Camera connection retry attempts
 - `viewer_rendering_disabled`: Disable viewer rendering
@@ -201,18 +237,21 @@ Per-episode setup for bots and cameras.
 ## Error Handling and Recovery
 
 ### Episode-Level Errors
+
 - Automatic transition to stop phase
 - Peer error notification
 - Comprehensive logging
 - State cleanup and recovery
 
 ### System-Level Errors
+
 - Process exception handling
 - Unhandled rejection capture
 - Graceful shutdown procedures
 - Resource cleanup
 
 ### Bot Death Handling
+
 - Death event detection
 - Episode state marking
 - Automatic episode termination
@@ -221,9 +260,11 @@ Per-episode setup for bots and cameras.
 ## Data Collection Integration
 
 ### Episode Info Saving (saveEpisodeInfo)
+
 Records episode metadata to JSON files.
 
 **Captured Data:**
+
 - Timestamp and episode identification
 - Episode type and configuration
 - Error states (encountered, peer, bot death)
@@ -233,6 +274,7 @@ Records episode metadata to JSON files.
 **File Naming:** `YYYYMMDD_HHMMSS_{episodeNum}_{botName}_instance_{instanceId}_episode_info.json`
 
 ### Recording Lifecycle
+
 - Automatic start/stop with episode phases
 - Viewer integration for video capture
 - Frame rate and quality configuration
@@ -241,18 +283,21 @@ Records episode metadata to JSON files.
 ## Performance and Monitoring
 
 ### Pathfinder Configuration
+
 - Think timeout: 7500ms
 - Tick timeout: 15ms
 - Search radius: 96 blocks
 - Drop-down distance: 15 blocks
 
 ### Resource Management
+
 - Memory leak prevention
 - Connection cleanup
 - Goal clearing between episodes
 - Inventory management
 
 ### Logging and Debugging
+
 - Comprehensive episode lifecycle logging
 - Position and state tracking
 - Error condition reporting
@@ -261,12 +306,14 @@ Records episode metadata to JSON files.
 ## Integration Points
 
 ### External Systems
+
 - **RCON**: Server administration and bot management
 - **Coordinator**: Inter-bot communication and synchronization
 - **Viewer**: Video recording and streaming
 - **Minecraft Server**: World management and bot hosting
 
 ### Utility Dependencies
+
 - Movement and pathfinding systems
 - Item and inventory management
 - Camera and recording utilities
@@ -275,24 +322,28 @@ Records episode metadata to JSON files.
 ## Usage Examples
 
 ### Standard Episode Execution
+
 ```javascript
 // Run episodes with default configuration
 node index.js --episodes_num 10 --world_type flat
 ```
 
 ### Smoke Testing
+
 ```javascript
 // Test all episode types once
 SMOKE_TEST=1 node index.js
 ```
 
 ### Filtered Episode Types
+
 ```javascript
 // Run only building episodes
 EPISODE_TYPES=buildHouse,buildTower,buildStructure node index.js
 ```
 
 ### Custom Configuration
+
 ```javascript
 // Advanced configuration
 node index.js \
@@ -306,17 +357,20 @@ node index.js \
 ## Testing Considerations
 
 ### Deterministic Behavior
+
 - RNG seeding based on episode number
 - Consistent episode type selection
 - Predictable teleportation patterns
 
 ### Error Scenarios
+
 - Network connectivity issues
 - Camera synchronization failures
 - Episode execution errors
 - Resource exhaustion conditions
 
 ### Performance Benchmarking
+
 - Episode completion times
 - Memory usage patterns
 - Network traffic analysis
@@ -325,18 +379,21 @@ node index.js \
 ## Architecture Patterns
 
 ### Coordinator Pattern
+
 - Phase-based event communication
 - Listener setup before message sending
 - Symmetric behavior across bots
 - Error propagation and handling
 
 ### Factory Pattern
+
 - Dynamic episode instantiation
 - Class mapping for type selection
 - Configuration-driven behavior
 - Extensibility for new episode types
 
 ### State Machine Pattern
+
 - Well-defined phase transitions
 - State validation and consistency
 - Error recovery mechanisms
@@ -345,6 +402,7 @@ node index.js \
 ## Future Enhancements
 
 ### Potential Features
+
 - **Dynamic Episode Loading**: Runtime episode type loading
 - **Configuration Hot-Reloading**: Runtime configuration updates
 - **Advanced Monitoring**: Real-time performance dashboards

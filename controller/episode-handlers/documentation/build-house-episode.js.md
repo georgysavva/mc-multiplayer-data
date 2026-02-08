@@ -8,22 +8,24 @@
 
 ### Static Properties
 
-| Property | Value | Description |
-|----------|-------|-------------|
-| `INIT_MIN_BOTS_DISTANCE` | `10` | Minimum distance between bots during house building |
-| `INIT_MAX_BOTS_DISTANCE` | `20` | Maximum distance between bots during house building |
+| Property                  | Value  | Description                                         |
+| ------------------------- | ------ | --------------------------------------------------- |
+| `INIT_MIN_BOTS_DISTANCE`  | `10`   | Minimum distance between bots during house building |
+| `INIT_MAX_BOTS_DISTANCE`  | `20`   | Maximum distance between bots during house building |
 | `WORKS_IN_NON_FLAT_WORLD` | `true` | Supports non-flat worlds (auto-scaffolding enabled) |
 
 ### Constructor
 
 ```javascript
-constructor(sharedBotRng)
+constructor(sharedBotRng);
 ```
 
 **Parameters:**
+
 - `sharedBotRng` - Shared random number generator
 
 **Behavior:**
+
 - Selects random material set for the episode (currently fixed to cobblestone materials)
 
 ### Material Configuration
@@ -34,32 +36,35 @@ const MATERIALS = {
   walls: "cobblestone",
   door: "oak_door",
   windows: "glass_pane",
-  roof: "cobblestone"
+  roof: "cobblestone",
 };
 ```
 
 ## House Blueprint
 
 ### Dimensions
+
 - **Size**: 5×5×5 blocks (25×25×25 in world space)
 - **Total Blocks**: ~104 blocks
 
 ### Structure Components
 
-| Component | Blocks | Description |
-|-----------|--------|-------------|
-| Floor | 25 | Complete base layer at Y=0 |
-| Walls | 48 | 3-layer walls (Y=1 to Y=3) |
-| Door | 2 | Oak door at front (x=2, z=0, y=1-2) |
-| Windows | 4 | Glass panes on sides |
-| Roof | 25 | Complete top layer at Y=4 |
+| Component | Blocks | Description                         |
+| --------- | ------ | ----------------------------------- |
+| Floor     | 25     | Complete base layer at Y=0          |
+| Walls     | 48     | 3-layer walls (Y=1 to Y=3)          |
+| Door      | 2      | Oak door at front (x=2, z=0, y=1-2) |
+| Windows   | 4      | Glass panes on sides                |
+| Roof      | 25     | Complete top layer at Y=4           |
 
 ### Blueprint Generation
 
 #### makeHouseBlueprint5x5(materials)
+
 Generates complete house blueprint with material assignments.
 
 **Parameters:**
+
 - `materials` - Object containing material mappings
 
 **Returns:** Array of block specifications with position, material, and phase information
@@ -67,9 +72,11 @@ Generates complete house blueprint with material assignments.
 ### Work Division
 
 #### splitWorkByXAxis(targets, botName, otherBotName)
+
 Divides work between bots using X-axis based splitting.
 
 **Parameters:**
+
 - `targets` - Array of block targets
 - `botName` - Current bot name ("Alpha" or "Bravo")
 - `args.bot_name` - Other bot name
@@ -78,12 +85,14 @@ Divides work between bots using X-axis based splitting.
 **Returns:** `{alphaTargets, bravoTargets}`
 
 **Division Logic:**
+
 - **Alpha**: x=0, 1, 2 (west half + center column) ≈ 60% of blocks
 - **Bravo**: x=3, 4 (east half) ≈ 40% of blocks
 
 ## Construction Phases
 
 ### Phase Sequence
+
 1. **Floor** - Complete base layer
 2. **Walls** - Three layers of exterior walls
 3. **Door** - Front entrance placement
@@ -91,7 +100,9 @@ Divides work between bots using X-axis based splitting.
 5. **Roof** - Complete top layer
 
 ### Phase Execution
+
 Each phase follows the same pattern:
+
 1. Get targets for current phase
 2. Split work between bots
 3. Each bot builds assigned blocks
@@ -115,22 +126,25 @@ Each phase follows the same pattern:
 ### Key Behaviors
 
 #### House Location Planning
+
 ```javascript
 // Place house origin at midpoint between bots
 const worldOrigin = new Vec3(
   Math.floor((botPos.x + otherBotPos.x) / 2),
   Math.floor(botPos.y),
-  Math.floor((botPos.z + otherBotPos.z) / 2)
+  Math.floor((botPos.z + otherBotPos.z) / 2),
 );
 ```
 
 #### Work Assignment
+
 ```javascript
 // CRITICAL: Direct string comparison for bot assignment
 const myTargets = bot.username === "Alpha" ? alphaTargets : bravoTargets;
 ```
 
 #### Phase Synchronization
+
 ```javascript
 // Wait for other bot to finish current phase
 await sleep(2000); // Give other bot time to catch up
@@ -139,11 +153,13 @@ await sleep(2000); // Give other bot time to catch up
 ## Error Handling
 
 ### Build Failure Detection
+
 - **Threshold**: >50% blocks failed in a phase = abort
 - **Behavior**: Log error, stop pathfinder, transition to stop phase
 - **Pattern**: Wrapped in try-catch blocks around building operations
 
 ### Pathfinder Management
+
 - Initialized once at episode start with building-appropriate settings
 - Stopped after construction completes
 - Re-initialized for admiration movement
@@ -151,6 +167,7 @@ await sleep(2000); // Give other bot time to catch up
 ## Dependencies
 
 ### Required Imports
+
 - `makeHouseBlueprint5x5, rotateLocalToWorld, splitWorkByXAxis, ensureBlocks, buildPhase, cleanupScaffolds, admireHouse, calculateMaterialCounts` from `../utils/building`
 - `initializePathfinder, stopPathfinder` from `../utils/movement`
 - `BaseEpisode` from `./base-episode`
@@ -159,21 +176,23 @@ await sleep(2000); // Give other bot time to catch up
 
 ## Configuration Constants
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `INITIAL_EYE_CONTACT_MS` | `1500` | Initial look duration |
-| `FINAL_EYE_CONTACT_MS` | `2000` | Final admiration duration |
-| `BLOCK_PLACE_DELAY_MS` | `300` | Delay between block placements |
-| `ORIENTATION` | `0` | House orientation (south-facing) |
+| Constant                 | Value  | Description                      |
+| ------------------------ | ------ | -------------------------------- |
+| `INITIAL_EYE_CONTACT_MS` | `1500` | Initial look duration            |
+| `FINAL_EYE_CONTACT_MS`   | `2000` | Final admiration duration        |
+| `BLOCK_PLACE_DELAY_MS`   | `300`  | Delay between block placements   |
+| `ORIENTATION`            | `0`    | House orientation (south-facing) |
 
 ## Integration Points
 
 ### Coordinator Integration
+
 - Uses phase-based communication (`buildHousePhase_${iterationID}`)
 - Implements proper stop phase transitions
 - Supports episode recording lifecycle
 
 ### Building System Integration
+
 - Leverages `buildPhase()` for robust block placement
 - Uses work division utilities for collaborative construction
 - Integrates with admiration system for post-build behavior
@@ -193,11 +212,13 @@ await sleep(2000); // Give other bot time to catch up
 ## Testing Considerations
 
 ### Critical Bug Fixes
+
 - **Work Assignment Bug**: Fixed `bot.username === args.bot_name` comparison that caused both bots to get same work assignments
 - **Phase Synchronization**: Added delays between phases to ensure both bots complete work before advancing
 - **Error Recovery**: Added try-catch blocks to prevent hanging on build failures
 
 ### Performance Notes
+
 - Pathfinder initialization optimized for building tasks
 - Block placement delays prevent spam-clicking
 - Memory management through proper cleanup

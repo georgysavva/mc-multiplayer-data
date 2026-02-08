@@ -26,56 +26,56 @@ const {
  */
 const DEFAULT_SCAFFOLDING_BLOCK_NAMES = [
   // Basic cheap blocks
-  'dirt',
-  'cobblestone',
-  'stone',
+  "dirt",
+  "cobblestone",
+  "stone",
 
   // Stone variants
-  'andesite',
-  'diorite',
-  'granite',
-  'polished_andesite',
-  'polished_diorite',
-  'polished_granite',
+  "andesite",
+  "diorite",
+  "granite",
+  "polished_andesite",
+  "polished_diorite",
+  "polished_granite",
 
   // Stone bricks & variants
-  'stone_bricks',
-  'cracked_stone_bricks',
-  'mossy_stone_bricks',
-  'chiseled_stone_bricks',
+  "stone_bricks",
+  "cracked_stone_bricks",
+  "mossy_stone_bricks",
+  "chiseled_stone_bricks",
 
   // Deepslate / brick-like
-  'cobbled_deepslate',
-  'deepslate_bricks',
-  'cracked_deepslate_bricks',
+  "cobbled_deepslate",
+  "deepslate_bricks",
+  "cracked_deepslate_bricks",
 
   // Bricks
-  'bricks',              // classic clay bricks
-  'nether_bricks',
-  'red_nether_bricks',
+  "bricks", // classic clay bricks
+  "nether_bricks",
+  "red_nether_bricks",
 
   // Sandstone & variants
-  'sandstone',
-  'cut_sandstone',
-  'smooth_sandstone',
-  'red_sandstone',
-  'cut_red_sandstone',
-  'smooth_red_sandstone',
+  "sandstone",
+  "cut_sandstone",
+  "smooth_sandstone",
+  "red_sandstone",
+  "cut_red_sandstone",
+  "smooth_red_sandstone",
 
   // Overworld wood planks
-  'oak_planks',
-  'spruce_planks',
-  'birch_planks',
-  'jungle_planks',
-  'acacia_planks',
-  'dark_oak_planks',
-  'mangrove_planks',
-  'cherry_planks',
-  'bamboo_planks',
+  "oak_planks",
+  "spruce_planks",
+  "birch_planks",
+  "jungle_planks",
+  "acacia_planks",
+  "dark_oak_planks",
+  "mangrove_planks",
+  "cherry_planks",
+  "bamboo_planks",
 
   // Nether wood planks
-  'crimson_planks',
-  'warped_planks'
+  "crimson_planks",
+  "warped_planks",
 ];
 
 /**
@@ -86,10 +86,10 @@ const DEFAULT_SCAFFOLDING_BLOCK_NAMES = [
  */
 function getScaffoldingBlockIds(mcData, blockNames = null) {
   const names = blockNames || DEFAULT_SCAFFOLDING_BLOCK_NAMES;
-  
+
   return names
-    .map(name => mcData.itemsByName[name]?.id)
-    .filter(id => id !== undefined);
+    .map((name) => mcData.itemsByName[name]?.id)
+    .filter((id) => id !== undefined);
 }
 
 // ============================================================================
@@ -170,24 +170,29 @@ function initializePathfinder(bot, options = {}) {
 
   // Additional pathfinder settings for robust navigation
   // Note: Property is 'scafoldingBlocks' (one 'f') in mineflayer-pathfinder - this is intentional
-  movements.scafoldingBlocks = options.scafoldingBlocks !== undefined 
-    ? options.scafoldingBlocks 
-    : getScaffoldingBlockIds(mcData); // Default: comprehensive building blocks list
+  movements.scafoldingBlocks =
+    options.scafoldingBlocks !== undefined
+      ? options.scafoldingBlocks
+      : getScaffoldingBlockIds(mcData); // Default: comprehensive building blocks list
   movements.maxDropDown = options.maxDropDown || 15; // Max blocks to drop down
-  movements.infiniteLiquidDropdownDistance = options.infiniteLiquidDropdownDistance !== false; // Can drop any distance into water
+  movements.infiniteLiquidDropdownDistance =
+    options.infiniteLiquidDropdownDistance !== false; // Can drop any distance into water
 
   // Set pathfinder movements
   bot.pathfinder.setMovements(movements);
 
-  console.log(`[${bot.username}] Pathfinder initialized with full capabilities:`, {
-    sprint: movements.allowSprinting,
-    parkour: movements.allowParkour,
-    dig: movements.canDig,
-    placeBlocks: movements.canPlaceOn,
-    entityDetection: movements.allowEntityDetection,
-    maxDropDown: movements.maxDropDown,
-    scafoldingBlocks: movements.scafoldingBlocks.length,
-  });
+  console.log(
+    `[${bot.username}] Pathfinder initialized with full capabilities:`,
+    {
+      sprint: movements.allowSprinting,
+      parkour: movements.allowParkour,
+      dig: movements.canDig,
+      placeBlocks: movements.canPlaceOn,
+      entityDetection: movements.allowEntityDetection,
+      maxDropDown: movements.maxDropDown,
+      scafoldingBlocks: movements.scafoldingBlocks.length,
+    },
+  );
 
   return movements;
 }
@@ -226,10 +231,7 @@ async function gotoWithTimeout(bot, goal, options = {}) {
   const gotoPromise = bot.pathfinder.goto(goal);
   const timeoutPromise = new Promise((_, reject) => {
     timeoutId = setTimeout(() => {
-      if (
-        stopOnTimeout &&
-        bot.pathfinder
-      ) {
+      if (stopOnTimeout && bot.pathfinder) {
         bot.pathfinder.setGoal(null);
       }
       reject(new Error(`goto timed out after ${timeoutMs} ms`));
@@ -259,10 +261,14 @@ async function digWithTimeout(bot, block, options = {}) {
   if (bot.tool) {
     try {
       await bot.tool.equipForBlock(block, { requireHarvest: false });
-      const equippedTool = bot.heldItem?.name || 'unknown tool';
-      console.log(`[${bot.username}] 🔧 Equipped ${equippedTool} for ${block.name}`);
+      const equippedTool = bot.heldItem?.name || "unknown tool";
+      console.log(
+        `[${bot.username}] 🔧 Equipped ${equippedTool} for ${block.name}`,
+      );
     } catch (toolError) {
-      console.log(`[${bot.username}] ⚠️ Could not equip tool: ${toolError.message}, will dig anyway`);
+      console.log(
+        `[${bot.username}] ⚠️ Could not equip tool: ${toolError.message}, will dig anyway`,
+      );
       // Continue anyway - bot will use whatever is in hand
     }
   }
@@ -374,7 +380,7 @@ function moveAway(bot, avoidPosition, sprint = false) {
   const escapeTarget = new Vec3(
     currentPos.x + (dx > 0 ? 5 : -5), // Move 5 blocks in escape direction
     currentPos.y,
-    currentPos.z + (dz > 0 ? 5 : -5)
+    currentPos.z + (dz > 0 ? 5 : -5),
   );
 
   return moveToward(bot, escapeTarget, sprint);
@@ -392,9 +398,10 @@ function moveAway(bot, avoidPosition, sprint = false) {
  */
 function sampleLognormal(mu, sigma) {
   // Generate Standard Normal Z ~ N(0, 1) using Box-Muller transform
-  let u1 = 0, u2 = 0;
+  let u1 = 0,
+    u2 = 0;
   // Math.random() is [0, 1), but we need (0, 1) to avoid Math.log(0) = -Infinity
-  while (u1 === 0) u1 = Math.random(); 
+  while (u1 === 0) u1 = Math.random();
   u2 = Math.random();
 
   const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
@@ -411,7 +418,7 @@ function getMeanPreservingScalingFactor(volatility) {
   if (volatility <= 0) {
     return 1;
   }
-  const mu = -volatility * volatility / 2;
+  const mu = (-volatility * volatility) / 2;
   return sampleLognormal(mu, volatility);
 }
 
@@ -435,7 +442,12 @@ const DEFAULT_LOOK_OPTIONS = {
  * @param {number} degreesPerSecond - Rotation speed in degrees per second
  * @param {Object} [options] - Look options (see lookSmooth for details)
  */
-async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, options = {}) {
+async function lookAtSmooth(
+  bot,
+  targetPosition,
+  degreesPerSecond = 90,
+  options = {},
+) {
   const botPosition = bot.entity.position;
 
   // Calculate the vector from bot to target
@@ -453,7 +465,6 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, options 
   await lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options);
 }
 
-
 /**
  * Smoothly rotate bot camera to specified yaw and pitch
  * @param {Bot} bot - Mineflayer bot instance
@@ -466,8 +477,17 @@ async function lookAtSmooth(bot, targetPosition, degreesPerSecond = 90, options 
  * @param {number} [options.volatility=0.35] - Sigma parameter for log-normal speed randomization
  *   To view how log-normal scaling works, see: https://www.desmos.com/calculator/wazayi56xf
  */
-async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options = {}) {
-  const { useEasing, randomized, volatility } = { ...DEFAULT_LOOK_OPTIONS, ...options };
+async function lookSmooth(
+  bot,
+  targetYaw,
+  targetPitch,
+  degreesPerSecond,
+  options = {},
+) {
+  const { useEasing, randomized, volatility } = {
+    ...DEFAULT_LOOK_OPTIONS,
+    ...options,
+  };
 
   let actualSpeed = degreesPerSecond;
 
@@ -482,7 +502,14 @@ async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options
     actualSpeed = Math.max(minSpeed, Math.min(maxSpeed, actualSpeed));
   }
 
-  await bot.look(targetYaw, targetPitch, false, actualSpeed, actualSpeed, useEasing);
+  await bot.look(
+    targetYaw,
+    targetPitch,
+    false,
+    actualSpeed,
+    actualSpeed,
+    useEasing,
+  );
 }
 
 /**
@@ -492,13 +519,23 @@ async function lookSmooth(bot, targetYaw, targetPitch, degreesPerSecond, options
  * @param {number} degreesPerSecond - Rotation speed in degrees per second
  * @param {Object} [options] - Look options (see lookSmooth for details)
  */
-async function lookAtBot(bot, targetBotName, degreesPerSecond = 90, options = {}) {
+async function lookAtBot(
+  bot,
+  targetBotName,
+  degreesPerSecond = 90,
+  options = {},
+) {
   const targetBot = bot.players[targetBotName];
   if (targetBot && targetBot.entity) {
-    await lookAtSmooth(bot, targetBot.entity.position, degreesPerSecond, options);
+    await lookAtSmooth(
+      bot,
+      targetBot.entity.position,
+      degreesPerSecond,
+      options,
+    );
   } else {
     console.log(
-      `[${bot.username}] Cannot find bot ${targetBotName} to look at`
+      `[${bot.username}] Cannot find bot ${targetBotName} to look at`,
     );
   }
 }
@@ -641,7 +678,7 @@ function isNearBot(bot, targetBotName, threshold = 1.0) {
  */
 async function jump(bot, durationMs) {
   console.log(
-    `[${bot.username}] Jumping for ${(durationMs / 1000).toFixed(1)}s`
+    `[${bot.username}] Jumping for ${(durationMs / 1000).toFixed(1)}s`,
   );
   const end = Date.now() + durationMs;
   while (Date.now() < end) {
@@ -660,7 +697,7 @@ async function jump(bot, durationMs) {
  */
 async function sneak(bot, durationTicks = 5, idleTicks = 10) {
   console.log(
-    `[${bot.username}] Sneaking for ${(durationTicks + idleTicks) / 20}s`
+    `[${bot.username}] Sneaking for ${(durationTicks + idleTicks) / 20}s`,
   );
   bot.setControlState("sneak", true);
   await bot.waitForTicks(durationTicks);
@@ -678,11 +715,13 @@ async function sneak(bot, durationTicks = 5, idleTicks = 10) {
  * @param {Array<Array<number>>} points - List of [x, y, z] coordinates
  */
 async function directTeleport(bot, rcon, otherBotName, episodeNum, points) {
-  console.log(`[${bot.username}] Using custom teleport logic for episode ${episodeNum}`);
-    
+  console.log(
+    `[${bot.username}] Using custom teleport logic for episode ${episodeNum}`,
+  );
+
   // Use a deterministic RNG separate from sharedBotRng to avoid desyncing the main RNG
   const tpRng = seedrandom(`${episodeNum}_tp`);
-  
+
   const point = points[episodeNum % points.length];
   const [cx, cy, cz] = point;
 
@@ -702,25 +741,29 @@ async function directTeleport(bot, rcon, otherBotName, episodeNum, points) {
   // Assign positions to bots deterministically based on name sorting
   const botName1 = bot.username;
   const botName2 = otherBotName;
-  
+
   let myTarget, otherTarget;
   if (botName1 < botName2) {
-      myTarget = bot1Pos;
-      otherTarget = bot2Pos;
+    myTarget = bot1Pos;
+    otherTarget = bot2Pos;
   } else {
-      myTarget = bot2Pos;
-      otherTarget = bot1Pos;
+    myTarget = bot2Pos;
+    otherTarget = bot1Pos;
   }
 
-  console.log(`[${bot.username}] TPing ${botName1} to (${myTarget.x}, ${myTarget.y}, ${myTarget.z}) and ${botName2} to (${otherTarget.x}, ${otherTarget.y}, ${otherTarget.z})`);
-  
+  console.log(
+    `[${bot.username}] TPing ${botName1} to (${myTarget.x}, ${myTarget.y}, ${myTarget.z}) and ${botName2} to (${otherTarget.x}, ${otherTarget.y}, ${otherTarget.z})`,
+  );
+
   try {
     await rcon.send(`tp ${botName1} ${myTarget.x} ${myTarget.y} ${myTarget.z}`);
-    await rcon.send(`tp ${botName2} ${otherTarget.x} ${otherTarget.y} ${otherTarget.z}`);
+    await rcon.send(
+      `tp ${botName2} ${otherTarget.x} ${otherTarget.y} ${otherTarget.z}`,
+    );
   } catch (err) {
     console.error(`[${bot.username}] directTeleport failed:`, err);
   }
-  
+
   // Wait a bit for chunks to load and bots to settle
   await sleep(2000);
 }

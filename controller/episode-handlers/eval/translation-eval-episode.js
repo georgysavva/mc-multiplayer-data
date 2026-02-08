@@ -1,4 +1,8 @@
-const { lookAtSmooth, sneak, gotoWithTimeout } = require("../../utils/movement");
+const {
+  lookAtSmooth,
+  sneak,
+  gotoWithTimeout,
+} = require("../../utils/movement");
 const { run } = require("../../utils/random-movement");
 const { BaseEpisode } = require("../base-episode");
 const { GoalXZ } = require("../../utils/bot-factory");
@@ -18,14 +22,14 @@ function getOnWalkLookPhaseFn(
   iterationID,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       `walkLookPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `walkLookPhase_${iterationID} beginning`
+      `walkLookPhase_${iterationID} beginning`,
     );
     const actionCount =
       MIN_RUN_ACTIONS +
@@ -33,14 +37,11 @@ function getOnWalkLookPhaseFn(
 
     // Deterministic mode selection based on episode number
     // Removed the "both_bots_walk" mode because we want to evaluate the bot's ability to walk alone
-    const walkingModes = [
-      "lower_name_walks",
-      "bigger_name_walks",
-    ];
+    const walkingModes = ["lower_name_walks", "bigger_name_walks"];
     const selectedMode = walkingModes[episodeNum % 2];
 
     console.log(
-      `[iter ${iterationID}] [${bot.username}] starting walk phase with ${actionCount} actions - mode: ${selectedMode}`
+      `[iter ${iterationID}] [${bot.username}] starting walk phase with ${actionCount} actions - mode: ${selectedMode}`,
     );
 
     // Determine if this bot should walk based on the selected mode
@@ -54,14 +55,22 @@ function getOnWalkLookPhaseFn(
         break;
       case "lower_name_walks":
         shouldThisBotWalk = bot.username < args.other_bot_name;
-        botsChosen = [bot.username < args.other_bot_name ? bot.username : args.other_bot_name];
+        botsChosen = [
+          bot.username < args.other_bot_name
+            ? bot.username
+            : args.other_bot_name,
+        ];
         break;
       case "bigger_name_walks":
         shouldThisBotWalk = bot.username > args.other_bot_name;
-        botsChosen = [bot.username > args.other_bot_name ? bot.username : args.other_bot_name];
+        botsChosen = [
+          bot.username > args.other_bot_name
+            ? bot.username
+            : args.other_bot_name,
+        ];
         break;
     }
-    
+
     episodeInstance._evalMetadata = {
       bots_chosen: botsChosen,
       mode: selectedMode,
@@ -73,11 +82,16 @@ function getOnWalkLookPhaseFn(
     console.log(
       `[iter ${iterationID}] [${bot.username}] will ${
         shouldThisBotWalk ? "walk" : "sleep"
-      } during this phase`
+      } during this phase`,
     );
 
     // Look at the other bot smoothly at the start of the phase
-    await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC * 4, { randomized: false, useEasing: false });
+    await lookAtSmooth(
+      bot,
+      otherBotPosition,
+      CAMERA_SPEED_DEGREES_PER_SEC * 4,
+      { randomized: false, useEasing: false },
+    );
 
     // Either run() or sleep() based on the mode
     if (shouldThisBotWalk) {
@@ -85,22 +99,32 @@ function getOnWalkLookPhaseFn(
       await sneak(bot);
       // Record tick number after sneak
       const startTick = bot.time.age;
-      
-      await run(bot, actionCount, /*lookAway*/ false, args, episodeInstance.constructor.MOVEMENT_CONSTANTS);
-      
+
+      await run(
+        bot,
+        actionCount,
+        /*lookAway*/ false,
+        args,
+        episodeInstance.constructor.MOVEMENT_CONSTANTS,
+      );
+
       // Wait for minimum ticks if needed
       const endTick = bot.time.age;
       const remainingTicks = EPISODE_MIN_TICKS - (endTick - startTick);
       if (remainingTicks > 0) {
-        console.log(`[iter ${iterationID}] [${bot.username}] waiting ${remainingTicks} more ticks to reach ${EPISODE_MIN_TICKS} total ticks`);
+        console.log(
+          `[iter ${iterationID}] [${bot.username}] waiting ${remainingTicks} more ticks to reach ${EPISODE_MIN_TICKS} total ticks`,
+        );
         await bot.waitForTicks(remainingTicks);
       } else {
-        console.log(`[iter ${iterationID}] [${bot.username}] already passed ${EPISODE_MIN_TICKS} ticks (elapsed: ${endTick - startTick})`);
+        console.log(
+          `[iter ${iterationID}] [${bot.username}] already passed ${EPISODE_MIN_TICKS} ticks (elapsed: ${endTick - startTick})`,
+        );
       }
     } else {
       // Bot doesn't run, so no sleep is needed
       console.log(
-        `[iter ${iterationID}] [${bot.username}] not walking this phase`
+        `[iter ${iterationID}] [${bot.username}] not walking this phase`,
       );
     }
 
@@ -116,14 +140,14 @@ function getOnWalkLookPhaseFn(
           coordinator,
           args.other_bot_name,
           episodeNum,
-          args
-        )
+          args,
+        ),
       );
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
         episodeNum,
-        `walkLookPhase_${iterationID} end`
+        `walkLookPhase_${iterationID} end`,
       );
       return;
     }
@@ -139,30 +163,29 @@ function getOnWalkLookPhaseFn(
         nextIterationID,
         episodeNum,
         episodeInstance,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `walkLookPhase_${nextIterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `walkLookPhase_${iterationID} end`
+      `walkLookPhase_${iterationID} end`,
     );
   };
 }
 
 class TranslationEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
-  static INIT_MIN_BOTS_DISTANCE = 10;  // Override: bots spawn 10-12 blocks apart
+  static INIT_MIN_BOTS_DISTANCE = 10; // Override: bots spawn 10-12 blocks apart
   static INIT_MAX_BOTS_DISTANCE = 12;
-  
+
   // Custom movement constants for this episode type
   static MOVEMENT_CONSTANTS = {
     MIN_WALK_DISTANCE: 6,
     MAX_WALK_DISTANCE: 9,
     JUMP_PROBABILITY: 0.0,
   };
-
 
   async entryPoint(
     bot,
@@ -171,7 +194,7 @@ class TranslationEvalEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     coordinator.onceEvent(
       `walkLookPhase_${iterationID}`,
@@ -184,41 +207,55 @@ class TranslationEvalEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     const shouldAlignRng = sharedBotRng();
-    const shouldThisBotAlign = bot.username < args.other_bot_name ? shouldAlignRng < 0.5 : shouldAlignRng >= 0.5;
+    const shouldThisBotAlign =
+      bot.username < args.other_bot_name
+        ? shouldAlignRng < 0.5
+        : shouldAlignRng >= 0.5;
     // Make Bravo bot align to Alpha bot's location along one principal axis (shortest distance)
     if (shouldThisBotAlign) {
-      const otherBotPosition = bot.players[args.other_bot_name]?.entity.position;
+      const otherBotPosition =
+        bot.players[args.other_bot_name]?.entity.position;
       // Align to other bot's location along one principal axis (shortest distance)
       const botPos = bot.entity.position;
       const dx = Math.abs(otherBotPosition.x - botPos.x);
       const dz = Math.abs(otherBotPosition.z - botPos.z);
-      
+
       let targetX, targetZ;
       if (dx < dz) {
         // Align x axis (shorter distance)
         targetX = otherBotPosition.x;
         targetZ = botPos.z;
-        console.log(`[iter ${iterationID}] [${bot.username}] aligning X axis to other bot`);
+        console.log(
+          `[iter ${iterationID}] [${bot.username}] aligning X axis to other bot`,
+        );
       } else {
         // Align z axis (shorter distance)
         targetX = botPos.x;
         targetZ = otherBotPosition.z;
-        console.log(`[iter ${iterationID}] [${bot.username}] aligning Z axis to other bot`);
+        console.log(
+          `[iter ${iterationID}] [${bot.username}] aligning Z axis to other bot`,
+        );
       }
-      
-      console.log(`[iter ${iterationID}] [${bot.username}] moving to align position (${targetX.toFixed(1)}, ${targetZ.toFixed(1)})`);
-      
+
+      console.log(
+        `[iter ${iterationID}] [${bot.username}] moving to align position (${targetX.toFixed(1)}, ${targetZ.toFixed(1)})`,
+      );
+
       // Wait for alignment to complete (with timeout to avoid hanging)
       try {
-        await gotoWithTimeout(bot, new GoalXZ(targetX, targetZ), { timeoutMs: 10000 });
-        console.log(`[iter ${iterationID}] [${bot.username}] alignment complete`);
+        await gotoWithTimeout(bot, new GoalXZ(targetX, targetZ), {
+          timeoutMs: 10000,
+        });
+        console.log(
+          `[iter ${iterationID}] [${bot.username}] alignment complete`,
+        );
       } catch (err) {
         console.log(
-          `[iter ${iterationID}] [${bot.username}] alignment error: ${err?.message || err}`
+          `[iter ${iterationID}] [${bot.username}] alignment error: ${err?.message || err}`,
         );
       }
       await bot.waitForTicks(5);
@@ -226,7 +263,7 @@ class TranslationEvalEpisode extends BaseEpisode {
         `walkLookPhase_${iterationID}`,
         bot.entity.position.clone(),
         episodeNum,
-        "teleportPhase end"
+        "teleportPhase end",
       );
     } else {
       // For the bot not aligning, do nothing.

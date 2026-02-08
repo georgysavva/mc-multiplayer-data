@@ -22,10 +22,10 @@ async function main() {
 
   console.log(`Starting bot: ${args.bot_name}`);
   console.log(
-    `Coordinator: ${args.bot_name}, Ports: ${args.coord_port}/${args.other_coord_port}`
+    `Coordinator: ${args.bot_name}, Ports: ${args.coord_port}/${args.other_coord_port}`,
   );
   console.log(
-    `[${args.bot_name}] Waiting ${args.bootstrap_wait_time} seconds before creating bot...`
+    `[${args.bot_name}] Waiting ${args.bootstrap_wait_time} seconds before creating bot...`,
   );
 
   // Wait for bootstrap time
@@ -44,13 +44,19 @@ async function main() {
     args.bot_name,
     args.coord_port,
     args.other_coord_host,
-    args.other_coord_port
+    args.other_coord_port,
   );
 
   // Set up spawn event handler
   bot.once(
     "spawn",
-    getOnSpawnFn(bot, args.act_recorder_host, args.act_recorder_port, coordinator, args)
+    getOnSpawnFn(
+      bot,
+      args.act_recorder_host,
+      args.act_recorder_port,
+      coordinator,
+      args,
+    ),
   );
 
   // Handle system chat packets

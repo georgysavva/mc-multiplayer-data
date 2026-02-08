@@ -1,7 +1,11 @@
 // building.js - Utilities for collaborative house building episodes
 const { Vec3 } = require("vec3");
 const { sleep } = require("./helpers");
-const { digWithTimeout, gotoWithTimeout, getScaffoldingBlockIds } = require("./movement");
+const {
+  digWithTimeout,
+  gotoWithTimeout,
+  getScaffoldingBlockIds,
+} = require("./movement");
 const { GoalNear } = require("./bot-factory"); // Import GoalNear
 const Movements = require("mineflayer-pathfinder").Movements; // Import Movements
 
@@ -53,7 +57,7 @@ function scoreFace(bot, faceVec, refBlockPos) {
   const viewDir = new Vec3(
     -Math.sin(yaw) * Math.cos(pitch),
     -Math.sin(pitch),
-    -Math.cos(yaw) * Math.cos(pitch)
+    -Math.cos(yaw) * Math.cos(pitch),
   );
 
   // Calculate dot product between view direction and face normal
@@ -109,7 +113,12 @@ function findBestPlaceReference(bot, targetPos, options = {}) {
   const candidates = [];
 
   // Validation: Check if targetPos is valid
-  if (!targetPos || typeof targetPos.x !== 'number' || typeof targetPos.y !== 'number' || typeof targetPos.z !== 'number') {
+  if (
+    !targetPos ||
+    typeof targetPos.x !== "number" ||
+    typeof targetPos.y !== "number" ||
+    typeof targetPos.z !== "number"
+  ) {
     console.warn(`[${bot.username}] ⚠️ Invalid target position:`, targetPos);
     return returnAll ? [] : null;
   }
@@ -137,7 +146,7 @@ function findBestPlaceReference(bot, targetPos, options = {}) {
       const faceCenter = refBlock.position.offset(
         0.5 + faceVec.x * 0.5,
         0.5 + faceVec.y * 0.5,
-        0.5 + faceVec.z * 0.5
+        0.5 + faceVec.z * 0.5,
       );
 
       // Check if the face itself is obstructed by another block
@@ -167,7 +176,9 @@ function findBestPlaceReference(bot, targetPos, options = {}) {
       }
     } catch (error) {
       // Gracefully handle errors for individual faces
-      console.warn(`[${bot.username}] ⚠️ Error checking face ${face}: ${error.message}`);
+      console.warn(
+        `[${bot.username}] ⚠️ Error checking face ${face}: ${error.message}`,
+      );
       continue;
     }
   }
@@ -187,9 +198,14 @@ function findBestPlaceReference(bot, targetPos, options = {}) {
       `[${bot.username}] 🎯 Best face: score=${best.score.toFixed(1)}, ` +
         `vec=(${best.faceVec.x},${best.faceVec.y},${best.faceVec.z}), ` +
         `dist=${best.distance.toFixed(1)} ` +
-        `(${candidates.length} candidates)`
+        `(${candidates.length} candidates)`,
     );
-    return { refBlock: best.refBlock, faceVec: best.faceVec, score: best.score, alternatives: candidates.length - 1 };
+    return {
+      refBlock: best.refBlock,
+      faceVec: best.faceVec,
+      score: best.score,
+      alternatives: candidates.length - 1,
+    };
   }
 
   return null;
@@ -222,7 +238,7 @@ function findPlaceReference(bot, targetPos) {
 function raycastToPosition(bot, fromPos, toPos) {
   const direction = toPos.minus(fromPos);
   const distance = direction.norm();
-  
+
   if (distance === 0) {
     return { clear: true, obstruction: null };
   }
@@ -286,7 +302,7 @@ function canSeeFace(bot, refBlock, faceVec) {
   const faceCenter = refBlock.position.offset(
     0.5 + faceVec.x * 0.5,
     0.5 + faceVec.y * 0.5,
-    0.5 + faceVec.z * 0.5
+    0.5 + faceVec.z * 0.5,
   );
 
   // Get bot's eye position (eyes are at 90% of entity height)
@@ -307,8 +323,9 @@ function canSeeFace(bot, refBlock, faceVec) {
   // Third check: Make sure the face isn't pointing away from the bot
   // (We shouldn't be able to "see" the back of a block)
   const toFace = faceCenter.minus(eyePos).normalize();
-  const dotProduct = toFace.x * faceVec.x + toFace.y * faceVec.y + toFace.z * faceVec.z;
-  
+  const dotProduct =
+    toFace.x * faceVec.x + toFace.y * faceVec.y + toFace.z * faceVec.z;
+
   // If dot product is positive, we're looking at the back of the face
   // (face normal points away from us)
   if (dotProduct > 0.1) {
@@ -328,7 +345,7 @@ function canSeeFace(bot, refBlock, faceVec) {
  */
 function isPositionSafe(bot, position, targetPos) {
   const flooredPos = position.floored();
-  
+
   // Check 1: Position must be within reasonable distance (not too far)
   const maxDistance = bot.game.gameMode === 1 ? 6 : 4.5;
   if (position.distanceTo(targetPos) > maxDistance) {
@@ -371,16 +388,16 @@ function calculateOptimalPosition(bot, refBlock, faceVec, targetPos) {
   const faceCenter = refBlock.position.offset(
     0.5 + faceVec.x * 0.5,
     0.5 + faceVec.y * 0.5,
-    0.5 + faceVec.z * 0.5
+    0.5 + faceVec.z * 0.5,
   );
 
   // Ideal distance: 2.5-3.5 blocks away from the face
   const idealDistance = 3.0;
-  
+
   // Calculate direction away from the face (opposite of face normal)
   // We want to stand back from the face, not on top of it
   const awayFromFace = new Vec3(-faceVec.x, 0, -faceVec.z); // Keep Y=0 for horizontal movement
-  
+
   // If face is horizontal (top or bottom), use different logic
   if (faceVec.y !== 0) {
     // For top/bottom faces, stand to the side
@@ -389,9 +406,11 @@ function calculateOptimalPosition(bot, refBlock, faceVec, targetPos) {
     awayFromFace.x = currentDir.x;
     awayFromFace.z = currentDir.z;
   }
-  
+
   // Normalize the direction
-  const horizontalDist = Math.sqrt(awayFromFace.x * awayFromFace.x + awayFromFace.z * awayFromFace.z);
+  const horizontalDist = Math.sqrt(
+    awayFromFace.x * awayFromFace.x + awayFromFace.z * awayFromFace.z,
+  );
   if (horizontalDist > 0.001) {
     awayFromFace.x /= horizontalDist;
     awayFromFace.z /= horizontalDist;
@@ -405,7 +424,7 @@ function calculateOptimalPosition(bot, refBlock, faceVec, targetPos) {
   const optimalPos = faceCenter.offset(
     awayFromFace.x * idealDistance,
     0, // Keep at same Y level initially
-    awayFromFace.z * idealDistance
+    awayFromFace.z * idealDistance,
   );
 
   // Adjust Y to ground level
@@ -416,7 +435,7 @@ function calculateOptimalPosition(bot, refBlock, faceVec, targetPos) {
   const dx = faceCenter.x - optimalPos.x;
   const dy = faceCenter.y - (optimalPos.y + bot.entity.height * 0.9); // Eye level
   const dz = faceCenter.z - optimalPos.z;
-  
+
   const yaw = Math.atan2(-dx, -dz);
   const groundDistance = Math.sqrt(dx * dx + dz * dz);
   const pitch = Math.atan2(dy, groundDistance);
@@ -424,7 +443,7 @@ function calculateOptimalPosition(bot, refBlock, faceVec, targetPos) {
   return {
     position: optimalPos,
     yaw: yaw,
-    pitch: pitch
+    pitch: pitch,
   };
 }
 
@@ -438,20 +457,26 @@ function calculateOptimalPosition(bot, refBlock, faceVec, targetPos) {
  * @param {number} timeoutMs - Timeout for pathfinding (default: 5000ms)
  * @returns {Promise<Object>} {success: boolean, position: Vec3, reason: string}
  */
-async function moveToPlacementPosition(bot, refBlock, faceVec, targetPos, timeoutMs = 5000) {
+async function moveToPlacementPosition(
+  bot,
+  refBlock,
+  faceVec,
+  targetPos,
+  timeoutMs = 5000,
+) {
   // Calculate optimal position
   const optimal = calculateOptimalPosition(bot, refBlock, faceVec, targetPos);
-  
+
   // Check if bot is already in a good position
   const currentDist = bot.entity.position.distanceTo(refBlock.position);
   const maxReach = bot.game.gameMode === 1 ? 6 : 4.5;
-  
+
   if (currentDist <= maxReach && canSeeFace(bot, refBlock, faceVec)) {
     // Already in good position
     return {
       success: true,
       position: bot.entity.position.clone(),
-      reason: "Already in optimal position"
+      reason: "Already in optimal position",
     };
   }
 
@@ -460,10 +485,14 @@ async function moveToPlacementPosition(bot, refBlock, faceVec, targetPos, timeou
     // Try alternative positions in a circle around the target
     const angles = [0, Math.PI / 4, -Math.PI / 4, Math.PI / 2, -Math.PI / 2];
     for (const angle of angles) {
-      const altX = optimal.position.x * Math.cos(angle) - optimal.position.z * Math.sin(angle);
-      const altZ = optimal.position.x * Math.sin(angle) + optimal.position.z * Math.cos(angle);
+      const altX =
+        optimal.position.x * Math.cos(angle) -
+        optimal.position.z * Math.sin(angle);
+      const altZ =
+        optimal.position.x * Math.sin(angle) +
+        optimal.position.z * Math.cos(angle);
       const altPos = new Vec3(altX, optimal.position.y, altZ);
-      
+
       if (isPositionSafe(bot, altPos, targetPos)) {
         optimal.position = altPos;
         break;
@@ -476,7 +505,7 @@ async function moveToPlacementPosition(bot, refBlock, faceVec, targetPos, timeou
     return {
       success: false,
       position: bot.entity.position.clone(),
-      reason: "Pathfinder not initialized"
+      reason: "Pathfinder not initialized",
     };
   }
 
@@ -486,11 +515,11 @@ async function moveToPlacementPosition(bot, refBlock, faceVec, targetPos, timeou
       optimal.position.x,
       optimal.position.y,
       optimal.position.z,
-      2 // Accept within 2 blocks
+      2, // Accept within 2 blocks
     );
 
     bot.pathfinder.setGoal(goal, true);
-    
+
     // Wait for movement to complete or timeout
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -514,20 +543,20 @@ async function moveToPlacementPosition(bot, refBlock, faceVec, targetPos, timeou
       return {
         success: true,
         position: bot.entity.position.clone(),
-        reason: "Moved to optimal position"
+        reason: "Moved to optimal position",
       };
     } else {
       return {
         success: false,
         position: bot.entity.position.clone(),
-        reason: "Lost line of sight after movement"
+        reason: "Lost line of sight after movement",
       };
     }
   } catch (error) {
     return {
       success: false,
       position: bot.entity.position.clone(),
-      reason: `Pathfinding error: ${error.message}`
+      reason: `Pathfinding error: ${error.message}`,
     };
   }
 }
@@ -546,14 +575,16 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
   const faceCenter = refBlock.position.offset(
     0.5 + faceVec.x * 0.5,
     0.5 + faceVec.y * 0.5,
-    0.5 + faceVec.z * 0.5
+    0.5 + faceVec.z * 0.5,
   );
 
   // Debug: Log camera at start
   // console.log(`[${bot.username}] 📷 [PREP-START] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
 
   // Disable pathfinder auto-look temporarily to prevent interference
-  const pathfinderEnableLook = bot.pathfinder ? bot.pathfinder.enableLook : null;
+  const pathfinderEnableLook = bot.pathfinder
+    ? bot.pathfinder.enableLook
+    : null;
   if (bot.pathfinder) {
     bot.pathfinder.enableLook = false;
   }
@@ -569,7 +600,7 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
       } catch (forcedLookError) {
         return {
           ready: false,
-          reason: `Cannot look at target: ${forcedLookError.message}`
+          reason: `Cannot look at target: ${forcedLookError.message}`,
         };
       }
     }
@@ -590,7 +621,7 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
     if (!inReach(bot, refBlock.position, maxReach)) {
       return {
         ready: false,
-        reason: "Target out of reach after looking"
+        reason: "Target out of reach after looking",
       };
     }
 
@@ -598,13 +629,13 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
     if (!canSeeFace(bot, refBlock, faceVec)) {
       return {
         ready: false,
-        reason: "Lost line of sight after looking"
+        reason: "Lost line of sight after looking",
       };
     }
 
     return {
       ready: true,
-      reason: "Ready for placement"
+      reason: "Ready for placement",
     };
   } finally {
     // Restore pathfinder enableLook setting
@@ -649,7 +680,7 @@ async function ensureItemInHand(bot, itemName, args = null) {
 async function ensureReachAndSight(bot, refBlock, faceVec, maxTries = 3) {
   // NOTE: Camera aiming is already done by prepareForPlacement()
   // We only need to verify reach, not re-aim the camera
-  
+
   for (let i = 0; i < maxTries; i++) {
     const maxReach = bot.game.gameMode === 1 ? 6 : 4.5;
     if (inReach(bot, refBlock.position, maxReach)) return true;
@@ -684,11 +715,17 @@ async function placeAt(
   bot,
   targetPos,
   itemName,
-  { useSneak = false, tries = 5, args = null, prePlacementDelay = 150, maxRetries = 10 } = {}
+  {
+    useSneak = false,
+    tries = 5,
+    args = null,
+    prePlacementDelay = 150,
+    maxRetries = 10,
+  } = {},
 ) {
   // Phase 7: Validation - Check if bot is in valid state
   if (!bot || !bot.entity) {
-    console.error(`[${bot?.username || 'Unknown'}] ❌ Bot not in valid state`);
+    console.error(`[${bot?.username || "Unknown"}] ❌ Bot not in valid state`);
     return false;
   }
 
@@ -700,18 +737,25 @@ async function placeAt(
   try {
     await ensureItemInHand(bot, itemName, args);
   } catch (error) {
-    console.error(`[${bot.username}] ❌ Cannot equip ${itemName}: ${error.message}`);
+    console.error(
+      `[${bot.username}] ❌ Cannot equip ${itemName}: ${error.message}`,
+    );
     return false;
   }
 
   // Phase 7: Get all viable face candidates for fallback support
-  const allCandidates = findBestPlaceReference(bot, targetPos, { returnAll: true, minScore: 20 });
+  const allCandidates = findBestPlaceReference(bot, targetPos, {
+    returnAll: true,
+    minScore: 20,
+  });
   if (!allCandidates || allCandidates.length === 0) {
     console.error(`[${bot.username}] ❌ No valid faces found for ${targetPos}`);
     return false;
   }
 
-  console.log(`[${bot.username}] 📋 Found ${allCandidates.length} viable face(s) for placement`);
+  console.log(
+    `[${bot.username}] 📋 Found ${allCandidates.length} viable face(s) for placement`,
+  );
 
   const sneakWas = bot.getControlState("sneak");
   if (useSneak) bot.setControlState("sneak", true);
@@ -722,21 +766,29 @@ async function placeAt(
     const maxTotalAttempts = Math.min(maxRetries, allCandidates.length * tries);
 
     // Phase 7: Try each candidate face with retries
-    while (candidateIndex < allCandidates.length && totalAttempts < maxTotalAttempts) {
+    while (
+      candidateIndex < allCandidates.length &&
+      totalAttempts < maxTotalAttempts
+    ) {
       const candidate = allCandidates[candidateIndex];
       const { refBlock, faceVec, score } = candidate;
-      
+
       console.log(
         `[${bot.username}] 🎯 Trying face ${candidateIndex + 1}/${allCandidates.length} ` +
-        `(score: ${score.toFixed(1)}, attempt: ${totalAttempts + 1}/${maxTotalAttempts})`
+          `(score: ${score.toFixed(1)}, attempt: ${totalAttempts + 1}/${maxTotalAttempts})`,
       );
 
       for (let i = 0; i < tries && totalAttempts < maxTotalAttempts; i++) {
         totalAttempts++;
-        
+
         // Pre-placement ritual: look at target and validate
-        const preparation = await prepareForPlacement(bot, refBlock, faceVec, prePlacementDelay);
-        
+        const preparation = await prepareForPlacement(
+          bot,
+          refBlock,
+          faceVec,
+          prePlacementDelay,
+        );
+
         if (!preparation.ready) {
           console.log(`[${bot.username}] ⚠️ Not ready: ${preparation.reason}`);
           break; // Move to next candidate
@@ -754,13 +806,13 @@ async function placeAt(
           // Debug: Log camera before placement
           // console.log(`[${bot.username}] 📷 [BEFORE-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
           await bot.placeBlock(refBlock, faceVec);
-          
+
           // Debug: Log camera immediately after placement
           // console.log(`[${bot.username}] 📷 [AFTER-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
-          
+
           // Wait 500ms after placement without moving camera
           await new Promise((res) => setTimeout(res, 500));
-          
+
           // Debug: Log camera after wait
           // console.log(`[${bot.username}] 📷 [AFTER-WAIT] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
         } catch (e) {
@@ -772,12 +824,12 @@ async function placeAt(
         // Confirm world state - verify block was actually placed
         await new Promise((res) => setTimeout(res, 50)); // Brief wait for world update
         const placed = !isAirLike(bot.blockAt(targetPos));
-        
+
         if (placed) {
           const placedBlock = bot.blockAt(targetPos);
           console.log(
             `[${bot.username}] ✅ Successfully placed ${placedBlock?.name || itemName} at ${targetPos} ` +
-            `(face ${candidateIndex + 1}, attempt ${totalAttempts})`
+              `(face ${candidateIndex + 1}, attempt ${totalAttempts})`,
           );
           // Debug: Log camera when returning success
           // console.log(`[${bot.username}] 📷 [RETURN-SUCCESS] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
@@ -795,12 +847,14 @@ async function placeAt(
     // Phase 7: All fallback attempts exhausted
     console.error(
       `[${bot.username}] ❌ Failed to place block at ${targetPos} after ${totalAttempts} attempts ` +
-      `across ${candidateIndex} face(s)`
+        `across ${candidateIndex} face(s)`,
     );
     return false;
   } catch (error) {
     // Phase 7: Graceful error handling
-    console.error(`[${bot.username}] ❌ Unexpected error in placeAt: ${error.message}`);
+    console.error(
+      `[${bot.username}] ❌ Unexpected error in placeAt: ${error.message}`,
+    );
     return false;
   } finally {
     if (useSneak && !sneakWas) bot.setControlState("sneak", false);
@@ -816,16 +870,18 @@ async function placeAt(
  * @returns {Promise<Object>} {success: number, failed: number, skipped: number}
  */
 async function placeMultiple(bot, positions, itemName, options = {}) {
-  const { 
+  const {
     delayMs = 300,
     useBuildOrder = true,
     useSmartPositioning = false, // Disabled by default for performance
   } = options;
-  
-  console.log(`[${bot.username}] 🏗️ Starting to place ${positions.length} blocks...`);
-  
+
+  console.log(
+    `[${bot.username}] 🏗️ Starting to place ${positions.length} blocks...`,
+  );
+
   // Use intelligent build order if enabled
-  const sorted = useBuildOrder 
+  const sorted = useBuildOrder
     ? sortByBuildability(positions, bot)
     : positions.slice().sort((a, b) => {
         // Fallback: simple bottom-up, near-to-far sorting
@@ -841,18 +897,24 @@ async function placeMultiple(bot, positions, itemName, options = {}) {
   let skipped = 0;
   const placedSet = new Set(); // Track successfully placed blocks
 
-  console.log(`[${bot.username}] 📋 Build order: ${useBuildOrder ? 'OPTIMIZED' : 'SIMPLE'}`);
-  console.log(`[${bot.username}] 🎯 Smart positioning: ${useSmartPositioning ? 'ENABLED' : 'DISABLED'}`);
+  console.log(
+    `[${bot.username}] 📋 Build order: ${useBuildOrder ? "OPTIMIZED" : "SIMPLE"}`,
+  );
+  console.log(
+    `[${bot.username}] 🎯 Smart positioning: ${useSmartPositioning ? "ENABLED" : "DISABLED"}`,
+  );
 
   for (let i = 0; i < sorted.length; i++) {
     const pos = sorted[i];
     const progress = `[${i + 1}/${sorted.length}]`;
-    
+
     try {
       // Check if block already exists (might have been placed by another bot)
       const existingBlock = bot.blockAt(pos);
       if (existingBlock && existingBlock.boundingBox === "block") {
-        console.log(`[${bot.username}] ${progress} ⏭️ Block already exists at ${pos}`);
+        console.log(
+          `[${bot.username}] ${progress} ⏭️ Block already exists at ${pos}`,
+        );
         skipped++;
         placedSet.add(`${pos.x},${pos.y},${pos.z}`);
         continue;
@@ -863,16 +925,16 @@ async function placeMultiple(bot, positions, itemName, options = {}) {
         const plan = findBestPlaceReference(bot, pos);
         if (plan) {
           const moveResult = await moveToPlacementPosition(
-            bot, 
-            plan.refBlock, 
-            plan.faceVec, 
+            bot,
+            plan.refBlock,
+            plan.faceVec,
             pos,
-            3000 // 3 second timeout
+            3000, // 3 second timeout
           );
-          
+
           if (!moveResult.success) {
             console.log(
-              `[${bot.username}] ${progress} ⚠️ Could not reach optimal position: ${moveResult.reason}`
+              `[${bot.username}] ${progress} ⚠️ Could not reach optimal position: ${moveResult.reason}`,
             );
             // Continue anyway, placeAt will handle it
           }
@@ -881,7 +943,7 @@ async function placeMultiple(bot, positions, itemName, options = {}) {
 
       // Attempt to place the block
       const placed = await placeAt(bot, pos, itemName, options);
-      
+
       if (placed) {
         success++;
         placedSet.add(`${pos.x},${pos.y},${pos.z}`);
@@ -893,10 +955,10 @@ async function placeMultiple(bot, positions, itemName, options = {}) {
     } catch (error) {
       failed++;
       console.log(
-        `[${bot.username}] ${progress} ❌ Error placing at ${pos}: ${error.message}`
+        `[${bot.username}] ${progress} ❌ Error placing at ${pos}: ${error.message}`,
       );
     }
-    
+
     // Add delay between block placements for more human-like building
     if (delayMs > 0 && i < sorted.length - 1) {
       await new Promise((res) => setTimeout(res, delayMs));
@@ -905,9 +967,13 @@ async function placeMultiple(bot, positions, itemName, options = {}) {
 
   // Summary
   console.log(`[${bot.username}] 🏁 Placement complete!`);
-  console.log(`[${bot.username}]    ✅ Success: ${success}/${positions.length}`);
+  console.log(
+    `[${bot.username}]    ✅ Success: ${success}/${positions.length}`,
+  );
   console.log(`[${bot.username}]    ❌ Failed: ${failed}/${positions.length}`);
-  console.log(`[${bot.username}]    ⏭️ Skipped: ${skipped}/${positions.length}`);
+  console.log(
+    `[${bot.username}]    ⏭️ Skipped: ${skipped}/${positions.length}`,
+  );
 
   return { success, failed, skipped };
 }
@@ -958,7 +1024,7 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
   } = options;
 
   console.log(
-    `[${bot.username}] 🗼 Starting tower build: ${towerHeight} blocks`
+    `[${bot.username}] 🗼 Starting tower build: ${towerHeight} blocks`,
   );
 
   let success = 0;
@@ -972,8 +1038,8 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
   const startY = Math.floor(startPos.y);
   console.log(
     `[${bot.username}] 📍 Starting position: X=${startPos.x.toFixed(
-      2
-    )}, Y=${startPos.y.toFixed(2)}, Z=${startPos.z.toFixed(2)}`
+      2,
+    )}, Y=${startPos.y.toFixed(2)}, Z=${startPos.z.toFixed(2)}`,
   );
 
   // Look down ONCE before starting
@@ -991,21 +1057,19 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
     const groundPos = new Vec3(
       Math.floor(currentPos.x),
       Math.floor(currentPos.y) - 1,
-      Math.floor(currentPos.z)
+      Math.floor(currentPos.z),
     );
     const groundBlock = bot.blockAt(groundPos);
 
     if (!groundBlock || groundBlock.name === "air") {
-      console.log(
-        `[${bot.username}] ❌ No ground block at ${groundPos}`
-      );
+      console.log(`[${bot.username}] ❌ No ground block at ${groundPos}`);
       failed++;
       if (breakOnFailure) break;
       continue;
     }
 
     console.log(
-      `[${bot.username}] 📦 Reference block: ${groundBlock.name} at ${groundPos}`
+      `[${bot.username}] 📦 Reference block: ${groundBlock.name} at ${groundPos}`,
     );
 
     // Target position (where the new block will be)
@@ -1019,7 +1083,7 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
     for (let attempt = 1; attempt <= maxPlaceAttempts; attempt++) {
       fastPlaceBlock(bot, groundBlock)
         .then(() =>
-          console.log(`[${bot.username}] 🎯 Place fired on attempt ${attempt}`)
+          console.log(`[${bot.username}] 🎯 Place fired on attempt ${attempt}`),
         )
         .catch(() => {});
       await new Promise((res) => setTimeout(res, placeRetryDelayMs));
@@ -1034,12 +1098,12 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
       console.log(
         `[${bot.username}] ✅ Block ${i + 1} placed successfully: ${
           placedBlock.name
-        } at ${targetPos}`
+        } at ${targetPos}`,
       );
       success++;
     } else {
       console.log(
-        `[${bot.username}] ❌ Block ${i + 1} placement failed at ${targetPos}`
+        `[${bot.username}] ❌ Block ${i + 1} placement failed at ${targetPos}`,
       );
       failed++;
 
@@ -1065,7 +1129,7 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
     const newY = Math.floor(newPos.y);
     const heightGained = newY - startY;
     console.log(
-      `[${bot.username}] 📏 New Y: ${newY} (gained ${heightGained} blocks, target: ${i + 1})`
+      `[${bot.username}] 📏 New Y: ${newY} (gained ${heightGained} blocks, target: ${i + 1})`,
     );
 
     // If we haven't gained height and retry is enabled, retry this block
@@ -1073,7 +1137,7 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
       console.log(
         `[${bot.username}] ⚠️ Height mismatch! Expected ${
           i + 1
-        }, got ${heightGained}`
+        }, got ${heightGained}`,
       );
       console.log(`[${bot.username}] 🔄 Retrying block ${i + 1}...`);
 
@@ -1082,13 +1146,13 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
       const retryGroundPos = new Vec3(
         Math.floor(retryCurrentPos.x),
         Math.floor(retryCurrentPos.y) - 1,
-        Math.floor(retryCurrentPos.z)
+        Math.floor(retryCurrentPos.z),
       );
       const retryGroundBlock = bot.blockAt(retryGroundPos);
 
       if (!retryGroundBlock || retryGroundBlock.name === "air") {
         console.log(
-          `[${bot.username}] ❌ No ground block at ${retryGroundPos}`
+          `[${bot.username}] ❌ No ground block at ${retryGroundPos}`,
         );
         failed++;
         if (breakOnFailure) break;
@@ -1114,14 +1178,14 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
       const retryY = Math.floor(retryPos.y);
       const retryHeight = retryY - startY;
       console.log(
-        `[${bot.username}] 📏 After retry - Y: ${retryY}, height: ${retryHeight}`
+        `[${bot.username}] 📏 After retry - Y: ${retryY}, height: ${retryHeight}`,
       );
 
       if (retryHeight < i + 1) {
         console.log(
           `[${bot.username}] ❌ Retry failed - ${
             breakOnFailure ? "aborting" : "continuing"
-          }`
+          }`,
         );
         failed++;
         if (breakOnFailure) break;
@@ -1140,8 +1204,8 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
   console.log(`[${bot.username}]    Height gained: ${totalHeight} blocks`);
   console.log(
     `[${bot.username}]    Final position: X=${finalPos.x.toFixed(
-      2
-    )}, Y=${finalPos.y.toFixed(2)}, Z=${finalPos.z.toFixed(2)}`
+      2,
+    )}, Y=${finalPos.y.toFixed(2)}, Z=${finalPos.z.toFixed(2)}`,
   );
 
   return { success, failed, heightGained: totalHeight };
@@ -1165,12 +1229,12 @@ function hasAdjacentSupport(bot, targetPos, placedBlocks = new Set()) {
   for (const face of CARDINALS) {
     const adjacentPos = targetPos.plus(face);
     const adjacentBlock = bot.blockAt(adjacentPos);
-    
+
     // Check if there's a solid block in the world
     if (adjacentBlock && adjacentBlock.boundingBox === "block") {
       return true;
     }
-    
+
     // Check if we've already placed a block at this position
     const posKey = `${adjacentPos.x},${adjacentPos.y},${adjacentPos.z}`;
     if (placedBlocks.has(posKey)) {
@@ -1213,7 +1277,7 @@ function sortByBuildability(positions, bot) {
 
     for (let i = remaining.length - 1; i >= 0; i--) {
       const pos = remaining[i];
-      
+
       // Check if this position has adjacent support
       if (hasAdjacentSupport(bot, pos, placedSet)) {
         // This block can be placed now
@@ -1228,7 +1292,7 @@ function sortByBuildability(positions, bot) {
     if (!placedThisIteration && remaining.length > 0) {
       console.warn(
         `[sortByBuildability] Warning: ${remaining.length} blocks have no support. ` +
-        `Adding them anyway to prevent deadlock.`
+          `Adding them anyway to prevent deadlock.`,
       );
       // Add remaining blocks in Y-order as fallback
       remaining.sort((a, b) => a.y - b.y);
@@ -1254,24 +1318,26 @@ const scaffoldBlocks = [];
 function calculateFloorPlacementOrder(width = 5, depth = 5) {
   const positions = [];
   let order = 0;
-  
+
   // Work from outside edge inward (layer by layer)
-  let minX = 0, maxX = width - 1;
-  let minZ = 0, maxZ = depth - 1;
-  
+  let minX = 0,
+    maxX = width - 1;
+  let minZ = 0,
+    maxZ = depth - 1;
+
   while (minX <= maxX && minZ <= maxZ) {
     // Top edge (left to right)
     for (let x = minX; x <= maxX; x++) {
       positions.push({ x, z: minZ, order: order++ });
     }
     minZ++;
-    
+
     // Right edge (top to bottom)
     for (let z = minZ; z <= maxZ; z++) {
       positions.push({ x: maxX, z, order: order++ });
     }
     maxX--;
-    
+
     // Bottom edge (right to left)
     if (minZ <= maxZ) {
       for (let x = maxX; x >= minX; x--) {
@@ -1279,7 +1345,7 @@ function calculateFloorPlacementOrder(width = 5, depth = 5) {
       }
       maxZ--;
     }
-    
+
     // Left edge (bottom to top)
     if (minX <= maxX) {
       for (let z = maxZ; z >= minZ; z--) {
@@ -1288,7 +1354,7 @@ function calculateFloorPlacementOrder(width = 5, depth = 5) {
       minX++;
     }
   }
-  
+
   return positions;
 }
 
@@ -1319,7 +1385,7 @@ function getPerimeterPosition(x, z) {
 function calculateWallPlacementOrder(wallBlocks) {
   const orderMap = new Map();
   let order = 0;
-  
+
   // Group by Y level (bottom to top)
   const byLevel = {};
   for (const block of wallBlocks) {
@@ -1327,34 +1393,36 @@ function calculateWallPlacementOrder(wallBlocks) {
     if (!byLevel[key]) byLevel[key] = [];
     byLevel[key].push(block);
   }
-  
+
   // Process each level
-  const levels = Object.keys(byLevel).map(Number).sort((a, b) => a - b);
-  
+  const levels = Object.keys(byLevel)
+    .map(Number)
+    .sort((a, b) => a - b);
+
   for (const y of levels) {
     const levelBlocks = byLevel[y];
-    
+
     // Sort by distance from corners (corners first)
     // Corners are at (0,0), (4,0), (0,4), (4,4)
     const sorted = levelBlocks.slice().sort((a, b) => {
       const isCornerA = (a.x === 0 || a.x === 4) && (a.z === 0 || a.z === 4);
       const isCornerB = (b.x === 0 || b.x === 4) && (b.z === 0 || b.z === 4);
-      
+
       if (isCornerA && !isCornerB) return -1;
       if (!isCornerA && isCornerB) return 1;
-      
+
       // Then by perimeter position (clockwise from south-west)
       const perimeterA = getPerimeterPosition(a.x, a.z);
       const perimeterB = getPerimeterPosition(b.x, b.z);
       return perimeterA - perimeterB;
     });
-    
+
     // Assign orders
     for (const block of sorted) {
       orderMap.set(`${block.x},${block.y},${block.z}`, order++);
     }
   }
-  
+
   return orderMap;
 }
 
@@ -1396,7 +1464,7 @@ function makeHouseBlueprint5x5(options = {}) {
   for (const pos of floorOrder) {
     floorOrderMap.set(`${pos.x},${pos.z}`, pos.order);
   }
-  
+
   for (let x = 0; x < 5; x++) {
     for (let z = 0; z < 5; z++) {
       const placementOrder = floorOrderMap.get(`${x},${z}`);
@@ -1415,12 +1483,13 @@ function makeHouseBlueprint5x5(options = {}) {
   // PHASE 2: WALLS (y=1 to y=3, hollow ring)
   // Collect all wall blocks first, then assign orders
   const wallBlocks = [];
-  
+
   // Entrance will be at (x=2, z=0, y=1 and y=2) - 1 wide × 2 tall opening
   for (let y = 1; y <= 3; y++) {
     // South wall (z=0) - skip entrance position (2 blocks tall)
     for (let x = 0; x < 5; x++) {
-      if (!(x === 2 && (y === 1 || y === 2))) {  // Skip entrance at y=1 and y=2
+      if (!(x === 2 && (y === 1 || y === 2))) {
+        // Skip entrance at y=1 and y=2
         wallBlocks.push({ x, y, z: 0 });
       }
     }
@@ -1440,10 +1509,10 @@ function makeHouseBlueprint5x5(options = {}) {
       wallBlocks.push({ x: 4, y, z });
     }
   }
-  
+
   // Calculate wall placement order
   const wallOrderMap = calculateWallPlacementOrder(wallBlocks);
-  
+
   // Add walls to blueprint with placement order
   for (const wall of wallBlocks) {
     const orderKey = `${wall.x},${wall.y},${wall.z}`;
@@ -1466,7 +1535,7 @@ function makeHouseBlueprint5x5(options = {}) {
   // PHASE 4: WINDOWS (glass panes at y=2)
   // Windows can be placed in any order after walls
   let windowOrder = 0;
-  
+
   // South windows flanking door
   // blueprint.push({
   //   x: 1,
@@ -1513,7 +1582,7 @@ function makeHouseBlueprint5x5(options = {}) {
   for (const pos of roofOrder) {
     roofOrderMap.set(`${pos.x},${pos.z}`, pos.order);
   }
-  
+
   for (let x = 0; x < 5; x++) {
     for (let z = 0; z < 5; z++) {
       const placementOrder = roofOrderMap.get(`${x},${z}`);
@@ -1582,11 +1651,9 @@ function splitWorkByXAxis(targets, alphaBotName, bravoBotName) {
   }
 
   console.log(
-    `[splitWork] Alpha: ${alphaTargets.length} blocks (x ≤ 2, west + center)`
+    `[splitWork] Alpha: ${alphaTargets.length} blocks (x ≤ 2, west + center)`,
   );
-  console.log(
-    `[splitWork] Bravo: ${bravoTargets.length} blocks (x ≥ 3, east)`
-  );
+  console.log(`[splitWork] Bravo: ${bravoTargets.length} blocks (x ≥ 3, east)`);
 
   return { alphaTargets, bravoTargets };
 }
@@ -1604,17 +1671,13 @@ async function ensureBlocks(bot, rcon, materials) {
     return;
   }
 
-  console.log(
-    `[${bot.username}] 📦 Receiving building materials...`
-  );
+  console.log(`[${bot.username}] 📦 Receiving building materials...`);
 
   for (const [blockName, count] of Object.entries(materials)) {
     if (count > 0) {
       const cmd = `/give ${bot.username} ${blockName} ${count}`;
       await rcon.send(cmd);
-      console.log(
-        `[${bot.username}]    ${count}x ${blockName}`
-      );
+      console.log(`[${bot.username}]    ${count}x ${blockName}`);
       await sleep(500); // Increased delay for inventory sync
     }
   }
@@ -1642,11 +1705,11 @@ function calculateMaterialCounts(blueprint) {
 function hasAdjacentSolidBlock(bot, pos) {
   const offsets = [
     new Vec3(0, -1, 0), // Below (preferred)
-    new Vec3(1, 0, 0),  // East
+    new Vec3(1, 0, 0), // East
     new Vec3(-1, 0, 0), // West
-    new Vec3(0, 0, 1),  // South
+    new Vec3(0, 0, 1), // South
     new Vec3(0, 0, -1), // North
-    new Vec3(0, 1, 0),  // Above
+    new Vec3(0, 1, 0), // Above
   ];
 
   for (const offset of offsets) {
@@ -1677,7 +1740,7 @@ async function placeScaffold(bot, targetPos, args) {
   }
 
   console.log(
-    `[${bot.username}] 🧱 Placing scaffold at (${scaffoldPos.x}, ${scaffoldPos.y}, ${scaffoldPos.z})`
+    `[${bot.username}] 🧱 Placing scaffold at (${scaffoldPos.x}, ${scaffoldPos.y}, ${scaffoldPos.z})`,
   );
 
   try {
@@ -1693,7 +1756,7 @@ async function placeScaffold(bot, targetPos, args) {
     }
   } catch (error) {
     console.log(
-      `[${bot.username}] ⚠️ Scaffold placement failed: ${error.message}`
+      `[${bot.username}] ⚠️ Scaffold placement failed: ${error.message}`,
     );
   }
 
@@ -1716,25 +1779,27 @@ async function buildPhase(bot, targets, options = {}) {
   }
 
   console.log(
-    `[${bot.username}] 🏗️ Building ${targets.length} blocks in phase...`
+    `[${bot.username}] 🏗️ Building ${targets.length} blocks in phase...`,
   );
 
   const blockType = targets[0].block;
   const phaseName = targets[0].phase;
 
-  console.log(`[${bot.username}] 📦 Block type: ${blockType}, Phase: ${phaseName}`);
+  console.log(
+    `[${bot.username}] 📦 Block type: ${blockType}, Phase: ${phaseName}`,
+  );
 
   const abortIfRequested = (context) => {
     try {
       if (shouldAbort()) {
         console.log(
-          `[${bot.username}] 🛑 Abort requested during ${context} (${phaseName} phase)`
+          `[${bot.username}] 🛑 Abort requested during ${context} (${phaseName} phase)`,
         );
         return true;
       }
     } catch (abortError) {
       console.warn(
-        `[${bot.username}] ⚠️ Error while checking abort signal: ${abortError.message}`
+        `[${bot.username}] ⚠️ Error while checking abort signal: ${abortError.message}`,
       );
     }
     return false;
@@ -1751,7 +1816,7 @@ async function buildPhase(bot, targets, options = {}) {
     if (a.placementOrder !== undefined && b.placementOrder !== undefined) {
       return a.placementOrder - b.placementOrder;
     }
-    
+
     // Fallback sort: Y-level (bottom-up), then distance (near-to-far)
     if (a.worldPos.y !== b.worldPos.y) return a.worldPos.y - b.worldPos.y;
     const distA = botPos.distanceTo(a.worldPos);
@@ -1776,7 +1841,11 @@ async function buildPhase(bot, targets, options = {}) {
     let placed = false;
 
     while (attemptCount < MAX_ATTEMPTS && !placed) {
-      if (abortIfRequested(`attempt ${attemptCount + 1} for block ${i + 1}/${sorted.length}`)) {
+      if (
+        abortIfRequested(
+          `attempt ${attemptCount + 1} for block ${i + 1}/${sorted.length}`,
+        )
+      ) {
         return { success, failed, aborted: true };
       }
 
@@ -1786,10 +1855,10 @@ async function buildPhase(bot, targets, options = {}) {
         if (existingBlock && existingBlock.name !== "air") {
           // Check if it's already the CORRECT block type we want to place
           const isCorrectBlock = existingBlock.name === blockType;
-          
+
           if (isCorrectBlock) {
             console.log(
-              `[${bot.username}] ✅ Correct block (${blockType}) already exists at (${pos.x}, ${pos.y}, ${pos.z})`
+              `[${bot.username}] ✅ Correct block (${blockType}) already exists at (${pos.x}, ${pos.y}, ${pos.z})`,
             );
             success++;
             placed = true;
@@ -1797,28 +1866,28 @@ async function buildPhase(bot, targets, options = {}) {
           } else {
             // Wrong block (terrain/obstacle) - need to clear it first
             console.log(
-              `[${bot.username}] ⛏️ Clearing ${existingBlock.name} at (${pos.x}, ${pos.y}, ${pos.z}) to place ${blockType}`
+              `[${bot.username}] ⛏️ Clearing ${existingBlock.name} at (${pos.x}, ${pos.y}, ${pos.z}) to place ${blockType}`,
             );
-            
+
             try {
               await digWithTimeout(bot, existingBlock, { timeoutMs: 5000 });
               await sleep(200); // Let block break settle
               console.log(
-                `[${bot.username}] ✅ Cleared ${existingBlock.name}, ready to place ${blockType}`
+                `[${bot.username}] ✅ Cleared ${existingBlock.name}, ready to place ${blockType}`,
               );
             } catch (digError) {
               console.log(
-                `[${bot.username}] ⚠️ Failed to clear block: ${digError.message}, will attempt placement anyway`
+                `[${bot.username}] ⚠️ Failed to clear block: ${digError.message}, will attempt placement anyway`,
               );
               // Continue anyway - placement might still work or we'll retry
             }
           }
         }
-        
+
         // Auto-scaffold if no reference block
         if (!hasAdjacentSolidBlock(bot, pos)) {
           console.log(
-            `[${bot.username}] 🧱 No reference block at (${pos.x}, ${pos.y}, ${pos.z}), scaffolding...`
+            `[${bot.username}] 🧱 No reference block at (${pos.x}, ${pos.y}, ${pos.z}), scaffolding...`,
           );
           await placeScaffold(bot, pos, args);
           await sleep(200); // Let scaffold settle
@@ -1827,131 +1896,143 @@ async function buildPhase(bot, targets, options = {}) {
         // ATTEMPT 3 ONLY: Pathfinder scaffold-up as final fallback
         if (attemptCount === 2 && !placed) {
           console.log(
-            `[${bot.username}] � Attempt 3: Using pathfinder scaffold-up as final fallback...`
+            `[${bot.username}] � Attempt 3: Using pathfinder scaffold-up as final fallback...`,
           );
-          
+
           try {
             // Target position: Stand on top of the block we want to place (Y+1)
             const scaffoldTarget = new Vec3(pos.x, pos.y + 1, pos.z);
-            
+
             console.log(
-              `[${bot.username}] 🧗 Pathfinding to scaffold up to (${scaffoldTarget.x}, ${scaffoldTarget.y}, ${scaffoldTarget.z})...`
+              `[${bot.username}] 🧗 Pathfinding to scaffold up to (${scaffoldTarget.x}, ${scaffoldTarget.y}, ${scaffoldTarget.z})...`,
             );
-            
+
             // Temporarily enable digging and scaffolding for upward pathfinding
             const originalMovements = bot.pathfinder.movements;
-            const scaffoldMovements = new Movements(bot, require("minecraft-data")(bot.version));
+            const scaffoldMovements = new Movements(
+              bot,
+              require("minecraft-data")(bot.version),
+            );
             scaffoldMovements.allowSprinting = false;
             scaffoldMovements.allowParkour = true;
             scaffoldMovements.canDig = true; // Enable digging obstacles
             scaffoldMovements.canPlaceOn = true; // Enable scaffolding
             scaffoldMovements.allowEntityDetection = true;
-            
+
             // Set scaffolding blocks - FORCE pathfinder to use the correct block type for this phase
             const mcData = require("minecraft-data")(bot.version);
-            
+
             // blockType is already set from targets[0].block (phase-specific: cobblestone/oak_planks/oak_log)
-            const targetBlockItem = bot.inventory.items().find(item => item.name === blockType);
-            
+            const targetBlockItem = bot.inventory
+              .items()
+              .find((item) => item.name === blockType);
+
             if (targetBlockItem && targetBlockItem.count > 0) {
               // Force pathfinder to ONLY use the correct block type for this phase
               const targetBlockId = mcData.itemsByName[blockType]?.id; // Use itemsByName, not blocksByName!
               if (targetBlockId) {
                 scaffoldMovements.scafoldingBlocks = [targetBlockId];
                 console.log(
-                  `[${bot.username}] 🎯 Forcing pathfinder to use ${blockType} for ${phaseName} phase scaffolding (${targetBlockItem.count} available)`
+                  `[${bot.username}] 🎯 Forcing pathfinder to use ${blockType} for ${phaseName} phase scaffolding (${targetBlockItem.count} available)`,
                 );
               } else {
                 // Fallback: use all scaffolding blocks
-                scaffoldMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+                scaffoldMovements.scafoldingBlocks =
+                  getScaffoldingBlockIds(mcData);
                 console.log(
-                  `[${bot.username}] ⚠️ Could not get block ID for ${blockType}, using default scaffolding blocks`
+                  `[${bot.username}] ⚠️ Could not get block ID for ${blockType}, using default scaffolding blocks`,
                 );
               }
             } else {
               // Target block not available - use any scaffolding block
-              scaffoldMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+              scaffoldMovements.scafoldingBlocks =
+                getScaffoldingBlockIds(mcData);
               console.log(
-                `[${bot.username}] ⚠️ ${blockType} not in inventory (${phaseName} phase), using any available scaffolding blocks`
+                `[${bot.username}] ⚠️ ${blockType} not in inventory (${phaseName} phase), using any available scaffolding blocks`,
               );
             }
-            
+
             bot.pathfinder.setMovements(scaffoldMovements);
-            
+
             // Pathfind to stand on top of target block (range 0 = exact position)
             // The pathfinder will automatically scaffold underneath if needed
             await gotoWithTimeout(
-              bot, 
-              new GoalNear(scaffoldTarget.x, scaffoldTarget.y, scaffoldTarget.z, 0), 
-              { timeoutMs: 8000 }
+              bot,
+              new GoalNear(
+                scaffoldTarget.x,
+                scaffoldTarget.y,
+                scaffoldTarget.z,
+                0,
+              ),
+              { timeoutMs: 8000 },
             );
-            
+
             // Restore original movements
             bot.pathfinder.setMovements(originalMovements);
-            
+
             // Settling time after pathfinding
             await sleep(300); // Reduced from 500ms for faster scaffolding
-            
+
             // Verify if block was placed underneath us during scaffolding
             const placedBlock = bot.blockAt(pos);
             placed = placedBlock && placedBlock.name === blockType;
-            
+
             if (placed) {
               console.log(
-                `[${bot.username}] ✅ Successfully scaffolded to position (pathfinder placed correct ${phaseName} block: ${blockType})!`
+                `[${bot.username}] ✅ Successfully scaffolded to position (pathfinder placed correct ${phaseName} block: ${blockType})!`,
               );
               success++;
             } else {
               // Check if pathfinder placed a different block type (fallback scenario)
               if (placedBlock && placedBlock.name !== "air") {
                 console.log(
-                  `[${bot.username}] ⚠️ Pathfinder placed ${placedBlock.name} instead of ${blockType} (${phaseName} phase fallback), will replace...`
+                  `[${bot.username}] ⚠️ Pathfinder placed ${placedBlock.name} instead of ${blockType} (${phaseName} phase fallback), will replace...`,
                 );
-                
+
                 // Try to dig the wrong block and place correct block
                 try {
                   await digWithTimeout(bot, placedBlock, { timeoutMs: 3000 });
                   await sleep(200);
-                  
+
                   // Now try to place the correct block
                   placed = await placeAt(bot, pos, blockType, {
                     useSneak: false,
                     tries: 2,
                     args: args,
                   });
-                  
+
                   if (placed) {
                     console.log(
-                      `[${bot.username}] ✅ Successfully replaced ${placedBlock.name} with ${blockType} (${phaseName} phase)!`
+                      `[${bot.username}] ✅ Successfully replaced ${placedBlock.name} with ${blockType} (${phaseName} phase)!`,
                     );
                     success++;
                   } else {
                     failed++;
                     console.log(
-                      `[${bot.username}] ❌ Failed to replace scaffolding block (${phaseName} phase)`
+                      `[${bot.username}] ❌ Failed to replace scaffolding block (${phaseName} phase)`,
                     );
                   }
                 } catch (replaceError) {
                   failed++;
                   console.log(
-                    `[${bot.username}] ❌ Error replacing scaffolding (${phaseName} phase): ${replaceError.message}`
+                    `[${bot.username}] ❌ Error replacing scaffolding (${phaseName} phase): ${replaceError.message}`,
                   );
                 }
               } else {
                 // Pathfinder didn't place anything - complete failure
                 failed++;
                 console.log(
-                  `[${bot.username}] ❌ Pathfinder scaffold-up failed - no block placed (${phaseName} phase)`
+                  `[${bot.username}] ❌ Pathfinder scaffold-up failed - no block placed (${phaseName} phase)`,
                 );
               }
             }
           } catch (scaffoldError) {
             failed++;
             console.log(
-              `[${bot.username}] ❌ Pathfinder scaffold-up error: ${scaffoldError.message}`
+              `[${bot.username}] ❌ Pathfinder scaffold-up error: ${scaffoldError.message}`,
             );
           }
-          
+
           // If placed successfully, continue to next block
           if (placed) {
             continue;
@@ -1961,15 +2042,15 @@ async function buildPhase(bot, targets, options = {}) {
         // Pathfind near target (reposition on retry attempts)
         const distance = bot.entity.position.distanceTo(pos);
         const shouldReposition = attemptCount > 0 || distance > 4;
-        
+
         if (shouldReposition) {
           if (attemptCount > 0) {
             console.log(
-              `[${bot.username}] 🔄 Attempt ${attemptCount + 1}/${MAX_ATTEMPTS}: Repositioning for block ${i + 1}/${sorted.length}`
+              `[${bot.username}] 🔄 Attempt ${attemptCount + 1}/${MAX_ATTEMPTS}: Repositioning for block ${i + 1}/${sorted.length}`,
             );
           } else {
             console.log(
-              `[${bot.username}] 🚶 Pathfinding to block ${i + 1}/${sorted.length}, distance: ${distance.toFixed(1)}`
+              `[${bot.username}] 🚶 Pathfinding to block ${i + 1}/${sorted.length}, distance: ${distance.toFixed(1)}`,
             );
           }
 
@@ -1977,17 +2058,19 @@ async function buildPhase(bot, targets, options = {}) {
           if (attemptCount > 0) {
             // Define 4 cardinal positions adjacent and y+1 to the target block
             const cardinalPositions = [
-              { x: pos.x + 1, y: pos.y+1, z: pos.z, dir: "East" },   // East
-              { x: pos.x - 1, y: pos.y+1, z: pos.z, dir: "West" },   // West
-              { x: pos.x, y: pos.y+1, z: pos.z + 1, dir: "South" },  // South
-              { x: pos.x, y: pos.y+1, z: pos.z - 1, dir: "North" },  // North
+              { x: pos.x + 1, y: pos.y + 1, z: pos.z, dir: "East" }, // East
+              { x: pos.x - 1, y: pos.y + 1, z: pos.z, dir: "West" }, // West
+              { x: pos.x, y: pos.y + 1, z: pos.z + 1, dir: "South" }, // South
+              { x: pos.x, y: pos.y + 1, z: pos.z - 1, dir: "North" }, // North
             ];
-            
+
             // Find the closest cardinal position to bot's current location
             const currentBotPos = bot.entity.position;
             let closestCardinal = cardinalPositions[0];
-            let minDistance = currentBotPos.distanceTo(new Vec3(closestCardinal.x, closestCardinal.y, closestCardinal.z));
-            
+            let minDistance = currentBotPos.distanceTo(
+              new Vec3(closestCardinal.x, closestCardinal.y, closestCardinal.z),
+            );
+
             for (const cardPos of cardinalPositions) {
               const cardVec = new Vec3(cardPos.x, cardPos.y, cardPos.z);
               const dist = currentBotPos.distanceTo(cardVec);
@@ -1996,57 +2079,73 @@ async function buildPhase(bot, targets, options = {}) {
                 closestCardinal = cardPos;
               }
             }
-            
+
             console.log(
-              `[${bot.username}] 🧭 Moving to cardinal position ${closestCardinal.dir} of target: (${closestCardinal.x}, ${closestCardinal.y}, ${closestCardinal.z})`
+              `[${bot.username}] 🧭 Moving to cardinal position ${closestCardinal.dir} of target: (${closestCardinal.x}, ${closestCardinal.y}, ${closestCardinal.z})`,
             );
-            
+
             // Temporarily enable digging and block placement for cardinal repositioning
             const originalMovements = bot.pathfinder.movements;
-            const diggingMovements = new Movements(bot, require("minecraft-data")(bot.version));
+            const diggingMovements = new Movements(
+              bot,
+              require("minecraft-data")(bot.version),
+            );
             diggingMovements.allowSprinting = false;
             diggingMovements.allowParkour = true;
             diggingMovements.canDig = true; // Enable digging for pathfinder
             diggingMovements.canPlaceOn = true; // Enable block placement for scaffolding
             diggingMovements.allowEntityDetection = true;
-            
+
             // Set scaffolding blocks - FORCE pathfinder to use the correct block type for this phase
             const mcData = require("minecraft-data")(bot.version);
-            
+
             // blockType is already set from targets[0].block (phase-specific: cobblestone/oak_planks/oak_log)
-            const targetBlockItem2 = bot.inventory.items().find(item => item.name === blockType);
-            
+            const targetBlockItem2 = bot.inventory
+              .items()
+              .find((item) => item.name === blockType);
+
             if (targetBlockItem2 && targetBlockItem2.count > 0) {
               // Force pathfinder to ONLY use the correct block type for this phase
               const targetItemId = mcData.itemsByName[blockType]?.id; // Use itemsByName, not blocksByName!
               if (targetItemId) {
                 diggingMovements.scafoldingBlocks = [targetItemId];
                 console.log(
-                  `[${bot.username}] 🎯 Cardinal reposition: Using ${blockType} for ${phaseName} phase scaffolding (${targetBlockItem2.count} available)`
+                  `[${bot.username}] 🎯 Cardinal reposition: Using ${blockType} for ${phaseName} phase scaffolding (${targetBlockItem2.count} available)`,
                 );
               } else {
                 // Fallback: use all scaffolding blocks
-                diggingMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+                diggingMovements.scafoldingBlocks =
+                  getScaffoldingBlockIds(mcData);
                 console.log(
-                  `[${bot.username}] ⚠️ Cardinal reposition: Could not get item ID for ${blockType}, using default scaffolding blocks`
+                  `[${bot.username}] ⚠️ Cardinal reposition: Could not get item ID for ${blockType}, using default scaffolding blocks`,
                 );
               }
             } else {
               // Target block not available - use any scaffolding block
-              diggingMovements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+              diggingMovements.scafoldingBlocks =
+                getScaffoldingBlockIds(mcData);
               console.log(
-                `[${bot.username}] ⚠️ Cardinal reposition: ${blockType} not in inventory (${phaseName} phase), using any available scaffolding blocks`
+                `[${bot.username}] ⚠️ Cardinal reposition: ${blockType} not in inventory (${phaseName} phase), using any available scaffolding blocks`,
               );
             }
-            
+
             bot.pathfinder.setMovements(diggingMovements);
-            
+
             // Move to exact cardinal position (range 0 = stand exactly there)
-            await gotoWithTimeout(bot, new GoalNear(closestCardinal.x, closestCardinal.y, closestCardinal.z, 0), { timeoutMs: 8000 });
-            
+            await gotoWithTimeout(
+              bot,
+              new GoalNear(
+                closestCardinal.x,
+                closestCardinal.y,
+                closestCardinal.z,
+                0,
+              ),
+              { timeoutMs: 8000 },
+            );
+
             // Restore original movements (disable digging)
             bot.pathfinder.setMovements(originalMovements);
-            
+
             // Extra settling time after repositioning
             await sleep(500);
           } else {
@@ -2061,7 +2160,7 @@ async function buildPhase(bot, targets, options = {}) {
         // If yes, skip regular placement and go straight to repositioning
         if (attemptCount === 0 && isBotCollidingWithBlock(bot, pos)) {
           console.log(
-            `[${bot.username}] ⚠️ Bot is colliding with target block at (${pos.x}, ${pos.y}, ${pos.z}), skipping regular placement and repositioning...`
+            `[${bot.username}] ⚠️ Bot is colliding with target block at (${pos.x}, ${pos.y}, ${pos.z}), skipping regular placement and repositioning...`,
           );
           attemptCount++;
           await sleep(150);
@@ -2079,7 +2178,7 @@ async function buildPhase(bot, targets, options = {}) {
           success++;
           if ((i + 1) % 5 === 0 || i === sorted.length - 1) {
             console.log(
-              `[${bot.username}] ✅ Progress: ${success}/${sorted.length} blocks placed`
+              `[${bot.username}] ✅ Progress: ${success}/${sorted.length} blocks placed`,
             );
           }
         } else {
@@ -2087,13 +2186,13 @@ async function buildPhase(bot, targets, options = {}) {
           attemptCount++;
           if (attemptCount < MAX_ATTEMPTS) {
             console.log(
-              `[${bot.username}] ⚠️ Failed attempt ${attemptCount}/${MAX_ATTEMPTS} at (${pos.x}, ${pos.y}, ${pos.z}), will reposition...`
+              `[${bot.username}] ⚠️ Failed attempt ${attemptCount}/${MAX_ATTEMPTS} at (${pos.x}, ${pos.y}, ${pos.z}), will reposition...`,
             );
             await sleep(150); // Brief pause before retry
           } else {
             failed++;
             console.log(
-              `[${bot.username}] ❌ Failed all ${MAX_ATTEMPTS} attempts at (${pos.x}, ${pos.y}, ${pos.z})`
+              `[${bot.username}] ❌ Failed all ${MAX_ATTEMPTS} attempts at (${pos.x}, ${pos.y}, ${pos.z})`,
             );
           }
         }
@@ -2101,13 +2200,13 @@ async function buildPhase(bot, targets, options = {}) {
         attemptCount++;
         if (attemptCount < MAX_ATTEMPTS) {
           console.log(
-            `[${bot.username}] ⚠️ Error on attempt ${attemptCount}/${MAX_ATTEMPTS} at (${pos.x}, ${pos.y}, ${pos.z}): ${error.message}, retrying...`
+            `[${bot.username}] ⚠️ Error on attempt ${attemptCount}/${MAX_ATTEMPTS} at (${pos.x}, ${pos.y}, ${pos.z}): ${error.message}, retrying...`,
           );
           await sleep(150);
         } else {
           failed++;
           console.log(
-            `[${bot.username}] ❌ Error after ${MAX_ATTEMPTS} attempts at (${pos.x}, ${pos.y}, ${pos.z}): ${error.message}`
+            `[${bot.username}] ❌ Error after ${MAX_ATTEMPTS} attempts at (${pos.x}, ${pos.y}, ${pos.z}): ${error.message}`,
           );
         }
       }
@@ -2115,7 +2214,9 @@ async function buildPhase(bot, targets, options = {}) {
 
     if (delayMs > 0 && i < sorted.length - 1) {
       await sleep(delayMs);
-      if (abortIfRequested(`post-delay after block ${i + 1}/${sorted.length}`)) {
+      if (
+        abortIfRequested(`post-delay after block ${i + 1}/${sorted.length}`)
+      ) {
         return { success, failed, aborted: true };
       }
     }
@@ -2139,7 +2240,7 @@ function isBotCollidingWithBlock(bot, targetPos) {
   const botPos = bot.entity.position;
   const BOT_WIDTH = 0.6; // Minecraft bot width
   const BOT_HEIGHT = 1.8; // Minecraft bot height
-  
+
   // Bot's AABB (Axis-Aligned Bounding Box)
   // Bot position is at feet, center of the horizontal plane
   const botMinX = botPos.x - BOT_WIDTH / 2;
@@ -2148,7 +2249,7 @@ function isBotCollidingWithBlock(bot, targetPos) {
   const botMaxY = botPos.y + BOT_HEIGHT;
   const botMinZ = botPos.z - BOT_WIDTH / 2;
   const botMaxZ = botPos.z + BOT_WIDTH / 2;
-  
+
   // Target block AABB (1×1×1 cube)
   const blockMinX = targetPos.x;
   const blockMaxX = targetPos.x + 1;
@@ -2156,12 +2257,12 @@ function isBotCollidingWithBlock(bot, targetPos) {
   const blockMaxY = targetPos.y + 1;
   const blockMinZ = targetPos.z;
   const blockMaxZ = targetPos.z + 1;
-  
+
   // Check for AABB overlap (intersection)
   const overlapX = botMaxX > blockMinX && botMinX < blockMaxX;
   const overlapY = botMaxY > blockMinY && botMinY < blockMaxY;
   const overlapZ = botMaxZ > blockMinZ && botMinZ < blockMaxZ;
-  
+
   return overlapX && overlapY && overlapZ;
 }
 
@@ -2177,7 +2278,7 @@ async function cleanupScaffolds(bot) {
   }
 
   console.log(
-    `[${bot.username}] 🧹 Cleaning up ${scaffoldBlocks.length} scaffold blocks...`
+    `[${bot.username}] 🧹 Cleaning up ${scaffoldBlocks.length} scaffold blocks...`,
   );
 
   for (const pos of scaffoldBlocks) {
@@ -2189,7 +2290,7 @@ async function cleanupScaffolds(bot) {
       }
     } catch (error) {
       console.log(
-        `[${bot.username}] ⚠️ Failed to remove scaffold at (${pos.x}, ${pos.y}, ${pos.z}): ${error.message}`
+        `[${bot.username}] ⚠️ Failed to remove scaffold at (${pos.x}, ${pos.y}, ${pos.z}): ${error.message}`,
       );
     }
   }
@@ -2217,60 +2318,68 @@ async function admireHouse(bot, doorWorldPos, orientation, options = {}) {
 
   if (botY > doorY + 1.5) {
     console.log(
-      `[${bot.username}] 🪂 Bot is on roof, jumping down to ground...`
+      `[${bot.username}] 🪂 Bot is on roof, jumping down to ground...`,
     );
-    
+
     // Just pathfind to door - pathfinder will jump down automatically
-    bot.pathfinder.setGoal(new GoalNear(doorWorldPos.x, doorY, doorWorldPos.z, 3));
+    bot.pathfinder.setGoal(
+      new GoalNear(doorWorldPos.x, doorY, doorWorldPos.z, 3),
+    );
     await sleep(5000); // Time for jumping down
     bot.pathfinder.setGoal(null);
     await sleep(500); // Stabilize after landing
-    
+
     console.log(`[${bot.username}] ✅ Reached ground level`);
   }
 
   console.log(`[${bot.username}] 🚪 Exiting through door...`);
 
   // Step 1: Pathfind through door
-  bot.pathfinder.setGoal(new GoalNear(doorWorldPos.x, doorWorldPos.y, doorWorldPos.z, 1));
+  bot.pathfinder.setGoal(
+    new GoalNear(doorWorldPos.x, doorWorldPos.y, doorWorldPos.z, 1),
+  );
   await sleep(3000);
   bot.pathfinder.setGoal(null);
 
   // Step 2: Pick a shared random position around the house, with bots standing side by side
   // Generate random angle (0-360°) and distance (10-20 blocks) - SHARED between both bots
   const houseCenter = doorWorldPos.offset(2, 0, 2); // Center of 5x5 house at ground level
-  
+
   // Use a deterministic random based on house position so both bots get same angle
   const seed = houseCenter.x + houseCenter.z * 1000;
   const seededRandom = Math.abs(Math.sin(seed));
   const randomAngle = seededRandom * 2 * Math.PI; // Random angle in radians (shared)
-  const randomDistance = 12 + (Math.abs(Math.sin(seed * 2)) * 8); // Random distance 12-20 blocks (shared)
-  
+  const randomDistance = 12 + Math.abs(Math.sin(seed * 2)) * 8; // Random distance 12-20 blocks (shared)
+
   // Calculate base position using polar coordinates
   const baseOffsetX = Math.cos(randomAngle) * randomDistance;
   const baseOffsetZ = Math.sin(randomAngle) * randomDistance;
-  
+
   // Calculate perpendicular offset for side-by-side positioning (3 blocks apart)
   // Perpendicular angle is 90° offset from viewing angle
   const perpAngle = randomAngle + Math.PI / 2;
-  const sideOffset = bot.username.includes('Alpha') ? -1.5 : 1.5; // Alpha left, Bravo right
+  const sideOffset = bot.username.includes("Alpha") ? -1.5 : 1.5; // Alpha left, Bravo right
   const sideOffsetX = Math.cos(perpAngle) * sideOffset;
   const sideOffsetZ = Math.sin(perpAngle) * sideOffset;
-  
-  const lookFromPos = houseCenter.offset(baseOffsetX + sideOffsetX, 0, baseOffsetZ + sideOffsetZ);
+
+  const lookFromPos = houseCenter.offset(
+    baseOffsetX + sideOffsetX,
+    0,
+    baseOffsetZ + sideOffsetZ,
+  );
 
   console.log(
-    `[${bot.username}] 🚶 Moving to admire position (angle: ${(randomAngle * 180 / Math.PI).toFixed(0)}°, distance: ${randomDistance.toFixed(1)} blocks, side: ${bot.username.includes('Alpha') ? 'left' : 'right'})...`
+    `[${bot.username}] 🚶 Moving to admire position (angle: ${((randomAngle * 180) / Math.PI).toFixed(0)}°, distance: ${randomDistance.toFixed(1)} blocks, side: ${bot.username.includes("Alpha") ? "left" : "right"})...`,
   );
-  bot.pathfinder.setGoal(new GoalNear(lookFromPos.x, lookFromPos.y, lookFromPos.z, 1));
+  bot.pathfinder.setGoal(
+    new GoalNear(lookFromPos.x, lookFromPos.y, lookFromPos.z, 1),
+  );
   await sleep(5000); // Extra time for potentially longer paths
   bot.pathfinder.setGoal(null);
 
   // Step 3: Look at house center
   const houseCenterLookTarget = houseCenter.offset(0, 2, 0); // Look at middle height of house
-  console.log(
-    `[${bot.username}] 👀 Looking at house together...`
-  );
+  console.log(`[${bot.username}] 👀 Looking at house together...`);
   await bot.lookAt(houseCenterLookTarget, false);
   await sleep(2000);
 

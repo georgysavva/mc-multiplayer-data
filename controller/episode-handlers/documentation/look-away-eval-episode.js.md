@@ -8,39 +8,43 @@
 
 ### Static Properties
 
-| Property | Value | Description |
-|----------|-------|-------------|
-| `WORKS_IN_NON_FLAT_WORLD` | `true` | Supports non-flat world terrain |
-| `INIT_MIN_BOTS_DISTANCE` | `10` | Minimum distance between bots (10-12 blocks) |
-| `INIT_MAX_BOTS_DISTANCE` | `12` | Maximum distance between bots (10-12 blocks) |
+| Property                  | Value  | Description                                  |
+| ------------------------- | ------ | -------------------------------------------- |
+| `WORKS_IN_NON_FLAT_WORLD` | `true` | Supports non-flat world terrain              |
+| `INIT_MIN_BOTS_DISTANCE`  | `10`   | Minimum distance between bots (10-12 blocks) |
+| `INIT_MAX_BOTS_DISTANCE`  | `12`   | Maximum distance between bots (10-12 blocks) |
 
 ### Episode Characteristics
 
 **Evaluation Focus:**
+
 - Tests visual attention mechanisms
 - Evaluates response to broken eye contact
 - Measures social cue interpretation
 - Assesses gaze following behaviors
 
 **Behavioral Patterns:**
+
 - **lower_name_looks_away**: Bot with lexicographically lower name looks away
 - **bigger_name_looks_away**: Bot with lexicographically higher name looks away
 - **both_look_away**: Both bots simultaneously look away
 
 ## Configuration Constants
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `CAMERA_SPEED_DEGREES_PER_SEC` | `30` | Smooth camera movement speed |
-| `ITERATIONS_NUM_PER_EPISODE` | `1` | Single iteration per episode |
-| `MIN_LOOK_AWAY_DURATION_SEC` | `1.0` | Minimum look-away duration |
-| `MAX_LOOK_AWAY_DURATION_SEC` | `1.0` | Maximum look-away duration (fixed at 1.0) |
-| `EPISODE_MIN_TICKS` | `300` | Minimum episode duration in ticks |
+| Constant                       | Value | Description                               |
+| ------------------------------ | ----- | ----------------------------------------- |
+| `CAMERA_SPEED_DEGREES_PER_SEC` | `30`  | Smooth camera movement speed              |
+| `ITERATIONS_NUM_PER_EPISODE`   | `1`   | Single iteration per episode              |
+| `MIN_LOOK_AWAY_DURATION_SEC`   | `1.0` | Minimum look-away duration                |
+| `MAX_LOOK_AWAY_DURATION_SEC`   | `1.0` | Maximum look-away duration (fixed at 1.0) |
+| `EPISODE_MIN_TICKS`            | `300` | Minimum episode duration in ticks         |
 
 ## Look-Away Behavior
 
 ### Mode Selection
+
 Episodes cycle through three modes deterministically based on episode number:
+
 ```javascript
 const selectedMode = walkingModes[episodeNum % 3];
 ```
@@ -48,6 +52,7 @@ const selectedMode = walkingModes[episodeNum % 3];
 ### Look-Away Execution
 
 #### Direction Calculation
+
 ```javascript
 // Random left/right direction with offset
 const lookAwayDirection = Math.random() < 0.5 ? -1 : 1;
@@ -55,6 +60,7 @@ const lookAwayOffsetDeg = 90 * lookAwayDirection + sharedBotRng() * 45 - 22.5;
 ```
 
 #### Camera Movement
+
 1. **Initial Look**: Smooth camera turn to face other bot
 2. **Sneak Signal**: Brief sneak to signal evaluation start
 3. **Look Away**: Rotate camera by calculated offset (90° ± 22.5°)
@@ -63,6 +69,7 @@ const lookAwayOffsetDeg = 90 * lookAwayDirection + sharedBotRng() * 45 - 22.5;
 6. **Duration Padding**: Ensure minimum episode length
 
 ### Evaluation Metadata
+
 ```javascript
 episodeInstance._evalMetadata = {
   bots_chosen: botsChosen,
@@ -89,11 +96,13 @@ episodeInstance._evalMetadata = {
 ### Behavioral Patterns
 
 #### Single Bot Look-Away
+
 - One bot maintains eye contact
 - Other bot performs look-away sequence
 - Clear role differentiation for evaluation
 
 #### Simultaneous Look-Away
+
 - Both bots perform identical look-away sequence
 - Tests mutual attention breaking
 - Evaluates synchronized behavior
@@ -101,6 +110,7 @@ episodeInstance._evalMetadata = {
 ## Dependencies
 
 ### Required Imports
+
 - `lookAtSmooth, lookSmooth, sneak` from `../utils/movement`
 - `sleep` from `../utils/helpers`
 - `BaseEpisode` from `./base-episode`
@@ -108,11 +118,13 @@ episodeInstance._evalMetadata = {
 ## Integration Points
 
 ### Coordinator Integration
+
 - Phase-based communication via `lookAwayPhase_${iterationID}`
 - Proper stop phase transitions
 - Episode recording lifecycle support
 
 ### Evaluation Framework
+
 - Metadata collection for analysis
 - Deterministic mode cycling
 - Performance timing and duration management
@@ -120,6 +132,7 @@ episodeInstance._evalMetadata = {
 ## Usage Examples
 
 ### Episode Execution
+
 ```javascript
 // Episode automatically handles:
 // - Deterministic mode selection (cycles through 3 patterns)
@@ -130,9 +143,10 @@ episodeInstance._evalMetadata = {
 ```
 
 ### Mode Behavior Examples
+
 ```javascript
 // Episode 0: lower_name_looks_away (e.g., Alpha looks away)
-// Episode 1: bigger_name_looks_away (e.g., Bravo looks away)  
+// Episode 1: bigger_name_looks_away (e.g., Bravo looks away)
 // Episode 2: both_look_away (both bots look away)
 // Episode 3: lower_name_looks_away (cycle repeats)
 ```
@@ -140,16 +154,19 @@ episodeInstance._evalMetadata = {
 ## Technical Implementation
 
 ### Camera Control
+
 - **lookAtSmooth**: Initial eye contact establishment
 - **lookSmooth**: Precise angular camera movements
 - **sneak**: Visual signal for evaluation start
 
 ### Timing Management
+
 - **Freeze Period**: 20 ticks to hold look-away position
 - **Duration Padding**: Ensures minimum episode length
 - **Smooth Transitions**: Controlled camera movement speeds
 
 ### Deterministic Behavior
+
 - **Mode Cycling**: Episode number modulo 3
 - **Offset Calculation**: Shared RNG for consistent angles
 - **Role Assignment**: Lexicographic bot name comparison
@@ -157,16 +174,19 @@ episodeInstance._evalMetadata = {
 ## Testing Considerations
 
 ### Deterministic Reproduction
+
 - Episode number determines behavior pattern
 - Shared RNG ensures consistent camera angles
 - Bot name comparison for role assignment
 
 ### Edge Cases
+
 - **Single Bot Scenarios**: One bot disconnected/unavailable
 - **Timing Variations**: Different tick rates affecting duration
 - **Camera Constraints**: Movement limitations and precision
 
 ### Performance Metrics
+
 - **Camera Movement Accuracy**: Angular precision
 - **Timing Consistency**: Duration management
 - **Synchronization**: Multi-bot coordination
@@ -174,6 +194,7 @@ episodeInstance._evalMetadata = {
 ## Future Enhancements
 
 ### Potential Features
+
 - **Variable Durations**: Configurable look-away times
 - **Complex Patterns**: Multi-stage attention shifts
 - **Distance Effects**: Attention based on proximity

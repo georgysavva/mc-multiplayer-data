@@ -15,14 +15,14 @@ function getOnWalkLookPhaseFn(
   iterationID,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       `walkLookPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `walkLookPhase_${iterationID} beginning`
+      `walkLookPhase_${iterationID} beginning`,
     );
     const actionCount =
       MIN_RUN_ACTIONS +
@@ -38,7 +38,7 @@ function getOnWalkLookPhaseFn(
       walkingModes[Math.floor(sharedBotRng() * walkingModes.length)];
 
     console.log(
-      `[iter ${iterationID}] [${bot.username}] starting walk phase with ${actionCount} actions - mode: ${selectedMode}`
+      `[iter ${iterationID}] [${bot.username}] starting walk phase with ${actionCount} actions - mode: ${selectedMode}`,
     );
 
     // Determine if this bot should walk based on the selected mode
@@ -59,7 +59,7 @@ function getOnWalkLookPhaseFn(
     console.log(
       `[iter ${iterationID}] [${bot.username}] will ${
         shouldThisBotWalk ? "walk" : "sleep"
-      } during this phase`
+      } during this phase`,
     );
 
     // Look at the other bot smoothly at the start of the phase
@@ -71,7 +71,7 @@ function getOnWalkLookPhaseFn(
     } else {
       // Bot doesn't run, so no sleep is needed
       console.log(
-        `[iter ${iterationID}] [${bot.username}] not walking this phase`
+        `[iter ${iterationID}] [${bot.username}] not walking this phase`,
       );
     }
 
@@ -86,14 +86,14 @@ function getOnWalkLookPhaseFn(
           coordinator,
           args.other_bot_name,
           episodeNum,
-          args
-        )
+          args,
+        ),
       );
       coordinator.sendToOtherBot(
         "stopPhase",
         bot.entity.position.clone(),
         episodeNum,
-        `walkLookPhase_${iterationID} end`
+        `walkLookPhase_${iterationID} end`,
       );
       return;
     }
@@ -109,21 +109,20 @@ function getOnWalkLookPhaseFn(
         nextIterationID,
         episodeNum,
         episodeInstance,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `walkLookPhase_${nextIterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `walkLookPhase_${iterationID} end`
+      `walkLookPhase_${iterationID} end`,
     );
   };
 }
 
 class WalkLookEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
-
 
   async entryPoint(
     bot,
@@ -132,7 +131,7 @@ class WalkLookEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     coordinator.onceEvent(
       `walkLookPhase_${iterationID}`,
@@ -145,14 +144,14 @@ class WalkLookEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `walkLookPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      "teleportPhase end"
+      "teleportPhase end",
     );
   }
 
@@ -162,7 +161,7 @@ class WalkLookEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    args
+    args,
   ) {
     // optional teardown
   }

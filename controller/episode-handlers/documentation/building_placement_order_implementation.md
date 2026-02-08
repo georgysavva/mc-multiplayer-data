@@ -1,6 +1,7 @@
 # Intelligent Placement Sequencing Implementation
 
 ## 🎯 Goal
+
 Fix the build-house episode by implementing intelligent placement ordering that ensures bots never stand on blocks they need to place.
 
 ## 📋 Implementation Task List
@@ -10,11 +11,13 @@ Fix the build-house episode by implementing intelligent placement ordering that 
 ### **Phase 1: Add Helper Functions to `utils/building.js`**
 
 #### ✅ Task 1.1: Add `calculateFloorPlacementOrder()` function
+
 **Status:** ✅ Complete
 
 **Location:** `utils/building.js` (after line 8, after `scaffoldBlocks` declaration)
 
 **What to add:**
+
 ```javascript
 /**
  * Calculate placement order for floor blocks (edge-to-center spiral)
@@ -27,24 +30,26 @@ Fix the build-house episode by implementing intelligent placement ordering that 
 function calculateFloorPlacementOrder(width = 5, depth = 5) {
   const positions = [];
   let order = 0;
-  
+
   // Work from outside edge inward (layer by layer)
-  let minX = 0, maxX = width - 1;
-  let minZ = 0, maxZ = depth - 1;
-  
+  let minX = 0,
+    maxX = width - 1;
+  let minZ = 0,
+    maxZ = depth - 1;
+
   while (minX <= maxX && minZ <= maxZ) {
     // Top edge (left to right)
     for (let x = minX; x <= maxX; x++) {
       positions.push({ x, z: minZ, order: order++ });
     }
     minZ++;
-    
+
     // Right edge (top to bottom)
     for (let z = minZ; z <= maxZ; z++) {
       positions.push({ x: maxX, z, order: order++ });
     }
     maxX--;
-    
+
     // Bottom edge (right to left)
     if (minZ <= maxZ) {
       for (let x = maxX; x >= minX; x--) {
@@ -52,7 +57,7 @@ function calculateFloorPlacementOrder(width = 5, depth = 5) {
       }
       maxZ--;
     }
-    
+
     // Left edge (bottom to top)
     if (minX <= maxX) {
       for (let z = maxZ; z >= minZ; z--) {
@@ -61,7 +66,7 @@ function calculateFloorPlacementOrder(width = 5, depth = 5) {
       minX++;
     }
   }
-  
+
   return positions;
 }
 ```
@@ -71,11 +76,13 @@ function calculateFloorPlacementOrder(width = 5, depth = 5) {
 ---
 
 #### ✅ Task 1.2: Add `getPerimeterPosition()` helper function
+
 **Status:** ✅ Complete
 
 **Location:** `utils/building.js` (after `calculateFloorPlacementOrder()`)
 
 **What to add:**
+
 ```javascript
 /**
  * Helper: Get perimeter position for clockwise ordering
@@ -101,11 +108,13 @@ function getPerimeterPosition(x, z) {
 ---
 
 #### ✅ Task 1.3: Add `calculateWallPlacementOrder()` function
+
 **Status:** ✅ Complete
 
 **Location:** `utils/building.js` (after `getPerimeterPosition()`)
 
 **What to add:**
+
 ```javascript
 /**
  * Calculate placement order for wall blocks
@@ -116,7 +125,7 @@ function getPerimeterPosition(x, z) {
 function calculateWallPlacementOrder(wallBlocks) {
   const orderMap = new Map();
   let order = 0;
-  
+
   // Group by Y level (bottom to top)
   const byLevel = {};
   for (const block of wallBlocks) {
@@ -124,34 +133,36 @@ function calculateWallPlacementOrder(wallBlocks) {
     if (!byLevel[key]) byLevel[key] = [];
     byLevel[key].push(block);
   }
-  
+
   // Process each level
-  const levels = Object.keys(byLevel).map(Number).sort((a, b) => a - b);
-  
+  const levels = Object.keys(byLevel)
+    .map(Number)
+    .sort((a, b) => a - b);
+
   for (const y of levels) {
     const levelBlocks = byLevel[y];
-    
+
     // Sort by distance from corners (corners first)
     // Corners are at (0,0), (4,0), (0,4), (4,4)
     const sorted = levelBlocks.slice().sort((a, b) => {
       const isCornerA = (a.x === 0 || a.x === 4) && (a.z === 0 || a.z === 4);
       const isCornerB = (b.x === 0 || b.x === 4) && (b.z === 0 || b.z === 4);
-      
+
       if (isCornerA && !isCornerB) return -1;
       if (!isCornerA && isCornerB) return 1;
-      
+
       // Then by perimeter position (clockwise from south-west)
       const perimeterA = getPerimeterPosition(a.x, a.z);
       const perimeterB = getPerimeterPosition(b.x, b.z);
       return perimeterA - perimeterB;
     });
-    
+
     // Assign orders
     for (const block of sorted) {
       orderMap.set(`${block.x},${block.y},${block.z}`, order++);
     }
   }
-  
+
   return orderMap;
 }
 ```
@@ -161,11 +172,13 @@ function calculateWallPlacementOrder(wallBlocks) {
 ---
 
 #### ✅ Task 1.4: Add `calculateRoofPlacementOrder()` function
+
 **Status:** ✅ Complete
 
 **Location:** `utils/building.js` (after `calculateWallPlacementOrder()`)
 
 **What to add:**
+
 ```javascript
 /**
  * Calculate placement order for roof blocks
@@ -188,11 +201,13 @@ function calculateRoofPlacementOrder(width = 5, depth = 5) {
 ### **Phase 2: Update `makeHouseBlueprint5x5()` in `utils/building.js`**
 
 #### ✅ Task 2.1: Update function JSDoc comment
+
 **Status:** ✅ Complete
 
 **Location:** Line 11 in `utils/building.js`
 
 **Change:**
+
 ```javascript
 // FROM:
  * @returns {Array<Object>} Array of {x, y, z, block, phase, data}
@@ -206,11 +221,13 @@ function calculateRoofPlacementOrder(width = 5, depth = 5) {
 ---
 
 #### ✅ Task 2.2: Update FLOOR phase to use placement order
+
 **Status:** ✅ Complete
 
 **Location:** Lines 157-177 in `utils/building.js`
 
 **Replace:**
+
 ```javascript
 // PHASE 1: FLOOR (y=0, 5x5 grid)
 for (let x = 0; x < 5; x++) {
@@ -228,6 +245,7 @@ for (let x = 0; x < 5; x++) {
 ```
 
 **With:**
+
 ```javascript
 // PHASE 1: FLOOR (y=0, 5x5 grid) with edge-to-center placement order
 const floorOrder = calculateFloorPlacementOrder(5, 5);
@@ -257,11 +275,13 @@ for (let x = 0; x < 5; x++) {
 ---
 
 #### ✅ Task 2.3: Update WALLS phase to use placement order
+
 **Status:** ✅ Complete
 
 **Location:** Lines 179-224 in `utils/building.js`
 
 **Replace the entire PHASE 2 section with:**
+
 ```javascript
 // PHASE 2: WALLS (y=1 to y=3, hollow ring)
 // Collect all wall blocks first, then assign orders
@@ -316,11 +336,13 @@ for (const wall of wallBlocks) {
 ---
 
 #### ✅ Task 2.4: Update DOOR phase to add placement order
+
 **Status:** ✅ Complete
 
 **Location:** Lines 226-245 in `utils/building.js`
 
 **Add `placementOrder` field to both door blocks:**
+
 ```javascript
 // PHASE 3: DOOR (south wall, centered at x=2, z=0)
 // Doors placed after walls, order doesn't matter much
@@ -349,11 +371,13 @@ blueprint.push({
 ---
 
 #### ✅ Task 2.5: Update WINDOWS phase to add placement order
+
 **Status:** ✅ Complete
 
 **Location:** Lines 247-289 in `utils/building.js`
 
 **Add counter and `placementOrder` field:**
+
 ```javascript
 // PHASE 4: WINDOWS (glass panes at y=2)
 // Windows can be placed in any order after walls
@@ -405,11 +429,13 @@ blueprint.push({
 ---
 
 #### ✅ Task 2.6: Update ROOF phase to use placement order
+
 **Status:** ✅ Complete
 
 **Location:** Lines 291-311 in `utils/building.js`
 
 **Replace:**
+
 ```javascript
 // PHASE 5: ROOF (flat roof at y=4, 5x5 grid)
 for (let x = 0; x < 5; x++) {
@@ -427,6 +453,7 @@ for (let x = 0; x < 5; x++) {
 ```
 
 **With:**
+
 ```javascript
 // PHASE 5: ROOF (flat roof at y=4, 5x5 grid) with edge-to-center order
 const roofOrder = calculateRoofPlacementOrder(5, 5);
@@ -458,11 +485,13 @@ for (let x = 0; x < 5; x++) {
 ### **Phase 3: Update `buildPhase()` in `utils/building.js`**
 
 #### ✅ Task 3.1: Update sorting logic to respect `placementOrder`
+
 **Status:** ⬜ Not Started
 
 **Location:** Lines 357-364 in `utils/building.js`
 
 **Replace:**
+
 ```javascript
 // Sort positions: bottom-up (Y), then near-to-far
 const botPos = bot.entity.position;
@@ -475,6 +504,7 @@ const sorted = targets.slice().sort((a, b) => {
 ```
 
 **With:**
+
 ```javascript
 // Sort positions: Use placementOrder if available, otherwise fallback to Y-level then distance
 const botPos = bot.entity.position;
@@ -483,7 +513,7 @@ const sorted = targets.slice().sort((a, b) => {
   if (a.placementOrder !== undefined && b.placementOrder !== undefined) {
     return a.placementOrder - b.placementOrder;
   }
-  
+
   // Fallback sort: Y-level (bottom-up), then distance (near-to-far)
   if (a.worldPos.y !== b.worldPos.y) return a.worldPos.y - b.worldPos.y;
   const distA = botPos.distanceTo(a.worldPos);
@@ -499,11 +529,13 @@ const sorted = targets.slice().sort((a, b) => {
 ### **Phase 4: Add Bot Pre-Positioning in `build-house-episode.js`**
 
 #### ✅ Task 4.1: Add mineflayer-pathfinder import
+
 **Status:** ⬜ Not Started
 
 **Location:** Line 19 in `build-house-episode.js` (after other imports)
 
 **Add:**
+
 ```javascript
 const { goals } = require("mineflayer-pathfinder");
 ```
@@ -513,28 +545,35 @@ const { goals } = require("mineflayer-pathfinder");
 ---
 
 #### ✅ Task 4.2: Add Step 3a - Bot pre-positioning
+
 **Status:** ⬜ Not Started
 
 **Location:** After line 174 in `build-house-episode.js` (after logging house origin)
 
 **Add:**
+
 ```javascript
 // STEP 3a: Move bots to starting positions OUTSIDE house footprint
-console.log(`[${bot.username}] 🚶 STEP 3a: Moving to starting position outside house...`);
+console.log(
+  `[${bot.username}] 🚶 STEP 3a: Moving to starting position outside house...`,
+);
 
 // Calculate starting position based on bot assignment
 // Alpha goes WEST of house, Bravo goes EAST of house
 // This ensures bots are not standing on floor blocks that need to be placed
-const startingPos = bot.username === "Alpha" 
-  ? worldOrigin.offset(-3, 0, 2)  // 3 blocks west of house, centered on Z
-  : worldOrigin.offset(8, 0, 2);   // 3 blocks east of house (5 wide + 3), centered on Z
+const startingPos =
+  bot.username === "Alpha"
+    ? worldOrigin.offset(-3, 0, 2) // 3 blocks west of house, centered on Z
+    : worldOrigin.offset(8, 0, 2); // 3 blocks east of house (5 wide + 3), centered on Z
 
 console.log(
-  `[${bot.username}]    Starting position: (${startingPos.x}, ${startingPos.y}, ${startingPos.z})`
+  `[${bot.username}]    Starting position: (${startingPos.x}, ${startingPos.y}, ${startingPos.z})`,
 );
 
 // Use pathfinder to move to starting position
-bot.pathfinder.setGoal(new goals.GoalNear(startingPos.x, startingPos.y, startingPos.z, 1));
+bot.pathfinder.setGoal(
+  new goals.GoalNear(startingPos.x, startingPos.y, startingPos.z, 1),
+);
 await sleep(3000); // Wait for movement
 bot.pathfinder.setGoal(null);
 
@@ -563,6 +602,7 @@ After all tasks are complete, test the implementation:
 ## 📊 Expected Behavior
 
 ### Floor Placement Pattern (Edge-to-Center):
+
 ```
     0   1   2   3   4  (X-axis)
   ┌───┬───┬───┬───┬───┐
@@ -579,6 +619,7 @@ After all tasks are complete, test the implementation:
 ```
 
 ### Bot Starting Positions:
+
 ```
      Alpha                House (5x5)              Bravo
 (-3, 64, 2)          (0-4, 64, 0-4)           (8, 64, 2)

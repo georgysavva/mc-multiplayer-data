@@ -18,7 +18,16 @@ class BaseEpisode {
    * Optional setup hook. No-op by default.
    * @returns {Promise<{botPositionNew: Vec3, otherBotPositionNew: Vec3}>}
    */
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
+  async setupEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args,
+    botPosition,
+    otherBotPosition,
+  ) {
     return {
       botPositionNew: botPosition,
       otherBotPositionNew: otherBotPosition,
@@ -36,7 +45,7 @@ class BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     throw new Error("entryPoint() must be implemented by subclass");
   }
@@ -51,7 +60,7 @@ class BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    args
+    args,
   ) {}
 
   /**
@@ -69,12 +78,12 @@ class BaseEpisode {
     coordinator,
     otherBotName,
     episodeNum,
-    args
+    args,
   ) {
     return async (otherBotPosition) => {
       if (bot._episodeStopping) {
         console.log(
-          `[${bot.username}] Episode already stopping, skipping stop phase.`
+          `[${bot.username}] Episode already stopping, skipping stop phase.`,
         );
         return;
       }
@@ -83,24 +92,24 @@ class BaseEpisode {
         "stopPhase",
         bot.entity.position.clone(),
         episodeNum,
-        "stopPhase beginning"
+        "stopPhase beginning",
       );
       if (this._episodeRecordingStarted) {
         console.log(`[${bot.username}] stops recording`);
         bot.emit("endepisode");
         console.log(
-          `[${bot.username}] waiting for episode recording to end...`
+          `[${bot.username}] waiting for episode recording to end...`,
         );
         await new Promise((resolve) => {
           bot.once("episodeended", resolve);
         });
         console.log(
-          `[${bot.username}] episode recording ended, connection closed`
+          `[${bot.username}] episode recording ended, connection closed`,
         );
         await sleep(1000);
       } else {
         console.log(
-          `[${bot.username}] episode not started, skipping recording.`
+          `[${bot.username}] episode not started, skipping recording.`,
         );
       }
 
@@ -115,14 +124,14 @@ class BaseEpisode {
           coordinator,
           otherBotName,
           episodeNum,
-          bot._currentEpisodeResolve
-        )
+          bot._currentEpisodeResolve,
+        ),
       );
       coordinator.sendToOtherBot(
         "stoppedPhase",
         bot.entity.position.clone(),
         episodeNum,
-        "StopPhase end"
+        "StopPhase end",
       );
     };
   }
@@ -143,14 +152,14 @@ class BaseEpisode {
     coordinator,
     otherBotName,
     episodeNum,
-    episodeResolve
+    episodeResolve,
   ) {
     return async (otherBotPosition) => {
       coordinator.sendToOtherBot(
         "stoppedPhase",
         bot.entity.position.clone(),
         episodeNum,
-        "stoppedPhase beginning"
+        "stoppedPhase beginning",
       );
 
       console.log(`[${bot.username}] stopped`);

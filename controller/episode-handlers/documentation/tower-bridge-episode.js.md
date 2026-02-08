@@ -10,22 +10,24 @@ The file defines phase functions for tower-bridge construction but doesn't expor
 
 ## Configuration Constants
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `BLOCK_PLACE_DELAY_MS` | `300` | Delay between block placements |
-| `TOWER_HEIGHT` | `8` | Standard tower height |
-| `BRIDGE_LENGTH` | `10` | Standard bridge length |
-| `PHASE_TIMEOUT_MS` | `120000` | Phase completion timeout (2 minutes) |
+| Constant               | Value    | Description                          |
+| ---------------------- | -------- | ------------------------------------ |
+| `BLOCK_PLACE_DELAY_MS` | `300`    | Delay between block placements       |
+| `TOWER_HEIGHT`         | `8`      | Standard tower height                |
+| `BRIDGE_LENGTH`        | `10`     | Standard bridge length               |
+| `PHASE_TIMEOUT_MS`     | `120000` | Phase completion timeout (2 minutes) |
 
 ## Episode Characteristics
 
 **Construction Focus:**
+
 - Multi-phase building coordination
 - Tower and bridge construction
 - Scaffolding and support management
 - Complex structural engineering
 
 **Key Features:**
+
 - Phased construction approach
 - Error handling and recovery
 - Pathfinder integration for navigation
@@ -34,11 +36,13 @@ The file defines phase functions for tower-bridge construction but doesn't expor
 ## Building Phases
 
 ### Tower Construction Phase
+
 - Vertical pillar jumping technique
 - Height validation and error recovery
 - Pathfinder-assisted building approach
 
 ### Bridge Construction Phase
+
 - Horizontal bridge spanning
 - Support structure management
 - Terrain adaptation and gap crossing
@@ -46,6 +50,7 @@ The file defines phase functions for tower-bridge construction but doesn't expor
 ## Technical Implementation
 
 ### Construction Strategy
+
 ```javascript
 // Multi-phase building with error handling
 try {
@@ -59,6 +64,7 @@ try {
 ```
 
 ### Error Recovery
+
 - Comprehensive try-catch blocks around building operations
 - Pathfinder state cleanup on failures
 - Graceful transition to stop phase
@@ -67,16 +73,19 @@ try {
 ## Integration Points
 
 ### Builder System Integration
+
 - Uses `buildTowerUnderneath()` for vertical construction
 - Leverages `buildBridgeWithPathfinder()` for horizontal spanning
 - Integrates with `placeMultiple()` for block placement
 
 ### Movement System Integration
+
 - Uses pathfinding for construction navigation
 - Leverages `initializePathfinder()` for building movement
 - Integrates with `stopPathfinder()` for cleanup
 
 ### Coordinator Integration
+
 - Phase-based communication via `towerBridgePhase_${iterationID}`
 - Proper stop phase transitions
 - Episode recording lifecycle support
@@ -84,6 +93,7 @@ try {
 ## Usage Examples
 
 ### Episode Execution
+
 ```javascript
 // Episode automatically handles:
 // - Tower construction using pillar jumping
@@ -95,11 +105,13 @@ try {
 ## Performance Characteristics
 
 ### Resource Usage
+
 - **CPU**: High (complex building algorithms, pathfinding)
 - **Memory**: High (structure planning, navigation state)
 - **Network**: Moderate (coordinator messages, phase coordination)
 
 ### Construction Metrics
+
 - **Tower Height**: 8 blocks vertical
 - **Bridge Length**: 10 blocks horizontal
 - **Success Rate**: Depends on terrain and navigation
@@ -108,17 +120,20 @@ try {
 ## Testing Considerations
 
 ### Deterministic Behavior
+
 - Fixed construction parameters
 - Consistent building patterns
 - Predictable error recovery
 
 ### Edge Cases
+
 - **Terrain Issues**: Navigation around obstacles
 - **Building Failures**: Structure completion problems
 - **Pathfinding Blocks**: Alternative route finding
 - **Resource Depletion**: Material availability handling
 
 ### Debug Features
+
 - Construction progress logging
 - Error condition reporting
 - Pathfinder state monitoring

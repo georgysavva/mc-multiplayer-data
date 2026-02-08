@@ -7,7 +7,11 @@ const {
   lookAtSmooth,
   sneak,
 } = require("../../utils/movement");
-const { placeAt, findPlaceReference, ensureItemInHand } = require("../../utils/building");
+const {
+  placeAt,
+  findPlaceReference,
+  ensureItemInHand,
+} = require("../../utils/building");
 const { BaseEpisode } = require("../base-episode");
 const { pickRandom } = require("../../utils/coordination");
 const { ensureBotHasEnough, unequipHand } = require("../../utils/items");
@@ -18,20 +22,20 @@ const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2x1"];
 
 // Dynamic timing functions based on block count
 const getInitialEyeContactTicks = (blockCount) => {
-  if (blockCount === 2) return 4;    // tower: 1.0 seconds (20 ticks)
-  if (blockCount === 4) return 4;    // wall: 0.75 seconds (15 ticks) - REDUCED
+  if (blockCount === 2) return 4; // tower: 1.0 seconds (20 ticks)
+  if (blockCount === 4) return 4; // wall: 0.75 seconds (15 ticks) - REDUCED
   return 4; // Default: 1.0 seconds (20 ticks)
 };
 
 const getBlockPlaceDelayTicks = (blockCount) => {
-  if (blockCount === 2) return 4;    // tower: 0.55 seconds (15 ticks)
-  if (blockCount === 4) return 4;    // wall: 0.6 seconds (12 ticks) - REDUCED
+  if (blockCount === 2) return 4; // tower: 0.55 seconds (15 ticks)
+  if (blockCount === 4) return 4; // wall: 0.6 seconds (12 ticks) - REDUCED
   return 4; // Default: 0.55 seconds (15 ticks)
 };
 
 const getBuilderAdmireTicks = (blockCount) => {
-  if (blockCount === 2) return 4;    // tower: 1.0 seconds (20 ticks)
-  if (blockCount === 4) return 4;    // wall: 0.55 seconds (15 ticks) - REDUCED
+  if (blockCount === 2) return 4; // tower: 1.0 seconds (20 ticks)
+  if (blockCount === 4) return 4; // wall: 0.55 seconds (15 ticks) - REDUCED
   return 4; // Default: 1.0 seconds (20 ticks)
 };
 
@@ -102,7 +106,13 @@ function generatePlatformPositions(startPos, width, depth) {
  * @param {number} width - Width of structure (for platform)
  * @returns {Vec3} Center position to look at
  */
-function getStructureCenterForViewing(structureType, basePos, height, length = 1, width = 1) {
+function getStructureCenterForViewing(
+  structureType,
+  basePos,
+  height,
+  length = 1,
+  width = 1,
+) {
   // All structures are built along X axis with constant Z (Z offset = 0)
   if (structureType === "tower_2x1") {
     // Tower: single column of blocks at basePos.x
@@ -144,13 +154,13 @@ function faceCenterOf(refBlock, faceVec) {
   return refBlock.position.offset(
     0.5 + faceVec.x * 0.5,
     0.5 + faceVec.y * 0.5,
-    0.5 + faceVec.z * 0.5
+    0.5 + faceVec.z * 0.5,
   );
 }
 
 function hasLineOfSightToFaceLocal(bot, refBlock, faceVec) {
   try {
-    const eye = bot.entity.position.offset(0, (bot.entity.height ?? 1.62), 0);
+    const eye = bot.entity.position.offset(0, bot.entity.height ?? 1.62, 0);
     const faceCenter = faceCenterOf(refBlock, faceVec);
     const dx = faceCenter.x - eye.x;
     const dy = faceCenter.y - eye.y;
@@ -179,7 +189,8 @@ function findVisibleReachablePlaceReferenceLocal(bot, targetPos) {
     const refPos = targetPos.plus(face);
     const refBlock = bot.blockAt(refPos);
     if (!refBlock) continue;
-    if (refBlock.boundingBox !== "block" || refBlock.material === "noteblock") continue;
+    if (refBlock.boundingBox !== "block" || refBlock.material === "noteblock")
+      continue;
     const faceVec = new Vec3(-face.x, -face.y, -face.z);
     if (!inReachLocal(bot, refBlock.position)) continue;
     if (!hasLineOfSightToFaceLocal(bot, refBlock, faceVec)) continue;
@@ -188,7 +199,14 @@ function findVisibleReachablePlaceReferenceLocal(bot, targetPos) {
   return null;
 }
 
-async function tryPlaceAtUsingLocal(bot, targetPos, itemName, refBlock, faceVec, options = {}) {
+async function tryPlaceAtUsingLocal(
+  bot,
+  targetPos,
+  itemName,
+  refBlock,
+  faceVec,
+  options = {},
+) {
   const { useSneak = true, tries = 2, args = null } = options;
   // early exit if already placed
   if (!isAirLikeLocal(bot.blockAt(targetPos))) return true;
@@ -225,7 +243,7 @@ async function tryPlaceAtUsingLocal(bot, targetPos, itemName, refBlock, faceVec,
  */
 async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
   const { delayTicks = 0 } = options;
-  
+
   // Sort positions: bottom-up (Y), then far-to-near, then left-to-right
   // FAR-TO-NEAR ensures blocks are placed from furthest to closest,
   // preventing blocks from being placed through other unplaced blocks
@@ -246,7 +264,7 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
   const LOOK_SETTLE_DELAY_TICKS = 18; // Time to wait for smooth camera rotation to complete
   let allowLookAt = true; // Flag to control when lookAt is allowed
   const originalLookAt = bot.lookAt.bind(bot);
-  bot.lookAt = async function(position, forceLook) {
+  bot.lookAt = async function (position, forceLook) {
     // Only allow lookAt when explicitly enabled
     if (allowLookAt) {
       // Use smooth looking and wait for it to settle
@@ -269,12 +287,12 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
     let blockIndex = 0; // Track which block we're placing
     for (const pos of sorted) {
       blockIndex++;
-      
+
       try {
         // Move bot to stand ADJACENT to the block position before placing
         // This creates natural "walking along while building" behavior
         const currentBotPos = bot.entity.position.clone();
-        
+
         // Calculate adjacent position with a diagonal stance (never exactly parallel)
         // For X-axis walls: move 2 blocks to the south (Z-) AND 1 block west (X-)
         // For Z-axis walls (and towers): move 2 blocks to the west (X-) AND 1 block north (Z-)
@@ -284,8 +302,9 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
         // Determine wall direction by checking if positions vary in X or Z
         const firstPos = sorted[0];
         const lastPos = sorted[sorted.length - 1];
-        const isXAxis = Math.abs(lastPos.x - firstPos.x) > Math.abs(lastPos.z - firstPos.z);
-        
+        const isXAxis =
+          Math.abs(lastPos.x - firstPos.x) > Math.abs(lastPos.z - firstPos.z);
+
         if (isXAxis) {
           // Side offset along Z-, and along-wall offset west (X-)
           adjacentPos.z -= PLACEMENT_STANDOFF_BLOCKS; // 2 blocks south
@@ -295,28 +314,34 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
           adjacentPos.x -= PLACEMENT_STANDOFF_BLOCKS; // 2 blocks west
           adjacentPos.z += -1; // 1 block north (diagonal)
         }
-        
+
         // HARD-CODED ENFORCEMENT: Skip adjacent movement for 4th block in 4-block structures
-        const skip4BlockMovement = (blockIndex === 4 && sorted.length === 4);
-        
+        const skip4BlockMovement = blockIndex === 4 && sorted.length === 4;
+
         // Move to adjacent position if not already there and skip4BlockMovement is false
         const distanceToAdjacent = currentBotPos.distanceTo(adjacentPos);
         if (distanceToAdjacent > ADJACENT_GOAL_RADIUS && !skip4BlockMovement) {
-          console.log(`[${bot.username}] 🚶 Moving to adjacent position (${adjacentPos.x.toFixed(1)}, ${adjacentPos.y}, ${adjacentPos.z.toFixed(1)}) before placing at ${pos}`);
+          console.log(
+            `[${bot.username}] 🚶 Moving to adjacent position (${adjacentPos.x.toFixed(1)}, ${adjacentPos.y}, ${adjacentPos.z.toFixed(1)}) before placing at ${pos}`,
+          );
           const adjacentGoal = new GoalNear(
             adjacentPos.x,
             adjacentPos.y,
             adjacentPos.z,
-            ADJACENT_GOAL_RADIUS
+            ADJACENT_GOAL_RADIUS,
           );
-          
+
           try {
             await gotoWithTimeout(bot, adjacentGoal, { timeoutTicks: 60 });
           } catch (moveError) {
-            console.log(`[${bot.username}] ⚠️ Could not move to adjacent position: ${moveError.message}`);
+            console.log(
+              `[${bot.username}] ⚠️ Could not move to adjacent position: ${moveError.message}`,
+            );
           }
         } else if (skip4BlockMovement) {
-          console.log(`[${bot.username}] � FORCED NO-MOVE: Skipping adjacent movement for 4th block at ${pos}`);
+          console.log(
+            `[${bot.username}] � FORCED NO-MOVE: Skipping adjacent movement for 4th block at ${pos}`,
+          );
         }
 
         // HARD-CODED FIX: Force 4th block to use the block directly below (top face)
@@ -328,37 +353,46 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
           if (belowBlock && belowBlock.boundingBox === "block") {
             forcedReference = {
               refBlock: belowBlock,
-              faceVec: new Vec3(0, 1, 0) // Click the TOP face
+              faceVec: new Vec3(0, 1, 0), // Click the TOP face
             };
-            console.log(`[${bot.username}] 🎯 FORCED: 4th block will use TOP face of block below at ${belowPos}`);
+            console.log(
+              `[${bot.username}] 🎯 FORCED: 4th block will use TOP face of block below at ${belowPos}`,
+            );
           }
         }
-        
+
         // Use forced reference if available, otherwise use normal logic
-        const visibleRef = forcedReference || findVisibleReachablePlaceReferenceLocal(bot, pos);
+        const visibleRef =
+          forcedReference || findVisibleReachablePlaceReferenceLocal(bot, pos);
         // Fallback reference if none visible from here (may trigger pathfinder later)
         const placeReference = visibleRef || findPlaceReference(bot, pos);
         if (placeReference) {
           const { refBlock, faceVec } = placeReference;
-          
+
           // Calculate the specific face position to look at (not the center)
           const lookAtFacePos = refBlock.position.offset(
             0.5 + faceVec.x * 0.5,
             0.5 + faceVec.y * 0.5,
-            0.5 + faceVec.z * 0.5
+            0.5 + faceVec.z * 0.5,
           );
-          
+
           // EXPLICITLY look at the reference block's face (where we'll click)
           // This also verifies line of sight - if lookAt fails, we don't have LOS
           allowLookAt = true;
           try {
             await bot.lookAt(lookAtFacePos);
-            console.log(`[${bot.username}] 👁️ Looking at reference face at ${refBlock.position} (face: ${faceVec.x},${faceVec.y},${faceVec.z}) ${visibleRef ? "[visible+reachable]" : "[fallback]"}${skip4BlockMovement ? " [NO-MOVE]" : ""}`);
+            console.log(
+              `[${bot.username}] 👁️ Looking at reference face at ${refBlock.position} (face: ${faceVec.x},${faceVec.y},${faceVec.z}) ${visibleRef ? "[visible+reachable]" : "[fallback]"}${skip4BlockMovement ? " [NO-MOVE]" : ""}`,
+            );
           } catch (lookError) {
-            console.log(`[${bot.username}] ⚠️ Cannot look at reference block face - no line of sight: ${lookError.message}`);
+            console.log(
+              `[${bot.username}] ⚠️ Cannot look at reference block face - no line of sight: ${lookError.message}`,
+            );
           }
         } else {
-          console.log(`[${bot.username}] ⚠️ No reference block found for position ${pos}`);
+          console.log(
+            `[${bot.username}] ⚠️ No reference block found for position ${pos}`,
+          );
         }
 
         // Now disable lookAt during placeAt to prevent camera resetting
@@ -366,15 +400,24 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
         // If we have a visible+reachable face, place directly using it; else fallback to robust placeAt (may pathfind)
         let placed;
         if (visibleRef) {
-          placed = await tryPlaceAtUsingLocal(bot, pos, itemName, visibleRef.refBlock, visibleRef.faceVec, options);
+          placed = await tryPlaceAtUsingLocal(
+            bot,
+            pos,
+            itemName,
+            visibleRef.refBlock,
+            visibleRef.faceVec,
+            options,
+          );
           if (!placed) {
-            console.log(`[${bot.username}] 🔁 Visible+reachable face placement failed; falling back to robust placeAt (may pathfind)`);
+            console.log(
+              `[${bot.username}] 🔁 Visible+reachable face placement failed; falling back to robust placeAt (may pathfind)`,
+            );
             placed = await placeAt(bot, pos, itemName, options);
           }
         } else {
           placed = await placeAt(bot, pos, itemName, options);
         }
-        
+
         if (placed) {
           success++;
           console.log(`[${bot.username}] ✅ Placed block at ${pos}`);
@@ -385,10 +428,10 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
       } catch (error) {
         failed++;
         console.log(
-          `[${bot.username}] ❌ Error placing at ${pos}: ${error.message}`
+          `[${bot.username}] ❌ Error placing at ${pos}: ${error.message}`,
         );
       }
-      
+
       // Add delay between blocks if specified
       if (delayTicks > 0) {
         await bot.waitForTicks(delayTicks);
@@ -413,7 +456,7 @@ async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
  */
 async function buildStructure(bot, positions, blockType, args) {
   console.log(
-    `[${bot.username}] 🏗️ Starting to build ${positions.length} blocks...`
+    `[${bot.username}] 🏗️ Starting to build ${positions.length} blocks...`,
   );
 
   // Initialize pathfinder for movement
@@ -434,10 +477,10 @@ async function buildStructure(bot, positions, blockType, args) {
 
     console.log(`[${bot.username}] 🏁 Build complete!`);
     console.log(
-      `[${bot.username}]    Success: ${result.success}/${positions.length}`
+      `[${bot.username}]    Success: ${result.success}/${positions.length}`,
     );
     console.log(
-      `[${bot.username}]    Failed: ${result.failed}/${positions.length}`
+      `[${bot.username}]    Failed: ${result.failed}/${positions.length}`,
     );
 
     return result;
@@ -466,24 +509,26 @@ function getOnStructureEvalPhaseFn(
   iterationID,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async function onStructureEvalPhase(otherBotPosition) {
     coordinator.sendToOtherBot(
       `structureEvalPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `structureEvalPhase_${iterationID} beginning`
+      `structureEvalPhase_${iterationID} beginning`,
     );
 
-    console.log(`[${bot.username}] 🚀 Starting STRUCTURE EVAL phase ${iterationID}`);
+    console.log(
+      `[${bot.username}] 🚀 Starting STRUCTURE EVAL phase ${iterationID}`,
+    );
 
     // Save initial spawn position for later return
     const initialSpawnPos = bot.entity.position.clone();
     console.log(
-      `[${bot.username}] 📍 Spawn position: ${initialSpawnPos.toString()}`
+      `[${bot.username}] 📍 Spawn position: ${initialSpawnPos.toString()}`,
     );
-    
+
     // Track start tick for minimum episode duration
     let startTick = null;
 
@@ -493,8 +538,11 @@ function getOnStructureEvalPhaseFn(
     // Determine role assignment using shared RNG for true 50/50 randomization
     // Both bots use the same random seed, so they agree on who is builder/observer
     const roleAssignmentModes = ["alpha_builds", "bravo_builds"];
-    const selectedRoleMode = roleAssignmentModes[Math.floor(sharedBotRng() * roleAssignmentModes.length)];
-    
+    const selectedRoleMode =
+      roleAssignmentModes[
+        Math.floor(sharedBotRng() * roleAssignmentModes.length)
+      ];
+
     // Determine if this bot is the builder based on the randomly selected mode
     let isBuilder;
     if (selectedRoleMode === "alpha_builds") {
@@ -502,28 +550,34 @@ function getOnStructureEvalPhaseFn(
     } else {
       isBuilder = bot.username >= args.other_bot_name; // Bravo (higher name) builds
     }
-    
+
     const role = isBuilder ? "BUILDER" : "OBSERVER";
-    
+
     console.log(
-      `[${bot.username}] 🎭 Role mode: ${selectedRoleMode}, Role: ${role}`
+      `[${bot.username}] 🎭 Role mode: ${selectedRoleMode}, Role: ${role}`,
     );
-    
+
     // Calculate builder's spawn position for structure location (both bots need this)
     // Builder uses their own spawn, observer uses the other bot's spawn position
     // Note: otherBotPosition is a plain object from coordinator, need to convert to Vec3
-    const builderSpawnPos = isBuilder 
-      ? initialSpawnPos.floored() 
-      : new Vec3(otherBotPosition.x, otherBotPosition.y, otherBotPosition.z).floored();
-    
+    const builderSpawnPos = isBuilder
+      ? initialSpawnPos.floored()
+      : new Vec3(
+          otherBotPosition.x,
+          otherBotPosition.y,
+          otherBotPosition.z,
+        ).floored();
+
     // STEP 1b-pre: Builder equips stone block in hand (before any movement or interactions)
     if (isBuilder) {
       console.log(
-        `[${bot.username}] 🔧 STEP 1b-pre: Equipping stone in hand...`
+        `[${bot.username}] 🔧 STEP 1b-pre: Equipping stone in hand...`,
       );
       try {
         // Find stone block in inventory
-        const stoneItem = bot.inventory.items().find(item => item.name === "stone");
+        const stoneItem = bot.inventory
+          .items()
+          .find((item) => item.name === "stone");
         if (stoneItem) {
           await bot.equip(stoneItem, "hand");
           console.log(`[${bot.username}] ✅ Equipped stone in hand`);
@@ -532,24 +586,24 @@ function getOnStructureEvalPhaseFn(
         }
       } catch (equipError) {
         console.log(
-          `[${bot.username}] ⚠️ Could not equip stone: ${equipError.message}`
+          `[${bot.username}] ⚠️ Could not equip stone: ${equipError.message}`,
         );
       }
       await bot.waitForTicks(15); // Brief pause after equipping
     }
-    
+
     // STEP 1b-sneak: Builder sneaks (acknowledgment gesture), Observer remains stationary
     if (isBuilder) {
-      console.log(
-        `[${bot.username}] STEP 1b-sneak: Sneaking...`
-      );
+      console.log(`[${bot.username}] STEP 1b-sneak: Sneaking...`);
       await sneak(bot);
       // Record tick number after sneak
       startTick = bot.time.age;
-      console.log(`[${bot.username}] ✅ Sneak complete, startTick: ${startTick}`);
+      console.log(
+        `[${bot.username}] ✅ Sneak complete, startTick: ${startTick}`,
+      );
     } else {
       console.log(
-        `[${bot.username}] STEP 1b-sneak: Remaining stationary (observer role)`
+        `[${bot.username}] STEP 1b-sneak: Remaining stationary (observer role)`,
       );
       // Observer waits equivalent time but does nothing
       await bot.waitForTicks(15);
@@ -560,40 +614,50 @@ function getOnStructureEvalPhaseFn(
     // STEP 2: Initial eye contact (BUILDER only, observer remains stationary)
     if (isBuilder) {
       console.log(
-        `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
+        `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`,
       );
       try {
         const otherEntity = bot.players[args.other_bot_name]?.entity;
         if (otherEntity) {
-          const targetPos = otherEntity.position.offset(0, otherEntity.height, 0);
+          const targetPos = otherEntity.position.offset(
+            0,
+            otherEntity.height,
+            0,
+          );
           await bot.lookAt(targetPos);
-          await bot.waitForTicks(getInitialEyeContactTicks(ALL_STRUCTURE_TYPES.length));
+          await bot.waitForTicks(
+            getInitialEyeContactTicks(ALL_STRUCTURE_TYPES.length),
+          );
         }
       } catch (lookError) {
         console.log(
-          `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+          `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`,
         );
       }
     } else {
       console.log(
-        `[${bot.username}] 🧍 STEP 2: Remaining stationary (observer role)...`
+        `[${bot.username}] 🧍 STEP 2: Remaining stationary (observer role)...`,
       );
-      await bot.waitForTicks(getInitialEyeContactTicks(ALL_STRUCTURE_TYPES.length));
+      await bot.waitForTicks(
+        getInitialEyeContactTicks(ALL_STRUCTURE_TYPES.length),
+      );
     }
 
     // STEP 3: Determine build positions based on bot role
-    console.log(
-      `[${bot.username}] 📐 STEP 3: Planning structure...`
-    );
-    
+    console.log(`[${bot.username}] 📐 STEP 3: Planning structure...`);
+
     // Both bots use shared RNG to select the same structure type and block type
-    const structureType = ALL_STRUCTURE_TYPES[Math.floor(sharedBotRng() * ALL_STRUCTURE_TYPES.length)];
-    const blockType = BUILD_BLOCK_TYPES[Math.floor(sharedBotRng() * BUILD_BLOCK_TYPES.length)];
-    
+    const structureType =
+      ALL_STRUCTURE_TYPES[
+        Math.floor(sharedBotRng() * ALL_STRUCTURE_TYPES.length)
+      ];
+    const blockType =
+      BUILD_BLOCK_TYPES[Math.floor(sharedBotRng() * BUILD_BLOCK_TYPES.length)];
+
     console.log(
-      `[${bot.username}] 🎲 Randomly selected: ${structureType} with ${blockType}`
+      `[${bot.username}] 🎲 Randomly selected: ${structureType} with ${blockType}`,
     );
-    
+
     // Record important episode metadata (like translation-eval-episode.js)
     const builderBotName = isBuilder ? bot.username : args.other_bot_name;
     const observerBotName = isBuilder ? args.other_bot_name : bot.username;
@@ -604,7 +668,7 @@ function getOnStructureEvalPhaseFn(
       observer_bot: observerBotName,
       role_assignment_mode: selectedRoleMode,
     };
-    
+
     const botPos = builderSpawnPos.floored();
     let positions = [];
     let structureBasePos = null;
@@ -647,19 +711,22 @@ function getOnStructureEvalPhaseFn(
     }
 
     console.log(
-      `[${bot.username}] 📋 ${isBuilder ? 'Building' : 'Observing'} ${positions.length} blocks with ${blockType}`
+      `[${bot.username}] 📋 ${isBuilder ? "Building" : "Observing"} ${positions.length} blocks with ${blockType}`,
     );
 
     // STEP 4: Build the structure (only builder builds, observer watches)
     let buildResult = { placed: 0, failed: 0 };
-    
+
     if (isBuilder) {
       console.log(`[${bot.username}] 🏗️ STEP 4: Building structure...`);
       buildResult = await buildStructure(bot, positions, blockType, args);
     } else {
-      console.log(`[${bot.username}] 🧍 STEP 4: Remaining stationary (observer role)...`);
+      console.log(
+        `[${bot.username}] 🧍 STEP 4: Remaining stationary (observer role)...`,
+      );
       // Observer remains completely stationary - no looking, no movement
-      const totalWatchTime = positions.length * getBlockPlaceDelayTicks(positions.length);
+      const totalWatchTime =
+        positions.length * getBlockPlaceDelayTicks(positions.length);
       await bot.waitForTicks(totalWatchTime);
       console.log(`[${bot.username}] ✅ Finished waiting (stationary)`);
     }
@@ -667,7 +734,7 @@ function getOnStructureEvalPhaseFn(
     // STEP 5: Both bots move to the front of the structure (axially aligned)
     // This ensures both bots view the structure from the front, not the side
     console.log(
-      `[${bot.username}] 🚶 STEP 5: Moving to front of structure (axially aligned)...`
+      `[${bot.username}] 🚶 STEP 5: Moving to front of structure (axially aligned)...`,
     );
     try {
       initializePathfinder(bot, {
@@ -680,21 +747,22 @@ function getOnStructureEvalPhaseFn(
       // Calculate the actual structure base position based on builder's spawn
       // Structure is always built at builderSpawnPos.offset(1, 0, 0)
       const actualStructureBasePos = builderSpawnPos.offset(1, 0, 0);
-      
+
       // For walls built along X axis, "front" is along the Z axis
       // We want both bots to be axially aligned with the structure's center X
       const FRONT_DISTANCE = 6; // Stand 4 blocks in front of the structure
-      const actualStructureCenterX = actualStructureBasePos.x + (structureLength) / 2;
+      const actualStructureCenterX =
+        actualStructureBasePos.x + structureLength / 2;
       const frontZ = actualStructureBasePos.z - FRONT_DISTANCE; // Front is in -Z direction
-      
+
       // Both bots stand side by side, axially aligned with structure center
       // Offset along X so they don't overlap
       const sideOffset = isBuilder ? 1 : -1; // Builder to the right, observer to the left
       const targetX = actualStructureCenterX + sideOffset;
       const targetZ = frontZ;
-      
+
       console.log(
-        `[${bot.username}] 📐 Structure center X: ${actualStructureCenterX.toFixed(1)}, moving to front position (${targetX.toFixed(1)}, ${targetZ.toFixed(1)})`
+        `[${bot.username}] 📐 Structure center X: ${actualStructureCenterX.toFixed(1)}, moving to front position (${targetX.toFixed(1)}, ${targetZ.toFixed(1)})`,
       );
 
       // Move to front position (axially aligned with structure)
@@ -702,24 +770,37 @@ function getOnStructureEvalPhaseFn(
         targetX,
         bot.entity.position.y,
         targetZ,
-        1 // Get within 1 block of the target position
+        1, // Get within 1 block of the target position
       );
       await gotoWithTimeout(bot, frontGoal, { timeoutTicks: 200 });
-      console.log(`[${bot.username}] ✅ Moved to front of structure (axially aligned)`);
-      
+      console.log(
+        `[${bot.username}] ✅ Moved to front of structure (axially aligned)`,
+      );
+
       // Calculate the structure center for viewing (using actualStructureCenterX)
-      const viewPosition = getStructureCenterForViewing(structureType, actualStructureBasePos, structureHeight, structureLength, structureWidth);
-      
+      const viewPosition = getStructureCenterForViewing(
+        structureType,
+        actualStructureBasePos,
+        structureHeight,
+        structureLength,
+        structureWidth,
+      );
+
       // Look at the structure together
       if (viewPosition) {
         console.log(`[${bot.username}] 👁️ Looking at structure from front...`);
-        await lookAtSmooth(bot, viewPosition, 90, { randomized: false, useEasing: false });
+        await lookAtSmooth(bot, viewPosition, 90, {
+          randomized: false,
+          useEasing: false,
+        });
         await bot.waitForTicks(getBuilderAdmireTicks(positions.length));
-        console.log(`[${bot.username}] ✅ Admired structure from front position`);
+        console.log(
+          `[${bot.username}] ✅ Admired structure from front position`,
+        );
       }
     } catch (pathError) {
       console.log(
-        `[${bot.username}] ⚠️ Could not move to front: ${pathError.message}`
+        `[${bot.username}] ⚠️ Could not move to front: ${pathError.message}`,
       );
     } finally {
       stopPathfinder(bot);
@@ -730,13 +811,19 @@ function getOnStructureEvalPhaseFn(
       const endTick = bot.time.age;
       const remainingTicks = EPISODE_MIN_TICKS - (endTick - startTick);
       if (remainingTicks > 0) {
-        console.log(`[${bot.username}] waiting ${remainingTicks} more ticks to reach ${EPISODE_MIN_TICKS} total ticks`);
+        console.log(
+          `[${bot.username}] waiting ${remainingTicks} more ticks to reach ${EPISODE_MIN_TICKS} total ticks`,
+        );
         await bot.waitForTicks(remainingTicks);
       } else {
-        console.log(`[${bot.username}] already passed ${EPISODE_MIN_TICKS} ticks (elapsed: ${endTick - startTick})`);
+        console.log(
+          `[${bot.username}] already passed ${EPISODE_MIN_TICKS} ticks (elapsed: ${endTick - startTick})`,
+        );
       }
     } else {
-      console.log(`[${bot.username}] startTick is null, skipping minimum ticks check`);
+      console.log(
+        `[${bot.username}] startTick is null, skipping minimum ticks check`,
+      );
     }
 
     console.log(`[${bot.username}] ✅ STRUCTURE EVAL phase complete!`);
@@ -752,14 +839,14 @@ function getOnStructureEvalPhaseFn(
         coordinator,
         args.other_bot_name,
         episodeNum,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
-      `structureEvalPhase_${iterationID} end`
+      `structureEvalPhase_${iterationID} end`,
     );
 
     return buildResult;
@@ -778,7 +865,16 @@ class StructureEvalEpisode extends BaseEpisode {
     super();
   }
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
+  async setupEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args,
+    botPosition,
+    otherBotPosition,
+  ) {
     for (const blockType of BUILD_BLOCK_TYPES) {
       await ensureBotHasEnough(bot, rcon, blockType, 64);
     }
@@ -796,7 +892,7 @@ class StructureEvalEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     coordinator.onceEvent(
       `structureEvalPhase_${iterationID}`,
@@ -809,14 +905,14 @@ class StructureEvalEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `structureEvalPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      "entryPoint end"
+      "entryPoint end",
     );
   }
 
@@ -826,7 +922,7 @@ class StructureEvalEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    args
+    args,
   ) {
     // Clean up any remaining blocks from inventory
   }

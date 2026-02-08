@@ -44,25 +44,25 @@ function getOnBuildTowerPhaseFn(
   iterationID,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async function onBuildTowerPhase(otherBotPosition) {
     coordinator.sendToOtherBot(
       `buildTowerPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `buildTowerPhase_${iterationID} beginning`
+      `buildTowerPhase_${iterationID} beginning`,
     );
 
     console.log(
-      `[${bot.username}] 🚀 Starting BUILD TOWER phase ${iterationID}`
+      `[${bot.username}] 🚀 Starting BUILD TOWER phase ${iterationID}`,
     );
 
     // STEP 1: Bots spawn (already done by teleport phase)
     console.log(`[${bot.username}] ✅ STEP 1: Bot spawned`);
     // STEP 2: Initial eye contact
     console.log(
-      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`
+      `[${bot.username}] 👀 STEP 2: Making eye contact with ${args.other_bot_name}...`,
     );
     try {
       const otherEntity = bot.players[args.other_bot_name]?.entity;
@@ -73,7 +73,7 @@ function getOnBuildTowerPhaseFn(
       }
     } catch (lookError) {
       console.log(
-        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`,
       );
     }
 
@@ -88,7 +88,7 @@ function getOnBuildTowerPhaseFn(
 
     // STEP 5: Build the tower
     console.log(
-      `[${bot.username}] 🗼 STEP 5: Building ${towerHeight}-block tower with ${TOWER_BLOCK_TYPE}...`
+      `[${bot.username}] 🗼 STEP 5: Building ${towerHeight}-block tower with ${TOWER_BLOCK_TYPE}...`,
     );
     const buildResult = await buildTowerUnderneath(bot, towerHeight, args, {
       blockType: TOWER_BLOCK_TYPE,
@@ -107,13 +107,13 @@ function getOnBuildTowerPhaseFn(
       }
     } catch (lookError) {
       console.log(
-        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`
+        `[${bot.username}] ⚠️ Could not look at other bot: ${lookError.message}`,
       );
     }
 
     console.log(`[${bot.username}] ✅ BUILD TOWER phase complete!`);
     console.log(
-      `[${bot.username}] 📊 Final stats: ${buildResult.success}/${towerHeight} blocks placed`
+      `[${bot.username}] 📊 Final stats: ${buildResult.success}/${towerHeight} blocks placed`,
     );
 
     // STEP 7: Transition to stop phase (end episode)
@@ -127,14 +127,14 @@ function getOnBuildTowerPhaseFn(
         coordinator,
         args.other_bot_name,
         episodeNum,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
-      `buildTowerPhase_${iterationID} end`
+      `buildTowerPhase_${iterationID} end`,
     );
 
     return buildResult;
@@ -163,7 +163,16 @@ class BuildTowerEpisode extends BaseEpisode {
   static INIT_MAX_BOTS_DISTANCE = 15;
   static WORKS_IN_NON_FLAT_WORLD = true;
 
-  async setupEpisode(bot, rcon, sharedBotRng, coordinator, episodeNum, args, botPosition, otherBotPosition) {
+  async setupEpisode(
+    bot,
+    rcon,
+    sharedBotRng,
+    coordinator,
+    episodeNum,
+    args,
+    botPosition,
+    otherBotPosition,
+  ) {
     // Give tower building blocks via RCON
     await ensureBotHasEnough(bot, rcon, TOWER_BLOCK_TYPE, 64);
     await unequipHand(bot);
@@ -180,7 +189,7 @@ class BuildTowerEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     coordinator.onceEvent(
       `buildTowerPhase_${iterationID}`,
@@ -193,14 +202,14 @@ class BuildTowerEpisode extends BaseEpisode {
         iterationID,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `buildTowerPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      "entryPoint end"
+      "entryPoint end",
     );
   }
 
@@ -210,7 +219,7 @@ class BuildTowerEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    args
+    args,
   ) {
     // Clean up any remaining blocks from inventory
   }

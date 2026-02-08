@@ -2,11 +2,11 @@
 // Weight = 1 / sqrt(length), so shorter episodes are sampled more frequently
 const episodeTypicalLengths = {
   straightLineWalk: 20,
-  chase: 10,   
+  chase: 10,
   orbit: 60,
   walkLook: 60,
   walkLookAway: 60,
-  pvp: 15,      
+  pvp: 15,
   pve: 60,
   buildStructure: 15,
   buildTower: 12,
@@ -32,14 +32,21 @@ const episodeTypicalLengths = {
  * @param {boolean} ignoreEvalEpisodes - If true, filter out episode types ending in "Eval"
  * @returns {string} Selected episode type
  */
-function selectWeightedEpisodeType(episodeTypes, sharedBotRng, uniform = false, ignoreEvalEpisodes = true) {
+function selectWeightedEpisodeType(
+  episodeTypes,
+  sharedBotRng,
+  uniform = false,
+  ignoreEvalEpisodes = true,
+) {
   // Filter out eval episodes if requested
   const filteredTypes = ignoreEvalEpisodes
     ? episodeTypes.filter((type) => !type.toLowerCase().endsWith("eval"))
     : episodeTypes;
 
   if (filteredTypes.length === 0) {
-    throw new Error("No episode types available to sample from after filtering out eval episodes");
+    throw new Error(
+      "No episode types available to sample from after filtering out eval episodes",
+    );
   }
 
   // Calculate weights: uniform or 1 / sqrt(length) for each episode type
@@ -49,7 +56,9 @@ function selectWeightedEpisodeType(episodeTypes, sharedBotRng, uniform = false, 
     }
     const length = episodeTypicalLengths[type];
     if (length === undefined) {
-      throw new Error(`Episode type "${type}" not found in episodeTypicalLengths`);
+      throw new Error(
+        `Episode type "${type}" not found in episodeTypicalLengths`,
+      );
     }
     return 1 / Math.sqrt(length);
   });
@@ -79,4 +88,3 @@ module.exports = {
   episodeTypicalLengths,
   selectWeightedEpisodeType,
 };
-

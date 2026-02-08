@@ -40,11 +40,17 @@ const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
 const { StructureEvalEpisode } = require("./eval/structureEval");
 const { StructureNoPlaceEvalEpisode } = require("./eval/structureNoPlaceEval");
 const { TranslationEvalEpisode } = require("./eval/translation-eval-episode");
-const { BothLookAwayEvalEpisode } = require("./eval/both-look-away-eval-episode");
-const { OneLooksAwayEvalEpisode } = require("./eval/one-looks-away-eval-episode");
+const {
+  BothLookAwayEvalEpisode,
+} = require("./eval/both-look-away-eval-episode");
+const {
+  OneLooksAwayEvalEpisode,
+} = require("./eval/one-looks-away-eval-episode");
 const { RotationEvalEpisode } = require("./eval/rotation-eval-episode");
 const { TurnToLookEvalEpisode } = require("./eval/turn-to-look-eval-episode");
-const { TurnToLookOppositeEvalEpisode } = require("./eval/turn-to-look-opposite-eval-episode");
+const {
+  TurnToLookOppositeEvalEpisode,
+} = require("./eval/turn-to-look-opposite-eval-episode");
 const turnToLookEvalTpPoints = require("./eval/turn-to-look-eval-episode-tp-points.json");
 
 // Map episode type strings to their class implementations
@@ -92,7 +98,9 @@ const evalEpisodeClasses = [
  * @returns {boolean} True if the episode is an eval episode
  */
 function isEvalEpisode(episodeInstance) {
-  return evalEpisodeClasses.some(EvalClass => episodeInstance instanceof EvalClass);
+  return evalEpisodeClasses.some(
+    (EvalClass) => episodeInstance instanceof EvalClass,
+  );
 }
 
 // Import episode-specific handlers
@@ -124,7 +132,8 @@ const defaultEpisodeTypes = [
   "turnToLookOppositeEval",
 ];
 
-const isCustomEpisodeTypes = process.env.EPISODE_TYPES && process.env.EPISODE_TYPES !== "all";
+const isCustomEpisodeTypes =
+  process.env.EPISODE_TYPES && process.env.EPISODE_TYPES !== "all";
 // Load episode types from environment variable or use default
 const episodeTypes = isCustomEpisodeTypes
   ? process.env.EPISODE_TYPES.split(",").map((type) => type.trim())
@@ -133,7 +142,7 @@ const episodeTypes = isCustomEpisodeTypes
 function formatDateForFilename(date) {
   const pad = (value, length = 2) => String(value).padStart(length, "0");
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(
-    date.getDate()
+    date.getDate(),
   )}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
@@ -168,14 +177,14 @@ async function saveEpisodeInfo({
     peer_encountered_error: Boolean(episodeInstance?._peerError),
     bot_died: Boolean(episodeInstance?._botDied),
     episode_recording_started: Boolean(
-      episodeInstance?._episodeRecordingStarted
+      episodeInstance?._episodeRecordingStarted,
     ),
     eval_metadata: episodeInstance?._evalMetadata || {},
   };
 
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2));
   console.log(
-    `[${bot.username}] Saved episode info to ${filePath} (encountered_error=${payload.encountered_error}, peer_encountered_error=${payload.peer_encountered_error}, bot_died=${payload.bot_died})`
+    `[${bot.username}] Saved episode info to ${filePath} (encountered_error=${payload.encountered_error}, peer_encountered_error=${payload.peer_encountered_error}, bot_died=${payload.bot_died})`,
   );
 }
 /**
@@ -195,7 +204,7 @@ async function runSingleEpisode(
   coordinator,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   console.log(`[${bot.username}] Starting episode ${episodeNum}`);
 
@@ -211,7 +220,7 @@ async function runSingleEpisode(
     const handleAnyError = async (err) => {
       if (episodeErrorHandled) {
         console.log(
-          `[${bot.username}] Episode ${episodeNum} error already handled, skipping.`
+          `[${bot.username}] Episode ${episodeNum} error already handled, skipping.`,
         );
         return;
       }
@@ -225,12 +234,12 @@ async function runSingleEpisode(
         episodeNum,
         episodeInstance,
         args,
-        err
+        err,
       );
     };
     const handleBotDeath = () => {
       console.warn(
-        `[${bot.username}] Episode ${episodeNum} detected bot death`
+        `[${bot.username}] Episode ${episodeNum} detected bot death`,
       );
       episodeInstance._botDied = true;
     };
@@ -253,8 +262,8 @@ async function runSingleEpisode(
     const { x, y, z } = bot.entity.position;
     console.log(
       `[${bot.username}] episode ${episodeNum} at (${x.toFixed(2)}, ${y.toFixed(
-        2
-      )}, ${z.toFixed(2)})`
+        2,
+      )}, ${z.toFixed(2)})`,
     );
 
     coordinator.onceEvent(
@@ -267,8 +276,8 @@ async function runSingleEpisode(
         coordinator,
         episodeNum,
         episodeInstance,
-        args
-      )
+        args,
+      ),
     );
     const phaseDataOur = {
       position: bot.entity.position.clone(),
@@ -285,14 +294,14 @@ async function runSingleEpisode(
         episodeNum,
         episodeInstance,
         args,
-        phaseDataOur
-      )
+        phaseDataOur,
+      ),
     );
     coordinator.sendToOtherBot(
       "teleportPhase",
       phaseDataOur,
       episodeNum,
-      "spawnPhase end"
+      "spawnPhase end",
     );
   });
 }
@@ -305,18 +314,18 @@ async function notifyPeerErrorAndStop(
   episodeNum,
   episodeInstance,
   args,
-  error
+  error,
 ) {
   const reason = error && error.message ? error.message : String(error);
   console.error(
     `[${bot.username}] Episode ${episodeNum} encountered an error:`,
-    error
+    error,
   );
   coordinator.sendToOtherBot(
     `peerErrorPhase_${episodeNum}`,
     { reason },
     episodeNum,
-    "error notifier"
+    "error notifier",
   );
   coordinator.onceEvent(
     "stopPhase",
@@ -328,14 +337,14 @@ async function notifyPeerErrorAndStop(
       coordinator,
       args.other_bot_name,
       episodeNum,
-      args
-    )
+      args,
+    ),
   );
   coordinator.sendToOtherBot(
     "stopPhase",
     bot.entity.position.clone(),
     episodeNum,
-    `error notifier end`
+    `error notifier end`,
   );
   // Initiate our own stop sequence
 }
@@ -347,46 +356,46 @@ async function notifyPeerErrorAndStop(
  */
 async function setupBotAndWorldOnce(bot, rcon) {
   const resistEffectRes = await rcon.send(
-    `effect give ${bot.username} minecraft:resistance 999999 255 true`
+    `effect give ${bot.username} minecraft:resistance 999999 255 true`,
   );
   console.log(`[${bot.username}] resistEffectRes=${resistEffectRes}`);
   const waterBreathingEffectRes = await rcon.send(
-    `effect give ${bot.username} minecraft:water_breathing 999999 0 true`
+    `effect give ${bot.username} minecraft:water_breathing 999999 0 true`,
   );
   console.log(
-    `[${bot.username}] waterBreathingEffectRes=${waterBreathingEffectRes}`
+    `[${bot.username}] waterBreathingEffectRes=${waterBreathingEffectRes}`,
   );
   const fallDamageRes = await rcon.send(
-    `attribute ${bot.username} minecraft:fall_damage_multiplier base set 0`
+    `attribute ${bot.username} minecraft:fall_damage_multiplier base set 0`,
   );
   console.log(`[${bot.username}] fallDamageRes=${fallDamageRes}`);
   const difficultyRes = await rcon.send("difficulty peaceful"); // or hard
   console.log(
-    `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`
+    `[${bot.username}] set difficulty to peaceful, difficultyRes=${difficultyRes}`,
   );
   const fallDamageGameruleRes = await rcon.send("gamerule fallDamage false");
   console.log(
-    `[${bot.username}] set fallDamage gamerule to false, fallDamageGameruleRes=${fallDamageGameruleRes}`
+    `[${bot.username}] set fallDamage gamerule to false, fallDamageGameruleRes=${fallDamageGameruleRes}`,
   );
   const doImmediateRespawnRes = await rcon.send(
-    "gamerule doImmediateRespawn true"
+    "gamerule doImmediateRespawn true",
   );
   console.log(
-    `[${bot.username}] set doImmediateRespawn gamerule to true, doImmediateRespawnRes=${doImmediateRespawnRes}`
+    `[${bot.username}] set doImmediateRespawn gamerule to true, doImmediateRespawnRes=${doImmediateRespawnRes}`,
   );
   const keepInventoryRes = await rcon.send("gamerule keepInventory true");
   console.log(
-    `[${bot.username}] set keepInventory gamerule to true, keepInventoryRes=${keepInventoryRes}`
+    `[${bot.username}] set keepInventory gamerule to true, keepInventoryRes=${keepInventoryRes}`,
   );
   const showDeathMessagesRes = await rcon.send(
-    "gamerule showDeathMessages false"
+    "gamerule showDeathMessages false",
   );
   console.log(
-    `[${bot.username}] set showDeathMessages gamerule to false, showDeathMessagesRes=${showDeathMessagesRes}`
+    `[${bot.username}] set showDeathMessages gamerule to false, showDeathMessagesRes=${showDeathMessagesRes}`,
   );
   const tagResult = await rcon.send(`tag ${bot.username} add minebot`);
   console.log(
-    `[${bot.username}] tag ${bot.username} add minebot result: ${tagResult}`
+    `[${bot.username}] tag ${bot.username} add minebot result: ${tagResult}`,
   );
 }
 
@@ -398,17 +407,17 @@ async function setupBotAndWorldOnce(bot, rcon) {
 async function setupCameraPlayerOnce(bot, rcon) {
   const cameraUsername = `Camera${bot.username}`;
   const resistEffectResCamera = await rcon.send(
-    `effect give ${cameraUsername} minecraft:resistance 999999 255 true`
+    `effect give ${cameraUsername} minecraft:resistance 999999 255 true`,
   );
   console.log(`[${cameraUsername}] resistEffectRes=${resistEffectResCamera}`);
   const waterBreathingEffectResCamera = await rcon.send(
-    `effect give ${cameraUsername} minecraft:water_breathing 999999 0 true`
+    `effect give ${cameraUsername} minecraft:water_breathing 999999 0 true`,
   );
   console.log(
-    `[${cameraUsername}] waterBreathingEffectRes=${waterBreathingEffectResCamera}`
+    `[${cameraUsername}] waterBreathingEffectRes=${waterBreathingEffectResCamera}`,
   );
   const fallDamageResCamera = await rcon.send(
-    `attribute ${cameraUsername} minecraft:fall_damage_multiplier base set 0`
+    `attribute ${cameraUsername} minecraft:fall_damage_multiplier base set 0`,
   );
   console.log(`[${cameraUsername}] fallDamageRes=${fallDamageResCamera}`);
 }
@@ -421,12 +430,12 @@ async function setupCameraPlayerOnce(bot, rcon) {
  */
 async function setupBotAndCameraForEpisode(bot, rcon, args) {
   const saturationEffectRes = await rcon.send(
-    `effect give ${bot.username} minecraft:saturation 999999 255 true`
+    `effect give ${bot.username} minecraft:saturation 999999 255 true`,
   );
   console.log(`[${bot.username}] saturationEffectRes=${saturationEffectRes}`);
   if (args.enable_camera_wait) {
     const camRes = await rcon.send(
-      `effect give Camera${bot.username} minecraft:saturation 999999 255 true`
+      `effect give Camera${bot.username} minecraft:saturation 999999 255 true`,
     );
     console.log(`[${bot.username}] Camera saturationEffectRes=${camRes}`);
   }
@@ -436,15 +445,15 @@ async function setupBotAndCameraForEpisode(bot, rcon, args) {
   await sleep(500);
   await ensureBotHasEnough(bot, rcon, "stone", 64);
   const givePickaxeRes = await rcon.send(
-    `give ${bot.username} minecraft:diamond_pickaxe 1`
+    `give ${bot.username} minecraft:diamond_pickaxe 1`,
   );
   console.log(`[${bot.username}] givePickaxeRes=${givePickaxeRes}`);
   const giveShovelRes = await rcon.send(
-    `give ${bot.username} minecraft:diamond_shovel 1`
+    `give ${bot.username} minecraft:diamond_shovel 1`,
   );
   console.log(`[${bot.username}] giveShovelRes=${giveShovelRes}`);
   const giveAxeRes = await rcon.send(
-    `give ${bot.username} minecraft:diamond_axe 1`
+    `give ${bot.username} minecraft:diamond_axe 1`,
   );
   console.log(`[${bot.username}] giveAxeRes=${giveAxeRes}`);
   await unequipHand(bot);
@@ -485,14 +494,14 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
     console.log("Setting up coordinator connections...");
     await coordinator.setupConnections();
     console.log(
-      "All coordinator connections ready, proceeding with bot spawn..."
+      "All coordinator connections ready, proceeding with bot spawn...",
     );
 
     const { x, y, z } = bot.entity.position;
     console.log(
       `[${bot.username}] spawned at (${x.toFixed(2)}, ${y.toFixed(
-        2
-      )}, ${z.toFixed(2)})`
+        2,
+      )}, ${z.toFixed(2)})`,
     );
 
     // Wait for both cameras to join before starting recording
@@ -503,12 +512,12 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
         args.rcon_port,
         args.rcon_password,
         args.camera_ready_retries,
-        args.camera_ready_check_interval
+        args.camera_ready_check_interval,
       );
 
       if (!camerasReady) {
         console.error(
-          `[${bot.username}] Cameras failed to join within timeout. Exiting.`
+          `[${bot.username}] Cameras failed to join within timeout. Exiting.`,
         );
         process.exit(1);
       }
@@ -516,7 +525,7 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
       await setupCameraPlayerOnce(bot, rcon);
 
       console.log(
-        `[${bot.username}] Cameras detected, waiting ${args.bootstrap_wait_time}s for popups to clear...`
+        `[${bot.username}] Cameras detected, waiting ${args.bootstrap_wait_time}s for popups to clear...`,
       );
       await sleep(args.bootstrap_wait_time * 1000);
     }
@@ -538,12 +547,12 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
     const eligibleEpisodeTypesForWorld = isFlatWorld
       ? allEpisodeTypes
       : allEpisodeTypes.filter(
-          (type) => episodeClassMap[type].WORKS_IN_NON_FLAT_WORLD === true
+          (type) => episodeClassMap[type].WORKS_IN_NON_FLAT_WORLD === true,
         );
 
     if (!isFlatWorld && eligibleEpisodeTypesForWorld.length === 0) {
       throw new Error(
-        "No episodes are eligible for normal world. Mark episode classes with WORKS_IN_NON_FLAT_WORLD = true."
+        "No episodes are eligible for normal world. Mark episode classes with WORKS_IN_NON_FLAT_WORLD = true.",
       );
     }
     const sortedEligible = eligibleEpisodeTypesForWorld.slice().sort();
@@ -560,7 +569,7 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
         });
       }
       console.log(
-        `[${bot.username}] SMOKE TEST MODE: Running ${episodesToRun.length} episodes cycling through ${sortedEligible.length} eligible episode types (world_type=${worldType}) in alphabetical order`
+        `[${bot.username}] SMOKE TEST MODE: Running ${episodesToRun.length} episodes cycling through ${sortedEligible.length} eligible episode types (world_type=${worldType}) in alphabetical order`,
       );
     } else {
       // Normal mode: use the configured episodes_num, episode type picked at random from eligible
@@ -583,10 +592,15 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
       const selectedEpisodeType =
         args.smoke_test === 1
           ? episodeConfig.episodeType
-          : selectWeightedEpisodeType(sortedEligible, sharedBotRng, args.uniform_weights, !isCustomEpisodeTypes);
+          : selectWeightedEpisodeType(
+              sortedEligible,
+              sharedBotRng,
+              args.uniform_weights,
+              !isCustomEpisodeTypes,
+            );
 
       console.log(
-        `[${bot.username}] Selected episode type: ${selectedEpisodeType}`
+        `[${bot.username}] Selected episode type: ${selectedEpisodeType}`,
       );
 
       // Get the episode class for the selected type
@@ -594,9 +608,11 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
 
       if (!EpisodeClass) {
         throw new Error(
-          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${Object.keys(episodeClassMap).sort().join(
-            ", "
-          )}`
+          `Invalid episode type: ${selectedEpisodeType}, allowed types are: ${Object.keys(
+            episodeClassMap,
+          )
+            .sort()
+            .join(", ")}`,
         );
       }
 
@@ -604,7 +620,7 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
       const episodeInstance = new EpisodeClass(sharedBotRng);
 
       console.log(
-        `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`
+        `[${bot.username}] Created ${EpisodeClass.name} instance for episode ${episodeNum}`,
       );
       await sleep(1000);
       const episodeCleanup = await runSingleEpisode(
@@ -614,7 +630,7 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
         coordinator,
         episodeNum,
         episodeInstance,
-        args
+        args,
       );
       await coordinator.waitForAllPhasesToFinish();
       episodeCleanup();
@@ -627,7 +643,7 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
       if (bot.pathfinder) {
         bot.pathfinder.setGoal(null);
         console.log(
-          `[${bot.username}] Stopped pathfinder navigation for episode ${episodeNum}`
+          `[${bot.username}] Stopped pathfinder navigation for episode ${episodeNum}`,
         );
       }
       stopAll(bot);
@@ -640,12 +656,12 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
           sharedBotRng,
           coordinator,
           episodeNum,
-          args
+          args,
         );
       } catch (err) {
         console.error(
           `[${bot.username}] Error during tearDownEpisode, continuing:`,
-          err
+          err,
         );
       }
       console.log(`[${bot.username}] Episode ${episodeNum} completed`);
@@ -687,18 +703,18 @@ function getOnTeleportPhaseFn(
   episodeNum,
   episodeInstance,
   args,
-  phaseDataOur
+  phaseDataOur,
 ) {
   return async (phaseDataOther) => {
     coordinator.sendToOtherBot(
       "teleportPhase",
       phaseDataOur,
       episodeNum,
-      "teleportPhase beginning"
+      "teleportPhase beginning",
     );
     const otherBotPosition = phaseDataOther.position;
     const ourPosition = phaseDataOur.position;
-    if (args.teleport && bot.username  < args.other_bot_name) {
+    if (args.teleport && bot.username < args.other_bot_name) {
       console.log(`[${bot.username}] performs bots teleporting`);
       await teleport(
         bot,
@@ -708,7 +724,7 @@ function getOnTeleportPhaseFn(
         otherBotPosition,
         episodeInstance,
         sharedBotRng,
-        episodeNum
+        episodeNum,
       );
     }
 
@@ -722,14 +738,14 @@ function getOnTeleportPhaseFn(
         coordinator,
         episodeNum,
         episodeInstance,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       "postTeleportPhase",
       {},
       episodeNum,
-      "teleportPhase end"
+      "teleportPhase end",
     );
   };
 }
@@ -740,22 +756,22 @@ function getOnPostTeleportPhaseFn(
   coordinator,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async () => {
     coordinator.sendToOtherBot(
       "postTeleportPhase",
       {},
       episodeNum,
-      "postTeleportPhase beginning"
+      "postTeleportPhase beginning",
     );
     const phaseDataOur = {
       position: bot.entity.position.clone(),
     };
     console.log(
       `[${bot.username}] our position after teleport: ${JSON.stringify(
-        phaseDataOur
-      )}`
+        phaseDataOur,
+      )}`,
     );
 
     coordinator.onceEvent(
@@ -769,14 +785,14 @@ function getOnPostTeleportPhaseFn(
         episodeNum,
         episodeInstance,
         args,
-        phaseDataOur
-      )
+        phaseDataOur,
+      ),
     );
     coordinator.sendToOtherBot(
       "setupEpisodePhase",
       phaseDataOur,
       episodeNum,
-      "postTeleportPhase end"
+      "postTeleportPhase end",
     );
   };
 }
@@ -788,40 +804,39 @@ function getOnSetupEpisodeFn(
   episodeNum,
   episodeInstance,
   args,
-  phaseDataOur
+  phaseDataOur,
 ) {
   return async (phaseDataOther) => {
     console.log(
-      `[${
-        bot.username
-      }] other position after teleport: ${JSON.stringify(
-        phaseDataOther
-      )}`
+      `[${bot.username}] other position after teleport: ${JSON.stringify(
+        phaseDataOther,
+      )}`,
     );
     try {
       await setupBotAndCameraForEpisode(bot, rcon, args);
     } catch (error) {
       console.error(
         `[${bot.username}] Failed to setup bot and camera for episode:`,
-        error
+        error,
       );
     }
     console.log(`[${bot.username}] setting up episode ${episodeNum}`);
-    const { botPositionNew, otherBotPositionNew } = await episodeInstance.setupEpisode(
-      bot,
-      rcon,
-      sharedBotRng,
-      coordinator,
-      episodeNum,
-      args,
-      phaseDataOur.position,
-      phaseDataOther.position
-    );
+    const { botPositionNew, otherBotPositionNew } =
+      await episodeInstance.setupEpisode(
+        bot,
+        rcon,
+        sharedBotRng,
+        coordinator,
+        episodeNum,
+        args,
+        phaseDataOur.position,
+        phaseDataOther.position,
+      );
     await lookAtSmooth(
       bot,
       otherBotPositionNew,
       DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
-      { randomized: false, useEasing: false }
+      { randomized: false, useEasing: false },
     );
 
     await sleep(1000);
@@ -838,14 +853,14 @@ function getOnSetupEpisodeFn(
         coordinator,
         episodeNum,
         episodeInstance,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       "startRecordingPhase",
       bot.entity.position.clone(),
       episodeNum,
-      "teleportPhase end"
+      "teleportPhase end",
     );
   };
 }
@@ -856,18 +871,18 @@ function getOnStartRecordingFn(
   coordinator,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       "startRecordingPhase",
       bot.entity.position.clone(),
       episodeNum,
-      "startRecordingPhase end"
+      "startRecordingPhase end",
     );
     if (bot._episodeStopping) {
       console.log(
-        `[${bot.username}] episode already stopping, skipping start recording`
+        `[${bot.username}] episode already stopping, skipping start recording`,
       );
     } else {
       console.log(`[${bot.username}] starting episode recording`);
@@ -884,7 +899,7 @@ function getOnStartRecordingFn(
       coordinator,
       iterationID,
       episodeNum,
-      args
+      args,
     );
   };
 }
@@ -896,23 +911,28 @@ async function teleport(
   otherBotPosition,
   episodeInstance,
   sharedBotRng,
-  episodeNum
+  episodeNum,
 ) {
   // Set time to day for eval episodes if enabled
   if (args.eval_time_set_day && isEvalEpisode(episodeInstance)) {
     const timeSetRes = await rcon.send("time set day");
-    console.log(`[${bot.username}] time set to day for eval episode, result=${timeSetRes}`);
+    console.log(
+      `[${bot.username}] time set to day for eval episode, result=${timeSetRes}`,
+    );
   }
 
   // Custom TP logic for TurnToLookEpisode
-  if (episodeInstance instanceof TurnToLookEvalEpisode || episodeInstance instanceof TurnToLookOppositeEvalEpisode) {
+  if (
+    episodeInstance instanceof TurnToLookEvalEpisode ||
+    episodeInstance instanceof TurnToLookOppositeEvalEpisode
+  ) {
     if (turnToLookEvalTpPoints && turnToLookEvalTpPoints.length > 0) {
       await directTeleport(
         bot,
         rcon,
         args.other_bot_name,
         episodeNum,
-        turnToLookEvalTpPoints
+        turnToLookEvalTpPoints,
       );
       return;
     }
@@ -924,7 +944,9 @@ async function teleport(
       x: (ourPosition.x + otherBotPosition.x) / 2,
       z: (ourPosition.z + otherBotPosition.z) / 2,
     };
-    console.log(`[${bot.username}] initializing teleport center: ${JSON.stringify(bot._teleport_center)}`);
+    console.log(
+      `[${bot.username}] initializing teleport center: ${JSON.stringify(bot._teleport_center)}`,
+    );
   }
   if (!bot._teleport_radius) {
     bot._teleport_radius = args.teleport_radius;
@@ -938,7 +960,9 @@ async function teleport(
   let rconTimeoutCount = 0;
   let success = false;
   for (let i = 0; i < TOTAL_ATTEMPTS; i++) {
-    console.log(`[${bot.username}] teleporting with radius: ${bot._teleport_radius}`);
+    console.log(
+      `[${bot.username}] teleporting with radius: ${bot._teleport_radius}`,
+    );
     const randomAngle = Math.random() * 2 * Math.PI;
     const randomDistance = Math.random() * bot._teleport_radius;
 
@@ -949,28 +973,32 @@ async function teleport(
 
     console.log(
       `[${bot.username}] picked random center at (${randomPointX.toFixed(
-        2
-      )}, ${randomPointZ.toFixed(2)})`
+        2,
+      )}, ${randomPointZ.toFixed(2)})`,
     );
     // Use spreadplayers to place both bots around the chosen center
     const centerX = Math.floor(randomPointX);
     const centerZ = Math.floor(randomPointZ);
     const minDistance = episodeInstance.constructor.INIT_MIN_BOTS_DISTANCE;
     const maxRange = Math.floor(
-      episodeInstance.constructor.INIT_MAX_BOTS_DISTANCE / 2
+      episodeInstance.constructor.INIT_MAX_BOTS_DISTANCE / 2,
     );
     const targets = `${bot.username} ${args.other_bot_name}`;
     const cmd = `spreadplayers ${centerX} ${centerZ} ${minDistance} ${maxRange} false @a[tag=minebot]`;
-    console.log(
-      `[${bot.username}] spreadplayers command: ${cmd}`
-    );
+    console.log(`[${bot.username}] spreadplayers command: ${cmd}`);
     let result;
     try {
       result = await rcon.send(cmd);
     } catch (err) {
-      if (err.message && err.message.includes('Timeout for packet id') && rconTimeoutCount < MAX_RCON_TIMEOUTS) {
+      if (
+        err.message &&
+        err.message.includes("Timeout for packet id") &&
+        rconTimeoutCount < MAX_RCON_TIMEOUTS
+      ) {
         rconTimeoutCount++;
-        console.log(`[${bot.username}] RCON timeout, retrying (${rconTimeoutCount}/${MAX_RCON_TIMEOUTS})...`);
+        console.log(
+          `[${bot.username}] RCON timeout, retrying (${rconTimeoutCount}/${MAX_RCON_TIMEOUTS})...`,
+        );
         await sleep(2500);
         continue;
       } else {
@@ -981,7 +1009,9 @@ async function teleport(
     attemptsWithThisRadius++;
     if (!result.startsWith("Spread 2 player")) {
       if (attemptsWithThisRadius >= MAX_ATTEMPTS_WITH_THIS_RADIUS) {
-        console.log(`[${bot.username}] spreadplayers failed after ${attemptsWithThisRadius} attempts with radius ${bot._teleport_radius}, halving the radius and trying again`);
+        console.log(
+          `[${bot.username}] spreadplayers failed after ${attemptsWithThisRadius} attempts with radius ${bot._teleport_radius}, halving the radius and trying again`,
+        );
         bot._teleport_radius /= 2;
         attemptsWithThisRadius = 0;
       } else {
@@ -995,7 +1025,9 @@ async function teleport(
     }
   }
   if (!success) {
-    console.log(`[${bot.username}] spreadplayers failed after ${TOTAL_ATTEMPTS} attempts, skipping teleport`);
+    console.log(
+      `[${bot.username}] spreadplayers failed after ${TOTAL_ATTEMPTS} attempts, skipping teleport`,
+    );
   }
 }
 
@@ -1006,12 +1038,12 @@ function getOnPeerErrorPhaseFn(
   coordinator,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (phaseDataOther) => {
     console.error(
       `[${bot.username}] Received peerErrorPhase_${episodeNum} from peer, stopping.`,
-      phaseDataOther["reason"]
+      phaseDataOther["reason"],
     );
     episodeInstance._peerError = true;
     coordinator.onceEvent(
@@ -1024,14 +1056,14 @@ function getOnPeerErrorPhaseFn(
         coordinator,
         args.other_bot_name,
         episodeNum,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
-      `peerErrorPhase_${episodeNum} end`
+      `peerErrorPhase_${episodeNum} end`,
     );
   };
 }

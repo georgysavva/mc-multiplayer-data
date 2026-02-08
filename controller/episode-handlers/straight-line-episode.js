@@ -32,10 +32,10 @@ async function walkStraightWhileLooking(
   bot,
   otherBotPosition,
   walkDistancePastTarget,
-  walkTimeoutSec
+  walkTimeoutSec,
 ) {
   console.log(
-    `[${bot.username}] Starting straight walk past other bot by ${walkDistancePastTarget} blocks`
+    `[${bot.username}] Starting straight walk past other bot by ${walkDistancePastTarget} blocks`,
   );
 
   const startPos = bot.entity.position.clone();
@@ -52,19 +52,19 @@ async function walkStraightWhileLooking(
   let landingPos = land_pos(
     bot,
     Math.round(pastTargetX),
-    Math.round(pastTargetZ)
+    Math.round(pastTargetZ),
   );
   if (!landingPos) {
     // Fallback: if chunk not loaded, aim near the other bot's Y
     landingPos = new Vec3(
       Math.round(pastTargetX),
       Math.round(otherBotPosition.y),
-      Math.round(pastTargetZ)
+      Math.round(pastTargetZ),
     );
   }
 
   console.log(
-    `[${bot.username}] Targeting past point (${landingPos.x}, ${landingPos.y}, ${landingPos.z})`
+    `[${bot.username}] Targeting past point (${landingPos.x}, ${landingPos.y}, ${landingPos.z})`,
   );
 
   // Randomize sprint usage via pathfinder movements
@@ -93,8 +93,8 @@ async function walkStraightWhileLooking(
       `[${
         bot.username
       }] Completed straight walk past target. Walked ~${finalDistance.toFixed(
-        2
-      )} blocks`
+        2,
+      )} blocks`,
     );
   } finally {
     stopAll(bot);
@@ -123,18 +123,18 @@ function getOnStraightLineWalkPhaseFn(
   otherBotName,
   episodeNum,
   episodeInstance,
-  args
+  args,
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
       `straightLineWalkPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `straightLineWalkPhase_${iterationID} beginning`
+      `straightLineWalkPhase_${iterationID} beginning`,
     );
 
     console.log(
-      `[${bot.username}] Starting straight line walk phase ${iterationID}`
+      `[${bot.username}] Starting straight line walk phase ${iterationID}`,
     );
 
     // Determine walking modes and randomly pick one using sharedBotRng
@@ -162,7 +162,7 @@ function getOnStraightLineWalkPhaseFn(
     console.log(
       `[${bot.username}] Will ${
         shouldThisBotWalk ? "walk straight" : "stay and look"
-      } during this phase`
+      } during this phase`,
     );
 
     if (shouldThisBotWalk) {
@@ -171,18 +171,18 @@ function getOnStraightLineWalkPhaseFn(
         DISTANCE_PAST_TARGET_MIN +
         Math.floor(
           Math.random() *
-            (DISTANCE_PAST_TARGET_MAX - DISTANCE_PAST_TARGET_MIN + 1)
+            (DISTANCE_PAST_TARGET_MAX - DISTANCE_PAST_TARGET_MIN + 1),
         );
       await walkStraightWhileLooking(
         bot,
         otherBotPosition,
         walkDistancePastTarget,
-        /* timeout */ 20
+        /* timeout */ 20,
       );
     } else {
       // Bot doesn't walk, just looks at the other bot
       console.log(
-        `[${bot.username}] Staying in place and looking at other bot`
+        `[${bot.username}] Staying in place and looking at other bot`,
       );
       await lookAtSmooth(bot, otherBotPosition, CAMERA_SPEED_DEGREES_PER_SEC);
     }
@@ -198,14 +198,14 @@ function getOnStraightLineWalkPhaseFn(
         coordinator,
         otherBotName,
         episodeNum,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       "stopPhase",
       bot.entity.position.clone(),
       episodeNum,
-      `straightLineWalkPhase_${iterationID} end`
+      `straightLineWalkPhase_${iterationID} end`,
     );
   };
 }
@@ -219,7 +219,7 @@ class StraightLineEpisode extends BaseEpisode {
     coordinator,
     iterationID,
     episodeNum,
-    args
+    args,
   ) {
     coordinator.onceEvent(
       `straightLineWalkPhase_${iterationID}`,
@@ -233,14 +233,14 @@ class StraightLineEpisode extends BaseEpisode {
         args.other_bot_name,
         episodeNum,
         this,
-        args
-      )
+        args,
+      ),
     );
     coordinator.sendToOtherBot(
       `straightLineWalkPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      "teleportPhase end"
+      "teleportPhase end",
     );
   }
 
@@ -250,7 +250,7 @@ class StraightLineEpisode extends BaseEpisode {
     sharedBotRng,
     coordinator,
     episodeNum,
-    args
+    args,
   ) {
     // optional teardown
   }

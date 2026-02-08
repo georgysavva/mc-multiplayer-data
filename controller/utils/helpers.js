@@ -39,5 +39,5 @@ module.exports = {
   sleep,
   rand,
   choice,
-  equipFirst
+  equipFirst,
 };

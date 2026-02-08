@@ -8,19 +8,21 @@
 
 ### Static Properties
 
-| Property | Value | Description |
-|----------|-------|-------------|
+| Property                  | Value  | Description                     |
+| ------------------------- | ------ | ------------------------------- |
 | `WORKS_IN_NON_FLAT_WORLD` | `true` | Supports non-flat world terrain |
 
 ### Episode Characteristics
 
 **Orbital Movement:**
+
 - Circular path navigation around shared midpoint
 - Checkpoint-based progression with eye contact
 - Terrain adaptation with ground finding
 - Coordinated timing and synchronization
 
 **Key Features:**
+
 - Dynamic radius calculation based on bot separation
 - Smooth camera movements and eye contact
 - Pathfinder integration with full movement capabilities
@@ -28,30 +30,33 @@
 
 ## Configuration Constants
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `NUM_CHECKPOINTS` | `8` | Number of orbital checkpoints |
-| `CHECKPOINT_REACH_DISTANCE` | `1.5` | Distance tolerance for reaching checkpoints |
-| `CHECKPOINT_TIMEOUT_MS` | `5000` | Maximum time per checkpoint (5 seconds) |
-| `EYE_CONTACT_DURATION_MS` | `1000` | Eye contact duration at each checkpoint |
-| `CAMERA_SPEED_DEGREES_PER_SEC` | `90` | Camera rotation speed |
+| Constant                       | Value  | Description                                 |
+| ------------------------------ | ------ | ------------------------------------------- |
+| `NUM_CHECKPOINTS`              | `8`    | Number of orbital checkpoints               |
+| `CHECKPOINT_REACH_DISTANCE`    | `1.5`  | Distance tolerance for reaching checkpoints |
+| `CHECKPOINT_TIMEOUT_MS`        | `5000` | Maximum time per checkpoint (5 seconds)     |
+| `EYE_CONTACT_DURATION_MS`      | `1000` | Eye contact duration at each checkpoint     |
+| `CAMERA_SPEED_DEGREES_PER_SEC` | `90`   | Camera rotation speed                       |
 
 ## Core Functions
 
 ### calculateOrbitCheckpoints(center, radius, numCheckpoints, startAngle)
+
 Generates evenly spaced checkpoint positions around a circle.
 
 **Parameters:**
+
 - `center` - Circle center position (Vec3)
 - `radius` - Circle radius
 - `numCheckpoints` - Number of checkpoints
 - `startAngle` - Starting angle in radians
 
 **Algorithm:**
+
 ```javascript
 const angleStep = (2 * Math.PI) / numCheckpoints;
 for (let i = 0; i < numCheckpoints; i++) {
-  const angle = startAngle + (i * angleStep);
+  const angle = startAngle + i * angleStep;
   const x = center.x + radius * Math.cos(angle);
   const z = center.z + radius * Math.sin(angle);
   checkpoints.push(new Vec3(x, center.y, z));
@@ -59,9 +64,11 @@ for (let i = 0; i < numCheckpoints; i++) {
 ```
 
 ### executeOrbitWithCheckpoints(bot, otherBotName, checkpoints, rcon)
+
 Executes orbital movement through all checkpoints.
 
 **Process:**
+
 1. Initialize pathfinder with full capabilities
 2. Visit each checkpoint in sequence
 3. Find ground position using chunk loading
@@ -70,13 +77,14 @@ Executes orbital movement through all checkpoints.
 6. Repeat for all checkpoints
 
 **Pathfinder Configuration:**
+
 ```javascript
 initializePathfinder(bot, {
-  allowSprinting: true,     // Fast movement between checkpoints
-  allowParkour: true,       // Jump over obstacles
-  canDig: true,             // Clear path if needed
-  canPlaceOn: true,         // Bridge gaps if necessary
-  allowEntityDetection: true
+  allowSprinting: true, // Fast movement between checkpoints
+  allowParkour: true, // Jump over obstacles
+  canDig: true, // Clear path if needed
+  canPlaceOn: true, // Bridge gaps if necessary
+  allowEntityDetection: true,
 });
 ```
 
@@ -94,21 +102,24 @@ initializePathfinder(bot, {
 ### Position Calculations
 
 #### Shared Midpoint
+
 ```javascript
 const sharedMidpoint = new Vec3(
   (myPosition.x + otherPosition.x) / 2,
   (myPosition.y + otherPosition.y) / 2,
-  (myPosition.z + otherPosition.z) / 2
+  (myPosition.z + otherPosition.z) / 2,
 );
 ```
 
 #### Orbit Radius
+
 ```javascript
 const distanceBetweenBots = myPosition.distanceTo(otherPosition);
 const orbitRadius = distanceBetweenBots / 2;
 ```
 
 #### Starting Angle
+
 ```javascript
 const dx = myPosition.x - sharedMidpoint.x;
 const dz = myPosition.z - sharedMidpoint.z;
@@ -118,7 +129,9 @@ const startAngle = Math.atan2(dz, dx);
 ## Technical Implementation
 
 ### Checkpoint Navigation
+
 Each checkpoint involves:
+
 1. **Ground Finding**: `land_pos(bot, rcon, checkpoint.x, checkpoint.z)`
 2. **Goal Setting**: `new GoalNear(targetPos.x, targetPos.y, targetPos.z, CHECKPOINT_REACH_DISTANCE)`
 3. **Navigation**: Pathfinder execution with progress monitoring
@@ -127,6 +140,7 @@ Each checkpoint involves:
 6. **Synchronization**: 1-second eye contact duration
 
 ### Progress Monitoring
+
 ```javascript
 // Monitor checkpoint approach every 100ms
 while (!reached && !timedOut) {
@@ -138,6 +152,7 @@ while (!reached && !timedOut) {
 ```
 
 ### State Management
+
 - **Pathfinder Control**: Clear goals between checkpoints
 - **Movement States**: Manual control state management
 - **Camera Control**: Smooth transitions using `lookAtBot()`
@@ -146,11 +161,13 @@ while (!reached && !timedOut) {
 ## Integration Points
 
 ### Movement System Integration
+
 - Uses `land_pos()` for safe ground positioning
 - Leverages `initializePathfinder()` for navigation
 - Integrates with camera control systems
 
 ### Coordinator Integration
+
 - Phase-based communication via `orbitPhase_${iterationID}`
 - Proper stop phase transitions
 - Episode recording lifecycle support
@@ -158,6 +175,7 @@ while (!reached && !timedOut) {
 ## Usage Examples
 
 ### Episode Execution
+
 ```javascript
 // Episode automatically handles:
 // - Circular path calculation around bot midpoint
@@ -168,6 +186,7 @@ while (!reached && !timedOut) {
 ```
 
 ### Manual Orbit Creation
+
 ```javascript
 // Generate custom orbital path
 const checkpoints = calculateOrbitCheckpoints(center, radius, 12, 0);
@@ -177,11 +196,13 @@ await executeOrbitWithCheckpoints(bot, "Bravo", checkpoints, rcon);
 ## Performance Characteristics
 
 ### Resource Usage
+
 - **CPU**: High (complex pathfinding with terrain adaptation)
 - **Memory**: Moderate (checkpoint array, pathfinding state)
 - **Network**: Low (coordinator messages, chunk loading)
 
 ### Timing Characteristics
+
 - **Per Checkpoint**: 5-10 seconds (navigation + eye contact)
 - **Total Episode**: ~1-2 minutes for 8 checkpoints
 - **Variability**: Depends on terrain complexity and bot separation
@@ -189,17 +210,20 @@ await executeOrbitWithCheckpoints(bot, "Bravo", checkpoints, rcon);
 ## Testing Considerations
 
 ### Deterministic Behavior
+
 - Midpoint calculation based on bot positions
 - Angle determination from relative positioning
 - Checkpoint generation using fixed algorithms
 
 ### Edge Cases
+
 - **Unreachable Checkpoints**: Timeout handling with continuation
 - **Terrain Issues**: Ground finding with chunk loading
 - **Bot Separation**: Minimum distance requirements
 - **Pathfinding Failures**: Graceful degradation to next checkpoint
 
 ### Debug Features
+
 - Comprehensive checkpoint progress logging
 - Distance and timing measurements
 - Pathfinder state monitoring
@@ -208,6 +232,7 @@ await executeOrbitWithCheckpoints(bot, "Bravo", checkpoints, rcon);
 ## Future Enhancements
 
 ### Potential Features
+
 - **Variable Radii**: Dynamic orbit size adjustment
 - **Multi-bot Orbits**: Complex formation patterns
 - **Speed Variation**: Adjustable movement speeds
