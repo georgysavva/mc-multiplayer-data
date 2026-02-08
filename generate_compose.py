@@ -515,7 +515,7 @@ def generate_compose_config(
                     "host.docker.internal:host-gateway",
                 ],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": ["node", "spectator/spectator.js"],
+                "command": ["node", "camera/spectator/spectator.js"],
             },
             # Passive spectator bravo
             f"spectator_bravo_instance_{instance_id}": {
@@ -539,7 +539,7 @@ def generate_compose_config(
                     "host.docker.internal:host-gateway",
                 ],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": ["node", "spectator/spectator.js"],
+                "command": ["node", "camera/spectator/spectator.js"],
             },
         },
     }
