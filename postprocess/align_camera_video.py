@@ -1,23 +1,39 @@
 #!/usr/bin/env python3
 """Align real camera recordings with Mineflayer action traces.
 
-This implementation rebuilds the aligned MP4 frame-by-frame so that its frame
-count matches the action sequence exactly, mirroring the prismarine output.
+The primary mode uses **per-frame wallclock timestamps** embedded in the MKV
+container (recorded with ``-use_wallclock_as_timestamps 1 -copyts -vsync 0``).
+We extract per-frame PTS via ``ffprobe`` and merge them with the action
+timestamps using a linear two-pointer scan (both sequences are non-decreasing).
+
+A legacy computed-index mode (``frame_idx = round((action_time - camera_start)
+* fps)``) is retained but **disabled by default**.  Set the flag below to
+``True`` only when processing old recordings that lack wallclock timestamps.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 import time
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import cv2
 
-# Default delay to apply to video (shifts video earlier, making it appear delayed)
-DEFAULT_DELAY_VIDEO_BY_SEC = 0.0
+# ---------------------------------------------------------------------------
+# Manual override: set to True to allow the legacy computed-index alignment
+# for recordings that do not contain per-frame wallclock timestamps.
+# ---------------------------------------------------------------------------
+ALLOW_LEGACY_ALIGNMENT = False
+
+# Unconsumed frames within this many seconds of the recording start/end are
+# considered normal (the camera typically starts before and ends after the
+# episode actions).
+_BOUNDARY_GRACE_SEC = 10.0
 
 
 @dataclass
@@ -29,7 +45,6 @@ class AlignmentInput:
     ffmpeg_path: str  # retained for CLI compatibility, unused internally
     margin_start: float  # unused but kept for backward compatibility
     margin_end: float    # unused but kept for backward compatibility
-    delay_video_by_sec: float = DEFAULT_DELAY_VIDEO_BY_SEC  # shift video earlier by this amount
 
 
 def _load_actions(path: Path) -> List[Dict[str, Any]]:
@@ -49,30 +64,233 @@ def _ensure_camera_meta(path: Path) -> Dict[str, Any]:
     return meta
 
 
+# ---------------------------------------------------------------------------
+# Per-frame timestamp extraction (wallclock mode)
+# ---------------------------------------------------------------------------
+
+def _extract_frame_timestamps(recording_path: Path) -> Optional[List[float]]:
+    """Extract per-frame PTS (in seconds) from an MKV using ffprobe.
+
+    Returns a **sorted** list of floats (one per video frame) or *None* if
+    extraction fails.  When the MKV was recorded with
+    ``-use_wallclock_as_timestamps 1 -copyts``, these values will be absolute
+    Unix-epoch seconds (e.g. 1738540000.123).
+
+    Sorting is necessary because ``ffprobe -show_entries packet=pts_time``
+    returns timestamps in *decode* order, which differs from presentation
+    order when B-frames are used.  Sorting restores presentation order so
+    that index *i* in the returned list corresponds to frame *i* as decoded
+    by ``cv2.VideoCapture``.
+    """
+    cmd = [
+        "ffprobe",
+        "-v", "quiet",
+        "-select_streams", "v:0",
+        "-show_entries", "packet=pts_time",
+        "-of", "csv=p=0",
+        str(recording_path),
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    except FileNotFoundError:
+        print("[align] ffprobe not found; falling back to legacy alignment", file=sys.stderr)
+        return None
+    except subprocess.TimeoutExpired:
+        print("[align] ffprobe timed out; falling back to legacy alignment", file=sys.stderr)
+        return None
+
+    if result.returncode != 0:
+        print(f"[align] ffprobe failed (rc={result.returncode}); falling back to legacy alignment",
+              file=sys.stderr)
+        return None
+
+    timestamps: List[float] = []
+    for line in result.stdout.strip().splitlines():
+        line = line.strip()
+        if not line or line.lower() == "n/a":
+            continue
+        try:
+            timestamps.append(float(line))
+        except ValueError:
+            continue
+
+    if not timestamps:
+        return None
+
+    # Sort to convert from decode order to presentation order (handles
+    # B-frame reordering).  New recordings use -bf 0 which makes this a
+    # no-op, but older recordings may still have B-frames.
+    timestamps.sort()
+
+    return timestamps
+
+
+def _has_wallclock_timestamps(
+    frame_timestamps: List[float],
+    camera_meta: Dict[str, Any],
+) -> bool:
+    """Heuristic: wallclock PTS values are large Unix-epoch numbers (> 1e9).
+
+    Legacy recordings have PTS starting near zero.  We also cross-check against
+    the ``wallclock_timestamps`` flag in the metadata if available.
+    """
+    if camera_meta.get("wallclock_timestamps"):
+        return True
+    # Heuristic: first PTS > 1 billion ≈ 2001-09-09 → definitely epoch time
+    if frame_timestamps and frame_timestamps[0] > 1e9:
+        return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Two-pointer action ↔ frame matching (wallclock mode)
+# ---------------------------------------------------------------------------
+
+def _match_actions_to_frames(
+    actions: List[Dict[str, Any]],
+    frame_timestamps: List[float],
+    fps: float,
+) -> Tuple[List[int], Dict[str, Any]]:
+    """Match each action to the first video frame at or after the action time.
+
+    Both ``action_times`` (from ``epochTime``) and ``frame_timestamps`` are
+    non-decreasing sequences.  For each action we find the first frame whose
+    timestamp is >= the action's effective time.
+
+    Frames are **not** consumed: if a frame was dropped and two consecutive
+    actions both land on the same frame, that frame is reused (duplicate).
+    This avoids additive drift -- after the duplicate the sequences resync
+    immediately.
+
+    Returns ``(frame_indices, diagnostics)`` where *frame_indices* has one
+    entry per matched action (the index into the recording to extract) and
+    *diagnostics* is a dict with alignment quality stats.
+    """
+    n_actions = len(actions)
+    n_frames = len(frame_timestamps)
+    action_times = [float(a["epochTime"]) for a in actions]
+
+    frame_indices: List[int] = []
+    frame_ptr = 0
+
+    # Track diagnostics
+    time_deltas: List[float] = []      # frame_time - effective_action_time
+    unmatched_actions_end = 0          # actions after last available frame
+
+    for action_idx, action_time in enumerate(action_times):
+        # Advance frame_ptr to the first frame at or after action_time.
+        # frame_ptr never goes backwards, so this is O(n+m) overall.
+        while frame_ptr < n_frames and frame_timestamps[frame_ptr] < action_time:
+            frame_ptr += 1
+
+        if frame_ptr >= n_frames:
+            # No more frames -- remaining actions are unmatched at the end
+            unmatched_actions_end = n_actions - action_idx
+            break
+
+        # Record the match.  Do NOT advance frame_ptr: the same frame may
+        # be the correct match for the next action too (dropped-frame case).
+        matched_frame = frame_ptr
+        delta = frame_timestamps[matched_frame] - action_time
+        time_deltas.append(delta)
+        frame_indices.append(matched_frame)
+
+    # --- Compute boundary statistics ---
+    skipped_frames_start = 0
+    skipped_frames_end = 0
+    if frame_indices:
+        skipped_frames_start = frame_indices[0]
+        skipped_frames_end = max(0, n_frames - 1 - frame_indices[-1])
+
+    # Count actions whose time falls before the first frame
+    unmatched_actions_start = 0
+    if frame_timestamps and action_times:
+        for t in action_times:
+            if t < frame_timestamps[0]:
+                unmatched_actions_start += 1
+            else:
+                break
+
+    # --- Check for duplicate frame usage (indicates dropped frames) ---
+    frame_usage = Counter(frame_indices)
+    duplicate_frames = {idx: cnt for idx, cnt in frame_usage.items() if cnt > 1}
+
+    # --- Check for interior unconsumed frames ---
+    # Frames within _BOUNDARY_GRACE_SEC of recording start/end are OK.
+    # Any other unconsumed frame is flagged.
+    consumed_set = set(frame_indices)
+    rec_start = frame_timestamps[0] if frame_timestamps else 0.0
+    rec_end = frame_timestamps[-1] if frame_timestamps else 0.0
+    interior_unconsumed: List[int] = []
+    for i in range(n_frames):
+        if i in consumed_set:
+            continue
+        t = frame_timestamps[i]
+        if (t - rec_start) <= _BOUNDARY_GRACE_SEC:
+            continue  # within start grace period
+        if (rec_end - t) <= _BOUNDARY_GRACE_SEC:
+            continue  # within end grace period
+        interior_unconsumed.append(i)
+
+    # --- Check for dropped frames (large inter-frame gaps) ---
+    # A gap significantly larger than 1/fps suggests x11grab missed a frame.
+    expected_interval = 1.0 / fps
+    gap_threshold = expected_interval * 1.8  # e.g. 90ms for 20fps (50ms expected)
+    dropped_frame_gaps: List[Dict[str, Any]] = []
+    for i in range(1, n_frames):
+        gap = frame_timestamps[i] - frame_timestamps[i - 1]
+        if gap > gap_threshold and (frame_timestamps[i - 1] - rec_start) > _BOUNDARY_GRACE_SEC:
+            dropped_frame_gaps.append({
+                "between_frames": [i - 1, i],
+                "gap_sec": round(gap, 4),
+                "expected_frames_missed": round(gap / expected_interval) - 1,
+            })
+
+    diagnostics = {
+        "n_actions": n_actions,
+        "n_frames": n_frames,
+        "n_matched": len(frame_indices),
+        "skipped_frames_start": skipped_frames_start,
+        "skipped_frames_end": skipped_frames_end,
+        "unmatched_actions_start": unmatched_actions_start,
+        "unmatched_actions_end": unmatched_actions_end,
+        "mean_delta_sec": (sum(time_deltas) / len(time_deltas)) if time_deltas else 0.0,
+        "max_abs_delta_sec": max(abs(d) for d in time_deltas) if time_deltas else 0.0,
+        "min_delta_sec": min(time_deltas) if time_deltas else 0.0,
+        "max_delta_sec": max(time_deltas) if time_deltas else 0.0,
+        "duplicate_frame_count": len(duplicate_frames),
+        "interior_unconsumed_count": len(interior_unconsumed),
+        "dropped_frame_gaps": len(dropped_frame_gaps),
+    }
+
+    return frame_indices, diagnostics
+
+
+# ---------------------------------------------------------------------------
+# Legacy computed-index mode
+# ---------------------------------------------------------------------------
 
 def _compute_frame_indices(
     actions: Iterable[Dict[str, Any]],
     camera_start_time_sec: float,
     fps: float,
-    delay_video_by_sec: float = 0.0,
 ) -> List[int]:
-    """Compute camera frame indices from action timestamps.
-    
+    """Compute camera frame indices from action timestamps (legacy mode).
+
     Each action has epochTime (wall-clock time in seconds) which we subtract
     from the camera's start time and multiply by FPS to get the frame index.
-    
-    delay_video_by_sec shifts the video earlier (uses frames from earlier in the
-    recording), making the video appear delayed relative to the actions.
     """
     indices: List[int] = []
     for entry in actions:
         action_time_sec = float(entry["epochTime"])
-        # Subtract delay to get an earlier frame from the video
-        effective_time_sec = action_time_sec - delay_video_by_sec
-        frame_idx = int(round((effective_time_sec - camera_start_time_sec) * fps))
+        frame_idx = int(round((action_time_sec - camera_start_time_sec) * fps))
         indices.append(frame_idx)
     return indices
 
+
+# ---------------------------------------------------------------------------
+# Frame extraction (shared by both modes)
+# ---------------------------------------------------------------------------
 
 def _write_frames_by_index(
     recording_path: Path,
@@ -150,13 +368,41 @@ def _write_frames_by_index(
     print(f"[align] Extracted {len(frame_indices)} frames in {total_time:.1f}s")
 
 
+# ---------------------------------------------------------------------------
+# Metadata / mapping builders
+# ---------------------------------------------------------------------------
+
+def _build_action_mapping_wallclock(
+    actions: List[Dict[str, Any]],
+    frame_indices: List[int],
+    frame_timestamps: List[float],
+) -> List[Dict[str, Any]]:
+    """Build frame-to-action mapping for wallclock-timestamp alignment."""
+    mapping: List[Dict[str, Any]] = []
+    for action_idx, (entry, frame_idx) in enumerate(zip(actions, frame_indices)):
+        action_time_sec = float(entry.get("epochTime", 0.0))
+        frame_time_sec = frame_timestamps[frame_idx] if frame_idx < len(frame_timestamps) else 0.0
+        mapping.append(
+            {
+                "action_index": action_idx,
+                "renderTime_ms": float(entry.get("renderTime", 0.0)),
+                "action_time_sec": action_time_sec,
+                "relative_time_ms": float(entry.get("relativeTimeMs", 0.0)),
+                "frame_index": frame_idx,
+                "frame_time_sec": frame_time_sec,
+                "delta_sec": frame_time_sec - action_time_sec,
+            }
+        )
+    return mapping
+
+
 def _build_action_mapping(
     actions: List[Dict[str, Any]],
     camera_start_time_sec: float,
     trim_start_sec: float,
     fps: float,
 ) -> List[Dict[str, Any]]:
-    """Build frame-to-action mapping for aligned output metadata."""
+    """Build frame-to-action mapping for aligned output metadata (legacy)."""
     mapping: List[Dict[str, Any]] = []
     for idx, entry in enumerate(actions):
         if "epochTime" not in entry:
@@ -179,12 +425,32 @@ def _build_action_mapping(
     return mapping
 
 
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
+
+def _print_wallclock_warnings(diagnostics: Dict[str, Any]) -> None:
+    """Print compact warnings for alignment quality issues."""
+    parts: List[str] = []
+    gaps = diagnostics.get("dropped_frame_gaps", 0)
+    if gaps:
+        parts.append(f"{gaps} dropped-frame gap(s)")
+    dup = diagnostics.get("duplicate_frame_count", 0)
+    if dup:
+        parts.append(f"{dup} duplicate frame(s)")
+    interior = diagnostics.get("interior_unconsumed_count", 0)
+    if interior:
+        parts.append(f"{interior} interior unconsumed frame(s)")
+    if parts:
+        print(f"[align] WARNING: {'; '.join(parts)}", file=sys.stderr)
+
+
 def align_recording(config: AlignmentInput) -> Dict[str, Any]:
-    """Align camera recording to action trace using wall-clock timestamps.
-    
-    The camera records with start_epoch_seconds (wall-clock time).
-    Each action has epochTime (wall-clock time in seconds from renderTime).
-    We compute: frame_index = (action_time - camera_start_time) * fps
+    """Align camera recording to action trace.
+
+    Uses per-frame wallclock timestamps extracted from the MKV via ffprobe.
+    Falls back to legacy computed-index mode **only** if
+    ``ALLOW_LEGACY_ALIGNMENT`` is ``True``.
     """
     actions = _load_actions(config.actions_path)
     camera_meta = _ensure_camera_meta(config.camera_meta_path)
@@ -203,10 +469,111 @@ def align_recording(config: AlignmentInput) -> Dict[str, Any]:
             raise FileNotFoundError(
                 f"Camera recording not found at {recording_path} or {alt}"
             )
-    
+
+    # ------------------------------------------------------------------
+    # Extract per-frame timestamps and decide alignment mode
+    # ------------------------------------------------------------------
+    frame_timestamps = _extract_frame_timestamps(recording_path)
+    use_wallclock = (
+        frame_timestamps is not None
+        and _has_wallclock_timestamps(frame_timestamps, camera_meta)
+    )
+
+    if not use_wallclock:
+        if not ALLOW_LEGACY_ALIGNMENT:
+            reason = (
+                "Frame timestamps not found or not wallclock"
+                if frame_timestamps is None
+                else "Frame timestamps present but not wallclock (PTS too small)"
+            )
+            raise RuntimeError(
+                f"[align] {reason}. "
+                f"Wallclock-timestamp alignment is required. "
+                f"Set ALLOW_LEGACY_ALIGNMENT = True in {__file__} to permit "
+                f"legacy computed-index alignment for old recordings."
+            )
+        return _align_legacy(
+            config, actions, camera_meta, recording_path, fps, camera_start_time_sec,
+        )
+
+    # ------------------------------------------------------------------
+    # Wallclock-timestamp alignment (primary path)
+    # ------------------------------------------------------------------
+    assert frame_timestamps is not None  # for type checker
+    print(f"[align] Using wallclock timestamps ({len(frame_timestamps)} frames extracted)")
+
+    frame_indices, diagnostics = _match_actions_to_frames(
+        actions, frame_timestamps, fps,
+    )
+
+    if not frame_indices:
+        raise RuntimeError("No actions could be matched to video frames")
+
+    # Trim actions to only those that were matched
+    matched_actions = actions[: len(frame_indices)]
+
+    _write_frames_by_index(recording_path, frame_indices, fps, config.output_video_path)
+
+    action_times_sec = [float(a["epochTime"]) for a in matched_actions]
+    mapping = _build_action_mapping_wallclock(
+        matched_actions, frame_indices, frame_timestamps,
+    )
+
+    output_metadata = {
+        "actions_path": str(config.actions_path),
+        "camera_meta_path": str(config.camera_meta_path),
+        "recording_path": str(recording_path),
+        "aligned_video_path": str(config.output_video_path),
+        "alignment_mode": "wallclock",
+        "fps": fps,
+        "camera_start_time_sec": camera_start_time_sec,
+        "first_frame_time_sec": frame_timestamps[0] if frame_timestamps else None,
+        "last_frame_time_sec": frame_timestamps[-1] if frame_timestamps else None,
+        "total_video_frames": len(frame_timestamps),
+        "first_action_time_sec": min(action_times_sec) if action_times_sec else None,
+        "last_action_time_sec": max(action_times_sec) if action_times_sec else None,
+        "diagnostics": diagnostics,
+        "frame_mapping": mapping,
+    }
+
+    config.output_metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    with config.output_metadata_path.open("w", encoding="utf-8") as fh:
+        json.dump(output_metadata, fh)
+
+    # Print diagnostics summary
+    d = diagnostics
+    print(f"[align] Matched {d['n_matched']}/{d['n_actions']} actions to "
+          f"{d['n_frames']} video frames")
+    print(f"[align] Mean delta: {d['mean_delta_sec']*1000:.1f}ms, "
+          f"max |delta|: {d['max_abs_delta_sec']*1000:.1f}ms")
+    if d['skipped_frames_start'] > 0 or d['skipped_frames_end'] > 0:
+        print(f"[align] Skipped frames: {d['skipped_frames_start']} at start, "
+              f"{d['skipped_frames_end']} at end")
+    if d['unmatched_actions_start'] > 0 or d['unmatched_actions_end'] > 0:
+        print(f"[align] Unmatched actions: {d['unmatched_actions_start']} at start, "
+              f"{d['unmatched_actions_end']} at end")
+
+    # Warnings for data-quality issues
+    _print_wallclock_warnings(diagnostics)
+
+    return output_metadata
+
+
+def _align_legacy(
+    config: AlignmentInput,
+    actions: List[Dict[str, Any]],
+    camera_meta: Dict[str, Any],
+    recording_path: Path,
+    fps: float,
+    camera_start_time_sec: float,
+) -> Dict[str, Any]:
+    """Legacy computed-index alignment (only used when ALLOW_LEGACY_ALIGNMENT is True)."""
+    print("[align] WARNING: using legacy computed-index alignment "
+          "(ALLOW_LEGACY_ALIGNMENT=True)", file=sys.stderr)
+
     action_times_sec = [x["epochTime"] for x in actions]
     frame_indices = _compute_frame_indices(
-        actions, camera_start_time_sec, fps, config.delay_video_by_sec
+        actions, camera_start_time_sec, fps,
     )
 
     _write_frames_by_index(recording_path, frame_indices, fps, config.output_video_path)
@@ -228,13 +595,13 @@ def align_recording(config: AlignmentInput) -> Dict[str, Any]:
         "camera_meta_path": str(config.camera_meta_path),
         "recording_path": str(recording_path),
         "aligned_video_path": str(config.output_video_path),
+        "alignment_mode": "legacy",
         "fps": fps,
         "camera_start_time_sec": camera_start_time_sec,
         "trim_start_sec": trim_start_sec,
         "trim_duration_sec": duration_sec,
         "first_action_time_sec": first_action_time_sec,
         "last_action_time_sec": last_action_time_sec,
-        "delay_video_by_sec": config.delay_video_by_sec,
         "frame_mapping": mapping,
     }
 
@@ -254,12 +621,6 @@ def parse_args(argv: List[str]) -> AlignmentInput:
     parser.add_argument("--margin-start", type=float, default=0.0)
     parser.add_argument("--margin-end", type=float, default=0.0)
     parser.add_argument("--ffmpeg", default="ffmpeg")  # kept for CLI compatibility
-    parser.add_argument(
-        "--delay-video-by",
-        type=float,
-        default=DEFAULT_DELAY_VIDEO_BY_SEC,
-        help=f"Delay video by this many seconds (default: {DEFAULT_DELAY_VIDEO_BY_SEC})",
-    )
 
     args = parser.parse_args(argv)
 
@@ -275,7 +636,6 @@ def parse_args(argv: List[str]) -> AlignmentInput:
         ffmpeg_path=args.ffmpeg,
         margin_start=max(0.0, args.margin_start),
         margin_end=max(0.0, args.margin_end),
-        delay_video_by_sec=args.delay_video_by,
     )
 
 
