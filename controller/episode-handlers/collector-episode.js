@@ -607,63 +607,6 @@ async function independentMining(bot, mcData, oreIds) {
   bot.pathfinder.setGoal(null);
 }
 
-// ============================================================================
-// EPISODE PHASE FUNCTIONS (SYMMETRIC)
-// ============================================================================
-
-/**
- * Meetup phase - both bots move toward each other
- * This is completely symmetric - both bots execute the same code
- *
- * @param {Bot} bot - Mineflayer bot instance
- * @param {string} otherBotName - Name of the other bot
- */
-async function meetupPhase(bot, otherBotName) {
-  console.log(`[${bot.username}] MEETUP PHASE`);
-
-  // Initialize pathfinder
-  setMovementsForCollector(bot);
-
-  // Both bots follow each other, causing them to converge to midpoint
-  const targetBot = bot.players[otherBotName];
-  if (targetBot && targetBot.entity) {
-    console.log(`[${bot.username}] Moving towards ${otherBotName}`);
-
-    // Set GoalFollow (non-dynamic to avoid continuous updates)
-    bot.pathfinder.setGoal(
-      new GoalFollow(targetBot.entity, FOLLOWER_NEAR_DISTANCE),
-      false,
-    );
-
-    // Wait for goal_reached or timeout (with proper cleanup)
-    await new Promise((resolve) => {
-      let timeoutId;
-
-      const goalReachedHandler = () => {
-        clearTimeout(timeoutId);
-        console.log(`[${bot.username}] Reached ${otherBotName}`);
-        resolve();
-      };
-
-      timeoutId = setTimeout(() => {
-        bot.removeListener("goal_reached", goalReachedHandler);
-        console.log(`[${bot.username}] Meetup timeout`);
-        resolve();
-      }, MEETUP_TIMEOUT_MS);
-
-      bot.once("goal_reached", goalReachedHandler);
-    });
-
-    bot.pathfinder.setGoal(null);
-  } else {
-    console.log(`[${bot.username}] Cannot see ${otherBotName}, waiting...`);
-    await sleep(MEETUP_TIMEOUT_MS / 2);
-  }
-
-  bot.pathfinder.setGoal(null);
-  console.log(`[${bot.username}] Meetup phase complete`);
-}
-
 /**
  * Mining phase - both bots mine for ores
  * This is completely symmetric - both bots execute the same code and consume RNG equally
