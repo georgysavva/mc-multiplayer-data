@@ -8,8 +8,8 @@ aligned/alpha/
 aligned/beta/
 __pycache__/
 .env
-plugins/SkinsRestorer/cache/*
-plugins/SkinsRestorer/players/*
-plugins/SkinsRestorer/skins/*.playerskin
-plugins/SkinsRestorer/recommendations.json
+server/plugins/SkinsRestorer/cache/*
+server/plugins/SkinsRestorer/players/*
+server/plugins/SkinsRestorer/skins/*.playerskin
+server/plugins/SkinsRestorer/recommendations.json
 postprocess/__pycache__/

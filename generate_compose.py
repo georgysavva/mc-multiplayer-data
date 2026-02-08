@@ -181,8 +181,8 @@ def generate_compose_config(
                 ],
                 "volumes": [
                     f"{data_dir}:/data",
-                    f"{project_root}/plugins:/source_plugins:ro",
-                    f"{project_root}/skins:/source_skins:ro",
+                    f"{project_root}/server/plugins:/source_plugins:ro",
+                    f"{project_root}/server/skins:/source_skins:ro",
                 ],
                 "restart": "no",
             },
