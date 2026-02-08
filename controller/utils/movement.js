@@ -695,7 +695,7 @@ async function jump(bot, durationMs) {
  * @param {number} durationTicks - Number of ticks to sneak (default: 5)
  * @param {number} idleTicks - Number of ticks to idle for after releasing sneak (default: 5)
  */
-async function sneak(bot, durationTicks = 5, idleTicks = 10) {
+async function sneak(bot, durationTicks = 5, idleTicks = 25) {
   console.log(
     `[${bot.username}] Sneaking for ${(durationTicks + idleTicks) / 20}s`,
   );

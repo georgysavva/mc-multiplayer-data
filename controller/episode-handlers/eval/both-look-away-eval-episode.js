@@ -8,7 +8,7 @@ const MIN_LOOK_AWAY_DURATION_SEC = 1.0;
 const MAX_LOOK_AWAY_DURATION_SEC = 1.0;
 const EPISODE_MIN_TICKS = 300;
 
-function getOnLookAwayPhaseFn(
+function getOnBothLookAwayPhaseFn(
   bot,
   rcon,
   sharedBotRng,
@@ -20,10 +20,10 @@ function getOnLookAwayPhaseFn(
 ) {
   return async (otherBotPosition) => {
     coordinator.sendToOtherBot(
-      `lookAwayPhase_${iterationID}`,
+      `bothLookAwayPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `lookAwayPhase_${iterationID} beginning`,
+      `bothLookAwayPhase_${iterationID} beginning`,
     );
 
     // Deterministic mode selection based on episode number
@@ -165,15 +165,15 @@ function getOnLookAwayPhaseFn(
         "stopPhase",
         bot.entity.position.clone(),
         episodeNum,
-        `lookAwayPhase_${iterationID} end`,
+        `bothLookAwayPhase_${iterationID} end`,
       );
       return;
     }
     const nextIterationID = iterationID + 1;
     coordinator.onceEvent(
-      `lookAwayPhase_${nextIterationID}`,
+      `bothLookAwayPhase_${nextIterationID}`,
       episodeNum,
-      getOnLookAwayPhaseFn(
+      getOnBothLookAwayPhaseFn(
         bot,
         rcon,
         sharedBotRng,
@@ -185,15 +185,15 @@ function getOnLookAwayPhaseFn(
       ),
     );
     coordinator.sendToOtherBot(
-      `lookAwayPhase_${nextIterationID}`,
+      `bothLookAwayPhase_${nextIterationID}`,
       bot.entity.position.clone(),
       episodeNum,
-      `lookAwayPhase_${iterationID} end`,
+      `bothLookAwayPhase_${iterationID} end`,
     );
   };
 }
 
-class LookAwayEvalEpisode extends BaseEpisode {
+class BothLookAwayEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
   static INIT_MIN_BOTS_DISTANCE = 10; // Override: bots spawn 10-12 blocks apart
   static INIT_MAX_BOTS_DISTANCE = 12;
@@ -208,9 +208,9 @@ class LookAwayEvalEpisode extends BaseEpisode {
     args,
   ) {
     coordinator.onceEvent(
-      `lookAwayPhase_${iterationID}`,
+      `bothLookAwayPhase_${iterationID}`,
       episodeNum,
-      getOnLookAwayPhaseFn(
+      getOnBothLookAwayPhaseFn(
         bot,
         rcon,
         sharedBotRng,
@@ -222,7 +222,7 @@ class LookAwayEvalEpisode extends BaseEpisode {
       ),
     );
     coordinator.sendToOtherBot(
-      `lookAwayPhase_${iterationID}`,
+      `bothLookAwayPhase_${iterationID}`,
       bot.entity.position.clone(),
       episodeNum,
       "teleportPhase end",
@@ -231,6 +231,6 @@ class LookAwayEvalEpisode extends BaseEpisode {
 }
 
 module.exports = {
-  getOnLookAwayPhaseFn,
-  LookAwayEvalEpisode,
+  getOnBothLookAwayPhaseFn,
+  BothLookAwayEvalEpisode,
 };

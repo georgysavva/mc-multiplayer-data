@@ -6,6 +6,8 @@ Orchestration script to manage multiple Docker Compose instances for parallel da
 import argparse
 import json
 import os
+import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -14,9 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
-import signal
 import yaml
-import shutil
 
 
 class LogManager:
@@ -95,7 +95,9 @@ def detect_compose_bin() -> List[str]:
 
 
 class InstanceManager:
-    def __init__(self, compose_dir="compose_configs", build_images=False, logs_dir="logs"):
+    def __init__(
+        self, compose_dir="compose_configs", build_images=False, logs_dir="logs"
+    ):
         self.compose_dir = Path(compose_dir)
         self.running_instances = {}
         self.compose_bin = detect_compose_bin()
@@ -154,12 +156,12 @@ class InstanceManager:
     def start_instance(self, compose_file):
         """Start a single Docker Compose instance."""
         instance_name = compose_file.stem
-        
+
         # Build images if requested
         if self.build_images:
             if not self.build_instance(compose_file):
                 return False, instance_name, None
-        
+
         print(f"Starting instance: {instance_name}")
 
         try:
@@ -202,7 +204,9 @@ class InstanceManager:
 
         try:
             # Stop log capture first
-            self.log_manager.stop_for_instance(self.instance_logs.pop(instance_name, {}))
+            self.log_manager.stop_for_instance(
+                self.instance_logs.pop(instance_name, {})
+            )
             cmd = [
                 *self.compose_bin,
                 "-p",
@@ -232,9 +236,9 @@ class InstanceManager:
         idx = self._instance_index_from_stem(instance_name)
         controller_alpha = f"controller_alpha_instance_{idx}"
         controller_bravo = f"controller_bravo_instance_{idx}"
-        
+
         print(f"[{instance_name}] Waiting for controllers to complete...")
-        
+
         try:
             cmd = [
                 *self.compose_bin,
@@ -249,7 +253,7 @@ class InstanceManager:
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=self.compose_dir.parent
             )
-            
+
             if result.returncode == 0:
                 print(f"[{instance_name}] ✅ Controllers completed successfully")
                 return True
@@ -270,9 +274,13 @@ class InstanceManager:
             return
 
         if self.build_images:
-            print(f"Building images and starting {total_instances} instances in parallel...")
+            print(
+                f"Building images and starting {total_instances} instances in parallel..."
+            )
         else:
-            print(f"Pulling images and starting {total_instances} instances in parallel...")
+            print(
+                f"Pulling images and starting {total_instances} instances in parallel..."
+            )
 
         # Start all instances simultaneously
         started_instances = {}
@@ -290,23 +298,25 @@ class InstanceManager:
         print(
             f"\n🎉 Started {len(self.running_instances)}/{total_instances} instances successfully"
         )
-        
+
         # Wait for all controller services to complete
         print(f"\n⏳ Waiting for all controller services to complete...")
-        
+
         with ThreadPoolExecutor(max_workers=total_instances) as executor:
             wait_futures = {
                 executor.submit(self.wait_for_controllers, inst_name, cf): inst_name
                 for inst_name, cf in started_instances.items()
             }
-            
+
             completed_count = 0
             for future in as_completed(wait_futures):
                 if future.result():
                     completed_count += 1
-        
-        print(f"\n✅ {completed_count}/{len(started_instances)} instances completed successfully")
-        
+
+        print(
+            f"\n✅ {completed_count}/{len(started_instances)} instances completed successfully"
+        )
+
         # Stop all instances
         print(f"\n🛑 Shutting down all instances...")
         self.stop_all()
@@ -420,7 +430,9 @@ class InstanceManager:
             print("No saved logs found; falling back to docker compose logs")
             compose_files = self.get_compose_files()
             if instance_pattern:
-                compose_files = [cf for cf in compose_files if instance_pattern in cf.stem]
+                compose_files = [
+                    cf for cf in compose_files if instance_pattern in cf.stem
+                ]
             for compose_file in compose_files:
                 cmd = [
                     *self.compose_bin,
@@ -465,17 +477,27 @@ class InstanceManager:
             ports = {}
             for svc_name, svc in (data.get("services") or {}).items():
                 env = svc.get("environment") or {}
-                if svc_name.startswith("camera_alpha_instance_") and "NOVNC_PORT" in env:
+                if (
+                    svc_name.startswith("camera_alpha_instance_")
+                    and "NOVNC_PORT" in env
+                ):
                     ports["alpha"] = str(env["NOVNC_PORT"]).strip()
-                if svc_name.startswith("camera_bravo_instance_") and "NOVNC_PORT" in env:
+                if (
+                    svc_name.startswith("camera_bravo_instance_")
+                    and "NOVNC_PORT" in env
+                ):
                     ports["bravo"] = str(env["NOVNC_PORT"]).strip()
             if ports:
                 a = ports.get("alpha")
                 b = ports.get("bravo")
                 if a:
-                    print(f"[orchestrate] {instance_name} noVNC alpha: http://localhost:{a}")
+                    print(
+                        f"[orchestrate] {instance_name} noVNC alpha: http://localhost:{a}"
+                    )
                 if b:
-                    print(f"[orchestrate] {instance_name} noVNC bravo: http://localhost:{b}")
+                    print(
+                        f"[orchestrate] {instance_name} noVNC bravo: http://localhost:{b}"
+                    )
         except Exception:
             return
 
@@ -496,30 +518,34 @@ class InstanceManager:
         else:
             print("  (none)")
 
-    def _process_single_recording(self, job, comparison_video, output_dir=None, delay_video_by=0.0):
+    def _process_single_recording(self, job, comparison_video, output_dir=None):
         """Process a single episode recording."""
         script_path = Path(__file__).parent / "postprocess" / "process_recordings.py"
 
         cmd = [
             sys.executable,
             str(script_path),
-            "--bot", job['bot'],
-            "--actions-dir", str(job['output_dir']),
-            "--camera-prefix", str(job['camera_prefix']),
-            "--episode-file", str(job['episode_file']),
-            "--output-dir", output_dir or "/mnt/disks/storage/data/mc_multiplayer_v1/batch1/aligned",
-            "--delay-video-by", str(delay_video_by),
+            "--bot",
+            job["bot"],
+            "--actions-dir",
+            str(job["output_dir"]),
+            "--camera-prefix",
+            str(job["camera_prefix"]),
+            "--episode-file",
+            str(job["episode_file"]),
+            "--output-dir",
+            output_dir or "/mnt/disks/storage/data/mc_multiplayer_v1/batch1/aligned",
         ]
 
         if comparison_video:
             cmd.append("--comparison-video")
-        
+
         try:
             result = subprocess.run(
-                cmd, 
-                capture_output=True, 
-                text=True, 
-                timeout=600  # 10 minute timeout per episode
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=600,  # 10 minute timeout per episode
             )
             if result.returncode != 0:
                 # Print stderr to help debug
@@ -538,12 +564,15 @@ class InstanceManager:
     def _parse_instance_from_filename(self, filename: str) -> int:
         """Extract instance ID from filename like '..._instance_000.json'."""
         import re
-        match = re.search(r'_instance_(\d+)', filename)
+
+        match = re.search(r"_instance_(\d+)", filename)
         if match:
             return int(match.group(1))
         return 0
 
-    def postprocess_recordings(self, workers=4, comparison_video=False, debug=False, output_dir=None, delay_video_by=0.0):
+    def postprocess_recordings(
+        self, workers=4, comparison_video=False, debug=False, output_dir=None
+    ):
         """Process camera recordings for all instances in parallel.
 
         Infers directory structure from output_dir:
@@ -580,7 +609,9 @@ class InstanceManager:
 
         for json_path in sorted(actions_dir.glob("*.json")):
             # Skip meta and episode_info files
-            if json_path.name.endswith("_meta.json") or json_path.name.endswith("_episode_info.json"):
+            if json_path.name.endswith("_meta.json") or json_path.name.endswith(
+                "_episode_info.json"
+            ):
                 continue
 
             # Parse bot and instance from filename
@@ -596,7 +627,9 @@ class InstanceManager:
 
             if not camera_prefix.exists():
                 if debug:
-                    print(f"[DEBUG] Skipping {json_path.name}: camera prefix not found: {camera_prefix}")
+                    print(
+                        f"[DEBUG] Skipping {json_path.name}: camera prefix not found: {camera_prefix}"
+                    )
                 continue
 
             if debug:
@@ -604,22 +637,26 @@ class InstanceManager:
                 print(f"[DEBUG]   Bot: {bot}, Instance: {instance_id}")
                 print(f"[DEBUG]   Camera prefix: {camera_prefix}")
 
-            jobs.append({
-                'episode_file': json_path,
-                'bot': bot,
-                'instance_id': instance_id,
-                'output_dir': actions_dir,
-                'camera_prefix': camera_prefix,
-            })
-        
+            jobs.append(
+                {
+                    "episode_file": json_path,
+                    "bot": bot,
+                    "instance_id": instance_id,
+                    "output_dir": actions_dir,
+                    "camera_prefix": camera_prefix,
+                }
+            )
+
         if not jobs:
             print("No episodes found to process.")
             return
-        
-        unique_instances = len(set(job['instance_id'] for job in jobs))
-        print(f"Found {len(jobs)} episodes to process across {unique_instances} instances")
+
+        unique_instances = len(set(job["instance_id"] for job in jobs))
+        print(
+            f"Found {len(jobs)} episodes to process across {unique_instances} instances"
+        )
         print(f"Processing with {workers} parallel workers...\n")
-        
+
         # Process jobs in parallel
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {
@@ -628,28 +665,29 @@ class InstanceManager:
                     job,
                     comparison_video,
                     output_dir,
-                    delay_video_by
                 ): job
                 for job in jobs
             }
-            
+
             completed = 0
             failed = 0
-            
+
             for future in as_completed(futures):
                 job = futures[future]
                 try:
                     success = future.result()
                     completed += 1
                     status = "✅" if success else "❌"
-                    episode_name = job['episode_file'].stem
-                    print(f"[{completed}/{len(jobs)}] {status} {job['bot']} instance {job['instance_id']}: {episode_name}")
+                    episode_name = job["episode_file"].stem
+                    print(
+                        f"[{completed}/{len(jobs)}] {status} {job['bot']} instance {job['instance_id']}: {episode_name}"
+                    )
                     if not success:
                         failed += 1
                 except Exception as e:
                     failed += 1
                     print(f"[{completed+failed}/{len(jobs)}] ❌ Error: {e}")
-        
+
         print(f"\n{'='*60}")
         print(f"Postprocessing Summary:")
         print(f"  Total episodes: {len(jobs)}")
@@ -717,16 +755,11 @@ def main():
         type=str,
         help="Directory for processed video outputs (default: batch1/aligned)",
     )
-    parser.add_argument(
-        "--delay-video-by",
-        type=float,
-        default=0,
-        help="Delay video by this many seconds (default: 0)",
-    )
-
     args = parser.parse_args()
 
-    manager = InstanceManager(args.compose_dir, build_images=args.build, logs_dir=args.logs_dir)
+    manager = InstanceManager(
+        args.compose_dir, build_images=args.build, logs_dir=args.logs_dir
+    )
 
     if args.command == "start":
         manager.start_all()
@@ -739,7 +772,9 @@ def main():
     elif args.command == "recordings":
         manager.recordings()
     elif args.command == "postprocess":
-        manager.postprocess_recordings(args.workers, args.comparison_video, args.debug, args.output_dir, args.delay_video_by)
+        manager.postprocess_recordings(
+            args.workers, args.comparison_video, args.debug, args.output_dir
+        )
 
 
 if __name__ == "__main__":

@@ -21,7 +21,6 @@ from typing import Optional
 import yaml
 
 
-
 def absdir(path: str) -> str:
     """Validate path is absolute and return it.
 
@@ -121,6 +120,8 @@ def generate_compose_config(
     gpu_mode: str = "egl",
     # Eval options
     eval_time_set_day: int = 0,
+    # Flatland options
+    flatland_world_disable_structures: bool = False,
 ):
     """Generate a Docker Compose configuration for a single instance."""
 
@@ -155,7 +156,9 @@ def generate_compose_config(
     # If the only episode type is turnToLookEval, use the fixed seed "solaris"
     if episode_types == "turnToLookEval" or episode_types == "turnToLookOppositeEval":
         seed = "solaris"
-        print(f"turnToLookEval episode type passsed. Using fixed seed 'solaris' for all instances.")
+        print(
+            f"turnToLookEval episode type passsed. Using fixed seed 'solaris' for all instances."
+        )
     else:
         seed = str(instance_id) + str(int(time.time()))
     config = {
@@ -215,6 +218,11 @@ def generate_compose_config(
                             {
                                 "LEVEL_TYPE": "minecraft:flat",
                                 "GENERATOR_SETTINGS": "TERRAIN_SETTINGS_PLACEHOLDER",
+                                **(
+                                    {"GENERATE_STRUCTURES": "false"}
+                                    if flatland_world_disable_structures
+                                    else {}
+                                ),
                             }
                             if str(world_type).lower() == "flat"
                             else {}
@@ -687,6 +695,13 @@ def main():
         help="Set time to day at the start of eval episodes (default: 0)",
     )
     parser.add_argument(
+        "--flatland_world_disable_structures",
+        type=int,
+        default=0,
+        choices=[0, 1],
+        help="Disable structure generation for flatland worlds (default: 0)",
+    )
+    parser.add_argument(
         "--render_distance",
         type=int,
         default=8,
@@ -759,7 +774,7 @@ def main():
     for i in range(total_instances):
         gpu_id = i % gpu_count
         print(f"    Instance {i}: GPU {gpu_id}")
-    
+
     print(f"Generating {total_instances} Docker Compose configurations...")
 
     for i in range(total_instances):
@@ -768,10 +783,10 @@ def main():
         instance_cpuset = None
         camera_alpha_cpuset = None
         camera_bravo_cpuset = None
-        
+
         # Calculate GPU assignment for this instance (round-robin across available GPUs)
         gpu_device_id = i % gpu_count
-        
+
         config = generate_compose_config(
             i,
             args.base_port,
@@ -813,6 +828,10 @@ def main():
             gpu_mode=args.gpu_mode,
             # Eval options
             eval_time_set_day=args.eval_time_set_day,
+            # Flatland options
+            flatland_world_disable_structures=bool(
+                args.flatland_world_disable_structures
+            ),
         )
 
         # Write compose file
