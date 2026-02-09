@@ -12,4 +12,5 @@ server/plugins/SkinsRestorer/cache/*
 server/plugins/SkinsRestorer/players/*
 server/plugins/SkinsRestorer/skins/*.playerskin
 server/plugins/SkinsRestorer/recommendations.json
+server/episode-manager-plugin/target/*
 postprocess/__pycache__/
