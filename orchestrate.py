@@ -507,13 +507,13 @@ class InstanceManager:
         bravo_root = root / "camera" / "output_bravo"
         print("[orchestrate] camera recordings (alpha):")
         if alpha_root.exists():
-            for p in sorted(alpha_root.rglob("camera_*.mp4")):
+            for p in sorted(alpha_root.rglob("camera_*.mkv")):
                 print(f"  {p}")
         else:
             print("  (none)")
         print("[orchestrate] camera recordings (bravo):")
         if bravo_root.exists():
-            for p in sorted(bravo_root.rglob("camera_*.mp4")):
+            for p in sorted(bravo_root.rglob("camera_*.mkv")):
                 print(f"  {p}")
         else:
             print("  (none)")
