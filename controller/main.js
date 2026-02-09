@@ -15,8 +15,6 @@ const { parseArgs } = require("./config/args");
  * Main function to initialize and run the bot
  */
 async function main() {
-  console.log("DEBUG environment variable:", process.env.DEBUG);
-
   // Parse command line arguments
   const args = parseArgs();
 

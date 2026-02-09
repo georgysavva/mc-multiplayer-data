@@ -169,10 +169,10 @@ function makePlatformBlueprint(options = {}) {
 
 /**
  * Get the phase function for building episodes
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
  * @param {number} episodeNum - Episode number
  * @param {Object} episodeInstance - Episode instance

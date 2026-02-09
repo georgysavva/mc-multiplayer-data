@@ -23,7 +23,7 @@ const CAMERA_SPEED_DEGREES_PER_SEC = 180; // Same as main file
 
 /**
  * Walk straight while looking at other bot with offset to avoid collision
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} otherBotPosition - Position of the other bot
  * @param {number} walkDistancePastTarget - Distance to walk
  * @param {number} walkTimeoutSec - Timeout for walking in seconds
@@ -104,9 +104,9 @@ async function walkStraightWhileLooking(
 
 /**
  * Get straight line walk phase handler function
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
  * @param {string} otherBotName - Other bot name
  * @param {number} episodeNum - Episode number

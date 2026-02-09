@@ -3,7 +3,7 @@ const { Vec3 } = require("vec3");
 
 /**
  * Dig a block with a timeout, similar to gotoWithTimeout.
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} block - Block to dig
  * @param {Object} [options]
  * @param {number} [options.timeoutMs=10000] - Maximum time to attempt digging
@@ -69,7 +69,7 @@ async function digBlock(bot, blockPos) {
 
 /**
  * Place a torch on the floor at the bot's current feet position
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} movementDirection - Direction the bot is moving (not used)
  * @returns {Promise<boolean>} True if torch was placed
  */
@@ -168,7 +168,7 @@ async function placeTorchOnFloor(
 }
 /**
  * Check if a torch can be placed on a block and return the best face direction
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} pos - Position to place torch
  * @returns {[boolean, Vec3|null]} [canPlace, faceVector]
  */
@@ -208,7 +208,7 @@ function canPlaceTorch(bot, pos) {
 
 /**
  * Place a torch on a nearby surface
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} mcData - Minecraft data
  * @param {Array} oreIds - Array of ore block IDs to avoid
  * @param {number} maxTryTime - Maximum time to try placing torch (default 6 seconds)
@@ -312,8 +312,8 @@ async function placeTorch(
 }
 /**
  * Check if a block is visible to the bot
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Block} block - Block to check
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} block - Block to check
  * @returns {boolean} Whether the block is visible
  */
 function isBlockVisible(bot, block) {
@@ -323,7 +323,7 @@ function isBlockVisible(bot, block) {
 
 /**
  * Find visible valuable ores
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Array} oreIds - Array of ore block IDs
  * @returns {Array} Array of visible ore blocks
  */

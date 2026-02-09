@@ -6,7 +6,7 @@ const { sleep } = require("../utils/helpers");
 
 /**
  * Unequips an item from the bot's hand
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {string} [itemType] - Optional item type to check for (e.g., "sword", "pickaxe")
  * @returns {Promise<boolean>} True if successfully unequipped or nothing to unequip
  */
@@ -93,7 +93,7 @@ async function ensureBotHasEnough(
 
 /**
  * Ensure an item is equipped in hand
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {string} itemName - Name of item to equip
  * @param {Object} args - Configuration arguments with rcon settings (optional)
  * @returns {Promise<number>} Item ID

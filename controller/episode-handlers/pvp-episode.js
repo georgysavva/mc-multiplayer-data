@@ -25,7 +25,7 @@ const INITIAL_EYE_CONTACT_MS = 500; // Initial look duration
 
 /**
  * Main PVP combat loop using mineflayer-pvp plugin
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {string} targetBotName - Name of target bot
  * @param {number} durationMs - Combat duration in milliseconds
  */
@@ -121,10 +121,10 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
 
 /**
  * Get PVP phase handler function
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
  * @param {number} episodeNum - Episode number
  * @param {Object} episodeInstance - Episode instance

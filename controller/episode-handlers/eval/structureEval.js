@@ -134,10 +134,10 @@ const CARDINALS = [
 
 /**
  * Get the phase function for structure eval episodes
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
  * @param {number} episodeNum - Episode number
  * @param {Object} episodeInstance - Episode instance
@@ -579,7 +579,6 @@ class StructureEvalEpisode extends BaseEpisode {
 }
 
 module.exports = {
-  // Main exports
   buildStructure,
   generateWallPositions,
   generateTowerPositions,
@@ -587,16 +586,16 @@ module.exports = {
   getStructureCenterForViewing,
   getOnStructureEvalPhaseFn,
   StructureEvalEpisode,
-  // Constants (for reuse in debug/no-place variant)
+  // Constants
   ALL_STRUCTURE_TYPES,
   BUILD_BLOCK_TYPES,
   EPISODE_MIN_TICKS,
   PLACEMENT_STANDOFF_BLOCKS,
   ADJACENT_GOAL_RADIUS,
   CARDINALS,
-  // Timing functions (for reuse in debug/no-place variant)
+  // Timing functions
   getInitialEyeContactTicks,
   getBlockPlaceDelayTicks,
   getBuilderAdmireTicks,
-  // Local helper functions (for reuse in debug/no-place variant)
+  // Local helper functions
 };

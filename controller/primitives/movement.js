@@ -98,7 +98,7 @@ function getScaffoldingBlockIds(mcData, blockNames = null) {
 
 /**
  * Stop all bot movement and actions
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  */
 function stopAll(bot) {
   // Stop pathfinder if available
@@ -122,7 +122,7 @@ function stopAll(bot) {
 
 /**
  * Set multiple movement controls at once
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} controls - Object with control states {forward: true, sprint: true, etc.}
  */
 function setControls(bot, controls) {
@@ -133,7 +133,7 @@ function setControls(bot, controls) {
 
 /**
  * Enable sprint mode
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  */
 function enableSprint(bot) {
   bot.setControlState("sprint", true);
@@ -141,7 +141,7 @@ function enableSprint(bot) {
 
 /**
  * Disable sprint mode
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  */
 function disableSprint(bot) {
   bot.setControlState("sprint", false);
@@ -153,7 +153,7 @@ function disableSprint(bot) {
 
 /**
  * Initialize pathfinder with optimal settings for bot movement
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} options - Pathfinder configuration options
  */
 function initializePathfinder(bot, options = {}) {
@@ -199,7 +199,7 @@ function initializePathfinder(bot, options = {}) {
 
 /**
  * Stop pathfinder and clear current goal
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  */
 function stopPathfinder(bot) {
   if (bot.pathfinder) {
@@ -213,7 +213,7 @@ function stopPathfinder(bot) {
 
 /**
  * Go to a goal using pathfinder with a timeout.
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} goal - mineflayer-pathfinder Goal instance
  * @param {Object} [options]
  * @param {number} [options.timeoutMs=10000] - Maximum time to attempt navigation
@@ -251,7 +251,7 @@ async function gotoWithTimeout(bot, goal, options = {}) {
 
 /**
  * Move in a specific direction
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {string} direction - Direction to move ("forward", "back", "left", "right")
  * @param {boolean} sprint - Whether to sprint while moving
  */
@@ -265,7 +265,7 @@ function moveDirection(bot, direction, sprint = false) {
 
 /**
  * Move toward a target position using directional controls
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPosition - Target position to move toward
  * @param {boolean} sprint - Whether to sprint while moving
  * @param {number} threshold - Distance threshold to consider "reached" (default: 0.5)
@@ -318,7 +318,7 @@ function moveToward(bot, targetPosition, sprint = false, threshold = 0.5) {
 
 /**
  * Move away from a position (opposite direction)
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} avoidPosition - Position to move away from
  * @param {boolean} sprint - Whether to sprint while moving
  * @returns {string} The primary direction being moved
@@ -389,7 +389,7 @@ const DEFAULT_LOOK_OPTIONS = {
 
 /**
  * Smoothly rotate bot camera to look at target position
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPosition - Position to look at
  * @param {number} degreesPerSecond - Rotation speed in degrees per second
  * @param {Object} [options] - Look options (see lookSmooth for details)
@@ -419,7 +419,7 @@ async function lookAtSmooth(
 
 /**
  * Smoothly rotate bot camera to specified yaw and pitch
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {number} targetYaw - Target yaw angle in radians
  * @param {number} targetPitch - Target pitch angle in radians
  * @param {number} degreesPerSecond - Base rotation speed in degrees per second
@@ -466,7 +466,7 @@ async function lookSmooth(
 
 /**
  * Look at another bot by name
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {string} targetBotName - Name of the bot to look at
  * @param {number} degreesPerSecond - Rotation speed in degrees per second
  * @param {Object} [options] - Look options (see lookSmooth for details)
@@ -494,7 +494,7 @@ async function lookAtBot(
 
 /**
  * Look in a specific direction (yaw only)
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {number} yawRadians - Yaw angle in radians
  * @param {number} pitchRadians - Pitch angle in radians (default: 0)
  */
@@ -509,7 +509,7 @@ function lookDirection(bot, yawRadians, pitchRadians = 0) {
 const Y_IN_AIR = 128;
 /**
  * Find suitable landing position at given coordinates
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {number} x - X coordinate
  * @param {number} z - Z coordinate
  * @returns {Vec3|null} Landing position or null if not found
@@ -597,7 +597,7 @@ function getDirectionTo(fromPos, toPos) {
 
 /**
  * Check if bot is close to a target position
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPosition - Target position to check
  * @param {number} threshold - Distance threshold (default: 1.0)
  * @returns {boolean} True if bot is within threshold distance
@@ -608,7 +608,7 @@ function isNearPosition(bot, targetPosition, threshold = 1.0) {
 
 /**
  * Check if bot is close to another bot
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {string} targetBotName - Name of the target bot
  * @param {number} threshold - Distance threshold (default: 1.0)
  * @returns {boolean} True if bots are within threshold distance
@@ -625,7 +625,7 @@ function isNearBot(bot, targetBotName, threshold = 1.0) {
 }
 /**
  * Make bot jump for specified duration
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {number} durationMs - Duration in milliseconds
  */
 async function jump(bot, durationMs) {
@@ -643,7 +643,7 @@ async function jump(bot, durationMs) {
 
 /**
  * Make bot sneak for specified number of ticks (default: 5 ticks)
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {number} durationTicks - Number of ticks to sneak (default: 5)
  * @param {number} idleTicks - Number of ticks to idle for after releasing sneak (default: 5)
  */
@@ -660,8 +660,8 @@ async function sneak(bot, durationTicks = 5, idleTicks = 25) {
 /**
  * Direct teleport to specific points from a list.
  * Used for episodes that require precise positioning (e.g. TurnToLookEpisode).
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Rcon} rcon - RCON connection instance
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
  * @param {string} otherBotName - Name of the other bot
  * @param {number} episodeNum - Episode number
  * @param {Array<Array<number>>} points - List of [x, y, z] coordinates

@@ -27,7 +27,7 @@ const TORCH_PLACE_DELAY_MS = 1200; // Delay after placing torch to make it visib
 
 /**
  * Dig straight down to get underground before starting horizontal mining
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {number} depth - Number of blocks to dig down
  * @returns {Promise<boolean>} True if successfully dug down
  */
@@ -105,7 +105,7 @@ async function digDownToUnderground(bot, depth = UNDERGROUND_DEPTH) {
 
 /**
  * Mine towards a target position using pathfinder with mining enabled and torch placement
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Target position to mine towards
  * @returns {Promise<Object>} Mining statistics
  */
@@ -263,10 +263,10 @@ async function mineTowardsTargetWithTorchPlacement(bot, targetPos) {
 
 /**
  * Get the phase function for mining episodes
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
  * @param {number} episodeNum - Episode number
  * @param {Object} episodeInstance - Episode instance

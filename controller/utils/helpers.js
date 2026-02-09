@@ -26,7 +26,7 @@ const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 /**
  * Equip the first item of specified type in inventory
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {string} itemName - Name of item to equip
  * @param {string} dest - Destination slot ('torso','head','legs','feet','hand')
  */

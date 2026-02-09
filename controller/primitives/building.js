@@ -25,7 +25,7 @@ const CARDINALS = [
 
 /**
  * Check if a block is air or air-like (passable)
- * @param {Block} block - Block to check
+ * @param {*} block - Block to check
  * @returns {boolean} True if air-like
  */
 function isAirLike(block) {
@@ -34,7 +34,7 @@ function isAirLike(block) {
 
 /**
  * Check if a position is within reach
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} pos - Position to check
  * @param {number} max - Maximum reach distance
  * @returns {boolean} True if in reach
@@ -46,7 +46,7 @@ function inReach(bot, pos, max = 4.5) {
 /**
  * Calculate a score for how good a face is for placement
  * Considers bot's view direction, face orientation, and accessibility
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} faceVec - Face vector (normal direction)
  * @param {Vec3} refBlockPos - Position of reference block
  * @returns {number} Score from 0-100 (higher is better)
@@ -106,7 +106,7 @@ function scoreFace(bot, faceVec, refBlockPos) {
  * Find the best reference block and face for placing at targetPos
  * Enhanced version with visibility checks and scoring
  * Returns all viable candidates for fallback support
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Target position to place block
  * @param {Object} options - Options {returnAll: boolean, minScore: number}
  * @returns {Object|Array|null} Best candidate, all candidates array, or null
@@ -218,7 +218,7 @@ function findBestPlaceReference(bot, targetPos, options = {}) {
  * Find a reference block + face vector to place at targetPos
  * DEPRECATED: Use findBestPlaceReference() instead
  * Kept for backward compatibility
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Target position to place block
  * @returns {Object|null} {refBlock, faceVec} or null if no valid reference
  */
@@ -233,7 +233,7 @@ function findPlaceReference(bot, targetPos) {
 /**
  * Perform a raycast from one position to another to check for obstructions
  * Steps through the ray in small increments and checks for solid blocks
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} fromPos - Starting position (usually bot's eye position)
  * @param {Vec3} toPos - Target position (usually face center)
  * @returns {Object} {clear: boolean, obstruction: Vec3|null}
@@ -271,7 +271,7 @@ function raycastToPosition(bot, fromPos, toPos) {
 /**
  * Check if a target position is completely obstructed (all faces blocked)
  * Used to detect if a block is enclosed and cannot be placed
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Position to check
  * @returns {boolean} True if all 6 faces are blocked by solid blocks
  */
@@ -295,8 +295,8 @@ function isBlockObstructed(bot, targetPos) {
 /**
  * Check if the bot can see a specific face of a reference block
  * Performs detailed line-of-sight validation using raycast
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Block} refBlock - Reference block to check
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} refBlock - Reference block to check
  * @param {Vec3} faceVec - Face vector (normal direction of the face)
  * @returns {boolean} True if bot has clear line of sight to the face
  */
@@ -341,7 +341,7 @@ function canSeeFace(bot, refBlock, faceVec) {
 /**
  * Check if a position is safe for the bot to stand
  * Validates ground support, no obstructions, and reasonable distance
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} position - Position to check
  * @param {Vec3} targetPos - Target block position (for distance check)
  * @returns {boolean} True if position is safe
@@ -380,8 +380,8 @@ function isPositionSafe(bot, position, targetPos) {
 /**
  * Calculate the optimal position for the bot to stand when placing a block
  * Considers face direction, distance, and viewing angle
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Block} refBlock - Reference block to place on
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} refBlock - Reference block to place on
  * @param {Vec3} faceVec - Face vector
  * @param {Vec3} targetPos - Target position where block will be placed
  * @returns {Object} {position: Vec3, yaw: number, pitch: number}
@@ -453,8 +453,8 @@ function calculateOptimalPosition(bot, refBlock, faceVec, targetPos) {
 /**
  * Move the bot to an optimal position for placing a block
  * Uses pathfinder to navigate and validates line of sight after movement
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Block} refBlock - Reference block to place on
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} refBlock - Reference block to place on
  * @param {Vec3} faceVec - Face vector
  * @param {Vec3} targetPos - Target position where block will be placed
  * @param {number} timeoutMs - Timeout for pathfinding (default: 5000ms)
@@ -567,8 +567,8 @@ async function moveToPlacementPosition(
 /**
  * Prepare the bot for block placement with natural-looking behavior
  * Looks at the target face, validates reach and sight line
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Block} refBlock - Reference block to place on
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} refBlock - Reference block to place on
  * @param {Vec3} faceVec - Face vector
  * @param {number} delayMs - Delay after looking (default: 250ms)
  * @returns {Promise<Object>} {ready: boolean, reason: string}
@@ -580,9 +580,6 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
     0.5 + faceVec.y * 0.5,
     0.5 + faceVec.z * 0.5,
   );
-
-  // Debug: Log camera at start
-  // console.log(`[${bot.username}] 📷 [PREP-START] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
 
   // Disable pathfinder auto-look temporarily to prevent interference
   const pathfinderEnableLook = bot.pathfinder
@@ -608,16 +605,10 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
       }
     }
 
-    // Debug: Log camera after lookAt
-    // console.log(`[${bot.username}] 📷 [PREP-AFTER-LOOK] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
-
     // Natural pause after looking (makes movement more human-like)
     if (delayMs > 0) {
       await new Promise((res) => setTimeout(res, delayMs));
     }
-
-    // Debug: Log camera after delay
-    // console.log(`[${bot.username}] 📷 [PREP-AFTER-DELAY] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
 
     // Verify bot is still in reach
     const maxReach = bot.game.gameMode === 1 ? 6 : 4.5;
@@ -650,8 +641,8 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
 
 /**
  * Move close enough to place if needed
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Block} refBlock - Reference block to click
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} refBlock - Reference block to click
  * @param {Vec3} faceVec - Face vector
  * @param {number} maxTries - Maximum attempts
  * @returns {Promise<boolean>} True if in reach
@@ -684,7 +675,7 @@ async function ensureReachAndSight(bot, refBlock, faceVec, maxTries = 3) {
  * Auto-finds a reference face, ensures reach/LOS, sneaks if needed, retries
  * Enhanced with pre-placement ritual for human-like behavior
  * Phase 7: Added fallback mechanisms, validation, and graceful error handling
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Target position to place block
  * @param {string} itemName - Name of block/item to place
  * @param {Object} options - Options for placement {useSneak, tries, args, prePlacementDelay, maxRetries}
@@ -782,18 +773,10 @@ async function placeAt(
 
         // Attempt placement
         try {
-          // Debug: Log camera before placement
-          // console.log(`[${bot.username}] 📷 [BEFORE-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
           await bot.placeBlock(refBlock, faceVec);
-
-          // Debug: Log camera immediately after placement
-          // console.log(`[${bot.username}] 📷 [AFTER-PLACE] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
 
           // Wait 500ms after placement without moving camera
           await new Promise((res) => setTimeout(res, 500));
-
-          // Debug: Log camera after wait
-          // console.log(`[${bot.username}] 📷 [AFTER-WAIT] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
         } catch (e) {
           console.log(`[${bot.username}] ⚠️ Placement failed: ${e.message}`);
           await new Promise((res) => setTimeout(res, 100));
@@ -810,8 +793,6 @@ async function placeAt(
             `[${bot.username}] ✅ Successfully placed ${placedBlock?.name || itemName} at ${targetPos} ` +
               `(face ${candidateIndex + 1}, attempt ${totalAttempts})`,
           );
-          // Debug: Log camera when returning success
-          // console.log(`[${bot.username}] 📷 [RETURN-SUCCESS] yaw=${(bot.entity.yaw * 180 / Math.PI).toFixed(1)}°, pitch=${(bot.entity.pitch * 180 / Math.PI).toFixed(1)}°`);
           return true;
         }
 
@@ -842,7 +823,7 @@ async function placeAt(
 
 /**
  * Place multiple blocks in a deterministic order (bottom-up, near-to-far)
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Array<Vec3>} positions - Array of positions to place blocks
  * @param {string} itemName - Name of block/item to place
  * @param {Object} options - Options for placement {useSneak, tries, args, delayMs, useBuildOrder, useSmartPositioning}
@@ -960,8 +941,8 @@ async function placeMultiple(bot, positions, itemName, options = {}) {
 /**
  * Fast block placement - no checks, just place immediately
  * Used during pillar jumping where we know the context
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Block} referenceBlock - Block to place on top of
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} referenceBlock - Block to place on top of
  * @returns {Promise<boolean>} True if placement was attempted
  */
 async function fastPlaceBlock(bot, referenceBlock) {
@@ -978,7 +959,7 @@ async function fastPlaceBlock(bot, referenceBlock) {
 /**
  * Build a tower by jumping and placing blocks directly underneath
  * Uses the classic Minecraft "pillar jumping" technique with configurable retry logic
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {number} towerHeight - Height of tower to build
  * @param {Object} args - Configuration arguments (for RCON if needed)
  * @param {Object} options - Optional configuration
@@ -1193,7 +1174,7 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
 /**
  * Check if a target position has adjacent support for placement
  * A block can only be placed if at least one adjacent block exists
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Position to check for support
  * @param {Set<string>} placedBlocks - Set of already placed block positions (as "x,y,z" strings)
  * @returns {boolean} True if position has at least one adjacent solid block
@@ -1228,7 +1209,7 @@ function hasAdjacentSupport(bot, targetPos, placedBlocks = new Set()) {
  * Sort block positions by buildability
  * Ensures blocks are placed in a valid order with proper support
  * @param {Array<Vec3>} positions - Array of positions to sort
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @returns {Array<Vec3>} Sorted array of positions (buildable order)
  */
 function sortByBuildability(positions, bot) {
@@ -1652,7 +1633,7 @@ function calculateMaterialCounts(blueprint) {
 
 /**
  * Check if there's an adjacent solid block for placement reference
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} pos - Target position
  * @returns {boolean} True if reference block exists
  */
@@ -1679,7 +1660,7 @@ function hasAdjacentSolidBlock(bot, pos) {
 
 /**
  * Place scaffold block to support target placement
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Target position that needs support
  * @param {Object} args - Episode args (for RCON)
  * @returns {Promise<boolean>} True if scaffold placed
@@ -1719,7 +1700,7 @@ async function placeScaffold(bot, targetPos, args) {
 
 /**
  * Build a phase of blocks for one bot with auto-scaffolding
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Array<Object>} targets - Array of block targets with worldPos
  * @param {Object} options - Options {args, delayMs}
  * @returns {Promise<Object>} Build statistics {success, failed}
@@ -2186,7 +2167,7 @@ async function buildPhase(bot, targets, options = {}) {
 /**
  * Check if bot's hitbox overlaps with target block position
  * Bot hitbox: 0.6 wide × 1.8 tall, centered at bot position
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Target block position
  * @returns {boolean} True if bot is standing on/inside target block
  */
@@ -2222,7 +2203,7 @@ function isBotCollidingWithBlock(bot, targetPos) {
 
 /**
  * Cleanup scaffold blocks after building
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @returns {Promise<void>}
  */
 async function cleanupScaffolds(bot) {
@@ -2255,7 +2236,7 @@ async function cleanupScaffolds(bot) {
 
 /**
  * Both bots exit through door and admire the house
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} doorWorldPos - World position of door
  * @param {number} orientation - House orientation (0, 90, 180, 270)
  * @param {Object} options - Options {backOff: distance}
@@ -2343,7 +2324,7 @@ async function admireHouse(bot, doorWorldPos, orientation, options = {}) {
 /**
  * Build a bridge towards a target position using pathfinder with automatic scaffolding
  * This leverages mineflayer-pathfinder's built-in block placement capabilities
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Target position to build towards
  * @param {string} bridgeBlockType - Block type to use for bridge
  * @param {number} bridgeGoalDistance - Goal distance to target
@@ -2428,7 +2409,6 @@ async function buildBridge(
     `[${bot.username}] 🚀 Starting pathfinder - will automatically place blocks as needed!`,
   );
 
-  // Track pathfinding events for debugging
   let blocksPlaced = 0;
   const onBlockPlaced = () => {
     blocksPlaced++;
@@ -2611,7 +2591,7 @@ async function tryPlaceAtUsingLocal(
 /**
  * Place multiple blocks with delay between each placement (custom version for structureEval)
  * This version overrides the lookAt behavior to use smooth looking instead of instant snap
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Array<Vec3>} positions - Array of positions to place blocks
  * @param {string} itemName - Name of block/item to place
  * @param {Object} options - Options for placement
@@ -2831,7 +2811,7 @@ async function placeMultipleWithDelay(
 
 /**
  * Main building loop - bot builds assigned structure
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Array<Vec3>} positions - Positions to build at
  * @param {string} blockType - Type of block to place
  * @param {Object} args - Configuration arguments

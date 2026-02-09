@@ -185,11 +185,10 @@ async function saveEpisodeInfo({
 }
 /**
  * Run a single episode
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} coordinator - Bot coordinator instance
  * @param {number} episodeNum - Episode number
- * @param {string} run_id - Run ID
  * @param {Object} args - Configuration arguments
  * @returns {Promise} Promise that resolves when episode completes
  */
@@ -347,8 +346,8 @@ async function notifyPeerErrorAndStop(
 
 /**
  * Setup bot protection effects and world rules (called once per bot)
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Rcon} rcon - RCON connection instance
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
  */
 async function setupBotAndWorldOnce(bot, rcon) {
   const resistEffectRes = await rcon.send(
@@ -397,8 +396,8 @@ async function setupBotAndWorldOnce(bot, rcon) {
 
 /**
  * Setup camera player protection effects (called once per camera)
- * @param {Bot} bot - Mineflayer bot instance (used to derive camera username)
- * @param {Rcon} rcon - RCON connection instance
+ * @param {*} bot - Mineflayer bot instance (used to derive camera username)
+ * @param {*} rcon - RCON connection instance
  */
 async function setupCameraPlayerOnce(bot, rcon) {
   const cameraUsername = `Camera${bot.username}`;
@@ -420,8 +419,8 @@ async function setupCameraPlayerOnce(bot, rcon) {
 
 /**
  * Setup bot and camera saturation effects for each episode
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Rcon} rcon - RCON connection instance
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
  * @param {Object} args - Configuration arguments
  */
 async function setupBotAndCameraForEpisode(bot, rcon, args) {
@@ -464,11 +463,10 @@ async function clearBotInventory(bot, rcon) {
 
 /**
  * Get spawn phase handler function
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {string} host - Server host
  * @param {number} actRecorderPort - Act recorder port
- * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} coordinator - Bot coordinator instance
  * @param {Object} args - Configuration arguments
  * @returns {Function} Spawn phase handler
  */
@@ -682,12 +680,10 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
 
 /**
  * Get teleport phase handler function
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
- * @param {string} otherBotName - Other bot name
+ * @param {*} coordinator - Bot coordinator instance
  * @param {number} episodeNum - Episode number
- * @param {string} run_id - Run ID
  * @param {Object} args - Configuration arguments
  * @returns {Function} Teleport phase handler
  */
@@ -836,7 +832,6 @@ function getOnSetupEpisodeFn(
     );
 
     await sleep(1000);
-    // await sleep(episodeNum === 0 ? 6000 : 1000);
 
     // Call the entry point method
     coordinator.onceEvent(

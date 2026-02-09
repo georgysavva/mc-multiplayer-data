@@ -24,8 +24,8 @@ const CAMERA_SPEED = 90; // Camera movement speed (degrees per second)
 
 /**
  * Chaser behavior - uses pure pathfinder for intelligent AI movement
- * @param {Bot} bot - Mineflayer bot instance (chaser)
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} bot - Mineflayer bot instance (chaser)
+ * @param {*} coordinator - Bot coordinator instance
  * @param {string} otherBotName - Name of the runner bot
  * @param {number} chaseDurationMs - Duration to chase in milliseconds
  */
@@ -132,8 +132,8 @@ async function chaseRunner(
 }
 /**
  * Runner behavior - picks one fixed destination and pathfinds there
- * @param {Bot} bot - Mineflayer bot instance (runner)
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} bot - Mineflayer bot instance (runner)
+ * @param {*} coordinator - Bot coordinator instance
  * @param {string} otherBotName - Name of the chaser bot
  * @param {number} chaseDurationMs - Duration to run in milliseconds
  */
@@ -220,7 +220,6 @@ async function runFromChaser(
   );
 
   const startTime = Date.now();
-  let lastCameraUpdate = 0;
 
   try {
     // Set the single escape goal using GoalNear
@@ -230,13 +229,6 @@ async function runFromChaser(
     );
 
     while (Date.now() - startTime < chaseDurationMs) {
-      // Occasionally look back at the chaser for realistic behavior
-      const now = Date.now();
-      // if (now - lastCameraUpdate > 20000) { // Look back every 3 seconds
-      //   await lookAtBot(bot, otherBotName, CAMERA_SPEED);
-      //   lastCameraUpdate = now;
-      // }
-
       // Just sleep and let pathfinder do its work
       await sleep(POSITION_UPDATE_INTERVAL_MS);
     }
@@ -249,9 +241,9 @@ async function runFromChaser(
 
 /**
  * Get chase phase handler function
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
  * @param {string} otherBotName - Other bot name
  * @param {number} episodeNum - Episode number

@@ -43,11 +43,6 @@ async function spawnWithRconAround(
 ) {
   const { x, y, z } = bot.entity.position;
 
-  // Make sure the world will actually keep hostiles:
-  // If you want hard night spawns:
-  // await rcon.send('time set midnight');
-  // await rcon.send('weather thunder');
-
   const baseX = Math.floor(x),
     baseZ = Math.floor(z);
   const yaw = bot.entity.yaw;

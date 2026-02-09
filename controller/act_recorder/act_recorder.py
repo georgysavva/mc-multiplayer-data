@@ -83,7 +83,6 @@ def process_frame_worker(frame_queue, output_path, viewer_rendering_disabled, ep
             frames.append(img)
 
         except Empty:
-            # print("Frame queue timeout (no new frames in 5 seconds)")
             continue
         except Exception as e:
             print(
@@ -312,8 +311,6 @@ while True:
             except Queue.Full:
                 print("Queue full, dropping frame")
             continue
-
-            # print(f"Processed in {(t1 - t0)*1000:.2f}ms")
 
     except socket.timeout:
         print("Socket timeout")

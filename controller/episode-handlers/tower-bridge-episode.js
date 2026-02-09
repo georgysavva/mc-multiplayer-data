@@ -29,10 +29,10 @@ const BRIDGE_GOAL_DISTANCE = 1.0; // How close to get to midpoint (blocks) - pre
 
 /**
  * Get the phase function for tower-bridge episodes
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
  * @param {number} episodeNum - Episode number
  * @param {Object} episodeInstance - Episode instance
@@ -104,42 +104,9 @@ function getOnTowerBridgePhaseFn(
       actualOtherBotPosition = otherBotPosition.clone();
     }
 
-    // // STEP 3: Move backward to increase distance for longer bridges
     console.log(
       `[${bot.username}] 🚶 STEP 3: Moving backward SKIPPED MANUALLY...`,
     );
-    // const startPos = bot.entity.position.clone();
-
-    // // Calculate direction AWAY from other bot
-    // const backwardDx = startPos.x - actualOtherBotPosition.x;
-    // const backwardDz = startPos.z - actualOtherBotPosition.z;
-    // const backwardDistance = Math.sqrt(backwardDx * backwardDx + backwardDz * backwardDz);
-
-    // // Normalize direction (away from other bot)
-    // const backwardDirX = backwardDx / backwardDistance;
-    // const backwardDirZ = backwardDz / backwardDistance;
-
-    // // Calculate yaw to face AWAY from other bot
-    // const awayYaw = Math.atan2(-backwardDirX, -backwardDirZ);
-
-    // console.log(`[${bot.username}] 🧭 Facing away from ${otherBotName} at yaw: ${awayYaw.toFixed(2)} radians`);
-    // await bot.look(awayYaw, 0, false);
-    // await sleep(200);
-
-    // // Walk backward 3 blocks
-    // const BACKWARD_DISTANCE = 3;
-    // const WALK_TIME_PER_BLOCK = 1000; // ~1 second per block at walking speed
-
-    // console.log(`[${bot.username}] 🚶 Walking backward ${BACKWARD_DISTANCE} blocks...`);
-    // bot.setControlState('forward', true);
-    // await sleep(BACKWARD_DISTANCE * WALK_TIME_PER_BLOCK);
-    // bot.setControlState('forward', false);
-
-    // const newPos = bot.entity.position.clone();
-    // const distanceMoved = startPos.distanceTo(newPos);
-    // console.log(`[${bot.username}] ✅ Moved ${distanceMoved.toFixed(2)} blocks backward`);
-
-    // await sleep(500); // Settle after moving
 
     // STEP 4: Build tower underneath (8 blocks high)
     console.log(

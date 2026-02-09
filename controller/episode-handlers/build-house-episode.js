@@ -36,10 +36,10 @@ const MATERIALS = {
 
 /**
  * Get the setup phase function for house building episodes
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
  * @param {number} episodeNum - Episode number
  * @param {Object} episodeInstance - Episode instance
@@ -96,10 +96,10 @@ function getOnBuildHouseSetupPhaseFn(
 
 /**
  * Get the build phase function for house building episodes
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} rcon - RCON connection
  * @param {Function} sharedBotRng - Shared random number generator
- * @param {BotCoordinator} coordinator - Bot coordinator instance
+ * @param {*} coordinator - Bot coordinator instance
  * @param {number} iterationID - Iteration ID
  * @param {number} episodeNum - Episode number
  * @param {Object} episodeInstance - Episode instance
@@ -202,7 +202,6 @@ function getOnBuildHousePhaseFn(
 
     // STEP 6: Build in phases (floor → walls → windows → roof)
     console.log(`[${bot.username}] 🏗️ STEP 6: Building house in phases...`);
-    // const phases = ["floor", "walls", "windows", "roof"];
     const phases = ["floor", "walls", "roof"]; // windows are not placed for better performance
     let phaseAborted = false;
 

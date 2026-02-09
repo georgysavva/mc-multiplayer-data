@@ -58,7 +58,7 @@ const VALUABLE_ORES = [
  * Both bots call this with same RNG, but get different results based on bot name
  * This ensures symmetric RNG consumption while enabling role assignment
  *
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Function} sharedBotRng - Shared RNG function
  * @param {Object} args - Episode arguments
  * @returns {boolean} True if this bot should be the "primary" for this decision
@@ -81,7 +81,7 @@ function isMyTurn(bot, sharedBotRng, args) {
 
 /**
  * Configure pathfinder movements for collector episode
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  */
 function setMovementsForCollector(bot) {
   const mcData = require("minecraft-data")(bot.version);
@@ -140,7 +140,7 @@ function getNextTaskSpec(botUsername, lastTaskSpec, taskRepeatCount) {
 
 /**
  * Perform directional mining
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} direction - Direction object with offset
  * @param {number} distance - Distance to mine
  */
@@ -160,7 +160,7 @@ function performDirectionalMining(bot, direction, distance) {
 
 /**
  * Perform staircase mining (45 degrees down)
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} direction - Direction object with offset
  * @param {number} depth - Depth to mine
  */
@@ -181,7 +181,7 @@ function performStaircaseMining(bot, direction, depth) {
 
 /**
  * Execute a single mining task (collect ores, then directional/staircase mining)
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} mcData - Minecraft data
  * @param {Array} oreIds - Array of ore block IDs
  * @param {Object} taskSpec - Task specification {type, direction, distance}
@@ -252,8 +252,8 @@ async function executeMiningTask(bot, mcData, oreIds, taskSpec) {
 
 /**
  * Mine as leader - performs mining tasks with repetition tracking
- * @param {Bot} bot - Mineflayer bot instance
- * @param {BotCoordinator} coordinator - Bot coordinator
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} coordinator - Bot coordinator
  * @param {Object} mcData - Minecraft data
  * @param {Array} oreIds - Array of ore block IDs
  * @param {number} episodeNum - Episode number
@@ -299,7 +299,7 @@ async function mineAsLeader(
 
 /**
  * Follow leader and place torches
- * @param {Bot} bot - Mineflayer bot instance (follower)
+ * @param {*} bot - Mineflayer bot instance (follower)
  * @param {string} leaderName - Name of the leader bot
  * @param {Object} mcData - Minecraft data
  * @param {Array} oreIds - Array of ore block IDs
@@ -370,7 +370,7 @@ async function followAndPlaceTorches(
 
 /**
  * Mine independently (both bots mine separately)
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} mcData - Minecraft data
  * @param {Array} oreIds - Array of ore block IDs
  * @returns {Promise} Promise that resolves when mining completes
@@ -412,8 +412,8 @@ async function independentMining(bot, mcData, oreIds) {
  * This is completely symmetric - both bots execute the same code and consume RNG equally
  * The mode (leader-follower vs independent) is decided using shared RNG
  *
- * @param {Bot} bot - Mineflayer bot instance
- * @param {BotCoordinator} coordinator - Bot coordinator
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} coordinator - Bot coordinator
  * @param {Function} sharedBotRng - Shared RNG function
  * @param {string} otherBotName - Name of the other bot
  * @param {number} episodeNum - Episode number
@@ -499,10 +499,10 @@ async function miningPhase(
  * Get the phase function for a specific cycle
  * This follows the coordinator pattern: set up listener, then send message
  *
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {Object} rcon - RCON instance
  * @param {Function} sharedBotRng - Shared RNG function
- * @param {BotCoordinator} coordinator - Bot coordinator
+ * @param {*} coordinator - Bot coordinator
  * @param {number} cycle - Current cycle number
  * @param {number} episodeNum - Episode number
  * @param {CollectorEpisode} episodeInstance - Episode instance
@@ -531,9 +531,6 @@ function getCyclePhaseFn(
       episodeNum,
       `cycle_${cycle} beginning`,
     );
-
-    // Meetup phase
-    // await meetupPhase(bot, args.other_bot_name);
 
     // Mining phase
     await miningPhase(

@@ -45,7 +45,7 @@ function calculateOrbitCheckpoints(
 
 /**
  * Execute orbit by traveling to checkpoints in sequence
- * @param {Bot} bot - Mineflayer bot instance
+ * @param {*} bot - Mineflayer bot instance
  * @param {string} otherBotName - Name of the other bot
  * @param {Array<Vec3>} checkpoints - Array of checkpoint positions
  * @param {Object} rcon - RCON connection for chunk loading
