@@ -599,7 +599,7 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
     } catch (lookError) {
       // If smooth look fails, try forced look
       try {
-        await bot.lookAt(faceCenter, false);
+        await bot.lookAt(faceCenter, true);
       } catch (forcedLookError) {
         return {
           ready: false,
@@ -1024,7 +1024,7 @@ async function buildTowerUnderneath(bot, towerHeight, args, options = {}) {
   // Look down ONCE before starting
   console.log(`[${bot.username}] 👇 Looking down once...`);
   await bot.look(bot.entity.yaw, -1.45, false);
-  bot.waitForTicks(10);
+  await bot.waitForTicks(10);
   await new Promise((res) => setTimeout(res, 50));
 
   for (let i = 0; i < towerHeight; i++) {
