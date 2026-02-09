@@ -6,7 +6,6 @@ const {
   gotoWithTimeout,
   initializePathfinder,
   lookAtSmooth,
-  lookAtBot,
   sleep,
   horizontalDistanceTo,
   getDirectionTo,

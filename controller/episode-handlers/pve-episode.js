@@ -1,4 +1,3 @@
-const { decidePrimaryBot } = require("../utils/coordination");
 const {
   lookAtSmooth,
   sleep,
@@ -8,7 +7,7 @@ const {
   initializePathfinder,
 } = require("../primitives/movement");
 
-const { GoalNear, Movements } = require("../utils/bot-factory");
+const { GoalNear } = require("../utils/bot-factory");
 const { BaseEpisode } = require("./base-episode");
 const { unequipHand } = require("../primitives/items");
 const {

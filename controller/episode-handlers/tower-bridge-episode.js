@@ -4,18 +4,12 @@ const {
   sleep,
   initializePathfinder,
   stopPathfinder,
-  gotoWithTimeout,
-  getScaffoldingBlockIds,
 } = require("../primitives/movement");
 const {
-  ensureItemInHand,
-  placeAt,
-  fastPlaceBlock,
   buildTowerUnderneath,
   buildBridge,
 } = require("../primitives/building");
 const { BaseEpisode } = require("./base-episode");
-const { Movements, GoalNear } = require("../utils/bot-factory");
 const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
 
 // Constants for tower-bridge behavior

@@ -1,5 +1,5 @@
-const { sleep } = require("../utils/helpers");
 const { Vec3 } = require("vec3");
+const { sleep } = require("../utils/helpers");
 
 /**
  * Dig a block with a timeout, similar to gotoWithTimeout.

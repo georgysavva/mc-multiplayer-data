@@ -3,7 +3,6 @@ const {
   lookSmooth,
   sneak,
 } = require("../../primitives/movement");
-const { sleep } = require("../../utils/helpers");
 const { BaseEpisode } = require("../base-episode");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;

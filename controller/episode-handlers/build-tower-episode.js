@@ -1,17 +1,9 @@
 // build-tower-episode.js - Individual tower building episode
-const { Vec3 } = require("vec3");
-const {
-  sleep,
-  initializePathfinder,
-  stopPathfinder,
-} = require("../primitives/movement");
-const {
-  ensureItemInHand,
-  buildTowerUnderneath,
-  fastPlaceBlock,
-} = require("../primitives/building");
-const { BaseEpisode } = require("./base-episode");
 const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
+
+const { buildTowerUnderneath } = require("../primitives/building");
+const { sleep } = require("../primitives/movement");
+const { BaseEpisode } = require("./base-episode");
 
 // Constants for tower building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration

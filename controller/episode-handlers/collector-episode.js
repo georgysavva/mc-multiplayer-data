@@ -1,4 +1,3 @@
-const Vec3 = require("vec3").Vec3;
 const {
   Movements,
   GoalNear,

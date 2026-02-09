@@ -1,24 +1,18 @@
 const fs = require("fs/promises");
 const path = require("path");
+
 const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
-const Vec3 = require("vec3").Vec3;
-const { sleep } = require("../utils/helpers");
 const { Rcon } = require("rcon-client");
 const seedrandom = require("seedrandom");
+
+const { sleep } = require("../utils/helpers");
+const { waitForCameras } = require("../utils/camera-ready");
+const { DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC } = require("../utils/constants");
 const {
-  land_pos,
+  directTeleport,
   lookAtSmooth,
   stopAll,
-  directTeleport,
-  Y_IN_AIR,
 } = require("../primitives/movement");
-const { rconTp } = require("../utils/coordination");
-const { waitForCameras } = require("../utils/camera-ready");
-const {
-  MIN_BOTS_DISTANCE,
-  MAX_BOTS_DISTANCE,
-  DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
-} = require("../utils/constants");
 const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
 const { selectWeightedEpisodeType } = require("../utils/episode-weights");
 

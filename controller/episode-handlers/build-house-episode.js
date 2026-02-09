@@ -1,5 +1,6 @@
 // build-house-episode.js - Collaborative 5x5 house building episode
 const { Vec3 } = require("vec3");
+
 const {
   sleep,
   initializePathfinder,
@@ -10,14 +11,11 @@ const {
   rotateLocalToWorld,
   splitWorkByXAxis,
   buildPhase,
-  cleanupScaffolds,
   admireHouse,
   calculateMaterialCounts,
 } = require("../primitives/building");
 const { BaseEpisode } = require("./base-episode");
-const { pickRandom } = require("../utils/coordination");
-const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
-const { goals } = require("mineflayer-pathfinder");
+const { ensureBotHasEnough } = require("../primitives/items");
 
 // Constants for house building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration

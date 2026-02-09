@@ -1,4 +1,5 @@
 const Vec3 = require("vec3").Vec3;
+
 const { GoalNear } = require("../utils/bot-factory");
 const {
   lookAtBot,

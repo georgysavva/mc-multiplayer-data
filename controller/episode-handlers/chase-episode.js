@@ -1,11 +1,8 @@
-const Vec3 = require("vec3").Vec3;
-const { Movements, GoalNear, GoalFollow } = require("../utils/bot-factory");
+const { GoalNear } = require("../utils/bot-factory");
 const {
   lookAtBot,
-  lookAtSmooth,
   sleep,
   horizontalDistanceTo,
-  getDirectionTo,
   stopAll,
   initializePathfinder,
   stopPathfinder,

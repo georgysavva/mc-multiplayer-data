@@ -8,13 +8,7 @@ const seedrandom = require("seedrandom");
  */
 
 // Import pathfinder components correctly according to official README
-const {
-  Movements,
-  GoalNear,
-  GoalNearXZ,
-  GoalBlock,
-  GoalFollow,
-} = require("../utils/bot-factory");
+const { Movements } = require("../utils/bot-factory");
 
 // ============================================================================
 // SCAFFOLDING BLOCKS CONFIGURATION

@@ -1,17 +1,17 @@
 const Vec3 = require("vec3").Vec3;
-const { sleep, rand, choice } = require("../utils/helpers");
+
 const {
-  MIN_WALK_DISTANCE,
-  MAX_WALK_DISTANCE,
-  JUMP_PROBABILITY,
-  MIN_JUMP_DURATION_SEC,
-  MAX_JUMP_DURATION_SEC,
-  MIN_SLEEP_BETWEEN_ACTIONS_SEC,
-  MAX_SLEEP_BETWEEN_ACTIONS_SEC,
-  LANDABLE_BLOCKS,
   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
+  JUMP_PROBABILITY,
+  MAX_JUMP_DURATION_SEC,
+  MAX_SLEEP_BETWEEN_ACTIONS_SEC,
+  MAX_WALK_DISTANCE,
+  MIN_JUMP_DURATION_SEC,
+  MIN_SLEEP_BETWEEN_ACTIONS_SEC,
+  MIN_WALK_DISTANCE,
 } = require("../utils/constants");
-const { lookSmooth, stopAll, jump, land_pos } = require("./movement");
+const { choice, rand, sleep } = require("../utils/helpers");
+const { jump, lookSmooth, stopAll } = require("./movement");
 
 /**
  * Get random cardinal direction (north, south, east, west)

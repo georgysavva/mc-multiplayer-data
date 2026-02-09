@@ -9,7 +9,6 @@ const {
   rotateLocalToWorld,
   splitWorkByXAxis,
   buildPhase,
-  calculateMaterialCounts,
 } = require("../primitives/building");
 const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");

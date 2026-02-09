@@ -1,5 +1,3 @@
-const Vec3 = require("vec3").Vec3;
-const { Movements, GoalFollow, GoalNear } = require("../utils/bot-factory");
 const { equipSword, giveRandomSword } = require("../primitives/fighting");
 const { unequipHand } = require("../primitives/items");
 const {
@@ -9,7 +7,6 @@ const {
   initializePathfinder,
   stopPathfinder,
 } = require("../primitives/movement");
-const Rcon = require("rcon-client").Rcon;
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for PVP behavior
