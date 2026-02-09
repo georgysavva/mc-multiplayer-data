@@ -6,16 +6,16 @@ const {
   horizontalDistanceTo,
   gotoWithTimeout,
   initializePathfinder,
-} = require("../utils/movement");
+} = require("../primitives/movement");
 
 const { GoalNear, Movements } = require("../utils/bot-factory");
 const { BaseEpisode } = require("./base-episode");
-const { unequipHand } = require("../utils/items");
+const { unequipHand } = require("../primitives/items");
 const {
   giveRandomSword,
   equipSword,
   isInForwardFOV,
-} = require("../utils/fighting");
+} = require("../primitives/fighting");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 60;
 

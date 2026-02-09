@@ -4,7 +4,7 @@ const {
   sleep,
   initializePathfinder,
   stopPathfinder,
-} = require("../utils/movement");
+} = require("../primitives/movement");
 const {
   makeHouseBlueprint5x5,
   rotateLocalToWorld,
@@ -13,10 +13,10 @@ const {
   cleanupScaffolds,
   admireHouse,
   calculateMaterialCounts,
-} = require("../utils/building");
+} = require("../primitives/building");
 const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");
-const { ensureBotHasEnough, unequipHand } = require("../utils/items");
+const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
 const { goals } = require("mineflayer-pathfinder");
 
 // Constants for house building behavior

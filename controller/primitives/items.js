@@ -2,7 +2,7 @@
  * items.js - Utilities for managing bot inventory and equipment
  */
 
-const { sleep } = require("./helpers");
+const { sleep } = require("../utils/helpers");
 
 /**
  * Unequips an item from the bot's hand

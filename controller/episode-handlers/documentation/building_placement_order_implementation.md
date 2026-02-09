@@ -8,13 +8,13 @@ Fix the build-house episode by implementing intelligent placement ordering that 
 
 ---
 
-### **Phase 1: Add Helper Functions to `utils/building.js`**
+### **Phase 1: Add Helper Functions to `primitives/building.js`**
 
 #### ✅ Task 1.1: Add `calculateFloorPlacementOrder()` function
 
 **Status:** ✅ Complete
 
-**Location:** `utils/building.js` (after line 8, after `scaffoldBlocks` declaration)
+**Location:** `primitives/building.js` (after line 8, after `scaffoldBlocks` declaration)
 
 **What to add:**
 
@@ -79,7 +79,7 @@ function calculateFloorPlacementOrder(width = 5, depth = 5) {
 
 **Status:** ✅ Complete
 
-**Location:** `utils/building.js` (after `calculateFloorPlacementOrder()`)
+**Location:** `primitives/building.js` (after `calculateFloorPlacementOrder()`)
 
 **What to add:**
 
@@ -111,7 +111,7 @@ function getPerimeterPosition(x, z) {
 
 **Status:** ✅ Complete
 
-**Location:** `utils/building.js` (after `getPerimeterPosition()`)
+**Location:** `primitives/building.js` (after `getPerimeterPosition()`)
 
 **What to add:**
 
@@ -175,7 +175,7 @@ function calculateWallPlacementOrder(wallBlocks) {
 
 **Status:** ✅ Complete
 
-**Location:** `utils/building.js` (after `calculateWallPlacementOrder()`)
+**Location:** `primitives/building.js` (after `calculateWallPlacementOrder()`)
 
 **What to add:**
 
@@ -198,13 +198,13 @@ function calculateRoofPlacementOrder(width = 5, depth = 5) {
 
 ---
 
-### **Phase 2: Update `makeHouseBlueprint5x5()` in `utils/building.js`**
+### **Phase 2: Update `makeHouseBlueprint5x5()` in `primitives/building.js`**
 
 #### ✅ Task 2.1: Update function JSDoc comment
 
 **Status:** ✅ Complete
 
-**Location:** Line 11 in `utils/building.js`
+**Location:** Line 11 in `primitives/building.js`
 
 **Change:**
 
@@ -224,7 +224,7 @@ function calculateRoofPlacementOrder(width = 5, depth = 5) {
 
 **Status:** ✅ Complete
 
-**Location:** Lines 157-177 in `utils/building.js`
+**Location:** Lines 157-177 in `primitives/building.js`
 
 **Replace:**
 
@@ -278,7 +278,7 @@ for (let x = 0; x < 5; x++) {
 
 **Status:** ✅ Complete
 
-**Location:** Lines 179-224 in `utils/building.js`
+**Location:** Lines 179-224 in `primitives/building.js`
 
 **Replace the entire PHASE 2 section with:**
 
@@ -339,7 +339,7 @@ for (const wall of wallBlocks) {
 
 **Status:** ✅ Complete
 
-**Location:** Lines 226-245 in `utils/building.js`
+**Location:** Lines 226-245 in `primitives/building.js`
 
 **Add `placementOrder` field to both door blocks:**
 
@@ -374,7 +374,7 @@ blueprint.push({
 
 **Status:** ✅ Complete
 
-**Location:** Lines 247-289 in `utils/building.js`
+**Location:** Lines 247-289 in `primitives/building.js`
 
 **Add counter and `placementOrder` field:**
 
@@ -432,7 +432,7 @@ blueprint.push({
 
 **Status:** ✅ Complete
 
-**Location:** Lines 291-311 in `utils/building.js`
+**Location:** Lines 291-311 in `primitives/building.js`
 
 **Replace:**
 
@@ -482,13 +482,13 @@ for (let x = 0; x < 5; x++) {
 
 ---
 
-### **Phase 3: Update `buildPhase()` in `utils/building.js`**
+### **Phase 3: Update `buildPhase()` in `primitives/building.js`**
 
 #### ✅ Task 3.1: Update sorting logic to respect `placementOrder`
 
 **Status:** ⬜ Not Started
 
-**Location:** Lines 357-364 in `utils/building.js`
+**Location:** Lines 357-364 in `primitives/building.js`
 
 **Replace:**
 

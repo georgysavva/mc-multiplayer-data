@@ -4,16 +4,16 @@ const {
   sleep,
   initializePathfinder,
   stopPathfinder,
-} = require("../utils/movement");
+} = require("../primitives/movement");
 const {
   rotateLocalToWorld,
   splitWorkByXAxis,
   buildPhase,
   calculateMaterialCounts,
-} = require("../utils/building");
+} = require("../primitives/building");
 const { BaseEpisode } = require("./base-episode");
 const { pickRandom } = require("../utils/coordination");
-const { ensureBotHasEnough, unequipHand } = require("../utils/items");
+const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
 
 // Constants for building behavior
 const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];

@@ -11,7 +11,7 @@ const {
   stopAll,
   directTeleport,
   Y_IN_AIR,
-} = require("../utils/movement");
+} = require("../primitives/movement");
 const { rconTp } = require("../utils/coordination");
 const { waitForCameras } = require("../utils/camera-ready");
 const {
@@ -19,7 +19,7 @@ const {
   MAX_BOTS_DISTANCE,
   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
 } = require("../utils/constants");
-const { ensureBotHasEnough, unequipHand } = require("../utils/items");
+const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
 const { selectWeightedEpisodeType } = require("../utils/episode-weights");
 
 // Import episode classes

@@ -4,14 +4,14 @@ const {
   sleep,
   initializePathfinder,
   stopPathfinder,
-} = require("../utils/movement");
+} = require("../primitives/movement");
 const {
   ensureItemInHand,
   buildTowerUnderneath,
   fastPlaceBlock,
-} = require("../utils/building");
+} = require("../primitives/building");
 const { BaseEpisode } = require("./base-episode");
-const { ensureBotHasEnough, unequipHand } = require("../utils/items");
+const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
 
 // Constants for tower building behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration

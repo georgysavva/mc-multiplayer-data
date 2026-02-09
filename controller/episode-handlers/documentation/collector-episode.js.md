@@ -266,7 +266,7 @@ const targetZ = startPos.z + direction.offset.z * horizontalDistance;
 ### Required Imports
 
 - `Vec3, Movements, GoalNear, GoalBlock, GoalFollow` from `../utils/bot-factory`
-- `stopAll, lookAtBot, sleep, land_pos` from `../utils/movement`
+- `stopAll, lookAtBot, sleep, land_pos` from `../primitives/movement`
 - `BaseEpisode` from `./base-episode`
 
 ### Minecraft Data Integration

@@ -1,4 +1,8 @@
-const { lookAtSmooth, sneak, lookSmooth } = require("../../utils/movement");
+const {
+  lookAtSmooth,
+  sneak,
+  lookSmooth,
+} = require("../../primitives/movement");
 const { BaseEpisode } = require("../base-episode");
 
 // const {

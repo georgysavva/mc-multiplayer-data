@@ -111,7 +111,7 @@ episodeInstance._evalMetadata = {
 
 ### Required Imports
 
-- `lookAtSmooth, lookSmooth, sneak` from `../utils/movement`
+- `lookAtSmooth, lookSmooth, sneak` from `../primitives/movement`
 - `sleep` from `../utils/helpers`
 - `BaseEpisode` from `./base-episode`
 

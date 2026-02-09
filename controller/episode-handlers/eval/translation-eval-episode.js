@@ -2,8 +2,8 @@ const {
   lookAtSmooth,
   sneak,
   gotoWithTimeout,
-} = require("../../utils/movement");
-const { run } = require("../../utils/random-movement");
+} = require("../../primitives/movement");
+const { run } = require("../../primitives/random-movement");
 const { BaseEpisode } = require("../base-episode");
 const { GoalXZ } = require("../../utils/bot-factory");
 

@@ -145,9 +145,9 @@ Creates vertical tower positions (not used in current implementation).
 ### Required Imports
 
 - `ensureItemInHand, buildTowerUnderneath, fastPlaceBlock` from `./builder`
-- `initializePathfinder, stopPathfinder` from `../utils/movement`
+- `initializePathfinder, stopPathfinder` from `../primitives/movement`
 - `BaseEpisode` from `./base-episode`
-- `ensureBotHasEnough` from `../utils/items`
+- `ensureBotHasEnough` from `../primitives/items`
 
 ## Integration Points
 

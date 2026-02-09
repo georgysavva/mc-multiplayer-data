@@ -6,16 +6,16 @@ const {
   gotoWithTimeout,
   lookAtSmooth,
   sneak,
-} = require("../../utils/movement");
+} = require("../../primitives/movement");
 const {
   placeAt,
   findPlaceReference,
   buildStructure,
   getBlockPlaceDelayTicks,
-} = require("../../utils/building");
+} = require("../../primitives/building");
 const { BaseEpisode } = require("../base-episode");
 const { pickRandom } = require("../../utils/coordination");
-const { ensureBotHasEnough, unequipHand } = require("../../utils/items");
+const { ensureBotHasEnough, unequipHand } = require("../../primitives/items");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 
 // Constants for building behavior

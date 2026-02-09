@@ -6,7 +6,7 @@ const {
   initializePathfinder,
   stopPathfinder,
   land_pos,
-} = require("../utils/movement");
+} = require("../primitives/movement");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for orbit behavior

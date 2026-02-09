@@ -212,7 +212,7 @@ if (now - lastCameraUpdate > 2000) {
 ### Required Imports
 
 - `Movements, GoalNear, GoalFollow` from `../utils/bot-factory`
-- `lookAtBot, sleep, horizontalDistanceTo, stopAll, initializePathfinder, stopPathfinder` from `../utils/movement`
+- `lookAtBot, sleep, horizontalDistanceTo, stopAll, initializePathfinder, stopPathfinder` from `../primitives/movement`
 - `BaseEpisode` from `./base-episode`
 - `decidePrimaryBot` from `../utils/coordination`
 

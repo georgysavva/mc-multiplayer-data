@@ -14,7 +14,7 @@ const {
   GoalNearXZ,
   GoalBlock,
   GoalFollow,
-} = require("./bot-factory");
+} = require("../utils/bot-factory");
 
 // ============================================================================
 // SCAFFOLDING BLOCKS CONFIGURATION

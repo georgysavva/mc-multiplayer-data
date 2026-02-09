@@ -168,11 +168,11 @@ await sleep(2000); // Give other bot time to catch up
 
 ### Required Imports
 
-- `makeHouseBlueprint5x5, rotateLocalToWorld, splitWorkByXAxis, ensureBlocks, buildPhase, cleanupScaffolds, admireHouse, calculateMaterialCounts` from `../utils/building`
-- `initializePathfinder, stopPathfinder` from `../utils/movement`
+- `makeHouseBlueprint5x5, rotateLocalToWorld, splitWorkByXAxis, ensureBlocks, buildPhase, cleanupScaffolds, admireHouse, calculateMaterialCounts` from `../primitives/building`
+- `initializePathfinder, stopPathfinder` from `../primitives/movement`
 - `BaseEpisode` from `./base-episode`
 - `pickRandom` from `../utils/coordination`
-- `ensureBotHasEnough, unequipHand` from `../utils/items`
+- `ensureBotHasEnough, unequipHand` from `../primitives/items`
 
 ## Configuration Constants
 

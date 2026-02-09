@@ -11,7 +11,7 @@ const {
   horizontalDistanceTo,
   getDirectionTo,
   land_pos,
-} = require("../utils/movement");
+} = require("../primitives/movement");
 const { GoalNear } = require("../utils/bot-factory");
 const { BaseEpisode } = require("./base-episode");
 

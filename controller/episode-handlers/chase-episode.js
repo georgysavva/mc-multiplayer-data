@@ -9,7 +9,7 @@ const {
   stopAll,
   initializePathfinder,
   stopPathfinder,
-} = require("../utils/movement");
+} = require("../primitives/movement");
 const { BaseEpisode } = require("./base-episode");
 const { decidePrimaryBot } = require("../utils/coordination");
 

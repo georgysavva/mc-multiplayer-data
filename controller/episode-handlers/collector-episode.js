@@ -5,16 +5,16 @@ const {
   GoalBlock,
   GoalFollow,
 } = require("../utils/bot-factory");
-const { placeTorch, findVisibleOres } = require("../utils/digging");
-const { ensureBotHasEnough, unequipHand } = require("../utils/items");
+const { placeTorch, findVisibleOres } = require("../primitives/digging");
+const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
 const {
   stopAll,
   lookAtBot,
   sleep,
   land_pos,
   getScaffoldingBlockIds,
-} = require("../utils/movement");
-const { getRandomDirection } = require("../utils/random-movement");
+} = require("../primitives/movement");
+const { getRandomDirection } = require("../primitives/random-movement");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for collector behavior

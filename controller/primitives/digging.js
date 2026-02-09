@@ -1,4 +1,4 @@
-const { sleep } = require("./helpers");
+const { sleep } = require("../utils/helpers");
 const { Vec3 } = require("vec3");
 
 /**

@@ -1,5 +1,5 @@
 const { BaseEpisode } = require("../base-episode");
-const { lookAtSmooth, sneak } = require("../../utils/movement");
+const { lookAtSmooth, sneak } = require("../../primitives/movement");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const EPISODE_MIN_TICKS = 300;

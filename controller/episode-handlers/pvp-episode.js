@@ -1,14 +1,14 @@
 const Vec3 = require("vec3").Vec3;
 const { Movements, GoalFollow, GoalNear } = require("../utils/bot-factory");
-const { equipSword, giveRandomSword } = require("../utils/fighting");
-const { unequipHand } = require("../utils/items");
+const { equipSword, giveRandomSword } = require("../primitives/fighting");
+const { unequipHand } = require("../primitives/items");
 const {
   stopAll,
   lookAtBot,
   sleep,
   initializePathfinder,
   stopPathfinder,
-} = require("../utils/movement");
+} = require("../primitives/movement");
 const Rcon = require("rcon-client").Rcon;
 const { BaseEpisode } = require("./base-episode");
 

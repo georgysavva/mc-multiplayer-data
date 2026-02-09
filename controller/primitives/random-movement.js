@@ -1,5 +1,5 @@
 const Vec3 = require("vec3").Vec3;
-const { sleep, rand, choice } = require("./helpers");
+const { sleep, rand, choice } = require("../utils/helpers");
 const {
   MIN_WALK_DISTANCE,
   MAX_WALK_DISTANCE,
@@ -10,7 +10,7 @@ const {
   MAX_SLEEP_BETWEEN_ACTIONS_SEC,
   LANDABLE_BLOCKS,
   DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC,
-} = require("./constants");
+} = require("../utils/constants");
 const { lookSmooth, stopAll, jump, land_pos } = require("./movement");
 
 /**

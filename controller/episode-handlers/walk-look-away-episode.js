@@ -1,5 +1,5 @@
-const { lookAtSmooth } = require("../utils/movement");
-const { run } = require("../utils/random-movement");
+const { lookAtSmooth } = require("../primitives/movement");
+const { run } = require("../primitives/random-movement");
 const { BaseEpisode } = require("./base-episode");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 60;

@@ -5,11 +5,11 @@ const {
   gotoWithTimeout,
   digWithTimeout,
   getScaffoldingBlockIds,
-} = require("../utils/movement");
-const { ensureItemInHand } = require("../utils/building");
+} = require("../primitives/movement");
+const { ensureItemInHand } = require("../primitives/building");
 const { BaseEpisode } = require("./base-episode");
-const { unequipHand } = require("../utils/items");
-const { placeTorchOnFloor } = require("../utils/digging");
+const { unequipHand } = require("../primitives/items");
+const { placeTorchOnFloor } = require("../primitives/digging");
 
 // Constants for mining behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration

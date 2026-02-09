@@ -6,17 +6,17 @@ const {
   stopPathfinder,
   gotoWithTimeout,
   getScaffoldingBlockIds,
-} = require("../utils/movement");
+} = require("../primitives/movement");
 const {
   ensureItemInHand,
   placeAt,
   fastPlaceBlock,
   buildTowerUnderneath,
   buildBridge,
-} = require("../utils/building");
+} = require("../primitives/building");
 const { BaseEpisode } = require("./base-episode");
 const { Movements, GoalNear } = require("../utils/bot-factory");
-const { ensureBotHasEnough, unequipHand } = require("../utils/items");
+const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
 
 // Constants for tower-bridge behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration

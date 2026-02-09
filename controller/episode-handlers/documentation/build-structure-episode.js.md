@@ -207,10 +207,10 @@ const botNameSmaller = bot.username < args.other_bot_name;
 ### Required Imports
 
 - `placeAt, placeMultiple` from `./builder`
-- `initializePathfinder, stopPathfinder` from `../utils/movement`
+- `initializePathfinder, stopPathfinder` from `../primitives/movement`
 - `BaseEpisode` from `./base-episode`
 - `pickRandom` from `../utils/coordination`
-- `ensureBotHasEnough, unequipHand` from `../utils/items`
+- `ensureBotHasEnough, unequipHand` from `../primitives/items`
 
 ## Integration Points
 

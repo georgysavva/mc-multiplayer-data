@@ -1,6 +1,6 @@
 // building.js - Utilities for collaborative house building episodes
 const { Vec3 } = require("vec3");
-const { sleep } = require("./helpers");
+const { sleep } = require("../utils/helpers");
 const {
   gotoWithTimeout,
   getScaffoldingBlockIds,
@@ -8,7 +8,7 @@ const {
   stopPathfinder,
 } = require("./movement");
 const { digWithTimeout } = require("./digging");
-const { GoalNear } = require("./bot-factory"); // Import GoalNear
+const { GoalNear } = require("../utils/bot-factory"); // Import GoalNear
 const { ensureItemInHand } = require("./items");
 const Movements = require("mineflayer-pathfinder").Movements; // Import Movements
 
