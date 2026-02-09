@@ -13,3 +13,5 @@ videos/
 .git/
 .gitignore
 *.md
+compose_configs/
+

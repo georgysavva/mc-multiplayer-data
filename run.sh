@@ -1,6 +1,8 @@
 # Base data directory and batch configuration
-BASE_DATA_DIR=${BASE_DATA_DIR:-"/mnt/data/dl3957/mc_multiplayer_v2_gpu"}
-BATCH_NAME=${BATCH_NAME:-"batch2"}
+BASE_DATA_DIR=${BASE_DATA_DIR:-"output/mc_multiplayer_dataset"}
+BATCH_NAME=${BATCH_NAME:-"batch1"}
+
+[ -d compose_configs ] && rm -r compose_configs
 
 python3 generate_compose.py \
  --compose_dir ./compose_configs \
@@ -15,14 +17,12 @@ python3 generate_compose.py \
  --camera_data_alpha_base $BASE_DATA_DIR/$BATCH_NAME/camera/data_alpha \
  --camera_data_bravo_base $BASE_DATA_DIR/$BATCH_NAME/camera/data_bravo \
  --smoke_test 0 \
- --num_flatland_world 2 \
- --num_normal_world 2 \
+ --num_flatland_world 1 \
+ --num_normal_world 1 \
  --num_episodes 100 \
  --iterations_num_per_episode 1 \
  --eval_time_set_day 0 \
  --viewer_rendering_disabled 1 \
- --enable_gpu 1 \
- --gpu_count 1 \
  --gpu_mode egl
 
 python3 orchestrate.py start --build --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"

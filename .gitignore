@@ -14,3 +14,4 @@ server/plugins/SkinsRestorer/skins/*.playerskin
 server/plugins/SkinsRestorer/recommendations.json
 server/episode-manager-plugin/target/*
 postprocess/__pycache__/
+compose_configs/

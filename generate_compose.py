@@ -22,12 +22,13 @@ import yaml
 
 
 def absdir(path: str) -> str:
-    """Validate path is absolute and return it.
+    """Return an absolute path.
 
-    Raises AssertionError if not absolute to avoid ambiguous mounts.
+    If `path` is relative, it's resolved against the current working directory.
     """
-    assert os.path.isabs(path), f"expected absolute path, got: {path}"
-    return path
+    if os.path.isabs(path):
+        return path
+    return os.path.abspath(os.path.join(os.getcwd(), path))
 
 
 def camera_paths(
@@ -210,8 +211,6 @@ def generate_compose_config(
                         "SPAWN_PROTECTION": 0,
                         "SEED": seed,
                         "ENFORCE_SECURE_PROFILE": False,
-                        # Keep our trusted accounts OP'd across generated stacks
-                        "OPS": "Pengulu,Ahrae,timwm",
                         "RCON_PASSWORD": "research",
                         "BROADCAST_RCON_TO_OPS": True,
                         **(
@@ -515,7 +514,7 @@ def generate_compose_config(
                     "host.docker.internal:host-gateway",
                 ],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": ["node", "camera/spectator/spectator.js"],
+                "command": ["node", "spectator/spectator.js"],
             },
             # Passive spectator bravo
             f"spectator_bravo_instance_{instance_id}": {
@@ -539,7 +538,7 @@ def generate_compose_config(
                     "host.docker.internal:host-gateway",
                 ],
                 "networks": [f"mc_network_{instance_id}"],
-                "command": ["node", "camera/spectator/spectator.js"],
+                "command": ["node", "spectator/spectator.js"],
             },
         },
     }

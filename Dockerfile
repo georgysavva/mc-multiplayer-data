@@ -51,6 +51,6 @@ COPY . ./
 
 
 RUN chmod +x controller/entrypoint.sh
-RUN chmod +x act_recorder/entrypoint.sh
+RUN chmod +x controller/act_recorder/entrypoint.sh
 
 CMD ["./controller/entrypoint.sh"]

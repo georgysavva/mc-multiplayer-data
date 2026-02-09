@@ -31,7 +31,7 @@ glxinfo -B || true  # don't hard-fail; just print if available
 
 echo "[entrypoint] Launching app..."
 echo "[entrypoint] Bot config: ${BOT_NAME:-Alpha} <-> ${OTHER_BOT_NAME:-Bravo}, Ports: ${COORD_PORT:-8093}/${OTHER_COORD_PORT:-8094}, Instance: ${INSTANCE_ID:-0}"
-exec node main.js \
+exec node controller/main.js \
   --bot_name "${BOT_NAME:-Alpha}" \
   --other_bot_name "${OTHER_BOT_NAME:-Bravo}" \
   --act_recorder_host "${ACT_RECORDER_HOST:-127.0.0.1}" \
