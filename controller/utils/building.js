@@ -2,11 +2,14 @@
 const { Vec3 } = require("vec3");
 const { sleep } = require("./helpers");
 const {
-  digWithTimeout,
   gotoWithTimeout,
   getScaffoldingBlockIds,
+  initializePathfinder,
+  stopPathfinder,
 } = require("./movement");
+const { digWithTimeout } = require("./digging");
 const { GoalNear } = require("./bot-factory"); // Import GoalNear
+const { ensureItemInHand } = require("./items");
 const Movements = require("mineflayer-pathfinder").Movements; // Import Movements
 
 // Cardinal directions for finding reference blocks (faces to click)
@@ -643,30 +646,6 @@ async function prepareForPlacement(bot, refBlock, faceVec, delayMs = 500) {
       bot.pathfinder.enableLook = pathfinderEnableLook;
     }
   }
-}
-
-/**
- * Ensure an item is equipped in hand
- * @param {Bot} bot - Mineflayer bot instance
- * @param {string} itemName - Name of item to equip
- * @param {Object} args - Configuration arguments with rcon settings (optional)
- * @returns {Promise<number>} Item ID
- */
-async function ensureItemInHand(bot, itemName, args = null) {
-  const mcData = require("minecraft-data")(bot.version);
-  const target = mcData.itemsByName[itemName];
-  if (!target) throw new Error(`Unknown item: ${itemName}`);
-  const id = target.id;
-
-  // Check if already in inventory
-  let item = bot.inventory.items().find((i) => i.type === id);
-
-  // If not found, try to get it
-
-  if (!item) throw new Error(`Item ${itemName} not in inventory`);
-
-  await bot.equip(id, "hand");
-  return id;
 }
 
 /**
@@ -1659,31 +1638,6 @@ function splitWorkByXAxis(targets, alphaBotName, bravoBotName) {
 }
 
 /**
- * Ensure bot has required blocks in inventory via RCON /give
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Object} rcon - RCON client
- * @param {Object} materials - Material counts {blockName: count}
- * @returns {Promise<void>}
- */
-async function ensureBlocks(bot, rcon, materials) {
-  if (!rcon) {
-    console.log(`[${bot.username}] No RCON, skipping block distribution`);
-    return;
-  }
-
-  console.log(`[${bot.username}] 📦 Receiving building materials...`);
-
-  for (const [blockName, count] of Object.entries(materials)) {
-    if (count > 0) {
-      const cmd = `/give ${bot.username} ${blockName} ${count}`;
-      await rcon.send(cmd);
-      console.log(`[${bot.username}]    ${count}x ${blockName}`);
-      await sleep(500); // Increased delay for inventory sync
-    }
-  }
-}
-
-/**
  * Calculate material counts from blueprint
  * @param {Array<Object>} blueprint - Blueprint array
  * @returns {Object} Material counts {blockName: count}
@@ -2386,13 +2340,559 @@ async function admireHouse(bot, doorWorldPos, orientation, options = {}) {
   console.log(`[${bot.username}] ✅ Admire sequence complete`);
 }
 
+/**
+ * Build a bridge towards a target position using pathfinder with automatic scaffolding
+ * This leverages mineflayer-pathfinder's built-in block placement capabilities
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Vec3} targetPos - Target position to build towards
+ * @param {string} bridgeBlockType - Block type to use for bridge
+ * @param {number} bridgeGoalDistance - Goal distance to target
+ * @param {number} bridgeTimeoutMs - Timeout in milliseconds
+ * @param {Object} args - Configuration arguments
+ * @returns {Promise<Object>} Build statistics
+ */
+async function buildBridge(
+  bot,
+  targetPos,
+  bridgeBlockType,
+  bridgeGoalDistance,
+  bridgeTimeoutMs,
+  args,
+) {
+  console.log(
+    `[${bot.username}] 🌉 Building bridge with pathfinder to (${targetPos.x}, ${targetPos.y}, ${targetPos.z})`,
+  );
+
+  const startPos = bot.entity.position.clone();
+  const mcData = require("minecraft-data")(bot.version);
+
+  // Calculate distance for logging
+  const dx = targetPos.x - startPos.x;
+  const dz = targetPos.z - startPos.z;
+  const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+
+  console.log(
+    `[${bot.username}] 📐 Distance to target: ${horizontalDistance.toFixed(2)} blocks`,
+  );
+
+  // 1. Ensure we have blocks in inventory
+  await ensureItemInHand(bot, bridgeBlockType, args);
+
+  // Estimate blocks needed (distance * 1.5 for safety margin)
+  const estimatedBlocks = Math.ceil(horizontalDistance * 1.5);
+  console.log(
+    `[${bot.username}] 📦 Estimated blocks needed: ~${estimatedBlocks}`,
+  );
+
+  // 2. Configure pathfinder movements with scaffolding enabled
+  console.log(`[${bot.username}] � Configuring pathfinder with scaffolding...`);
+  const movements = new Movements(bot, mcData);
+
+  // Movement capabilities
+  movements.allowSprinting = false; // No sprinting for safety at height
+  movements.allowParkour = true; // Allow jumping gaps if needed
+  movements.canDig = true; // Don't break existing blocks
+  movements.canPlaceOn = true; // ENABLE automatic block placement
+  movements.allowEntityDetection = true; // Avoid other bot
+  movements.maxDropDown = 15; // Very conservative - we're high up!
+  movements.infiniteLiquidDropdownDistance = true; // No water at this height
+
+  // Configure scaffolding blocks (blocks pathfinder can place)
+  // Note: Property is 'scafoldingBlocks' (one 'f') in mineflayer-pathfinder - this is intentional
+  movements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
+
+  console.log(
+    `[${bot.username}] ✅ Pathfinder configured with ${movements.scafoldingBlocks.length} scaffolding block types`,
+  );
+
+  // Apply movements to pathfinder
+  bot.pathfinder.setMovements(movements);
+
+  // 3. Enable sneaking for safety (prevents falling off edges)
+  console.log(`[${bot.username}] 🐢 Enabling sneak mode for safety...`);
+  bot.setControlState("sneak", true);
+  await sleep(500); // Let sneak activate
+
+  // 4. Set pathfinding goal to target position
+  const goal = new GoalNear(
+    targetPos.x,
+    targetPos.y,
+    targetPos.z,
+    bridgeGoalDistance,
+  );
+
+  console.log(
+    `[${bot.username}] 🎯 Setting pathfinder goal (within ${bridgeGoalDistance} blocks of target)`,
+  );
+  console.log(
+    `[${bot.username}] 🚀 Starting pathfinder - will automatically place blocks as needed!`,
+  );
+
+  // Track pathfinding events for debugging
+  let blocksPlaced = 0;
+  const onBlockPlaced = () => {
+    blocksPlaced++;
+    if (blocksPlaced % 5 === 0) {
+      console.log(
+        `[${bot.username}] 🧱 Pathfinder has placed ~${blocksPlaced} blocks so far...`,
+      );
+    }
+  };
+
+  bot.on("blockPlaced", onBlockPlaced);
+
+  try {
+    // Use gotoWithTimeout to prevent infinite pathfinding
+    await gotoWithTimeout(bot, goal, {
+      timeoutMs: bridgeTimeoutMs,
+      stopOnTimeout: true,
+    });
+
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+
+    console.log(`[${bot.username}] 🏁 Bridge building complete!`);
+    console.log(
+      `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`,
+    );
+    console.log(
+      `[${bot.username}]    Blocks placed: ~${blocksPlaced} (estimated)`,
+    );
+    console.log(`[${bot.username}] ✅ Successfully reached midpoint!`);
+
+    return {
+      success: true,
+      blocksPlaced: blocksPlaced,
+      distanceTraveled: distanceTraveled,
+    };
+  } catch (error) {
+    const endPos = bot.entity.position.clone();
+    const distanceTraveled = startPos.distanceTo(endPos);
+
+    console.log(
+      `[${bot.username}] ⚠️ Pathfinding did not complete: ${error.message}`,
+    );
+    console.log(
+      `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`,
+    );
+    console.log(
+      `[${bot.username}]    Blocks placed: ~${blocksPlaced} (estimated)`,
+    );
+
+    // Check if we got close enough despite the error
+    const finalDistance = endPos.distanceTo(targetPos);
+    if (finalDistance < bridgeGoalDistance * 2) {
+      console.log(
+        `[${bot.username}] ✅ Close enough to target (${finalDistance.toFixed(2)} blocks)`,
+      );
+      return {
+        success: true,
+        blocksPlaced: blocksPlaced,
+        distanceTraveled: distanceTraveled,
+        partialSuccess: true,
+      };
+    }
+
+    return {
+      success: false,
+      blocksPlaced: blocksPlaced,
+      distanceTraveled: distanceTraveled,
+      error: error.message,
+    };
+  } finally {
+    // Clean up
+    bot.removeListener("blockPlaced", onBlockPlaced);
+    bot.setControlState("sneak", false);
+    console.log(`[${bot.username}] 🚶 Sneak mode disabled`);
+  }
+}
+
+function isAirLikeLocal(block) {
+  return !block || block.name === "air" || block.boundingBox === "empty";
+}
+
+function reachMax(bot) {
+  return bot.game && bot.game.gameMode === 1 ? 6 : 4.5;
+}
+
+function inReachLocal(bot, pos, max = reachMax(bot)) {
+  const center = pos.offset(0.5, 0.5, 0.5);
+  return bot.entity.position.distanceTo(center) <= max;
+}
+
+function faceCenterOf(refBlock, faceVec) {
+  return refBlock.position.offset(
+    0.5 + faceVec.x * 0.5,
+    0.5 + faceVec.y * 0.5,
+    0.5 + faceVec.z * 0.5,
+  );
+}
+
+const getBlockPlaceDelayTicks = (blockCount) => {
+  if (blockCount === 2) return 4; // tower: 0.55 seconds (15 ticks)
+  if (blockCount === 4) return 4; // wall: 0.6 seconds (12 ticks) - REDUCED
+  return 4; // Default: 0.55 seconds (15 ticks)
+};
+
+function hasLineOfSightToFaceLocal(bot, refBlock, faceVec) {
+  try {
+    const eye = bot.entity.position.offset(0, bot.entity.height ?? 1.62, 0);
+    const faceCenter = faceCenterOf(refBlock, faceVec);
+    const dx = faceCenter.x - eye.x;
+    const dy = faceCenter.y - eye.y;
+    const dz = faceCenter.z - eye.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
+    const step = 0.2; // blocks per step
+    const steps = Math.max(1, Math.ceil(dist / step));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const px = eye.x + dx * t;
+      const py = eye.y + dy * t;
+      const pz = eye.z + dz * t;
+      const bpos = new Vec3(Math.floor(px), Math.floor(py), Math.floor(pz));
+      if (bpos.equals(refBlock.position)) continue; // ignore the face's own block
+      const b = bot.blockAt(bpos);
+      if (b && b.boundingBox === "block") return false; // obstructed
+    }
+    return true;
+  } catch (_) {
+    return true; // be permissive on error
+  }
+}
+
+function findVisibleReachablePlaceReferenceLocal(bot, targetPos) {
+  for (const face of CARDINALS) {
+    const refPos = targetPos.plus(face);
+    const refBlock = bot.blockAt(refPos);
+    if (!refBlock) continue;
+    if (refBlock.boundingBox !== "block" || refBlock.material === "noteblock")
+      continue;
+    const faceVec = new Vec3(-face.x, -face.y, -face.z);
+    if (!inReachLocal(bot, refBlock.position)) continue;
+    if (!hasLineOfSightToFaceLocal(bot, refBlock, faceVec)) continue;
+    return { refBlock, faceVec };
+  }
+  return null;
+}
+
+async function tryPlaceAtUsingLocal(
+  bot,
+  targetPos,
+  itemName,
+  refBlock,
+  faceVec,
+  options = {},
+) {
+  const { useSneak = true, tries = 2, args = null } = options;
+  // early exit if already placed
+  if (!isAirLikeLocal(bot.blockAt(targetPos))) return true;
+  await ensureItemInHand(bot, itemName, args);
+  const sneakWas = bot.getControlState("sneak");
+  if (useSneak) bot.setControlState("sneak", true);
+  try {
+    for (let i = 0; i < tries; i++) {
+      if (!inReachLocal(bot, refBlock.position)) return false; // let caller fallback
+      try {
+        await bot.placeBlock(refBlock, faceVec);
+      } catch (e) {
+        await bot.waitForTicks(4);
+        continue;
+      }
+      const placed = !isAirLikeLocal(bot.blockAt(targetPos));
+      if (placed) return true;
+      await bot.waitForTicks(4);
+    }
+    return !isAirLikeLocal(bot.blockAt(targetPos));
+  } finally {
+    if (useSneak && !sneakWas) bot.setControlState("sneak", false);
+  }
+}
+
+/**
+ * Place multiple blocks with delay between each placement (custom version for structureEval)
+ * This version overrides the lookAt behavior to use smooth looking instead of instant snap
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Array<Vec3>} positions - Array of positions to place blocks
+ * @param {string} itemName - Name of block/item to place
+ * @param {Object} options - Options for placement
+ * @returns {Promise<Object>} {success: number, failed: number, placed: number}
+ */
+async function placeMultipleWithDelay(
+  bot,
+  positions,
+  itemName,
+  placementStandoffBlocks,
+  adjacentGoalRadius,
+  options = {},
+) {
+  const { delayTicks = 0 } = options;
+
+  // Sort positions: bottom-up (Y), then far-to-near, then left-to-right
+  // FAR-TO-NEAR ensures blocks are placed from furthest to closest,
+  // preventing blocks from being placed through other unplaced blocks
+  const botPos = bot.entity.position;
+  const sorted = positions.slice().sort((a, b) => {
+    if (a.y !== b.y) return a.y - b.y; // Bottom first
+    const distA = botPos.distanceTo(a);
+    const distB = botPos.distanceTo(b);
+    if (Math.abs(distA - distB) > 0.5) return distB - distA; // FAR first (reversed)
+    return a.x - b.x; // Left to right
+  });
+
+  let success = 0;
+  let failed = 0;
+
+  // Override bot.lookAt to prevent camera movement during placeAt internal retries
+  // We'll manually control when the bot looks (before each placement)
+  const LOOK_SETTLE_DELAY_TICKS = 18; // Time to wait for smooth camera rotation to complete
+  let allowLookAt = true; // Flag to control when lookAt is allowed
+  const originalLookAt = bot.lookAt.bind(bot);
+  bot.lookAt = async function (position, forceLook) {
+    // Only allow lookAt when explicitly enabled
+    if (allowLookAt) {
+      // Use smooth looking and wait for it to settle
+      await originalLookAt(position, false);
+      await bot.waitForTicks(LOOK_SETTLE_DELAY_TICKS); // 500ms / 20 ticks/second
+    }
+    // When disabled: do nothing, maintain current camera angle
+    // This prevents placeAt's internal retry logic from moving the camera
+  };
+
+  try {
+    // Initialize pathfinder for movement
+    initializePathfinder(bot, {
+      allowSprinting: false,
+      allowParkour: false,
+      canDig: false,
+      allowEntityDetection: true,
+    });
+
+    let blockIndex = 0; // Track which block we're placing
+    for (const pos of sorted) {
+      blockIndex++;
+
+      try {
+        // Move bot to stand ADJACENT to the block position before placing
+        // This creates natural "walking along while building" behavior
+        const currentBotPos = bot.entity.position.clone();
+
+        // Calculate adjacent position with a diagonal stance (never exactly parallel)
+        // For X-axis walls: move 2 blocks to the south (Z-) AND 1 block west (X-)
+        // For Z-axis walls (and towers): move 2 blocks to the west (X-) AND 1 block north (Z-)
+        // This diagonal offset makes at least two side faces and often the top visible at ground level.
+        const adjacentPos = pos.clone();
+
+        // Determine wall direction by checking if positions vary in X or Z
+        const firstPos = sorted[0];
+        const lastPos = sorted[sorted.length - 1];
+        const isXAxis =
+          Math.abs(lastPos.x - firstPos.x) > Math.abs(lastPos.z - firstPos.z);
+
+        if (isXAxis) {
+          // Side offset along Z-, and along-wall offset west (X-)
+          adjacentPos.z -= placementStandoffBlocks; // 2 blocks south
+          adjacentPos.x += -1; // 1 block west (diagonal)
+        } else {
+          // Side offset along X-, and along-wall offset north (Z-)
+          adjacentPos.x -= placementStandoffBlocks; // 2 blocks west
+          adjacentPos.z += -1; // 1 block north (diagonal)
+        }
+
+        // HARD-CODED ENFORCEMENT: Skip adjacent movement for 4th block in 4-block structures
+        const skip4BlockMovement = blockIndex === 4 && sorted.length === 4;
+
+        // Move to adjacent position if not already there and skip4BlockMovement is false
+        const distanceToAdjacent = currentBotPos.distanceTo(adjacentPos);
+        if (distanceToAdjacent > adjacentGoalRadius && !skip4BlockMovement) {
+          console.log(
+            `[${bot.username}] 🚶 Moving to adjacent position (${adjacentPos.x.toFixed(1)}, ${adjacentPos.y}, ${adjacentPos.z.toFixed(1)}) before placing at ${pos}`,
+          );
+          const adjacentGoal = new GoalNear(
+            adjacentPos.x,
+            adjacentPos.y,
+            adjacentPos.z,
+            adjacentGoalRadius,
+          );
+
+          try {
+            await gotoWithTimeout(bot, adjacentGoal, { timeoutTicks: 60 });
+          } catch (moveError) {
+            console.log(
+              `[${bot.username}] ⚠️ Could not move to adjacent position: ${moveError.message}`,
+            );
+          }
+        } else if (skip4BlockMovement) {
+          console.log(
+            `[${bot.username}] � FORCED NO-MOVE: Skipping adjacent movement for 4th block at ${pos}`,
+          );
+        }
+
+        // HARD-CODED FIX: Force 4th block to use the block directly below (top face)
+        let forcedReference = null;
+        if (blockIndex === 4 && sorted.length === 4) {
+          // This is the 4th block in a 4-block structure (2x2 wall or 4x1 wall)
+          const belowPos = pos.offset(0, -1, 0);
+          const belowBlock = bot.blockAt(belowPos);
+          if (belowBlock && belowBlock.boundingBox === "block") {
+            forcedReference = {
+              refBlock: belowBlock,
+              faceVec: new Vec3(0, 1, 0), // Click the TOP face
+            };
+            console.log(
+              `[${bot.username}] 🎯 FORCED: 4th block will use TOP face of block below at ${belowPos}`,
+            );
+          }
+        }
+
+        // Use forced reference if available, otherwise use normal logic
+        const visibleRef =
+          forcedReference || findVisibleReachablePlaceReferenceLocal(bot, pos);
+        // Fallback reference if none visible from here (may trigger pathfinder later)
+        const placeReference = visibleRef || findPlaceReference(bot, pos);
+        if (placeReference) {
+          const { refBlock, faceVec } = placeReference;
+
+          // Calculate the specific face position to look at (not the center)
+          const lookAtFacePos = refBlock.position.offset(
+            0.5 + faceVec.x * 0.5,
+            0.5 + faceVec.y * 0.5,
+            0.5 + faceVec.z * 0.5,
+          );
+
+          // EXPLICITLY look at the reference block's face (where we'll click)
+          // This also verifies line of sight - if lookAt fails, we don't have LOS
+          allowLookAt = true;
+          try {
+            await bot.lookAt(lookAtFacePos);
+            console.log(
+              `[${bot.username}] 👁️ Looking at reference face at ${refBlock.position} (face: ${faceVec.x},${faceVec.y},${faceVec.z}) ${visibleRef ? "[visible+reachable]" : "[fallback]"}${skip4BlockMovement ? " [NO-MOVE]" : ""}`,
+            );
+          } catch (lookError) {
+            console.log(
+              `[${bot.username}] ⚠️ Cannot look at reference block face - no line of sight: ${lookError.message}`,
+            );
+          }
+        } else {
+          console.log(
+            `[${bot.username}] ⚠️ No reference block found for position ${pos}`,
+          );
+        }
+
+        // Now disable lookAt during placeAt to prevent camera resetting
+        allowLookAt = false;
+        // If we have a visible+reachable face, place directly using it; else fallback to robust placeAt (may pathfind)
+        let placed;
+        if (visibleRef) {
+          placed = await tryPlaceAtUsingLocal(
+            bot,
+            pos,
+            itemName,
+            visibleRef.refBlock,
+            visibleRef.faceVec,
+            options,
+          );
+          if (!placed) {
+            console.log(
+              `[${bot.username}] 🔁 Visible+reachable face placement failed; falling back to robust placeAt (may pathfind)`,
+            );
+            placed = await placeAt(bot, pos, itemName, options);
+          }
+        } else {
+          placed = await placeAt(bot, pos, itemName, options);
+        }
+
+        if (placed) {
+          success++;
+          console.log(`[${bot.username}] ✅ Placed block at ${pos}`);
+        } else {
+          failed++;
+          console.log(`[${bot.username}] ❌ Failed to place at ${pos}`);
+        }
+      } catch (error) {
+        failed++;
+        console.log(
+          `[${bot.username}] ❌ Error placing at ${pos}: ${error.message}`,
+        );
+      }
+
+      // Add delay between blocks if specified
+      if (delayTicks > 0) {
+        await bot.waitForTicks(delayTicks);
+      }
+    }
+  } finally {
+    // Restore original lookAt behavior
+    bot.lookAt = originalLookAt;
+    stopPathfinder(bot);
+  }
+
+  return { success, failed, placed: success };
+}
+
+/**
+ * Main building loop - bot builds assigned structure
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {Array<Vec3>} positions - Positions to build at
+ * @param {string} blockType - Type of block to place
+ * @param {Object} args - Configuration arguments
+ * @returns {Promise<Object>} Build statistics
+ */
+async function buildStructure(
+  bot,
+  positions,
+  blockType,
+  placementStandoffBlocks,
+  adjacentGoalRadius,
+  args,
+) {
+  console.log(
+    `[${bot.username}] 🏗️ Starting to build ${positions.length} blocks...`,
+  );
+
+  // Initialize pathfinder for movement
+  initializePathfinder(bot, {
+    allowSprinting: false,
+    allowParkour: true,
+    canDig: true,
+    allowEntityDetection: true,
+  });
+
+  try {
+    const result = await placeMultipleWithDelay(
+      bot,
+      positions,
+      blockType,
+      placementStandoffBlocks,
+      adjacentGoalRadius,
+      {
+        useSneak: true,
+        tries: 5,
+        args: args,
+        delayTicks: getBlockPlaceDelayTicks(positions.length), // Add delay between blocks
+      },
+    );
+
+    console.log(`[${bot.username}] 🏁 Build complete!`);
+    console.log(
+      `[${bot.username}]    Success: ${result.success}/${positions.length}`,
+    );
+    console.log(
+      `[${bot.username}]    Failed: ${result.failed}/${positions.length}`,
+    );
+
+    return result;
+  } finally {
+    stopPathfinder(bot);
+  }
+}
+
 module.exports = {
   makeHouseBlueprint5x5,
   rotateLocalToWorld,
   splitWorkByXAxis,
-  ensureBlocks,
   calculateMaterialCounts,
   buildPhase,
+  buildBridge,
   cleanupScaffolds,
   admireHouse,
   calculateFloorPlacementOrder,
@@ -2404,7 +2904,6 @@ module.exports = {
   placeMultiple,
   isAirLike,
   inReach,
-  ensureItemInHand,
   findPlaceReference,
   ensureReachAndSight,
   fastPlaceBlock,
@@ -2421,4 +2920,6 @@ module.exports = {
   hasAdjacentSupport,
   sortByBuildability,
   prepareForPlacement,
+  buildStructure,
+  getBlockPlaceDelayTicks,
 };

@@ -142,20 +142,6 @@ function getOnBuildTowerPhaseFn(
 }
 
 /**
- * Generate positions for a vertical tower (legacy - not used in new approach)
- * @param {Vec3} basePos - Base position of tower
- * @param {number} height - Height of tower
- * @returns {Array<Vec3>} Array of positions
- */
-function generateTowerPositions(basePos, height) {
-  const positions = [];
-  for (let y = 0; y < height; y++) {
-    positions.push(basePos.offset(0, y, 0));
-  }
-  return positions;
-}
-
-/**
  * BuildTowerEpisode - Episode class for individual tower building
  */
 class BuildTowerEpisode extends BaseEpisode {

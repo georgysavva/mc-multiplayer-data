@@ -25,7 +25,8 @@ const { placeAt, ensureItemInHand } = require("../utils/building");
 const { BaseEpisode } = require("./base-episode");
 const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 const { decidePrimaryBot, rconTp } = require("../utils/coordination");
-const { lookAtBot, land_pos, digWithTimeout } = require("../utils/movement");
+const { lookAtBot, land_pos } = require("../utils/movement");
+const { digBlock } = require("../utils/digging");
 
 const BLOCK_PLACE_INTERVAL_MS_MIN = 400;
 const BLOCK_PLACE_INTERVAL_MS_MAX = 800;
@@ -45,24 +46,6 @@ const BLOCK_TYPES = [
   "dirt",
   "smooth_sandstone",
 ];
-
-async function digBlock(bot, blockPos) {
-  try {
-    const block = bot.blockAt(blockPos);
-    if (!block || block.name === "air" || block.name === "cave_air") {
-      return true;
-    }
-
-    const blockCenter = blockPos.offset(0.5, 0.5, 0.5);
-    await bot.lookAt(blockCenter);
-    await sleep(50);
-    await digWithTimeout(bot, block);
-    return true;
-  } catch (error) {
-    console.log(`[${bot.username}] ❌ Error digging block: ${error.message}`);
-    return false;
-  }
-}
 
 function checkHorizontalStrip(bot, startX, y, startZ, direction, length = 5) {
   for (let i = 0; i < length; i++) {

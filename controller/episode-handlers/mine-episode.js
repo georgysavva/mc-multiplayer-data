@@ -9,6 +9,7 @@ const {
 const { ensureItemInHand } = require("../utils/building");
 const { BaseEpisode } = require("./base-episode");
 const { unequipHand } = require("../utils/items");
+const { placeTorchOnFloor } = require("../utils/digging");
 
 // Constants for mining behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration
@@ -103,100 +104,6 @@ async function digDownToUnderground(bot, depth = UNDERGROUND_DEPTH) {
 }
 
 /**
- * Place a torch on the floor at the bot's current feet position
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Vec3} movementDirection - Direction the bot is moving (not used)
- * @returns {Promise<boolean>} True if torch was placed
- */
-async function placeTorchOnFloor(bot, movementDirection = null) {
-  try {
-    const currentPos = bot.entity.position.clone();
-
-    // Place torch at bot's current feet position (not behind)
-    const torchPos = new Vec3(
-      Math.floor(currentPos.x),
-      Math.floor(currentPos.y),
-      Math.floor(currentPos.z),
-    );
-
-    // Check if the torch position is valid (should be air or replaceable)
-    const torchBlock = bot.blockAt(torchPos);
-    if (!torchBlock) {
-      console.log(`[${bot.username}] ⚠️ Cannot access block at ${torchPos}`);
-      return false;
-    }
-
-    // Check if a torch is already there (skip if so)
-    if (torchBlock.name === "torch" || torchBlock.name === "wall_torch") {
-      console.log(
-        `[${bot.username}] ⚠️ Torch already exists at ${torchPos}, skipping`,
-      );
-      return false;
-    }
-
-    // Find the floor block below torch position to place torch on
-    const floorPos = torchPos.offset(0, -1, 0);
-    const floorBlock = bot.blockAt(floorPos);
-
-    if (
-      !floorBlock ||
-      floorBlock.name === "air" ||
-      floorBlock.name === "cave_air"
-    ) {
-      console.log(
-        `[${bot.username}] ⚠️ No floor block at ${floorPos} to place torch on`,
-      );
-      return false;
-    }
-
-    console.log(
-      `[${bot.username}] 🔦 Placing torch on floor at ${torchPos} (on top of ${floorBlock.name})`,
-    );
-
-    // Equip torch
-    const torch = bot.inventory
-      .items()
-      .find((item) => item.name === TORCH_TYPE);
-    if (!torch) {
-      console.log(`[${bot.username}] ⚠️ No torches in inventory!`);
-      return false;
-    }
-
-    console.log(
-      `[${bot.username}] ✅ Found torch: ${torch.name} (${torch.count} remaining)`,
-    );
-    await bot.equip(torch, "hand");
-    await sleep(TORCH_EQUIP_DELAY_MS);
-
-    // Look down at the floor block where torch will be placed
-    console.log(`[${bot.username}] 👀 Looking at floor block ${floorPos}`);
-    await bot.lookAt(floorBlock.position.offset(0.5, 1, 0.5), false);
-    await sleep(TORCH_LOOK_DELAY_MS);
-
-    // Place torch on floor
-    try {
-      await bot.placeBlock(floorBlock, new Vec3(0, 1, 0)); // Place on top face of floor block
-      await sleep(TORCH_PLACE_DELAY_MS); // Wait longer to make placement visible
-      console.log(`[${bot.username}] ✅ Torch successfully placed on floor`);
-
-      // Look back up/forward
-      await bot.look(0, 0, false); // Look straight ahead
-      await sleep(LOOK_DELAY_MS);
-
-      return true;
-    } catch (placeError) {
-      console.log(
-        `[${bot.username}] ⚠️ Failed to place torch block: ${placeError.message}`,
-      );
-      return false;
-    }
-  } catch (error) {
-    console.log(`[${bot.username}] ❌ Failed to place torch: ${error.message}`);
-    return false;
-  }
-}
-
-/**
  * Mine towards a target position using pathfinder with mining enabled and torch placement
  * @param {Bot} bot - Mineflayer bot instance
  * @param {Vec3} targetPos - Target position to mine towards
@@ -264,7 +171,14 @@ async function mineTowardsTargetWithTorchPlacement(bot, targetPos) {
         .find((item) => item.name === TOOL_TYPE);
       const currentHand = bot.heldItem;
 
-      const placed = await placeTorchOnFloor(bot);
+      const placed = await placeTorchOnFloor(
+        bot,
+        TORCH_TYPE,
+        TORCH_EQUIP_DELAY_MS,
+        TORCH_LOOK_DELAY_MS,
+        TORCH_PLACE_DELAY_MS,
+        LOOK_DELAY_MS,
+      );
 
       if (placed) {
         torchesPlaced++;
@@ -342,107 +256,6 @@ async function mineTowardsTargetWithTorchPlacement(bot, targetPos) {
     clearInterval(torchCheckInterval);
     intervalStopped = true; // Set flag to stop interval callback
 
-    // Stop pathfinder
-    bot.pathfinder.setGoal(null);
-  }
-}
-
-/**
- * Mine towards a target position using pathfinder with mining enabled
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Vec3} targetPos - Target position to mine towards
- * @returns {Promise<Object>} Mining statistics
- */
-async function mineTowardsTarget(bot, targetPos) {
-  console.log(
-    `[${bot.username}] 🚇 Mining towards ${targetPos} using pathfinder`,
-  );
-
-  const startPos = bot.entity.position.clone();
-  const startTime = Date.now();
-
-  // Initialize pathfinder with mining enabled
-  const mcData = require("minecraft-data")(bot.version);
-  const { Movements, goals } = require("mineflayer-pathfinder");
-  const { GoalNear } = goals;
-
-  // Configure movements to allow mining
-  const movements = new Movements(bot, mcData);
-  movements.canPlaceOn = true;
-  movements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
-  movements.infiniteLiquidDropdownDistance = true;
-  movements.maxDropDown = 15;
-  movements.canDig = true; // Enable block breaking
-  movements.digCost = 0.1; // Very cheap digging - strongly prefer mining over walking
-  movements.blocksCost = 10; // High cost for walking - makes surface path expensive
-  movements.placeCost = 1000; // Extremely expensive placing to prevent climbing out
-  movements.allowParkour = false; // Disable parkour for safer mining
-  movements.allowSprinting = false; // Disable sprinting to prevent jumping out
-  movements.allowJumping = false; // Disable jumping completely
-  movements.allowEntityDetection = true; // Avoid other bots
-  movements.maxDropDown = 15; // No vertical drops - stay at same Y level
-  movements.scafoldingBlocks = getScaffoldingBlockIds(mcData); // Don't place scaffolding blocks
-  movements.dontCreateFlow = true; // Safety: don't create water/lava flow
-  movements.dontMineUnderFallingBlock = true; // Safety: avoid sand/gravel
-
-  bot.pathfinder.setMovements(movements);
-
-  const initialDistance = startPos.distanceTo(targetPos);
-  console.log(
-    `[${bot.username}] 📐 Distance to target: ${initialDistance.toFixed(2)} blocks`,
-  );
-
-  // Set goal to get very close to the target position (0.5 blocks = almost exact)
-  const goal = new GoalNear(targetPos.x, targetPos.y, targetPos.z, 1.6);
-
-  try {
-    console.log(
-      `[${bot.username}] 🎯 Starting pathfinder navigation with mining...`,
-    );
-
-    // Use pathfinder to navigate to target, mining blocks as needed
-    await gotoWithTimeout(bot, goal, { timeoutMs: PATHFIND_TIMEOUT_MS });
-
-    const endPos = bot.entity.position.clone();
-    const distanceTraveled = startPos.distanceTo(endPos);
-    const timeElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    const finalDistance = endPos.distanceTo(targetPos);
-
-    console.log(`[${bot.username}] 🏁 Mining navigation complete!`);
-    console.log(
-      `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`,
-    );
-    console.log(`[${bot.username}]    Time elapsed: ${timeElapsed}s`);
-    console.log(
-      `[${bot.username}]    Final distance to target: ${finalDistance.toFixed(2)} blocks`,
-    );
-
-    return {
-      success: true,
-      distanceTraveled: distanceTraveled,
-      timeElapsed: parseFloat(timeElapsed),
-      reachedTarget: finalDistance < 1.5,
-      finalDistance: finalDistance,
-    };
-  } catch (error) {
-    console.log(
-      `[${bot.username}] ⚠️ Pathfinder mining failed: ${error.message}`,
-    );
-
-    // Return partial results
-    const endPos = bot.entity.position.clone();
-    const distanceTraveled = startPos.distanceTo(endPos);
-    const finalDistance = endPos.distanceTo(targetPos);
-
-    return {
-      success: false,
-      distanceTraveled: distanceTraveled,
-      timeElapsed: ((Date.now() - startTime) / 1000).toFixed(1),
-      reachedTarget: false,
-      finalDistance: finalDistance,
-      error: error.message,
-    };
-  } finally {
     // Stop pathfinder
     bot.pathfinder.setGoal(null);
   }
@@ -719,11 +532,9 @@ class MineEpisode extends BaseEpisode {
 module.exports = {
   getOnMinePhaseFn,
   mineTowardsTargetWithTorchPlacement,
-  mineTowardsTarget,
   TOOL_TYPE,
   TORCH_TYPE,
   TORCH_PLACEMENT_INTERVAL,
   MineEpisode,
   digDownToUnderground,
-  placeTorchOnFloor,
 };

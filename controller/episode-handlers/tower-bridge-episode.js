@@ -12,6 +12,7 @@ const {
   placeAt,
   fastPlaceBlock,
   buildTowerUnderneath,
+  buildBridge,
 } = require("../utils/building");
 const { BaseEpisode } = require("./base-episode");
 const { Movements, GoalNear } = require("../utils/bot-factory");
@@ -25,163 +26,6 @@ const TOWER_BLOCK_TYPE = "oak_planks"; // Block type for towers
 const BRIDGE_BLOCK_TYPE = "oak_planks"; // Block type for bridge
 const BRIDGE_TIMEOUT_MS = 60000; // 60 seconds max for bridge building
 const BRIDGE_GOAL_DISTANCE = 1.0; // How close to get to midpoint (blocks) - prevents bot overlap
-
-/**
- * Build a bridge towards a target position using pathfinder with automatic scaffolding
- * This leverages mineflayer-pathfinder's built-in block placement capabilities
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Vec3} targetPos - Target position to build towards
- * @param {Object} args - Configuration arguments
- * @returns {Promise<Object>} Build statistics
- */
-async function buildBridgeWithPathfinder(bot, targetPos, args) {
-  console.log(
-    `[${bot.username}] 🌉 Building bridge with pathfinder to (${targetPos.x}, ${targetPos.y}, ${targetPos.z})`,
-  );
-
-  const startPos = bot.entity.position.clone();
-  const mcData = require("minecraft-data")(bot.version);
-
-  // Calculate distance for logging
-  const dx = targetPos.x - startPos.x;
-  const dz = targetPos.z - startPos.z;
-  const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
-
-  console.log(
-    `[${bot.username}] 📐 Distance to target: ${horizontalDistance.toFixed(2)} blocks`,
-  );
-
-  // 1. Ensure we have blocks in inventory
-  await ensureItemInHand(bot, BRIDGE_BLOCK_TYPE, args);
-
-  // Estimate blocks needed (distance * 1.5 for safety margin)
-  const estimatedBlocks = Math.ceil(horizontalDistance * 1.5);
-  console.log(
-    `[${bot.username}] 📦 Estimated blocks needed: ~${estimatedBlocks}`,
-  );
-
-  // 2. Configure pathfinder movements with scaffolding enabled
-  console.log(`[${bot.username}] � Configuring pathfinder with scaffolding...`);
-  const movements = new Movements(bot, mcData);
-
-  // Movement capabilities
-  movements.allowSprinting = false; // No sprinting for safety at height
-  movements.allowParkour = true; // Allow jumping gaps if needed
-  movements.canDig = true; // Don't break existing blocks
-  movements.canPlaceOn = true; // ENABLE automatic block placement
-  movements.allowEntityDetection = true; // Avoid other bot
-  movements.maxDropDown = 15; // Very conservative - we're high up!
-  movements.infiniteLiquidDropdownDistance = true; // No water at this height
-
-  // Configure scaffolding blocks (blocks pathfinder can place)
-  // Note: Property is 'scafoldingBlocks' (one 'f') in mineflayer-pathfinder - this is intentional
-  movements.scafoldingBlocks = getScaffoldingBlockIds(mcData);
-
-  console.log(
-    `[${bot.username}] ✅ Pathfinder configured with ${movements.scafoldingBlocks.length} scaffolding block types`,
-  );
-
-  // Apply movements to pathfinder
-  bot.pathfinder.setMovements(movements);
-
-  // 3. Enable sneaking for safety (prevents falling off edges)
-  console.log(`[${bot.username}] 🐢 Enabling sneak mode for safety...`);
-  bot.setControlState("sneak", true);
-  await sleep(500); // Let sneak activate
-
-  // 4. Set pathfinding goal to target position
-  const goal = new GoalNear(
-    targetPos.x,
-    targetPos.y,
-    targetPos.z,
-    BRIDGE_GOAL_DISTANCE,
-  );
-
-  console.log(
-    `[${bot.username}] 🎯 Setting pathfinder goal (within ${BRIDGE_GOAL_DISTANCE} blocks of target)`,
-  );
-  console.log(
-    `[${bot.username}] 🚀 Starting pathfinder - will automatically place blocks as needed!`,
-  );
-
-  // Track pathfinding events for debugging
-  let blocksPlaced = 0;
-  const onBlockPlaced = () => {
-    blocksPlaced++;
-    if (blocksPlaced % 5 === 0) {
-      console.log(
-        `[${bot.username}] 🧱 Pathfinder has placed ~${blocksPlaced} blocks so far...`,
-      );
-    }
-  };
-
-  bot.on("blockPlaced", onBlockPlaced);
-
-  try {
-    // Use gotoWithTimeout to prevent infinite pathfinding
-    await gotoWithTimeout(bot, goal, {
-      timeoutMs: BRIDGE_TIMEOUT_MS,
-      stopOnTimeout: true,
-    });
-
-    const endPos = bot.entity.position.clone();
-    const distanceTraveled = startPos.distanceTo(endPos);
-
-    console.log(`[${bot.username}] 🏁 Bridge building complete!`);
-    console.log(
-      `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`,
-    );
-    console.log(
-      `[${bot.username}]    Blocks placed: ~${blocksPlaced} (estimated)`,
-    );
-    console.log(`[${bot.username}] ✅ Successfully reached midpoint!`);
-
-    return {
-      success: true,
-      blocksPlaced: blocksPlaced,
-      distanceTraveled: distanceTraveled,
-    };
-  } catch (error) {
-    const endPos = bot.entity.position.clone();
-    const distanceTraveled = startPos.distanceTo(endPos);
-
-    console.log(
-      `[${bot.username}] ⚠️ Pathfinding did not complete: ${error.message}`,
-    );
-    console.log(
-      `[${bot.username}]    Distance traveled: ${distanceTraveled.toFixed(2)} blocks`,
-    );
-    console.log(
-      `[${bot.username}]    Blocks placed: ~${blocksPlaced} (estimated)`,
-    );
-
-    // Check if we got close enough despite the error
-    const finalDistance = endPos.distanceTo(targetPos);
-    if (finalDistance < BRIDGE_GOAL_DISTANCE * 2) {
-      console.log(
-        `[${bot.username}] ✅ Close enough to target (${finalDistance.toFixed(2)} blocks)`,
-      );
-      return {
-        success: true,
-        blocksPlaced: blocksPlaced,
-        distanceTraveled: distanceTraveled,
-        partialSuccess: true,
-      };
-    }
-
-    return {
-      success: false,
-      blocksPlaced: blocksPlaced,
-      distanceTraveled: distanceTraveled,
-      error: error.message,
-    };
-  } finally {
-    // Clean up
-    bot.removeListener("blockPlaced", onBlockPlaced);
-    bot.setControlState("sneak", false);
-    console.log(`[${bot.username}] 🚶 Sneak mode disabled`);
-  }
-}
 
 /**
  * Get the phase function for tower-bridge episodes
@@ -429,9 +273,12 @@ function getOnTowerBridgePhaseFn(
     console.log(
       `[${bot.username}] 🌉 STEP 8: Building bridge towards midpoint...`,
     );
-    const bridgeResult = await buildBridgeWithPathfinder(
+    const bridgeResult = await buildBridge(
       bot,
       targetPoint,
+      BRIDGE_BLOCK_TYPE,
+      BRIDGE_GOAL_DISTANCE,
+      BRIDGE_TIMEOUT_MS,
       args,
     );
 
@@ -566,7 +413,7 @@ class TowerBridgeEpisode extends BaseEpisode {
 
 module.exports = {
   getOnTowerBridgePhaseFn,
-  buildBridgeWithPathfinder,
+  buildBridgeWithPathfinder: buildBridge,
   TOWER_HEIGHT,
   TOWER_BLOCK_TYPE,
   BRIDGE_BLOCK_TYPE,

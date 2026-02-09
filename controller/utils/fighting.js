@@ -11,6 +11,7 @@ const Vec3 = require("vec3").Vec3;
 // ============================================================================
 // EXPORTS
 // ============================================================================
+const FOV_DEGREES = 90; // total FOV in front of the bot
 async function giveRandomSword(bot, rcon) {
   const swords = [
     "minecraft:wooden_sword",
@@ -41,8 +42,45 @@ async function equipSword(bot) {
   }
 }
 
+/**
+ * Check if a position is within the bot's forward-facing FOV cone.
+ * @param {any} bot - The bot instance
+ * @param {any} targetPos - The target position (Vec3)
+ * @param {number} fovDegrees - Field of view in degrees (default 90)
+ * @returns {boolean} True if the target is in the bot's FOV
+ */
+function isInForwardFOV(bot, targetPos, fovDegrees = FOV_DEGREES) {
+  const botPos = bot.entity.position;
+  const yaw = bot.entity.yaw;
+
+  // Calculate forward direction vector
+  const forwardX = -Math.sin(yaw);
+  const forwardZ = -Math.cos(yaw);
+
+  // Calculate direction to target
+  const dx = targetPos.x - botPos.x;
+  const dz = targetPos.z - botPos.z;
+  const dist = Math.sqrt(dx * dx + dz * dz);
+
+  if (dist === 0) return true; // Target is at bot position
+
+  // Normalize direction to target
+  const targetDirX = dx / dist;
+  const targetDirZ = dz / dist;
+
+  // Calculate dot product (cosine of angle between vectors)
+  const dotProduct = forwardX * targetDirX + forwardZ * targetDirZ;
+
+  // Calculate the angle threshold
+  const fovRadians = (fovDegrees * Math.PI) / 180;
+  const angleThreshold = Math.cos(fovRadians / 2);
+
+  return dotProduct >= angleThreshold;
+}
+
 module.exports = {
   // Basic controls
   giveRandomSword,
   equipSword,
+  isInForwardFOV,
 };

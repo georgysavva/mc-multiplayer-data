@@ -245,54 +245,6 @@ async function gotoWithTimeout(bot, goal, options = {}) {
   }
 }
 
-/**
- * Dig a block with a timeout, similar to gotoWithTimeout.
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Object} block - Block to dig
- * @param {Object} [options]
- * @param {number} [options.timeoutMs=10000] - Maximum time to attempt digging
- * @param {boolean} [options.stopOnTimeout=true] - Stop digging when timeout triggers
- * @returns {Promise<void>} Resolves when dig completes; rejects on timeout/error
- */
-async function digWithTimeout(bot, block, options = {}) {
-  const { timeoutMs = 7000, stopOnTimeout = true } = options;
-
-  // Auto-equip best tool for this block (if tool plugin is available)
-  if (bot.tool) {
-    try {
-      await bot.tool.equipForBlock(block, { requireHarvest: false });
-      const equippedTool = bot.heldItem?.name || "unknown tool";
-      console.log(
-        `[${bot.username}] 🔧 Equipped ${equippedTool} for ${block.name}`,
-      );
-    } catch (toolError) {
-      console.log(
-        `[${bot.username}] ⚠️ Could not equip tool: ${toolError.message}, will dig anyway`,
-      );
-      // Continue anyway - bot will use whatever is in hand
-    }
-  }
-
-  let timeoutId;
-  const digPromise = bot.dig(block);
-  const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => {
-      if (stopOnTimeout && typeof bot.stopDigging === "function") {
-        try {
-          bot.stopDigging();
-        } catch (_) {}
-      }
-      reject(new Error(`dig timed out after ${timeoutMs} ms`));
-    }, timeoutMs);
-  });
-
-  try {
-    await Promise.race([digPromise, timeoutPromise]);
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
-}
-
 // ============================================================================
 // DIRECTIONAL MOVEMENT FUNCTIONS
 // ============================================================================
@@ -783,7 +735,6 @@ module.exports = {
   initializePathfinder,
   stopPathfinder,
   gotoWithTimeout,
-  digWithTimeout,
 
   // Directional movement
   moveDirection,

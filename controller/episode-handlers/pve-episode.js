@@ -11,14 +11,17 @@ const {
 const { GoalNear, Movements } = require("../utils/bot-factory");
 const { BaseEpisode } = require("./base-episode");
 const { unequipHand } = require("../utils/items");
-const { giveRandomSword, equipSword } = require("../utils/fighting");
+const {
+  giveRandomSword,
+  equipSword,
+  isInForwardFOV,
+} = require("../utils/fighting");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 60;
 
 const VIEW_DISTANCE = 16;
 const LOCK_EYE_DURATION_MIN = 1000;
 const LOCK_EYE_DURATION_MAX = 3000;
-const FOV_DEGREES = 90; // total FOV in front of the bot
 const MIN_MOBS = 2;
 const MAX_MOBS = 5;
 
@@ -33,41 +36,6 @@ const HOSTILE_ENTITY_NAMES = new Set(
   HOSTILE_MOBS_SUMMON_IDS.map((id) => id.split(":")[1]),
 );
 
-/**
- * Check if a position is within the bot's forward-facing FOV cone.
- * @param {any} bot - The bot instance
- * @param {any} targetPos - The target position (Vec3)
- * @param {number} fovDegrees - Field of view in degrees (default 90)
- * @returns {boolean} True if the target is in the bot's FOV
- */
-function isInForwardFOV(bot, targetPos, fovDegrees = FOV_DEGREES) {
-  const botPos = bot.entity.position;
-  const yaw = bot.entity.yaw;
-
-  // Calculate forward direction vector
-  const forwardX = -Math.sin(yaw);
-  const forwardZ = -Math.cos(yaw);
-
-  // Calculate direction to target
-  const dx = targetPos.x - botPos.x;
-  const dz = targetPos.z - botPos.z;
-  const dist = Math.sqrt(dx * dx + dz * dz);
-
-  if (dist === 0) return true; // Target is at bot position
-
-  // Normalize direction to target
-  const targetDirX = dx / dist;
-  const targetDirZ = dz / dist;
-
-  // Calculate dot product (cosine of angle between vectors)
-  const dotProduct = forwardX * targetDirX + forwardZ * targetDirZ;
-
-  // Calculate the angle threshold
-  const fovRadians = (fovDegrees * Math.PI) / 180;
-  const angleThreshold = Math.cos(fovRadians / 2);
-
-  return dotProduct >= angleThreshold;
-}
 async function spawnWithRconAround(
   bot,
   rcon,

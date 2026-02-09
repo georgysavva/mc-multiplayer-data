@@ -13,6 +13,20 @@ const {
 } = require("./constants");
 const { lookSmooth, stopAll, jump, land_pos } = require("./movement");
 
+/**
+ * Get random cardinal direction (north, south, east, west)
+ * @returns {Object} Direction object with name and offset
+ */
+function getRandomDirection() {
+  const directions = [
+    { name: "north", offset: new Vec3(0, 0, -1) },
+    { name: "south", offset: new Vec3(0, 0, 1) },
+    { name: "east", offset: new Vec3(1, 0, 0) },
+    { name: "west", offset: new Vec3(-1, 0, 0) },
+  ];
+  return directions[Math.floor(Math.random() * directions.length)];
+}
+
 async function walk(
   bot,
   distance,
@@ -242,4 +256,5 @@ async function run(bot, actionCount, lookAway, args, customConstants = {}) {
 module.exports = {
   walk,
   run,
+  getRandomDirection,
 };

@@ -38,7 +38,6 @@ const { BuildHouseEpisode } = require("./build-house-episode");
 const { CollectorEpisode } = require("./collector-episode");
 const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
 const { StructureEvalEpisode } = require("./eval/structureEval");
-const { StructureNoPlaceEvalEpisode } = require("./eval/structureNoPlaceEval");
 const { TranslationEvalEpisode } = require("./eval/translation-eval-episode");
 const {
   BothLookAwayEvalEpisode,
@@ -71,7 +70,6 @@ const episodeClassMap = {
   placeAndMine: PlaceAndMineEpisode,
   // Eval episodes:
   structureEval: StructureEvalEpisode,
-  structureNoPlaceEval: StructureNoPlaceEvalEpisode,
   translationEval: TranslationEvalEpisode,
   bothLookAwayEval: BothLookAwayEvalEpisode,
   oneLooksAwayEval: OneLooksAwayEvalEpisode,
@@ -83,7 +81,6 @@ const episodeClassMap = {
 // List of eval episode classes for generic eval episode detection
 const evalEpisodeClasses = [
   StructureEvalEpisode,
-  StructureNoPlaceEvalEpisode,
   TranslationEvalEpisode,
   BothLookAwayEvalEpisode,
   OneLooksAwayEvalEpisode,
@@ -123,7 +120,6 @@ const defaultEpisodeTypes = [
   "collector",
   "placeAndMine",
   "structureEval",
-  "structureNoPlaceEval",
   "translationEval",
   "bothLookAwayEval",
   "oneLooksAwayEval",

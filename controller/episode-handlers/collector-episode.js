@@ -5,6 +5,7 @@ const {
   GoalBlock,
   GoalFollow,
 } = require("../utils/bot-factory");
+const { placeTorch, findVisibleOres } = require("../utils/digging");
 const { ensureBotHasEnough, unequipHand } = require("../utils/items");
 const {
   stopAll,
@@ -13,6 +14,7 @@ const {
   land_pos,
   getScaffoldingBlockIds,
 } = require("../utils/movement");
+const { getRandomDirection } = require("../utils/random-movement");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for collector behavior
@@ -96,208 +98,6 @@ function setMovementsForCollector(bot) {
   customMoves.infiniteLiquidDropdownDistance = true;
   customMoves.maxDropDown = 15;
   bot.pathfinder.setMovements(customMoves);
-}
-
-/**
- * Check if a block is visible to the bot
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Block} block - Block to check
- * @returns {boolean} Whether the block is visible
- */
-function isBlockVisible(bot, block) {
-  if (!block) return false;
-  return bot.canSeeBlock(block);
-}
-
-/**
- * Check if a torch can be placed on a block and return the best face direction
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Vec3} pos - Position to place torch
- * @returns {[boolean, Vec3|null]} [canPlace, faceVector]
- */
-function canPlaceTorch(bot, pos) {
-  // Check for above, east, west, south, and north torches
-  const directions = [
-    new Vec3(0, 1, 0), // up
-    new Vec3(1, 0, 0), // east
-    new Vec3(-1, 0, 0), // west
-    new Vec3(0, 0, 1), // south
-    new Vec3(0, 0, -1), // north
-  ];
-
-  // Calculate direction from block to bot
-  const eyePosition = bot.entity.position.offset(0, 1.8, 0); // hardcode to ignore sneaking
-  const toBot = new Vec3(
-    eyePosition.x - pos.x,
-    eyePosition.y - pos.y,
-    eyePosition.z - pos.z,
-  );
-
-  // Sort directions by how well they point towards the bot
-  // (using dot product: higher = more aligned)
-  const sortedDirections = directions.slice().sort((a, b) => {
-    const dotA = a.x * toBot.x + a.y * toBot.y + a.z * toBot.z;
-    const dotB = b.x * toBot.x + b.y * toBot.y + b.z * toBot.z;
-    return dotB - dotA; // Higher dot product first
-  });
-
-  for (const dir of sortedDirections) {
-    const neighborPos = pos.offset(dir.x, dir.y, dir.z);
-    const neighbor = bot.blockAt(neighborPos);
-    if (neighbor && neighbor.name === "air") return [true, dir];
-  }
-  return [false, null];
-}
-
-/**
- * Place a torch on a nearby surface
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Object} mcData - Minecraft data
- * @param {Array} oreIds - Array of ore block IDs to avoid
- * @param {number} maxTryTime - Maximum time to try placing torch (default 6 seconds)
- * @param {Function} stopRetryCondition - Function to check if torch placement should stop (default false)
- */
-async function placeTorch(
-  bot,
-  mcData,
-  oreIds,
-  maxTryTime = 6000,
-  stopRetryCondition = () => false,
-) {
-  const isSolid = (b) =>
-    b && b.boundingBox === "block" && !b.name.includes("leaves");
-  try {
-    const torchSlot = bot.inventory.findInventoryItem(
-      mcData.itemsByName.torch.id,
-    );
-    if (!torchSlot) {
-      console.log(`[${bot.username}] No torch in inventory`);
-      return;
-    }
-
-    // Find a suitable surface to place torch
-    const torchBasePositions = bot.findBlocks({
-      matching: (block) => isSolid(block),
-      maxDistance: MAX_TORCH_DISTANCE,
-      count: 20,
-    });
-
-    if (torchBasePositions.length === 0) {
-      console.log(`[${bot.username}] No suitable surface for torch`);
-      return;
-    }
-
-    await bot.equip(torchSlot, "hand");
-    await bot.waitForTicks(2);
-
-    const botPosition = bot.entity.position;
-    const eyeLevel = botPosition.y + 1.8; // hardcode to ignore sneaking
-
-    // Sort blocks by proximity to head level (prioritize head-level blocks)
-    const sortedPositions = torchBasePositions.sort((a, b) => {
-      const distA = Math.abs(a.y - eyeLevel);
-      const distB = Math.abs(b.y - eyeLevel);
-      return distA - distB;
-    });
-
-    // Try placing torch sequentially until one succeeds, up to maxTryTime
-    const startTime = Date.now();
-    for (const blockPos of sortedPositions) {
-      // Check stop condition first
-      if (stopRetryCondition()) {
-        console.log(
-          `[${bot.username}] Torch placement stopped due to stopRetryCondition`,
-        );
-        return;
-      }
-
-      if (Date.now() - startTime > maxTryTime) {
-        console.log(
-          `[${bot.username}] Torch placement loop timed out after ${maxTryTime}ms`,
-        );
-        return;
-      }
-
-      const distance = blockPos.distanceTo(botPosition);
-      if (distance > MAX_TORCH_DISTANCE) continue;
-
-      const block = bot.blockAt(blockPos);
-      // if it's an ore block, skip
-      if (!block || oreIds.includes(block.type)) continue;
-
-      const [canPlace, faceVector] = canPlaceTorch(bot, blockPos);
-      if (!canPlace) continue;
-
-      if (!bot.world.getBlock(blockPos)) continue;
-
-      try {
-        await bot.waitForTicks(2);
-        console.log(
-          `[${bot.username}] Attempting to place torch at ${blockPos}`,
-        );
-        // this may block up to 800ms
-        await bot.placeBlock(block, faceVector);
-        await bot.waitForTicks(2);
-        console.log(`[${bot.username}] Torch placed at ${blockPos}`);
-        return;
-      } catch (error) {
-        // Print Error and continue to next position
-        console.log(
-          `[${bot.username}] Failed to place torch at ${blockPos}:`,
-          error.message,
-        );
-      }
-    }
-  } catch (error) {
-    console.log(`[${bot.username}] Failed to place torch:`, error.message);
-  }
-}
-
-/**
- * Find visible valuable ores
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Array} oreIds - Array of ore block IDs
- * @returns {Array} Array of visible ore blocks
- */
-function findVisibleOres(bot, oreIds) {
-  const visibleOres = [];
-  const oreBlocks = bot.findBlocks({
-    matching: oreIds,
-    maxDistance: 16,
-    count: 20,
-  });
-  const botPosition = bot.entity.position;
-  for (const blockPos of oreBlocks) {
-    const block = bot.blockAt(blockPos);
-    if (
-      block &&
-      block.position.distanceTo(botPosition) < 16 &&
-      isBlockVisible(bot, block)
-    ) {
-      visibleOres.push(block);
-      console.log(
-        `[${bot.username}] Found visible ${block.name} at ${block.position}`,
-      );
-    }
-  }
-  console.log(
-    `[${bot.username}] Found ${visibleOres.length} visible ores out of ${oreBlocks.length} nearby ores`,
-  );
-  return visibleOres;
-}
-
-/**
- * Get random cardinal direction (north, south, east, west)
- * @returns {Object} Direction object with name and offset
- */
-function getRandomDirection() {
-  const directions = [
-    { name: "north", offset: new Vec3(0, 0, -1) },
-    { name: "south", offset: new Vec3(0, 0, 1) },
-    { name: "east", offset: new Vec3(1, 0, 0) },
-    { name: "west", offset: new Vec3(-1, 0, 0) },
-  ];
-  return directions[Math.floor(Math.random() * directions.length)];
 }
 
 /**
@@ -393,7 +193,7 @@ async function executeMiningTask(bot, mcData, oreIds, taskSpec) {
   );
 
   // Place torch before mining
-  await placeTorch(bot, mcData, oreIds, 2400);
+  await placeTorch(bot, mcData, oreIds, MAX_TORCH_DISTANCE, 2400);
 
   // Collect visible ores
   const visibleOres = findVisibleOres(bot, oreIds);
@@ -887,6 +687,4 @@ module.exports = {
   mineAsLeader,
   followAndPlaceTorches,
   independentMining,
-  placeTorch,
-  findVisibleOres,
 };

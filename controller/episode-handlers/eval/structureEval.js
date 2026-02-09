@@ -10,7 +10,8 @@ const {
 const {
   placeAt,
   findPlaceReference,
-  ensureItemInHand,
+  buildStructure,
+  getBlockPlaceDelayTicks,
 } = require("../../utils/building");
 const { BaseEpisode } = require("../base-episode");
 const { pickRandom } = require("../../utils/coordination");
@@ -25,12 +26,6 @@ const getInitialEyeContactTicks = (blockCount) => {
   if (blockCount === 2) return 4; // tower: 1.0 seconds (20 ticks)
   if (blockCount === 4) return 4; // wall: 0.75 seconds (15 ticks) - REDUCED
   return 4; // Default: 1.0 seconds (20 ticks)
-};
-
-const getBlockPlaceDelayTicks = (blockCount) => {
-  if (blockCount === 2) return 4; // tower: 0.55 seconds (15 ticks)
-  if (blockCount === 4) return 4; // wall: 0.6 seconds (12 ticks) - REDUCED
-  return 4; // Default: 0.55 seconds (15 ticks)
 };
 
 const getBuilderAdmireTicks = (blockCount) => {
@@ -136,358 +131,6 @@ const CARDINALS = [
   new Vec3(0, 1, 0), // +Y (up)
   new Vec3(0, -1, 0), // -Y (down)
 ];
-
-function isAirLikeLocal(block) {
-  return !block || block.name === "air" || block.boundingBox === "empty";
-}
-
-function reachMax(bot) {
-  return bot.game && bot.game.gameMode === 1 ? 6 : 4.5;
-}
-
-function inReachLocal(bot, pos, max = reachMax(bot)) {
-  const center = pos.offset(0.5, 0.5, 0.5);
-  return bot.entity.position.distanceTo(center) <= max;
-}
-
-function faceCenterOf(refBlock, faceVec) {
-  return refBlock.position.offset(
-    0.5 + faceVec.x * 0.5,
-    0.5 + faceVec.y * 0.5,
-    0.5 + faceVec.z * 0.5,
-  );
-}
-
-function hasLineOfSightToFaceLocal(bot, refBlock, faceVec) {
-  try {
-    const eye = bot.entity.position.offset(0, bot.entity.height ?? 1.62, 0);
-    const faceCenter = faceCenterOf(refBlock, faceVec);
-    const dx = faceCenter.x - eye.x;
-    const dy = faceCenter.y - eye.y;
-    const dz = faceCenter.z - eye.z;
-    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
-    const step = 0.2; // blocks per step
-    const steps = Math.max(1, Math.ceil(dist / step));
-    for (let i = 1; i <= steps; i++) {
-      const t = i / steps;
-      const px = eye.x + dx * t;
-      const py = eye.y + dy * t;
-      const pz = eye.z + dz * t;
-      const bpos = new Vec3(Math.floor(px), Math.floor(py), Math.floor(pz));
-      if (bpos.equals(refBlock.position)) continue; // ignore the face's own block
-      const b = bot.blockAt(bpos);
-      if (b && b.boundingBox === "block") return false; // obstructed
-    }
-    return true;
-  } catch (_) {
-    return true; // be permissive on error
-  }
-}
-
-function findVisibleReachablePlaceReferenceLocal(bot, targetPos) {
-  for (const face of CARDINALS) {
-    const refPos = targetPos.plus(face);
-    const refBlock = bot.blockAt(refPos);
-    if (!refBlock) continue;
-    if (refBlock.boundingBox !== "block" || refBlock.material === "noteblock")
-      continue;
-    const faceVec = new Vec3(-face.x, -face.y, -face.z);
-    if (!inReachLocal(bot, refBlock.position)) continue;
-    if (!hasLineOfSightToFaceLocal(bot, refBlock, faceVec)) continue;
-    return { refBlock, faceVec };
-  }
-  return null;
-}
-
-async function tryPlaceAtUsingLocal(
-  bot,
-  targetPos,
-  itemName,
-  refBlock,
-  faceVec,
-  options = {},
-) {
-  const { useSneak = true, tries = 2, args = null } = options;
-  // early exit if already placed
-  if (!isAirLikeLocal(bot.blockAt(targetPos))) return true;
-  await ensureItemInHand(bot, itemName, args);
-  const sneakWas = bot.getControlState("sneak");
-  if (useSneak) bot.setControlState("sneak", true);
-  try {
-    for (let i = 0; i < tries; i++) {
-      if (!inReachLocal(bot, refBlock.position)) return false; // let caller fallback
-      try {
-        await bot.placeBlock(refBlock, faceVec);
-      } catch (e) {
-        await bot.waitForTicks(4);
-        continue;
-      }
-      const placed = !isAirLikeLocal(bot.blockAt(targetPos));
-      if (placed) return true;
-      await bot.waitForTicks(4);
-    }
-    return !isAirLikeLocal(bot.blockAt(targetPos));
-  } finally {
-    if (useSneak && !sneakWas) bot.setControlState("sneak", false);
-  }
-}
-
-/**
- * Place multiple blocks with delay between each placement (custom version for structureEval)
- * This version overrides the lookAt behavior to use smooth looking instead of instant snap
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Array<Vec3>} positions - Array of positions to place blocks
- * @param {string} itemName - Name of block/item to place
- * @param {Object} options - Options for placement
- * @returns {Promise<Object>} {success: number, failed: number, placed: number}
- */
-async function placeMultipleWithDelay(bot, positions, itemName, options = {}) {
-  const { delayTicks = 0 } = options;
-
-  // Sort positions: bottom-up (Y), then far-to-near, then left-to-right
-  // FAR-TO-NEAR ensures blocks are placed from furthest to closest,
-  // preventing blocks from being placed through other unplaced blocks
-  const botPos = bot.entity.position;
-  const sorted = positions.slice().sort((a, b) => {
-    if (a.y !== b.y) return a.y - b.y; // Bottom first
-    const distA = botPos.distanceTo(a);
-    const distB = botPos.distanceTo(b);
-    if (Math.abs(distA - distB) > 0.5) return distB - distA; // FAR first (reversed)
-    return a.x - b.x; // Left to right
-  });
-
-  let success = 0;
-  let failed = 0;
-
-  // Override bot.lookAt to prevent camera movement during placeAt internal retries
-  // We'll manually control when the bot looks (before each placement)
-  const LOOK_SETTLE_DELAY_TICKS = 18; // Time to wait for smooth camera rotation to complete
-  let allowLookAt = true; // Flag to control when lookAt is allowed
-  const originalLookAt = bot.lookAt.bind(bot);
-  bot.lookAt = async function (position, forceLook) {
-    // Only allow lookAt when explicitly enabled
-    if (allowLookAt) {
-      // Use smooth looking and wait for it to settle
-      await originalLookAt(position, false);
-      await bot.waitForTicks(LOOK_SETTLE_DELAY_TICKS); // 500ms / 20 ticks/second
-    }
-    // When disabled: do nothing, maintain current camera angle
-    // This prevents placeAt's internal retry logic from moving the camera
-  };
-
-  try {
-    // Initialize pathfinder for movement
-    initializePathfinder(bot, {
-      allowSprinting: false,
-      allowParkour: false,
-      canDig: false,
-      allowEntityDetection: true,
-    });
-
-    let blockIndex = 0; // Track which block we're placing
-    for (const pos of sorted) {
-      blockIndex++;
-
-      try {
-        // Move bot to stand ADJACENT to the block position before placing
-        // This creates natural "walking along while building" behavior
-        const currentBotPos = bot.entity.position.clone();
-
-        // Calculate adjacent position with a diagonal stance (never exactly parallel)
-        // For X-axis walls: move 2 blocks to the south (Z-) AND 1 block west (X-)
-        // For Z-axis walls (and towers): move 2 blocks to the west (X-) AND 1 block north (Z-)
-        // This diagonal offset makes at least two side faces and often the top visible at ground level.
-        const adjacentPos = pos.clone();
-
-        // Determine wall direction by checking if positions vary in X or Z
-        const firstPos = sorted[0];
-        const lastPos = sorted[sorted.length - 1];
-        const isXAxis =
-          Math.abs(lastPos.x - firstPos.x) > Math.abs(lastPos.z - firstPos.z);
-
-        if (isXAxis) {
-          // Side offset along Z-, and along-wall offset west (X-)
-          adjacentPos.z -= PLACEMENT_STANDOFF_BLOCKS; // 2 blocks south
-          adjacentPos.x += -1; // 1 block west (diagonal)
-        } else {
-          // Side offset along X-, and along-wall offset north (Z-)
-          adjacentPos.x -= PLACEMENT_STANDOFF_BLOCKS; // 2 blocks west
-          adjacentPos.z += -1; // 1 block north (diagonal)
-        }
-
-        // HARD-CODED ENFORCEMENT: Skip adjacent movement for 4th block in 4-block structures
-        const skip4BlockMovement = blockIndex === 4 && sorted.length === 4;
-
-        // Move to adjacent position if not already there and skip4BlockMovement is false
-        const distanceToAdjacent = currentBotPos.distanceTo(adjacentPos);
-        if (distanceToAdjacent > ADJACENT_GOAL_RADIUS && !skip4BlockMovement) {
-          console.log(
-            `[${bot.username}] 🚶 Moving to adjacent position (${adjacentPos.x.toFixed(1)}, ${adjacentPos.y}, ${adjacentPos.z.toFixed(1)}) before placing at ${pos}`,
-          );
-          const adjacentGoal = new GoalNear(
-            adjacentPos.x,
-            adjacentPos.y,
-            adjacentPos.z,
-            ADJACENT_GOAL_RADIUS,
-          );
-
-          try {
-            await gotoWithTimeout(bot, adjacentGoal, { timeoutTicks: 60 });
-          } catch (moveError) {
-            console.log(
-              `[${bot.username}] ⚠️ Could not move to adjacent position: ${moveError.message}`,
-            );
-          }
-        } else if (skip4BlockMovement) {
-          console.log(
-            `[${bot.username}] � FORCED NO-MOVE: Skipping adjacent movement for 4th block at ${pos}`,
-          );
-        }
-
-        // HARD-CODED FIX: Force 4th block to use the block directly below (top face)
-        let forcedReference = null;
-        if (blockIndex === 4 && sorted.length === 4) {
-          // This is the 4th block in a 4-block structure (2x2 wall or 4x1 wall)
-          const belowPos = pos.offset(0, -1, 0);
-          const belowBlock = bot.blockAt(belowPos);
-          if (belowBlock && belowBlock.boundingBox === "block") {
-            forcedReference = {
-              refBlock: belowBlock,
-              faceVec: new Vec3(0, 1, 0), // Click the TOP face
-            };
-            console.log(
-              `[${bot.username}] 🎯 FORCED: 4th block will use TOP face of block below at ${belowPos}`,
-            );
-          }
-        }
-
-        // Use forced reference if available, otherwise use normal logic
-        const visibleRef =
-          forcedReference || findVisibleReachablePlaceReferenceLocal(bot, pos);
-        // Fallback reference if none visible from here (may trigger pathfinder later)
-        const placeReference = visibleRef || findPlaceReference(bot, pos);
-        if (placeReference) {
-          const { refBlock, faceVec } = placeReference;
-
-          // Calculate the specific face position to look at (not the center)
-          const lookAtFacePos = refBlock.position.offset(
-            0.5 + faceVec.x * 0.5,
-            0.5 + faceVec.y * 0.5,
-            0.5 + faceVec.z * 0.5,
-          );
-
-          // EXPLICITLY look at the reference block's face (where we'll click)
-          // This also verifies line of sight - if lookAt fails, we don't have LOS
-          allowLookAt = true;
-          try {
-            await bot.lookAt(lookAtFacePos);
-            console.log(
-              `[${bot.username}] 👁️ Looking at reference face at ${refBlock.position} (face: ${faceVec.x},${faceVec.y},${faceVec.z}) ${visibleRef ? "[visible+reachable]" : "[fallback]"}${skip4BlockMovement ? " [NO-MOVE]" : ""}`,
-            );
-          } catch (lookError) {
-            console.log(
-              `[${bot.username}] ⚠️ Cannot look at reference block face - no line of sight: ${lookError.message}`,
-            );
-          }
-        } else {
-          console.log(
-            `[${bot.username}] ⚠️ No reference block found for position ${pos}`,
-          );
-        }
-
-        // Now disable lookAt during placeAt to prevent camera resetting
-        allowLookAt = false;
-        // If we have a visible+reachable face, place directly using it; else fallback to robust placeAt (may pathfind)
-        let placed;
-        if (visibleRef) {
-          placed = await tryPlaceAtUsingLocal(
-            bot,
-            pos,
-            itemName,
-            visibleRef.refBlock,
-            visibleRef.faceVec,
-            options,
-          );
-          if (!placed) {
-            console.log(
-              `[${bot.username}] 🔁 Visible+reachable face placement failed; falling back to robust placeAt (may pathfind)`,
-            );
-            placed = await placeAt(bot, pos, itemName, options);
-          }
-        } else {
-          placed = await placeAt(bot, pos, itemName, options);
-        }
-
-        if (placed) {
-          success++;
-          console.log(`[${bot.username}] ✅ Placed block at ${pos}`);
-        } else {
-          failed++;
-          console.log(`[${bot.username}] ❌ Failed to place at ${pos}`);
-        }
-      } catch (error) {
-        failed++;
-        console.log(
-          `[${bot.username}] ❌ Error placing at ${pos}: ${error.message}`,
-        );
-      }
-
-      // Add delay between blocks if specified
-      if (delayTicks > 0) {
-        await bot.waitForTicks(delayTicks);
-      }
-    }
-  } finally {
-    // Restore original lookAt behavior
-    bot.lookAt = originalLookAt;
-    stopPathfinder(bot);
-  }
-
-  return { success, failed, placed: success };
-}
-
-/**
- * Main building loop - bot builds assigned structure
- * @param {Bot} bot - Mineflayer bot instance
- * @param {Array<Vec3>} positions - Positions to build at
- * @param {string} blockType - Type of block to place
- * @param {Object} args - Configuration arguments
- * @returns {Promise<Object>} Build statistics
- */
-async function buildStructure(bot, positions, blockType, args) {
-  console.log(
-    `[${bot.username}] 🏗️ Starting to build ${positions.length} blocks...`,
-  );
-
-  // Initialize pathfinder for movement
-  initializePathfinder(bot, {
-    allowSprinting: false,
-    allowParkour: true,
-    canDig: true,
-    allowEntityDetection: true,
-  });
-
-  try {
-    const result = await placeMultipleWithDelay(bot, positions, blockType, {
-      useSneak: true,
-      tries: 5,
-      args: args,
-      delayTicks: getBlockPlaceDelayTicks(positions.length), // Add delay between blocks
-    });
-
-    console.log(`[${bot.username}] 🏁 Build complete!`);
-    console.log(
-      `[${bot.username}]    Success: ${result.success}/${positions.length}`,
-    );
-    console.log(
-      `[${bot.username}]    Failed: ${result.failed}/${positions.length}`,
-    );
-
-    return result;
-  } finally {
-    stopPathfinder(bot);
-  }
-}
 
 /**
  * Get the phase function for structure eval episodes
@@ -719,7 +362,14 @@ function getOnStructureEvalPhaseFn(
 
     if (isBuilder) {
       console.log(`[${bot.username}] 🏗️ STEP 4: Building structure...`);
-      buildResult = await buildStructure(bot, positions, blockType, args);
+      buildResult = await buildStructure(
+        bot,
+        positions,
+        blockType,
+        PLACEMENT_STANDOFF_BLOCKS,
+        ADJACENT_GOAL_RADIUS,
+        args,
+      );
     } else {
       console.log(
         `[${bot.username}] 🧍 STEP 4: Remaining stationary (observer role)...`,
@@ -936,7 +586,6 @@ module.exports = {
   generatePlatformPositions,
   getStructureCenterForViewing,
   getOnStructureEvalPhaseFn,
-  placeMultipleWithDelay,
   StructureEvalEpisode,
   // Constants (for reuse in debug/no-place variant)
   ALL_STRUCTURE_TYPES,
@@ -950,10 +599,4 @@ module.exports = {
   getBlockPlaceDelayTicks,
   getBuilderAdmireTicks,
   // Local helper functions (for reuse in debug/no-place variant)
-  isAirLikeLocal,
-  reachMax,
-  inReachLocal,
-  faceCenterOf,
-  hasLineOfSightToFaceLocal,
-  findVisibleReachablePlaceReferenceLocal,
 };

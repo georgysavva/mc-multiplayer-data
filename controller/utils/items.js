@@ -91,7 +91,32 @@ async function ensureBotHasEnough(
   );
 }
 
+/**
+ * Ensure an item is equipped in hand
+ * @param {Bot} bot - Mineflayer bot instance
+ * @param {string} itemName - Name of item to equip
+ * @param {Object} args - Configuration arguments with rcon settings (optional)
+ * @returns {Promise<number>} Item ID
+ */
+async function ensureItemInHand(bot, itemName, args = null) {
+  const mcData = require("minecraft-data")(bot.version);
+  const target = mcData.itemsByName[itemName];
+  if (!target) throw new Error(`Unknown item: ${itemName}`);
+  const id = target.id;
+
+  // Check if already in inventory
+  let item = bot.inventory.items().find((i) => i.type === id);
+
+  // If not found, try to get it
+
+  if (!item) throw new Error(`Item ${itemName} not in inventory`);
+
+  await bot.equip(id, "hand");
+  return id;
+}
+
 module.exports = {
   unequipHand,
   ensureBotHasEnough,
+  ensureItemInHand,
 };

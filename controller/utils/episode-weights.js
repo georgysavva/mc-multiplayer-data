@@ -16,7 +16,6 @@ const episodeTypicalLengths = {
   collector: 150,
   placeAndMine: 120,
   structureEval: 60,
-  structureNoPlaceEval: 60,
   translationEval: 60,
   bothLookAwayEval: 60,
   oneLooksAwayEval: 60,
