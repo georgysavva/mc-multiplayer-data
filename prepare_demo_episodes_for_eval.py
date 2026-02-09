@@ -5,6 +5,7 @@ Prepare demo episodes for evaluation: copies/renames files and generates eval me
 Outputs:
   - episode_type_mapping.json: post-rename episode -> episode type
   - eval_ids.json: [(ep_idx, alpha_start, alpha_end, bravo_start, bravo_end), ...]
+    Note: start/end use exclusive end semantics (e.g., [0, 257] means frames 0-256, 257 frames total)
   - demo_segments/: segmented Demo camera videos (using alpha start/end times from eval_ids)
 """
 
@@ -24,14 +25,14 @@ from prepare_episodes_for_eval import process_episodes_dir
 FPS = 20  # Minecraft recording FPS
 
 
-def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_size: int = 256,
+def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_size: int = 257,
                         default_stride: int = 40, long_video_stride: int = 120, long_video_threshold: int = 1200):
     """Build eval metadata from an episodes directory.
     
     Args:
         episodes_dir: Path to the episodes directory
         ignore_first_episode: Whether to skip episode 000000
-        segment_size: Length of each segment in frames (default: 256)
+        segment_size: Length of each segment in frames (default: 257)
         default_stride: Stride between segment starts for short videos (default: 40)
         long_video_stride: Stride for videos longer than long_video_threshold (default: 120)
         long_video_threshold: Frame count threshold for using long_video_stride (default: 1200)
@@ -184,7 +185,7 @@ def main():
     parser.add_argument("--episodes-dir", required=True, help="Episodes directory or parent of multiple")
     parser.add_argument("--destination-dir", required=True, help="Output directory")
     parser.add_argument("--ignore-first-episode", action="store_true")
-    parser.add_argument("--segment-size", type=int, default=256, help="Length of each segment in frames")
+    parser.add_argument("--segment-size", type=int, default=257, help="Length of each segment in frames")
     parser.add_argument("--default-stride", type=int, default=40, help="Stride between segment starts for short videos")
     parser.add_argument("--long-video-stride", type=int, default=120, help="Stride for videos longer than threshold")
     parser.add_argument("--long-video-threshold", type=int, default=1200, help="Frame count threshold for long video stride (1200 = 1 minute at 20 FPS)")
