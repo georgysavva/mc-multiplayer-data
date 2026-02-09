@@ -54,9 +54,6 @@ function makeBot({ username, host, port, version = "1.21" }) {
     console.log(
       `[${bot.username}] 🎮 Spawned in world at (${bot.entity.position.x.toFixed(1)}, ${bot.entity.position.y.toFixed(1)}, ${bot.entity.position.z.toFixed(1)})`,
     );
-    console.log(
-      `[${bot.username}] 🎯 Game mode: ${bot.game.gameMode === 0 ? "Survival" : bot.game.gameMode === 1 ? "Creative" : bot.game.gameMode === 2 ? "Adventure" : "Spectator"}`,
-    );
   });
 
   bot.on("health", () => {

@@ -1,6 +1,6 @@
 # Base data directory and batch configuration
 BASE_DATA_DIR=${BASE_DATA_DIR:-"output/mc_multiplayer_dataset"}
-BATCH_NAME=${BATCH_NAME:-"batch1"}
+BATCH_NAME=${BATCH_NAME:-"batch2"}
 
 [ -d compose_configs ] && rm -r compose_configs
 
