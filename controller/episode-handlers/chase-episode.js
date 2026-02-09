@@ -1,14 +1,7 @@
+const { horizontalDistanceTo, initializePathfinder, lookAtBot, sleep, stopAll, stopPathfinder } = require("../primitives/movement");
 const { GoalNear } = require("../utils/bot-factory");
-const {
-  lookAtBot,
-  sleep,
-  horizontalDistanceTo,
-  stopAll,
-  initializePathfinder,
-  stopPathfinder,
-} = require("../primitives/movement");
-const { BaseEpisode } = require("./base-episode");
 const { decidePrimaryBot } = require("../utils/coordination");
+const { BaseEpisode } = require("./base-episode");
 
 // Constants for chase behavior
 const CHASE_DURATION_MS_MIN = 5000; // 5 seconds of chase

@@ -1,16 +1,10 @@
 // tower-bridge-episode.js - Episode where bots build towers then bridge towards each other
 const { Vec3 } = require("vec3");
-const {
-  sleep,
-  initializePathfinder,
-  stopPathfinder,
-} = require("../primitives/movement");
-const {
-  buildTowerUnderneath,
-  buildBridge,
-} = require("../primitives/building");
-const { BaseEpisode } = require("./base-episode");
+
+const { buildBridge, buildTowerUnderneath } = require("../primitives/building");
 const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
+const { initializePathfinder, sleep, stopPathfinder } = require("../primitives/movement");
+const { BaseEpisode } = require("./base-episode");
 
 // Constants for tower-bridge behavior
 const INITIAL_EYE_CONTACT_MS = 1500; // Initial look duration

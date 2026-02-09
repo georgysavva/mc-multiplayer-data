@@ -1,12 +1,6 @@
 const { equipSword, giveRandomSword } = require("../primitives/fighting");
 const { unequipHand } = require("../primitives/items");
-const {
-  stopAll,
-  lookAtBot,
-  sleep,
-  initializePathfinder,
-  stopPathfinder,
-} = require("../primitives/movement");
+const { lookAtBot, sleep } = require("../primitives/movement");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for PVP behavior

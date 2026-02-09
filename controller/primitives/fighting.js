@@ -1,4 +1,4 @@
-const Vec3 = require("vec3").Vec3;
+
 
 /**
  * Basic Movement Building Blocks for Mineflayer Bots

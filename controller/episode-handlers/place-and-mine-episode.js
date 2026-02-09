@@ -20,13 +20,14 @@
  */
 
 const { Vec3 } = require("vec3");
-const { sleep } = require("../utils/helpers");
-const { placeAt, ensureItemInHand } = require("../primitives/building");
-const { BaseEpisode } = require("./base-episode");
-const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
-const { decidePrimaryBot, rconTp } = require("../utils/coordination");
-const { lookAtBot, land_pos } = require("../primitives/movement");
+
+const { ensureItemInHand, placeAt } = require("../primitives/building");
 const { digBlock } = require("../primitives/digging");
+const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
+const { land_pos, lookAtBot } = require("../primitives/movement");
+const { decidePrimaryBot, rconTp } = require("../utils/coordination");
+const { sleep } = require("../utils/helpers");
+const { BaseEpisode } = require("./base-episode");
 
 const BLOCK_PLACE_INTERVAL_MS_MIN = 400;
 const BLOCK_PLACE_INTERVAL_MS_MAX = 800;

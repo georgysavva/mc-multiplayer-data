@@ -1,5 +1,6 @@
-const mineflayer = require("mineflayer");
 const util = require("util");
+
+const mineflayer = require("mineflayer");
 const {
   pathfinder,
   Movements,

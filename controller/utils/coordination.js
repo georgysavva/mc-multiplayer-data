@@ -1,5 +1,5 @@
-const net = require("net");
 const EventEmitter = require("events");
+const net = require("net");
 
 function pickRandom(array, sharedBotRng) {
   const sortedArray = array.slice().sort();

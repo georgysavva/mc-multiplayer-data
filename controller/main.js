@@ -5,11 +5,11 @@
  * All utility functions have been extracted into separate modules for better maintainability.
  */
 
-const { sleep } = require("./utils/helpers");
-const { BotCoordinator } = require("./utils/coordination");
-const { makeBot } = require("./utils/bot-factory");
-const { getOnSpawnFn } = require("./episode-handlers");
 const { parseArgs } = require("./config/args");
+const { getOnSpawnFn } = require("./episode-handlers");
+const { makeBot } = require("./utils/bot-factory");
+const { BotCoordinator } = require("./utils/coordination");
+const { sleep } = require("./utils/helpers");
 
 /**
  * Main function to initialize and run the bot

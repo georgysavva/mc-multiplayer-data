@@ -1,17 +1,10 @@
 // building.js - Utilities for collaborative house building episodes
+const { Movements } = require("mineflayer-pathfinder");
 const { Vec3 } = require("vec3");
-const { Movements } = require("mineflayer-pathfinder"); // Import Movements
 
-const { GoalNear } = require("../utils/bot-factory"); // Import GoalNear
-const { sleep } = require("../utils/helpers");
 const { digWithTimeout } = require("./digging");
 const { ensureItemInHand } = require("./items");
-const {
-  getScaffoldingBlockIds,
-  gotoWithTimeout,
-  initializePathfinder,
-  stopPathfinder,
-} = require("./movement");
+const { getScaffoldingBlockIds, gotoWithTimeout, initializePathfinder, stopPathfinder } = require("./movement");
 
 // Cardinal directions for finding reference blocks (faces to click)
 // Ordered by preference: Top face first (easiest), then horizontals, then bottom

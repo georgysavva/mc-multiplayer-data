@@ -1,16 +1,8 @@
 // New episode functions for straight-line movement while facing other bot
 
 const Vec3 = require("vec3").Vec3;
-const {
-  stopAll,
-  gotoWithTimeout,
-  initializePathfinder,
-  lookAtSmooth,
-  sleep,
-  horizontalDistanceTo,
-  getDirectionTo,
-  land_pos,
-} = require("../primitives/movement");
+
+const { getDirectionTo, gotoWithTimeout, horizontalDistanceTo, initializePathfinder, land_pos, lookAtSmooth, stopAll } = require("../primitives/movement");
 const { GoalNear } = require("../utils/bot-factory");
 const { BaseEpisode } = require("./base-episode");
 

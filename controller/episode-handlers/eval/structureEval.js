@@ -1,22 +1,11 @@
 // structureEval.js - Independent structure building and evaluation episode
-const { Vec3 } = require("vec3");
-const {
-  initializePathfinder,
-  stopPathfinder,
-  gotoWithTimeout,
-  lookAtSmooth,
-  sneak,
-} = require("../../primitives/movement");
-const {
-  placeAt,
-  findPlaceReference,
-  buildStructure,
-  getBlockPlaceDelayTicks,
-} = require("../../primitives/building");
-const { BaseEpisode } = require("../base-episode");
-const { pickRandom } = require("../../utils/coordination");
-const { ensureBotHasEnough, unequipHand } = require("../../primitives/items");
 const { GoalNear } = require("mineflayer-pathfinder").goals;
+const { Vec3 } = require("vec3");
+
+const { buildStructure, getBlockPlaceDelayTicks } = require("../../primitives/building");
+const { ensureBotHasEnough, unequipHand } = require("../../primitives/items");
+const { gotoWithTimeout, initializePathfinder, lookAtSmooth, sneak, stopPathfinder } = require("../../primitives/movement");
+const { BaseEpisode } = require("../base-episode");
 
 // Constants for building behavior
 const ALL_STRUCTURE_TYPES = ["wall_2x2", "wall_4x1", "tower_2x1"];

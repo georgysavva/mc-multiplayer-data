@@ -1,4 +1,4 @@
-const { MIN_BOTS_DISTANCE, MAX_BOTS_DISTANCE } = require("../utils/constants");
+const { MAX_BOTS_DISTANCE, MIN_BOTS_DISTANCE } = require("../utils/constants");
 const { sleep } = require("../utils/helpers");
 
 /**

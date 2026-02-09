@@ -1,18 +1,11 @@
 // build-structure-episode.js - Collaborative building episode
 const { Vec3 } = require("vec3");
-const {
-  sleep,
-  initializePathfinder,
-  stopPathfinder,
-} = require("../primitives/movement");
-const {
-  rotateLocalToWorld,
-  splitWorkByXAxis,
-  buildPhase,
-} = require("../primitives/building");
-const { BaseEpisode } = require("./base-episode");
-const { pickRandom } = require("../utils/coordination");
+
+const { buildPhase, rotateLocalToWorld, splitWorkByXAxis } = require("../primitives/building");
 const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
+const { initializePathfinder, sleep, stopPathfinder } = require("../primitives/movement");
+const { pickRandom } = require("../utils/coordination");
+const { BaseEpisode } = require("./base-episode");
 
 // Constants for building behavior
 const ALL_STRUCTURE_TYPES = ["wall", "tower", "platform"];

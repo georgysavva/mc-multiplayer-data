@@ -1,4 +1,5 @@
 const { Vec3 } = require("vec3");
+
 const { sleep } = require("../utils/helpers");
 
 /**
