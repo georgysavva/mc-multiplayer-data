@@ -45,7 +45,6 @@ for BATCH_NAME in "${EVAL_TYPES[@]}"; do
         --num_normal_world $NUM_NORMAL_WORLD \
         --num_episodes $NUM_EPISODES \
         --episode_types $BATCH_NAME \
-        --iterations_num_per_episode 1 \
         --viewer_rendering_disabled 1 \
         --gpu_mode egl \
         --eval_time_set_day $EVAL_TIME_SET_DAY #\

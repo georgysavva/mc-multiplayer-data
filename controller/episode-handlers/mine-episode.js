@@ -1,10 +1,14 @@
 // mine-episode.js - Simplified mining episode using pathfinder with mining enabled
 const { Vec3 } = require("vec3");
 
-const { ensureItemInHand } = require("../primitives/building");
-const { placeTorchOnFloor } = require("../primitives/digging");
+const { ensureItemInHand } = require("../primitives/items");
+const { placeTorchOnFloor, digWithTimeout } = require("../primitives/digging");
 const { unequipHand } = require("../primitives/items");
-const { digWithTimeout, getScaffoldingBlockIds, gotoWithTimeout, sleep } = require("../primitives/movement");
+const {
+  getScaffoldingBlockIds,
+  gotoWithTimeout,
+  sleep,
+} = require("../primitives/movement");
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for mining behavior

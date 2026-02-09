@@ -421,7 +421,6 @@ Bot Alpha                           Bot Bravo
 Key parameters controlling the phases mechanism:
 
 - `BOT_RNG_SEED`: Shared random seed for deterministic behavior
-- `iterations_num_per_episode`: Number of walk/look phase iterations (default: 3)
 - `teleport_radius`: Maximum distance from center for teleportation (default: 500)
 - `COORD_PORT` / `OTHER_COORD_PORT`: TCP ports for bot coordination
 

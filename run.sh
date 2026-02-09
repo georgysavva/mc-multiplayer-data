@@ -19,8 +19,7 @@ python3 generate_compose.py \
  --smoke_test 0 \
  --num_flatland_world 1 \
  --num_normal_world 1 \
- --num_episodes 100 \
- --iterations_num_per_episode 1 \
+ --num_episodes 2 \
  --eval_time_set_day 0 \
  --viewer_rendering_disabled 1 \
  --gpu_mode egl

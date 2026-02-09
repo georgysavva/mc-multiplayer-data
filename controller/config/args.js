@@ -18,7 +18,6 @@ function parseArgs() {
       coord_port: 8093,
       other_coord_host: "127.0.0.1",
       other_coord_port: 8094,
-      iterations_num_per_episode: 3,
       bot_rng_seed: "12345",
       episodes_num: 1,
       start_episode_id: 0,

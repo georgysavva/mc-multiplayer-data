@@ -14,6 +14,7 @@ const {
   giveRandomSword,
   equipSword,
   isInForwardFOV,
+  FOV_DEGREES,
 } = require("../primitives/fighting");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 60;

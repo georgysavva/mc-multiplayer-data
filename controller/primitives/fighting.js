@@ -1,5 +1,3 @@
-
-
 /**
  * Basic Movement Building Blocks for Mineflayer Bots
  * These functions provide consistent, deterministic movement primitives
@@ -83,4 +81,5 @@ module.exports = {
   giveRandomSword,
   equipSword,
   isInForwardFOV,
+  FOV_DEGREES,
 };

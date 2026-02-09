@@ -8,7 +8,6 @@ Enhancements:
   `--num_flatland_world` and `--num_normal_world`.
 - Add `--viewer_rendering_disabled` (default: 1) applied to act_recorder/controller.
 - Keep `--bootstrap_wait_time` unchanged as an argument.
-- Set default `--iterations_num_per_episode` to 5.
 """
 
 import argparse
@@ -93,7 +92,6 @@ def generate_compose_config(
     bootstrap_wait_time,
     episode_category,
     episode_types,
-    iterations_num_per_episode,
     smoke_test,
     viewer_rendering_disabled,
     world_type,
@@ -274,7 +272,6 @@ def generate_compose_config(
                     "ENABLE_CAMERA_WAIT": 1,
                     "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
-                    "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                     "MC_VERSION": "1.21",
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                     "VIEWER_RECORDING_INTERVAL": 50,
@@ -329,7 +326,6 @@ def generate_compose_config(
                     "ENABLE_CAMERA_WAIT": 1,
                     "CAMERA_READY_RETRIES": 300,
                     "CAMERA_READY_CHECK_INTERVAL": 2000,
-                    "ITERATIONS_NUM_PER_EPISODE": iterations_num_per_episode,
                     "MC_VERSION": "1.21",
                     "VIEWER_RENDERING_DISABLED": viewer_rendering_disabled,
                     "VIEWER_RECORDING_INTERVAL": 50,
@@ -666,12 +662,7 @@ def main():
         default="all",
         help="Comma-separated episode types to run (default: all)",
     )
-    parser.add_argument(
-        "--iterations_num_per_episode",
-        type=int,
-        default=5,
-        help="Number of iterations per episode (default: 5)",
-    )
+
     parser.add_argument(
         "--viewer_rendering_disabled",
         type=int,
@@ -799,7 +790,6 @@ def main():
             args.bootstrap_wait_time,
             args.episode_category,
             args.episode_types,
-            args.iterations_num_per_episode,
             args.smoke_test,
             args.viewer_rendering_disabled,
             world_type,
