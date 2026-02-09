@@ -2,6 +2,8 @@
 BASE_DATA_DIR=${BASE_DATA_DIR:-"/mnt/data/dl3957/mc_multiplayer_v2_gpu"}
 BATCH_NAME=${BATCH_NAME:-"batch2"}
 
+rm -r compose_configs # remove old compose configs
+
 python3 generate_compose.py \
  --compose_dir ./compose_configs \
  --base_port 25590 \
