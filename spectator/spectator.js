@@ -1,13 +1,18 @@
 const mineflayer = require("mineflayer");
 
-const { sleep } = require("../utils/helpers");
-
 const MC_HOST = process.env.MC_HOST || "127.0.0.1";
 const MC_PORT = Number(process.env.MC_PORT || 25565);
 const MC_USERNAME = process.env.MC_USERNAME || "SpectatorPassive";
 const RETRY_MS = 5000;
 const VERSION = "1.21";
 const INITIAL_DELAY_MS = 30000;
+
+/**
+ * Sleep for specified milliseconds
+ * @param {number} ms - Milliseconds to sleep
+ * @returns {Promise} Promise that resolves after the specified time
+ */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
   const mineflayerVersion =
