@@ -53,7 +53,6 @@ for BATCH_NAME in "${EVAL_TYPES[@]}"; do
     python3 orchestrate.py start --build --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
     python3 orchestrate.py status --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
     python3 orchestrate.py logs --tail 20 --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
-    python3 orchestrate.py recordings
     python3 orchestrate.py stop
     python3 orchestrate.py postprocess --workers 32 --comparison-video --output-dir "$BASE_DATA_DIR/$BATCH_NAME/aligned"
 

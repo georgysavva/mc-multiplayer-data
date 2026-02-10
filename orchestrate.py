@@ -501,23 +501,6 @@ class InstanceManager:
         except Exception:
             return
 
-    def recordings(self) -> None:
-        root = Path.cwd()
-        alpha_root = root / "camera" / "output_alpha"
-        bravo_root = root / "camera" / "output_bravo"
-        print("[orchestrate] camera recordings (alpha):")
-        if alpha_root.exists():
-            for p in sorted(alpha_root.rglob("camera_*.mkv")):
-                print(f"  {p}")
-        else:
-            print("  (none)")
-        print("[orchestrate] camera recordings (bravo):")
-        if bravo_root.exists():
-            for p in sorted(bravo_root.rglob("camera_*.mkv")):
-                print(f"  {p}")
-        else:
-            print("  (none)")
-
     def _process_single_recording(self, job, comparison_video, output_dir=None):
         """Process a single episode recording."""
         script_path = Path(__file__).parent / "postprocess" / "process_recordings.py"
@@ -702,7 +685,7 @@ def main():
     )
     parser.add_argument(
         "command",
-        choices=["start", "stop", "status", "logs", "recordings", "postprocess"],
+        choices=["start", "stop", "status", "logs", "postprocess"],
         help="Command to execute",
     )
     parser.add_argument(
@@ -769,8 +752,6 @@ def main():
         manager.status()
     elif args.command == "logs":
         manager.logs(args.instance, args.follow, args.tail)
-    elif args.command == "recordings":
-        manager.recordings()
     elif args.command == "postprocess":
         manager.postprocess_recordings(
             args.workers, args.comparison_video, args.debug, args.output_dir

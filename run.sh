@@ -1,6 +1,6 @@
 # Base data directory and batch configuration
 BASE_DATA_DIR=${BASE_DATA_DIR:-"output/mc_multiplayer_dataset"}
-BATCH_NAME=${BATCH_NAME:-"batch2"}
+BATCH_NAME=${BATCH_NAME:-"batch3"}
 
 [ -d compose_configs ] && rm -r compose_configs
 
@@ -27,6 +27,5 @@ python3 generate_compose.py \
 python3 orchestrate.py start --build --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
 python3 orchestrate.py status --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
 python3 orchestrate.py logs --tail 20 --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
-python3 orchestrate.py recordings
 python3 orchestrate.py stop
 python3 orchestrate.py postprocess --workers 32 --comparison-video --output-dir "$BASE_DATA_DIR/$BATCH_NAME/aligned"
