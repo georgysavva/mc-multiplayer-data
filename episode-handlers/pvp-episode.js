@@ -64,8 +64,22 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
     console.log(`[${bot.username}] 🎯 Target acquired: ${targetBotName}`);
     console.log(`[${bot.username}] 🤖 Starting pvp plugin attack...`);
 
+    // Ensure we're not currently pathfinding/combat from a previous step
+    await bot.pvp.stop();
+    bot.pathfinder.setGoal(null);
+    initializePathfinder(bot, {
+      allowSprinting: false,
+      allowParkour: true,
+      canDig: true,
+      allowEntityDetection: true,
+    });
+
     // Start PVP plugin attack - it handles pathfinding, following, and attacking
     bot.pvp.attack(targetEntity);
+
+    // Track position for stall detection and re-engage
+    let lastPosition = bot.entity.position.clone();
+    let lastMoveTime = Date.now();
 
     // Monitor combat for the specified duration
     while (Date.now() - startTime < durationMs) {
@@ -89,6 +103,25 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
       if (!targetEntity.isValid) {
         console.log(`[${bot.username}] ⚠️ Target entity no longer valid`);
         break;
+      }
+
+      // Detect if bot has stalled and re-engage PVP
+      const currentPos = bot.entity.position;
+      if (!currentPos.equals(lastPosition)) {
+        lastPosition = currentPos.clone();
+        lastMoveTime = Date.now();
+      }
+
+      const distToTarget = bot.entity.position.distanceTo(targetEntity.position);
+
+      if (distToTarget > bot.pvp.attackRange &&
+          Date.now() - lastMoveTime > 1000) {
+        console.log(
+          `[${bot.username}] ⚠️ Bot stalled at ${distToTarget.toFixed(2)} blocks from target - re-engaging PVP`
+        );
+        bot.pvp.forceStop();
+        bot.pvp.attack(targetEntity);
+        lastMoveTime = Date.now();
       }
 
       await sleep(COMBAT_LOOP_INTERVAL_MS);
