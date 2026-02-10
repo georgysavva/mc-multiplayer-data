@@ -12,7 +12,7 @@ from typing import Dict, Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
-from align_camera_video import AlignmentInput, align_recording, DEFAULT_DELAY_VIDEO_BY_SEC
+from align_camera_video import AlignmentInput, align_recording
 
 
 @dataclass
@@ -60,12 +60,6 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         type=Path,
         default=None,
         help="Process single episode file (overrides directory processing)",
-    )
-    parser.add_argument(
-        "--delay-video-by",
-        type=float,
-        default=DEFAULT_DELAY_VIDEO_BY_SEC,
-        help=f"Delay video by this many seconds (default: {DEFAULT_DELAY_VIDEO_BY_SEC})",
     )
     parser.add_argument(
         "--instance-filter",
@@ -249,7 +243,6 @@ def process_actions(
     actions_dir: Path,
     configs: Dict[str, BotConfig],
     generate_comparison: bool = False,
-    delay_video_by_sec: float = DEFAULT_DELAY_VIDEO_BY_SEC,
     instance_filter: Optional[int] = None,
 ) -> int:
     actions_processed = 0
@@ -282,7 +275,6 @@ def process_actions(
             ffmpeg_path="ffmpeg",
             margin_start=0.0,
             margin_end=0.0,
-            delay_video_by_sec=delay_video_by_sec,
         )
 
         align_start = time.time()
@@ -329,7 +321,6 @@ def process_single_episode(
     episode_path: Path,
     configs: Dict[str, BotConfig],
     generate_comparison: bool = False,
-    delay_video_by_sec: float = DEFAULT_DELAY_VIDEO_BY_SEC,
 ) -> bool:
     """Process a single episode file. Returns True if successful."""
     if episode_path.name.endswith("_meta.json"):
@@ -355,7 +346,6 @@ def process_single_episode(
             ffmpeg_path="ffmpeg",
             margin_start=0.0,
             margin_end=0.0,
-            delay_video_by_sec=delay_video_by_sec,
         )
 
         align_start = time.time()
@@ -407,13 +397,13 @@ def main(argv: Iterable[str]) -> int:
             print(f"[align] episode file not found: {episode_path}", file=sys.stderr)
             return 1
         processed = process_single_episode(
-            episode_path, configs, args.comparison_video, args.delay_video_by
+            episode_path, configs, args.comparison_video,
         )
         return 0 if processed else 1
 
     # Otherwise process all episodes under --actions-dir
     processed = process_actions(
-        actions_dir, configs, args.comparison_video, args.delay_video_by,
+        actions_dir, configs, args.comparison_video,
         instance_filter=args.instance_filter
     )
     if processed == 0:

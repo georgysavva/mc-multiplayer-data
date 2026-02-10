@@ -5,6 +5,8 @@ BATCH_NAME=${BATCH_NAME:-"batch2"}
 # Set to 1 to enable demo mode (fixed birds-eye camera with per-episode positions)
 ENABLE_DEMO_MODE=${ENABLE_DEMO_MODE:-0}
 
+rm -r compose_configs # remove old compose configs
+
 python3 generate_compose.py \
  --compose_dir ./compose_configs \
  --base_port 25590 \
