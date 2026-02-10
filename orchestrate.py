@@ -517,7 +517,7 @@ class InstanceManager:
             "--episode-file",
             str(job["episode_file"]),
             "--output-dir",
-            output_dir or "/mnt/disks/storage/data/mc_multiplayer_v1/batch1/aligned",
+            output_dir,
         ]
 
         if comparison_video:
