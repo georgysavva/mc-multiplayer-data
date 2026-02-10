@@ -59,7 +59,7 @@ def parse_arguments():
     parser.add_argument(
         "--limit",
         type=int,
-        default=None,
+        default=10,
         help="Limit the number of video pairs to process (default: no limit)",
     )
 
@@ -85,7 +85,9 @@ def radians_per_tick_to_degrees_per_second(value):
     return np.degrees(value) * 20  # 20 ticks per second
 
 
-def create_action_overlay(frame, action, frame_idx, total_frames, player_label: str = ""):
+def create_action_overlay(
+    frame, action, frame_idx, total_frames, player_label: str = ""
+):
     """
     Create an overlay on the frame showing the current actions.
     """
@@ -405,13 +407,9 @@ def concatenate_videos_vertically(
     # Resize if widths don't match
     target_width = max(alpha_w, bravo_w)
     if alpha_w != target_width:
-        alpha_frames = [
-            cv2.resize(f, (target_width, alpha_h)) for f in alpha_frames
-        ]
+        alpha_frames = [cv2.resize(f, (target_width, alpha_h)) for f in alpha_frames]
     if bravo_w != target_width:
-        bravo_frames = [
-            cv2.resize(f, (target_width, bravo_h)) for f in bravo_frames
-        ]
+        bravo_frames = [cv2.resize(f, (target_width, bravo_h)) for f in bravo_frames]
 
     # Output dimensions
     out_height = alpha_h + bravo_h
@@ -474,11 +472,11 @@ def select_limited_pairs_stratified(
 ) -> Dict[str, Dict[str, Path]]:
     """
     Randomly select a limited number of pairs, distributed evenly across instance IDs.
-    
+
     Args:
         complete_pairs: Dictionary of pair_key -> {"Alpha": path, "Bravo": path}
         limit: Maximum number of pairs to select
-        
+
     Returns:
         Dictionary with selected pairs, evenly distributed across instances
     """
@@ -491,35 +489,35 @@ def select_limited_pairs_stratified(
         else:
             # If no instance ID found, put in "unknown" group
             instance_groups["unknown"].append(pair_key)
-    
+
     num_instances = len(instance_groups)
     if num_instances == 0:
         return {}
-    
+
     # Calculate base allocation per instance and remainder
     base_per_instance = limit // num_instances
     remainder = limit % num_instances
-    
+
     selected_keys: List[str] = []
-    
+
     # Sort instance IDs for consistent ordering when distributing remainder
     sorted_instances = sorted(instance_groups.keys())
-    
+
     for i, instance_id in enumerate(sorted_instances):
         pairs_for_instance = instance_groups[instance_id]
-        
+
         # Calculate how many to select from this instance
         # Distribute remainder to first 'remainder' instances
         num_to_select = base_per_instance + (1 if i < remainder else 0)
-        
+
         # Don't select more than available
         num_to_select = min(num_to_select, len(pairs_for_instance))
-        
+
         # Randomly select from this instance
         if num_to_select > 0:
             selected = random.sample(pairs_for_instance, num_to_select)
             selected_keys.extend(selected)
-    
+
     return {k: complete_pairs[k] for k in selected_keys}
 
 
@@ -557,7 +555,7 @@ def discover_video_pairs(videos_dir: Path) -> Dict[str, Dict[str, Path]]:
     """
     Discover all video pairs in the aligned directory.
     Returns a dict mapping pair_key -> {"Alpha": path, "Bravo": path}
-    
+
     If videos_dir/test exists, uses that directory for videos.
     Otherwise, falls back to videos_dir/aligned.
     """
@@ -567,7 +565,7 @@ def discover_video_pairs(videos_dir: Path) -> Dict[str, Dict[str, Path]]:
         aligned_dir = test_dir
     else:
         aligned_dir = videos_dir / "aligned"
-    
+
     if not aligned_dir.exists():
         raise RuntimeError(f"Video directory not found: {aligned_dir}")
 
@@ -648,14 +646,14 @@ def process_single_videos_dir(
 ) -> Tuple[int, int, List[str]]:
     """
     Process a single videos directory containing aligned/ or test/ and output/.
-    
+
     Args:
         videos_dir: Path to directory with video files
         output_dir: Path to output directory for annotated videos
         workers: Number of parallel workers
         limit: Optional limit on number of pairs to process
         dir_label: Optional label for progress bar (e.g., subdirectory name)
-    
+
     Returns:
         Tuple of (successful_count, failed_count, list_of_failure_messages)
     """
@@ -669,7 +667,7 @@ def process_single_videos_dir(
     else:
         json_dir = videos_dir / "output"
         video_source_dir = videos_dir / "aligned"
-    
+
     if not json_dir.exists():
         return 0, 0, [f"JSON directory not found: {json_dir}"]
 
@@ -788,8 +786,10 @@ def main():
 
     else:
         # Single directory mode (original behavior)
-        output_dir = Path(args.output_dir) if args.output_dir else videos_dir / "annotated"
-        
+        output_dir = (
+            Path(args.output_dir) if args.output_dir else videos_dir / "annotated"
+        )
+
         # Check if test directory exists, otherwise use output for JSONs
         test_dir = videos_dir / "test"
         if test_dir.exists():
@@ -806,7 +806,9 @@ def main():
             sys.exit(1)
 
         # Filter to complete pairs only
-        complete_pairs = {k: v for k, v in pairs.items() if "Alpha" in v and "Bravo" in v}
+        complete_pairs = {
+            k: v for k, v in pairs.items() if "Alpha" in v and "Bravo" in v
+        }
         incomplete_pairs = {k: v for k, v in pairs.items() if k not in complete_pairs}
 
         # Print summary
@@ -834,20 +836,26 @@ def main():
         limit_to_apply = args.limit
         if limit_to_apply and limit_to_apply < len(complete_pairs):
             original_count = len(complete_pairs)
-            
+
             # Count how many from each instance for reporting
             instance_counts: Dict[str, int] = defaultdict(int)
-            limited_pairs = select_limited_pairs_stratified(complete_pairs, limit_to_apply)
+            limited_pairs = select_limited_pairs_stratified(
+                complete_pairs, limit_to_apply
+            )
             for pair_key in limited_pairs.keys():
                 instance_id = extract_instance_id(pair_key) or "unknown"
                 instance_counts[instance_id] += 1
-            
-            print(f"Limiting to {len(limited_pairs)} video pairs (out of {original_count} total)")
+
+            print(
+                f"Limiting to {len(limited_pairs)} video pairs (out of {original_count} total)"
+            )
             print(f"Stratified selection across {len(instance_counts)} instances:")
             for instance_id in sorted(instance_counts.keys()):
                 print(f"  - {instance_id}: {instance_counts[instance_id]} pairs")
 
-        print(f"Processing {len(complete_pairs) if not limit_to_apply else min(limit_to_apply, len(complete_pairs))} video pairs with {args.workers} workers...\n")
+        print(
+            f"Processing {len(complete_pairs) if not limit_to_apply else min(limit_to_apply, len(complete_pairs))} video pairs with {args.workers} workers...\n"
+        )
 
         successful, failed, failures = process_single_videos_dir(
             videos_dir=videos_dir,

@@ -2,6 +2,7 @@ data*/
 output*/
 videos/
 .vscode/
+.vscode*
 logs/
 aligned/*
 aligned/alpha/

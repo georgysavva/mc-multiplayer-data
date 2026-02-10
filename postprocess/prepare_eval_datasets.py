@@ -119,20 +119,20 @@ def main():
         description="Prepare episode files for evaluation by copying and renaming them."
     )
     parser.add_argument(
-        "--episodes-dir",
+        "--source-dir",
         type=str,
         required=True,
         help="Path to either: (1) a single episodes directory (containing 'output/' and 'aligned/' subdirectories), "
         "or (2) a parent directory containing multiple episode directories.",
     )
     parser.add_argument(
-        "--destination_dir",
+        "--destination-dir",
         type=str,
         required=True,
         help="Path to the new destination directory for renamed files.",
     )
     parser.add_argument(
-        "--ignore_first_episode",
+        "--ignore-first-episode",
         action="store_true",
         help="If set, ignore the first episode (e.g., ..._instance_000) for each instance.",
     )
@@ -140,15 +140,15 @@ def main():
     args = parser.parse_args()
 
     # --- 1. Validate input directory exists ---
-    if not os.path.isdir(args.episodes_dir):
+    if not os.path.isdir(args.source_dir):
         print(
-            f"Error: Episodes directory not found: {args.episodes_dir}", file=sys.stderr
+            f"Error: Episodes directory not found: {args.source_dir}", file=sys.stderr
         )
         sys.exit(1)
 
     # --- 2. Determine if this is a single episodes dir or a parent containing multiple ---
-    output_dir = os.path.join(args.episodes_dir, "output")
-    aligned_dir = os.path.join(args.episodes_dir, "aligned")
+    output_dir = os.path.join(args.source_dir, "output")
+    aligned_dir = os.path.join(args.source_dir, "aligned")
 
     is_single_episodes_dir = os.path.isdir(output_dir) and os.path.isdir(aligned_dir)
 
@@ -159,11 +159,11 @@ def main():
 
     if is_single_episodes_dir:
         # --- Process single episodes directory (original behavior) ---
-        print(f"Processing single episodes directory: {args.episodes_dir}")
+        print(f"Processing single episodes directory: {args.source_dir}")
         destination_dir = os.path.join(args.destination_dir, "test")
 
         result = process_episodes_dir(
-            args.episodes_dir, destination_dir, args.ignore_first_episode
+            args.source_dir, destination_dir, args.ignore_first_episode
         )
         if result is not None:
             total_copied, total_skipped, total_not_found = result
@@ -171,7 +171,7 @@ def main():
             print(f"  Output to: {destination_dir}")
     else:
         # --- Process parent directory containing multiple episode directories ---
-        print(f"Processing parent directory: {args.episodes_dir}")
+        print(f"Processing parent directory: {args.source_dir}")
         print(
             "Looking for episode directories with 'output/' and 'aligned/' subdirectories...\n"
         )
@@ -180,13 +180,13 @@ def main():
         subdirs = sorted(
             [
                 d
-                for d in os.listdir(args.episodes_dir)
-                if os.path.isdir(os.path.join(args.episodes_dir, d))
+                for d in os.listdir(args.source_dir)
+                if os.path.isdir(os.path.join(args.source_dir, d))
             ]
         )
 
         for subdir_name in subdirs:
-            subdir_path = os.path.join(args.episodes_dir, subdir_name)
+            subdir_path = os.path.join(args.source_dir, subdir_name)
 
             # Create corresponding destination subdirectory with /test appended
             dest_subdir = os.path.join(args.destination_dir, subdir_name, "test")
