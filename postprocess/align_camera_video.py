@@ -24,11 +24,6 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import cv2
 
-# ---------------------------------------------------------------------------
-# Manual override: set to True to allow the legacy computed-index alignment
-# for recordings that do not contain per-frame wallclock timestamps.
-# ---------------------------------------------------------------------------
-ALLOW_LEGACY_ALIGNMENT = False
 
 # Unconsumed frames within this many seconds of the recording start/end are
 # considered normal (the camera typically starts before and ends after the
@@ -266,26 +261,6 @@ def _match_actions_to_frames(
     return frame_indices, diagnostics
 
 
-# ---------------------------------------------------------------------------
-# Legacy computed-index mode
-# ---------------------------------------------------------------------------
-
-def _compute_frame_indices(
-    actions: Iterable[Dict[str, Any]],
-    camera_start_time_sec: float,
-    fps: float,
-) -> List[int]:
-    """Compute camera frame indices from action timestamps (legacy mode).
-
-    Each action has epochTime (wall-clock time in seconds) which we subtract
-    from the camera's start time and multiply by FPS to get the frame index.
-    """
-    indices: List[int] = []
-    for entry in actions:
-        action_time_sec = float(entry["epochTime"])
-        frame_idx = int(round((action_time_sec - camera_start_time_sec) * fps))
-        indices.append(frame_idx)
-    return indices
 
 
 # ---------------------------------------------------------------------------
@@ -396,33 +371,6 @@ def _build_action_mapping_wallclock(
     return mapping
 
 
-def _build_action_mapping(
-    actions: List[Dict[str, Any]],
-    camera_start_time_sec: float,
-    trim_start_sec: float,
-    fps: float,
-) -> List[Dict[str, Any]]:
-    """Build frame-to-action mapping for aligned output metadata (legacy)."""
-    mapping: List[Dict[str, Any]] = []
-    for idx, entry in enumerate(actions):
-        if "epochTime" not in entry:
-            continue
-        action_time_sec = float(entry["epochTime"])
-        time_since_camera_start_sec = action_time_sec - camera_start_time_sec
-        time_in_trimmed_video_sec = time_since_camera_start_sec - trim_start_sec
-        frame_idx = int(round(time_in_trimmed_video_sec * fps))
-        mapping.append(
-            {
-                "action_index": idx,
-                "renderTime_ms": float(entry.get("renderTime", 0.0)),
-                "action_time_sec": action_time_sec,
-                "relative_time_ms": float(entry.get("relativeTimeMs", 0.0)),
-                "time_since_camera_start_sec": time_since_camera_start_sec,
-                "time_in_trimmed_video_sec": time_in_trimmed_video_sec,
-                "frame_index": frame_idx,
-            }
-        )
-    return mapping
 
 
 # ---------------------------------------------------------------------------
@@ -480,21 +428,16 @@ def align_recording(config: AlignmentInput) -> Dict[str, Any]:
     )
 
     if not use_wallclock:
-        if not ALLOW_LEGACY_ALIGNMENT:
-            reason = (
-                "Frame timestamps not found or not wallclock"
-                if frame_timestamps is None
-                else "Frame timestamps present but not wallclock (PTS too small)"
-            )
-            raise RuntimeError(
-                f"[align] {reason}. "
-                f"Wallclock-timestamp alignment is required. "
-                f"Set ALLOW_LEGACY_ALIGNMENT = True in {__file__} to permit "
-                f"legacy computed-index alignment for old recordings."
-            )
-        return _align_legacy(
-            config, actions, camera_meta, recording_path, fps, camera_start_time_sec,
+        reason = (
+            "Frame timestamps not found or not wallclock"
+            if frame_timestamps is None
+            else "Frame timestamps present but not wallclock (PTS too small)"
         )
+        raise RuntimeError(
+            f"[align] {reason}. "
+            f"Wallclock-timestamp alignment is required. "
+        )
+
 
     # ------------------------------------------------------------------
     # Wallclock-timestamp alignment (primary path)
@@ -558,58 +501,6 @@ def align_recording(config: AlignmentInput) -> Dict[str, Any]:
 
     return output_metadata
 
-
-def _align_legacy(
-    config: AlignmentInput,
-    actions: List[Dict[str, Any]],
-    camera_meta: Dict[str, Any],
-    recording_path: Path,
-    fps: float,
-    camera_start_time_sec: float,
-) -> Dict[str, Any]:
-    """Legacy computed-index alignment (only used when ALLOW_LEGACY_ALIGNMENT is True)."""
-    print("[align] WARNING: using legacy computed-index alignment "
-          "(ALLOW_LEGACY_ALIGNMENT=True)", file=sys.stderr)
-
-    action_times_sec = [x["epochTime"] for x in actions]
-    frame_indices = _compute_frame_indices(
-        actions, camera_start_time_sec, fps,
-    )
-
-    _write_frames_by_index(recording_path, frame_indices, fps, config.output_video_path)
-
-    first_action_time_sec = min(action_times_sec)
-    last_action_time_sec = max(action_times_sec)
-    trim_start_sec = frame_indices[0] / fps
-    duration_sec = len(frame_indices) / fps
-
-    mapping = _build_action_mapping(
-        actions,
-        camera_start_time_sec=camera_start_time_sec,
-        trim_start_sec=trim_start_sec,
-        fps=fps,
-    )
-
-    output_metadata = {
-        "actions_path": str(config.actions_path),
-        "camera_meta_path": str(config.camera_meta_path),
-        "recording_path": str(recording_path),
-        "aligned_video_path": str(config.output_video_path),
-        "alignment_mode": "legacy",
-        "fps": fps,
-        "camera_start_time_sec": camera_start_time_sec,
-        "trim_start_sec": trim_start_sec,
-        "trim_duration_sec": duration_sec,
-        "first_action_time_sec": first_action_time_sec,
-        "last_action_time_sec": last_action_time_sec,
-        "frame_mapping": mapping,
-    }
-
-    config.output_metadata_path.parent.mkdir(parents=True, exist_ok=True)
-    with config.output_metadata_path.open("w", encoding="utf-8") as fh:
-        json.dump(output_metadata, fh)
-
-    return output_metadata
 
 
 def parse_args(argv: List[str]) -> AlignmentInput:
