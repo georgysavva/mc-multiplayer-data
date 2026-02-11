@@ -1,10 +1,11 @@
 # Base data directory and batch configuration
 BASE_DATA_DIR=${BASE_DATA_DIR:-"/mnt/data/tmeehan/mc_multiplayer_demo"}
-BATCH_NAME=${BATCH_NAME:-"eval_turn_to_look_structure"}
+BATCH_NAME=${BATCH_NAME:-"translationEval2"}
 
-# Set to 1 to enable demo mode (fixed birds-eye camera with per-episode positions)
-ENABLE_DEMO_MODE=${ENABLE_DEMO_MODE:-0}
-ENABLE_DEMO_CAMERA=${ENABLE_DEMO_CAMERA:-1}
+# ENABLE_DEMO_MODE=0 -> Camera position calculated algorithmically from bot positions
+# ENABLE_DEMO_CAMERA=1 -> Enables CameraDemo spectator with algorithmic positioning
+ENABLE_DEMO_MODE=0
+ENABLE_DEMO_CAMERA=1
 
 python3 generate_compose.py \
  --compose_dir ./compose_configs \
@@ -18,14 +19,13 @@ python3 generate_compose.py \
  --camera_output_bravo_base $BASE_DATA_DIR/$BATCH_NAME/camera/output_bravo \
  --camera_data_alpha_base $BASE_DATA_DIR/$BATCH_NAME/camera/data_alpha \
  --camera_data_bravo_base $BASE_DATA_DIR/$BATCH_NAME/camera/data_bravo \
- --smoke_test 1 \
+ --smoke_test 0 \
  --num_flatland_world 1 \
- --num_normal_world 1 \
+ --num_normal_world 0 \
  --num_episodes 3 \
- --num_episodes_normal 2 \
- --num_episodes_flat 1 \
- --episode_types_normal "turnToLookEval,turnToLookOppositeEval" \
- --episode_types_flat "structureEval" \
+ --num_episodes_normal 0 \
+ --num_episodes_flat 3 \
+ --episode_types_flat "translationEval" \
  --iterations_num_per_episode 1 \
  --eval_time_set_day 1 \
  --viewer_rendering_disabled 1 \

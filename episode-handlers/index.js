@@ -62,9 +62,11 @@ const SPECTATOR_NAMES = ["SpectatorAlpha", "SpectatorBravo"];
  * Compute camera position from bot positions (center of Alpha and Bravo + offset)
  * @param {Object} bot - Mineflayer bot instance
  * @param {string} otherBotName - Name of the other bot
+ * @param {Object} episodeInstance - Episode instance (optional, for adjusting camera based on episode type)
+ * @param {Object} args - Configuration arguments (optional, for checking world type)
  * @returns {Object|null} Camera position with x, y, z, yaw, pitch
  */
-function computeCameraFromBots(bot, otherBotName) {
+function computeCameraFromBots(bot, otherBotName, episodeInstance = null, args = null) {
   const otherPlayer = bot.players[otherBotName];
   if (!otherPlayer || !otherPlayer.entity) {
     console.warn(`[${bot.username}] Other bot ${otherBotName} not found for camera calculation`);
@@ -78,21 +80,174 @@ function computeCameraFromBots(bot, otherBotName) {
   const centerY = (myPos.y + otherPos.y) / 2;
   const centerZ = (myPos.z + otherPos.z) / 2;
   
-  const cameraX = centerX + 10;
-  const cameraY = centerY + 7;
-  const cameraZ = centerZ + 10;
+  // Default camera offsets
+  let xzOffset = 10; // horizontal distance
+  let yOffset = 7;   // vertical height above center
+  let pitch = 20;    // viewing angle (lowered for all to match turnToLook)
+  let cameraX, cameraY, cameraZ, yaw;
   
-  // Calculate yaw to look at the center
-  const dx = centerX - cameraX;
-  const dz = centerZ - cameraZ;
-  const yaw = (Math.atan2(-dx, dz) * 180) / Math.PI;
+  // Determine episode type
+  const isTurnToLookEpisode = episodeInstance && (
+    episodeInstance instanceof TurnToLookEvalEpisode || 
+    episodeInstance instanceof TurnToLookOppositeEvalEpisode
+  );
+  const isRotationEpisode = episodeInstance && episodeInstance instanceof RotationEvalEpisode;
+  const isBothLookAwayEpisode = episodeInstance && episodeInstance instanceof BothLookAwayEvalEpisode;
+  const isTranslationEpisode = episodeInstance && episodeInstance instanceof TranslationEvalEpisode;
+  const isStructureEpisode = episodeInstance && (
+    episodeInstance instanceof StructureEvalEpisode ||
+    episodeInstance instanceof StructureNoPlaceEvalEpisode
+  );
+  
+  if (isTurnToLookEpisode) {
+    // TurnToLook: Camera at an angle to see both bots and their viewing direction
+    yOffset = 3;  // Lower height for closer view
+    pitch = 15;   // Gentler angle for more landscape
+    
+    // Calculate vector from myPos to otherPos
+    const vx = otherPos.x - myPos.x;
+    const vz = otherPos.z - myPos.z;
+    
+    // Normalize
+    const mag = Math.sqrt(vx * vx + vz * vz) || 1;
+    const nx = vx / mag;
+    const nz = vz / mag;
+    
+    // Rotate 90 degrees to get the direction bots face
+    // Use bot.username comparison to determine which side (matches episode logic)
+    const dir = bot.username < otherBotName ? 1 : -1;
+    const sideX = -nz * dir;
+    const sideZ = nx * dir;
+    
+    // Position camera behind and to the side of bots
+    const behindDistance = 8;  // Distance behind
+    const sideDistance = 5;     // Distance to the side for angled view
+    
+    cameraX = centerX - sideX * behindDistance - nx * sideDistance;
+    cameraZ = centerZ - sideZ * behindDistance - nz * sideDistance;
+    cameraY = centerY + yOffset;
+    
+    // Camera looks at the bots (angled view)
+    const toLookX = centerX - cameraX;
+    const toLookZ = centerZ - cameraZ;
+    yaw = (Math.atan2(-toLookX, toLookZ) * 180) / Math.PI;
+    
+    console.log(`[${bot.username}] TurnToLook: camera at angle behind bots (yaw=${yaw.toFixed(1)}°)`);
+    
+  } else if (isRotationEpisode || isBothLookAwayEpisode) {
+    // Rotation/BothLookAway: Camera in line with bot axis, over shoulder view
+    const dx = otherPos.x - myPos.x;
+    const dz = otherPos.z - myPos.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    
+    // Normalize direction vector
+    const dirX = dx / distance;
+    const dirZ = dz / distance;
+    
+    // Position camera along the axis, offset above one bot
+    const alongAxis = distance * 0.3; // 30% along from myBot toward otherBot
+    const sideOffset = 3; // Small side offset for over-shoulder effect
+    
+    // Perpendicular vector for side offset
+    const perpX = -dirZ;
+    const perpZ = dirX;
+    
+    cameraX = myPos.x + dirX * alongAxis + perpX * sideOffset;
+    cameraZ = myPos.z + dirZ * alongAxis + perpZ * sideOffset;
+    cameraY = centerY + 6; // Higher for overhead view
+    
+    // Calculate yaw to look toward the other bot
+    const toLookX = otherPos.x - cameraX;
+    const toLookZ = otherPos.z - cameraZ;
+    yaw = (Math.atan2(-toLookX, toLookZ) * 180) / Math.PI;
+    pitch = 25; // Slightly steeper for overhead
+    
+    console.log(`[${bot.username}] Rotation/BothLookAway: over-shoulder view along bot axis`);
+    
+  } else if (isTranslationEpisode) {
+    // Translation: Camera directly behind observer bot, looking at moving bot
+    // myPos = observer (stationary), otherPos = moving bot
+    const dx = otherPos.x - myPos.x;
+    const dz = otherPos.z - myPos.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    
+    // Normalize direction vector (from observer to moving bot)
+    const dirX = dx / distance;
+    const dirZ = dz / distance;
+    
+    // Position camera directly behind the observer bot (opposite to direction of moving bot)
+    const behindDistance = 6; // Distance behind observer
+    const heightOffset = 3;   // Height above observer for clear view
+    
+    cameraX = myPos.x - dirX * behindDistance;
+    cameraZ = myPos.z - dirZ * behindDistance;
+    cameraY = myPos.y + heightOffset;
+    
+    // Look directly toward the moving bot (through the observer)
+    yaw = (Math.atan2(-dirX, dirZ) * 180) / Math.PI;
+    pitch = 12; // Very gentle angle for nearly level view
+    
+    console.log(`[${bot.username}] Translation: camera directly behind observer (distance=${behindDistance}, height=${heightOffset})`);
+    
+  } else if (isStructureEpisode) {
+    // Structure: Camera behind viewer bot, offset to side, looking at structure
+    const dx = otherPos.x - myPos.x;
+    const dz = otherPos.z - myPos.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    
+    // Normalize direction
+    const dirX = dx / distance;
+    const dirZ = dz / distance;
+    
+    // Position behind myBot (viewer) with side offset
+    const behindDistance = 4;
+    const sideOffset = 3;
+    const heightOffset = 3;
+    
+    // Perpendicular vector for side offset
+    const perpX = -dirZ;
+    const perpZ = dirX;
+    
+    cameraX = myPos.x - dirX * behindDistance + perpX * sideOffset;
+    cameraZ = myPos.z - dirZ * behindDistance + perpZ * sideOffset;
+    cameraY = myPos.y + heightOffset;
+    
+    // Look toward the structure (other bot)
+    const toLookX = otherPos.x - cameraX;
+    const toLookZ = otherPos.z - cameraZ;
+    yaw = (Math.atan2(-toLookX, toLookZ) * 180) / Math.PI;
+    pitch = 18; // Gentle angle for clear structure view
+    
+    console.log(`[${bot.username}] Structure: over-shoulder behind viewer, looking at structure`);
+    
+  } else {
+    // Default: Flat world episodes or other types - closer and lower angle
+    const isFlatWorld = args && args.world_type && args.world_type.toLowerCase() === "flat";
+    
+    if (isFlatWorld) {
+      xzOffset = 7;  // closer to bots
+      yOffset = 5;   // slightly lower
+      pitch = 22;    // gentler angle
+    }
+    
+    cameraX = centerX + xzOffset;
+    cameraY = centerY + yOffset;
+    cameraZ = centerZ + xzOffset;
+    
+    // Calculate yaw to look at the center
+    const dx = centerX - cameraX;
+    const dz = centerZ - cameraZ;
+    yaw = (Math.atan2(-dx, dz) * 180) / Math.PI;
+    
+    console.log(`[${bot.username}] Default camera positioning (flatWorld=${isFlatWorld})`);
+  }
   
   return {
     x: cameraX,
     y: cameraY,
     z: cameraZ,
     yaw,
-    pitch: 33,
+    pitch,
   };
 }
 
@@ -102,6 +257,13 @@ async function teleportSpectatorsFromBots(rcon, bot, otherBotName) {
     return;
   }
   for (const name of SPECTATOR_NAMES) {
+    // Make spectator invisible
+    try {
+      await rcon.send(`effect give ${name} minecraft:invisibility 999999 0 true`);
+    } catch (err) {
+      console.warn(`[${bot.username}] Failed to make ${name} invisible: ${err.message}`);
+    }
+    
     const tpCmd = `tp ${name} ${camera.x} ${camera.y} ${camera.z} ${camera.yaw} ${camera.pitch}`;
     console.log(`[${bot.username}] Spectator tp: ${tpCmd}`);
     try {
@@ -112,8 +274,8 @@ async function teleportSpectatorsFromBots(rcon, bot, otherBotName) {
   }
 }
 
-async function teleportDemoCameraFromBots(rcon, bot, otherBotName) {
-  const camera = computeCameraFromBots(bot, otherBotName);
+async function teleportDemoCameraFromBots(rcon, bot, otherBotName, episodeInstance = null, args = null) {
+  const camera = computeCameraFromBots(bot, otherBotName, episodeInstance, args);
   if (!camera) {
     return;
   }
@@ -477,6 +639,13 @@ async function setupBotAndWorldOnce(bot, rcon) {
  */
 async function setupCameraPlayerOnce(bot, rcon) {
   const cameraUsername = `Camera${bot.username}`;
+  
+  // Make camera invisible
+  const invisEffectResCamera = await rcon.send(
+    `effect give ${cameraUsername} minecraft:invisibility 999999 0 true`
+  );
+  console.log(`[${cameraUsername}] invisEffectRes=${invisEffectResCamera}`);
+  
   const resistEffectResCamera = await rcon.send(
     `effect give ${cameraUsername} minecraft:resistance 999999 255 true`
   );
@@ -491,6 +660,16 @@ async function setupCameraPlayerOnce(bot, rcon) {
     `attribute ${cameraUsername} minecraft:fall_damage_multiplier base set 0`
   );
   console.log(`[${cameraUsername}] fallDamageRes=${fallDamageResCamera}`);
+  
+  // Make CameraDemo invisible too
+  try {
+    const invisDemoRes = await rcon.send(
+      `effect give CameraDemo minecraft:invisibility 999999 0 true`
+    );
+    console.log(`[CameraDemo] invisEffectRes=${invisDemoRes}`);
+  } catch (err) {
+    console.log(`[CameraDemo] invisibility not applied (may not exist yet)`);
+  }
 }
 
 /**
@@ -1007,9 +1186,10 @@ async function teleport(
       // Teleport spectators and demo camera after bots are positioned
       if (!args.enable_demo_mode && isEvalEpisode(episodeInstance)) {
         await sleep(500); // Wait for positions to update
-        await teleportSpectatorsFromBots(rcon, bot, args.other_bot_name);
+        // Spectators disabled for turnToLook episodes
+        // await teleportSpectatorsFromBots(rcon, bot, args.other_bot_name);
         if (args.enable_demo_camera) {
-          await teleportDemoCameraFromBots(rcon, bot, args.other_bot_name);
+          await teleportDemoCameraFromBots(rcon, bot, args.other_bot_name, episodeInstance, args);
         }
       }
       return;
@@ -1124,9 +1304,10 @@ async function teleport(
       
       // Teleport spectators and demo camera after bots are positioned
       if (!args.enable_demo_mode && isEvalEpisode(episodeInstance)) {
-        await teleportSpectatorsFromBots(rcon, bot, args.other_bot_name);
+        // Spectators disabled for eval episodes
+        // await teleportSpectatorsFromBots(rcon, bot, args.other_bot_name);
         if (args.enable_demo_camera) {
-          await teleportDemoCameraFromBots(rcon, bot, args.other_bot_name);
+          await teleportDemoCameraFromBots(rcon, bot, args.other_bot_name, episodeInstance, args);
         }
       }
       
