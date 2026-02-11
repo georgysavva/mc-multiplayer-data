@@ -53,4 +53,6 @@ COPY . ./
 RUN chmod +x controller/entrypoint.sh
 RUN chmod +x controller/act_recorder/entrypoint.sh
 
+# Reset the Node base image entrypoint so .sh scripts run as shell, not node
+ENTRYPOINT []
 CMD ["./controller/entrypoint.sh"]

@@ -191,7 +191,7 @@ def generate_compose_config(
                         "condition": "service_completed_successfully"
                     }
                 },
-                "image": "itzg/minecraft-server",
+                "image": "itzg/minecraft-server:java21",
                 "tty": True,
                 "network_mode": "host",
                 **({"cpuset": cpuset} if cpuset else {}),
@@ -238,7 +238,7 @@ def generate_compose_config(
                 },
             },
             f"controller_alpha_instance_{instance_id}": {
-                "image": "ojmichel/mc-multiplayer-base:latest",
+                "image": "solaris-engine-base:latest",
                 "build": {
                     "context": project_root,
                     "dockerfile": "Dockerfile",
@@ -289,7 +289,7 @@ def generate_compose_config(
                 "command": "./controller/entrypoint.sh",
             },
             f"controller_bravo_instance_{instance_id}": {
-                "image": "ojmichel/mc-multiplayer-base:latest",
+                "image": "solaris-engine-base:latest",
                 "build": {
                     "context": project_root,
                     "dockerfile": "Dockerfile",
@@ -343,7 +343,7 @@ def generate_compose_config(
                 "command": "./controller/entrypoint.sh",
             },
             f"act_recorder_alpha_instance_{instance_id}": {
-                "image": "ojmichel/mc-multiplayer-base:latest",
+                "image": "solaris-engine-base:latest",
                 "environment": {
                     "PORT": act_recorder_port,
                     "NAME": "Alpha",
@@ -358,7 +358,7 @@ def generate_compose_config(
                 "command": "./controller/act_recorder/entrypoint.sh",
             },
             f"act_recorder_bravo_instance_{instance_id}": {
-                "image": "ojmichel/mc-multiplayer-base:latest",
+                "image": "solaris-engine-base:latest",
                 "environment": {
                     "PORT": act_recorder_port,
                     "NAME": "Bravo",
@@ -374,7 +374,7 @@ def generate_compose_config(
             },
             # Camera alpha: recording client
             f"camera_alpha_instance_{instance_id}": {
-                "image": "ojmichel/mineflayer-spectator-client:latest",
+                "image": "solaris-engine-camera:latest",
                 "build": {
                     "context": os.path.join(project_root, "camera"),
                     "dockerfile": "Dockerfile",
@@ -447,7 +447,7 @@ def generate_compose_config(
             },
             # Camera bravo: recording client
             f"camera_bravo_instance_{instance_id}": {
-                "image": "ojmichel/mineflayer-spectator-client:latest",
+                "image": "solaris-engine-camera:latest",
                 "build": {
                     "context": os.path.join(project_root, "camera"),
                     "dockerfile": "Dockerfile",
@@ -490,7 +490,7 @@ def generate_compose_config(
             },
             # Passive spectator alpha
             f"spectator_alpha_instance_{instance_id}": {
-                "image": "ojmichel/mc-multiplayer-base:latest",
+                "image": "solaris-engine-base:latest",
                 "build": {
                     "context": project_root,
                     "dockerfile": "Dockerfile",
@@ -514,7 +514,7 @@ def generate_compose_config(
             },
             # Passive spectator bravo
             f"spectator_bravo_instance_{instance_id}": {
-                "image": "ojmichel/mc-multiplayer-base:latest",
+                "image": "solaris-engine-base:latest",
                 "build": {
                     "context": project_root,
                     "dockerfile": "Dockerfile",
