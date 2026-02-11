@@ -6,6 +6,7 @@ Outputs:
   - episode_type_mapping.json: post-rename episode -> episode type
   - eval_ids.json: [(ep_idx, alpha_start, alpha_end, bravo_start, bravo_end), ...]
     Note: start/end use exclusive end semantics (e.g., [0, 257] means frames 0-256, 257 frames total)
+  - segment_mapping.json: segment index -> episode details (1:1 correspondence with eval_ids)
   - demo_segments/: segmented Demo camera videos (using alpha start/end times from eval_ids)
 """
 
@@ -41,7 +42,7 @@ def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_s
     aligned_dir = Path(episodes_dir) / "aligned"
     
     if not output_dir.exists() or not aligned_dir.exists():
-        return {}, [], []
+        return {}, [], [], []
     
     # Build (episode_num, instance_id) -> episode_type from episode_info.json files
     type_mapping = {}
@@ -109,8 +110,9 @@ def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_s
         
         valid_episodes.append(key)
     
-    # Generate eval_ids and episode_demo_videos (list indexed by ep_idx)
+    # Generate eval_ids, segment_mapping, and episode_demo_videos (list indexed by ep_idx)
     eval_ids = []
+    segment_mapping = []
     episode_demo_videos = []
     
     for ep_idx, (episode_num, instance_id) in enumerate(valid_episodes):
@@ -130,9 +132,17 @@ def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_s
         while start + segment_size <= min_frames:
             end = start + segment_size
             eval_ids.append((ep_idx, start, end, start, end))
+            segment_mapping.append({
+                'episode_name': f"{episode_num}_instance_{instance_id}",
+                'episode_type': type_mapping.get(key, 'unknown'),
+                'alpha_episode': pair['Alpha']['post_rename'],
+                'bravo_episode': pair['Bravo']['post_rename'],
+                'start_frame': start,
+                'end_frame': end,
+            })
             start += stride
     
-    return episode_type_mapping, eval_ids, episode_demo_videos
+    return episode_type_mapping, eval_ids, episode_demo_videos, segment_mapping
 
 
 def segment_demo_videos(eval_ids: list, episode_demo_videos: list, output_dir: Path):
@@ -196,7 +206,7 @@ def main():
         sys.exit(f"Error: Directory not found: {args.episodes_dir}")
 
     is_single = os.path.isdir(os.path.join(args.episodes_dir, "output"))
-    all_type_mapping, all_eval_ids = {}, []
+    all_type_mapping, all_eval_ids, all_segment_mapping = {}, [], []
     all_episode_demo_videos = []  # List indexed by global ep_idx
     total_copied = 0
 
@@ -213,7 +223,7 @@ def main():
             total_copied += result[0]
             print(f"Processed: {prefix or 'episodes'} -> {result[0]} file pairs")
         
-        type_map, eval_ids, episode_demo_videos = build_eval_metadata(
+        type_map, eval_ids, episode_demo_videos, segment_mapping = build_eval_metadata(
             src, args.ignore_first_episode, args.segment_size,
             args.default_stride, args.long_video_stride, args.long_video_threshold
         )
@@ -224,6 +234,11 @@ def main():
             all_type_mapping[f"{prefix}/{k}" if prefix else k] = v
         for e in eval_ids:
             all_eval_ids.append((e[0] + ep_offset, e[1], e[2], e[3], e[4]))
+        for s in segment_mapping:
+            s_new = {**s, 'segment_idx': len(all_segment_mapping)}
+            if prefix:
+                s_new.update({k: f"{prefix}/{s[k]}" for k in ['episode_name', 'alpha_episode', 'bravo_episode']})
+            all_segment_mapping.append(s_new)
         
         # Append demo video paths (indexed by ep_idx)
         all_episode_demo_videos.extend(episode_demo_videos)
@@ -235,13 +250,17 @@ def main():
             padding_needed = 32 - remainder
             last_eval_id = all_eval_ids[-1]
             all_eval_ids.extend([last_eval_id] * padding_needed)
+            last_segment = all_segment_mapping[-1]
+            for _ in range(padding_needed):
+                all_segment_mapping.append({**last_segment, 'segment_idx': len(all_segment_mapping)})
             print(f"Padded eval_ids with {padding_needed} repeats of last segment to reach {len(all_eval_ids)} (multiple of 32)")
 
     # Save outputs
     os.makedirs(args.destination_dir, exist_ok=True)
     
     for name, data in [('episode_type_mapping.json', all_type_mapping),
-                       ('eval_ids.json', all_eval_ids)]:
+                       ('eval_ids.json', all_eval_ids),
+                       ('segment_mapping.json', all_segment_mapping)]:
         with open(os.path.join(args.destination_dir, name), 'w') as f:
             json.dump(data, f, indent=2)
         print(f"Saved {name}: {len(data)} entries")
