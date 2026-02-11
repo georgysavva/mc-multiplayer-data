@@ -13,8 +13,9 @@ const Rcon = require("rcon-client").Rcon;
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for PVP behavior
-const PVP_DURATION_MS_MIN = 10000; // 5 seconds of combat
-const PVP_DURATION_MS_MAX = 15000; // 15 seconds of combat
+// WARNING: Change this back for release 
+const PVP_DURATION_MS_MIN = 20000; // 20 seconds of combat
+const PVP_DURATION_MS_MAX = 25000; // 25 seconds of combat
 const ATTACK_COOLDOWN_MS = 500; // 0.5s between attacks
 const MELEE_RANGE = 3; // Attack range in blocks
 const APPROACH_DISTANCE = 2; // Pathfinder target distance
