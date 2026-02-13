@@ -36,10 +36,10 @@ done
 DATASET_NAME="duet"
 
 echo "Preparing train dataset"
-python3 postprocess/prepare_train_dataset.py --source-dir $BASE_DATA_COLLECTION_DIR --destination-dir $BASE_DATA_DIR/result_data/$DATASET_NAME
+python3 postprocess/prepare_train_dataset.py --source-dir $BASE_DATA_COLLECTION_DIR --destination-dir $BASE_DATA_DIR/datasets/$DATASET_NAME
 
 echo "Splitting train dataset"
-python3 postprocess/split_train_test.py $BASE_DATA_DIR/result_data/$DATASET_NAME 
+python3 postprocess/split_train_test.py $BASE_DATA_DIR/datasets/$DATASET_NAME 
 
 echo "Annotating some of the test split videos"
-python3 postprocess/annotate_video_batch.py $BASE_DATA_DIR/result_data/$DATASET_NAME
+python3 postprocess/annotate_video_batch.py $BASE_DATA_DIR/datasets/$DATASET_NAME
