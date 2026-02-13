@@ -1,10 +1,20 @@
 # Controller
 
+The Controller component of `SolarisEngine` is JavaScript program built on top of [Mineflayer](https://github.com/PrismarineJS/mineflayer). It connects via TCP to the controller bots of other players and through communication and the high level API of Mineflayer makes the bots engage in collaborative gameplay. To ensure diversity and good coverage of various game mechanics, it has a collection of 14 programmed episode types defined in [episode-handlers/](episode-handlers/) [222](controller/episode-handlers/)
+
+## Design
+
+Through out the life of the controller program, it establishes the connection with the server and creates a `mineflayer.Bot()` instance just once at startup. After that, it reuses the same `bot` instance to collect as many episodes as specified in the `--episodes_num` CLI arg. The entry point to the controller is the `getOnSpawnFn()` function in `episode-handlers/index.js` which Mineflayer calls when the bot has connected to the server. The function runs in a loop sampling random episodes, executing them, and sending actions to the separate `action_recorder` process to be saved as json files on disk.
+
+On every loop iteration, the controller draws Before every episode, the controller teleports
+which Bot is a JavaScript program build on top of Mineflayer. It connects to the Minecraft Server, and drives the behavior of the player. To ensure collaboration, it communicates with the Controller instances of other players connected to the same server. It features a set of high-level, reusable game play primitives and a modular system of various episode types focusing on different aspects of the game. See [`controller/README.md`](controller/README.md) for more details.
+
 - forked repos
 - inner working of controller
-  - the loop
+  - the loop, setup, teleport
   - phases
   - communication
+  - base class
   - episode types
   - primitives
   - eval
