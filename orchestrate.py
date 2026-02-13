@@ -113,7 +113,7 @@ class InstanceManager:
             "act_recorder_alpha_instance_{i}",
             "act_recorder_bravo_instance_{i}",
             "camera_alpha_instance_{i}",
-            "episode_starter_instance_{i}",
+            "plugin_starter_instance_{i}",
             "camera_bravo_instance_{i}",
             "spectator_alpha_instance_{i}",
             "spectator_bravo_instance_{i}",
