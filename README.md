@@ -1,480 +1,65 @@
-# Minecraft Multiplayer Data Collection System
+# SolarisEngine
 
-This project is a data collection system for Minecraft multiplayer interactions. It uses automated bots (Alpha and Bravo) to play Minecraft together while collecting synchronized video recordings and gameplay data including player positions, actions, and interactions.
+This repository contains a multiplayer data collection framework for Minecraft. It uses programmed bots based on [Mineflayer](https://github.com/PrismarineJS/mineflayer) that engage in a diverse, collaborative, multiplayer scenarios. The data it collects is the official Minecraft graphics (observations) for every player, annotated with their corresponding actions.
 
-## Overview
+`SolarisEngine` consists of the following components Controller Bot, Camera Bot, Minecraft Server Plugin, Spectator Bot, and a suite of postprocessing scripts.
 
-The system consists of:
+## Controller
 
-- **Minecraft Server**: A creative mode server with flat terrain using Paper
-- **Bot Agents**: Two coordinated bots (Alpha and Bravo) that interact in the game world
-- **Data Receivers**: Services that capture and store video frames and gameplay metadata
-- **Orchestration Tools**: Scripts for running single or multiple parallel data collection instances
+The Controller Bot is a JavaScript program build on top of Mineflayer. It connects to the Minecraft Server, and drives the behavior of the player. To ensure collaboration, it communicates with the Controller instances of other players connected to the same server. It features a set of high-level, reusable game play primitives and a modular system of various episode types focusing on different aspects of the game. See [`controller/README.md`](controller/README.md) for more details.
 
-## Dependencies
+## Camera
 
-This project uses several forked and modified libraries to enable Minecraft data collection:
+The Camera Bot is the official Minecraft Java Client that runs in headless. It connects to the server and pairs up with the corresponding Controller Bot of that player, so that these two processing are logically a single player. Through the [server-side plugin](), the camera bot, at all times, shares the first person perspective of its controller bot. It records the graphics using `ffmpeg`, which `SolarisEngine` aligns with the actions in [postprocessing]() to form a final episode.
 
-### Prismarine Viewer
+## Minecraft Server Plugin
 
-We use a forked version of prismarine-viewer from [@YXHXianYu/prismarine-viewer-colalab](https://github.com/YXHXianYu/prismarine-viewer-colalab). This fork can render different skins which we use to distinguish the bots. We further modify it to record actions along side observations.
+`SolarisEngine` works with a standard Minecraft 1.21 Paper server that it augments with a custom server-side plugin: Episode Manager Plugin. It loads on the server start and, after the bots of all players have been connected, it continuously synchronizes the character states of the controller bots to their corresponding camera bots. It replays all action, positions, camera movements, and GUI elements. It keeps the camera bot invisible to all players.
 
-### Mineflayer
+TODO: @twmeehan elaborate on this part.
 
-We patch the mineflayer code library to expose additional information about current actions from the physics plugin. These modifications allow us to:
+## Spectator Bot
 
-- Access detailed physics state information
-- Synchronize action data with visual observations
-- Capture precise movement and interaction data
+The spectator bot is another Mineflayer bot (making it a total of 3 bots constituting a single logic player). It always stays in the Spectate mode and just follows its controller bot. It doesn't produce any observations nor actions. It's an auxiliary bot that the Camera bot and the Episode Manger Plugin need for the proper game state synchronization between the controller and the camera (specifically block breaking animation).
 
-## Installation
+## Postprocessing
 
-1. Clone this repository:
+After all the controller and camera processes finish, `SolarisEngine` cuts the single, raw camera output of a player into episodes, according to the episode action json files produced by the controller. The postprocessing script, [postprocess/process_recordings.py](postprocess/process_recordings.py), uses `ffprobe` to extract frames corresponding to their actions based on the per-frame wallclock timestamps. TODO: @daohanlu you can probably talk more about the new frame extraction here. An episode always consists of `N` actions and `N` observations, with the observation at index `t` being a physics tick (~`50ms`) after the action at index `t`, making the observation a causal consequences of applying the action.
 
-```bash
-git clone <repository-url>
-cd mc-multiplayer-data
-```
+[postprocess/prepare_train_dataset.py](postprocess/prepare_train_dataset.py), [postprocess/split_train_test.py](postprocess/split_train_test.py), and [postprocess/prepare_eval_datasets.py](postprocess/prepare_eval_datasets.py) validate and transform the output of `SolarisEngine` to the final training and evaluation dataset formats [Solaris]() model code expects.
 
-2. Build the Docker image:
+[postprocess/annotate_video_batch.py](postprocess/annotate_video_batch.py) is an optional script that stitches the videos of all players into one and overlays them with visualized actions. It's a helpful debug tool to see how well all bots behave in an episode and that their actions are properly aligned with the observations.
 
-```bash
-docker build -t mc-multiplayer:latest .
-```
+TODO: Document filter water episodes
 
-```bash
- docker build -t mc-multiplayer:latest .
-```
+## Docker
 
-<!-- ---------- WINDOWS SETUP SECTION ---------- -->
+`SolarisEngine` uses Docker and Docker Compose to manage its components. The controller bot, camera bot, spectator bot, and Minecraft server are separate Docker container. The controller bot has the additional `act_recorder` Python process for writing actions to disk that runs in a separate Docker container. All in all, for two players, it's `2 * 4 + 1 = 9` long running Docker containers total. They are bundled in docker compose, forming a unit, which allows them to run in isolation. A docker compose unit also has two additional procedural Docker containers, `plugin_starter` and `prep_data`, that run at startup to setup the Minecraft server and the server-side plugin.
 
-## Windows Setup (Docker Desktop)
+The outer layer of Python scripts, [generate_compose.py](generate_compose.py) and [orchestrate.py](orchestrate.py), generates a configurable number of such docker compose units and executes them in parallel, enabling data collection at scale.
 
-> **If you are using Docker Desktop on Windows, follow _this_ section instead of the generic Linux/Mac commands.**  
-> The files `Dockerfile.windows` and `docker-compose-windows-fixed.yml` were created specifically to work around Windows-only issues (line endings + lack of `network_mode: host`).
+The camera bot has a dedicated Docker image, `solaris-engine-camera`, configured with a Java runtime and the official Minecraft Java client in headless. It does its rendering on GPU and requires the host machine to have one to ensure proper Minecraft graphic rendering FPS. TODO: @daohanlu add more details. The controller bot, spectator bot, and `act_recording` all share the `solaris-engine-base` Docker image that has both Node and Python environments set up. The Minecraft server uses the publicly available `itzg/minecraft-server` Docker image.
 
-### Prerequisites
+All postprocessing after all Docker Compose units finish happens on the host.
 
-1. **Docker Desktop for Windows** (running in Linux-containers mode)
-2. **Git for Windows** (to clone the repo)
-3. **PowerShell** (recommended shell for the commands below)
+## How to Run
 
-### One-Time Setup
-
-```powershell
-# Clone & enter the repo
-git clone <repository-url>
-cd mc-multiplayer-data
-
-# Create bind-mount folders (ignored if they already exist)
-mkdir data   -ErrorAction SilentlyContinue
-mkdir output -ErrorAction SilentlyContinue
-```
-
-### Build & Run (single command)
-
-```powershell
-# Build images with the Windows-compatible Dockerfile and launch all services
-docker compose -f docker-compose-windows-fixed.yml up -d --build
-```
-
-The command above will:
-
-- Build the image using **`Dockerfile.windows`** (handles CRLF → LF conversion with `dos2unix`).
-- Start the Paper Minecraft server on ports **25565** (game) & **25575** (RCON).
-- Launch both bots (`sender_alpha`, `sender_bravo`) and the two receivers.
-
-### Monitoring & Logs
-
-```powershell
-# List containers
-docker compose -f docker-compose-windows-fixed.yml ps
-
-# Follow logs from every service
-docker compose -f docker-compose-windows-fixed.yml logs -f
-
-# Follow only a specific service
-docker compose -f docker-compose-windows-fixed.yml logs -f sender_alpha
-```
-
-### Stopping & Cleanup
-
-```powershell
-# Gracefully stop and remove containers + anonymous volumes
-docker compose -f docker-compose-windows-fixed.yml down -v
-```
-
-### Troubleshooting
-
-- **`/usr/bin/env: 'bash\r': No such file or directory`** – Ensure you are running the Windows compose file; it automatically fixes CRLF with `dos2unix`.
-- **Containers cannot talk to each other** – Verify Docker Desktop is in _Linux containers_ mode and that Windows Firewall allows ports **25565/25575**.
-- **Build keeps using cache after edits** – Force a clean rebuild:  
-  `docker compose -f docker-compose-windows-fixed.yml build --no-cache`
-
----
-
-<!-- ---------- END WINDOWS SETUP SECTION ---------- -->
-
-## Quick Start - Single Instance Data Collection
-
-The simplest way to collect data is using the default `docker-compose.yml` file:
-
-### 1. Start Data Collection
-
-```bash
-docker compose up -d
-```
-
-This will start:
-
-- A Minecraft server on port 25565 (RCON on 25575)
-- Two bot agents (Alpha and Bravo) that interact in the game
-- Two data receivers that capture video and gameplay data
-- A real Minecraft camera client that records Alpha's perspective (`camera/output_alpha/camera_alpha.mp4`, live at `http://localhost:6901`)
-- A second camera client that records Bravo's perspective (`camera/output_bravo/camera_bravo.mp4`, live at `http://localhost:6902`)
-- All services coordinated through Docker networking
-
-### 2. Monitor Progress
-
-Check the status of running services:
-
-```bash
-docker compose ps
-```
-
-View logs from specific services:
-
-```bash
-# View all logs
-docker compose logs
-
-# View logs from specific service
-docker compose logs sender_alpha
-docker compose logs receiver_alpha
-```
-
-### 3. Stop Collection
-
-```bash
-docker compose down -v
-```
-
-### 4. Access Collected Data
-
-Data will be saved to:
-
-- `./output/` - Alpha bot data (videos, JSON metadata)
-- `./output/` - Bravo bot data (videos, JSON metadata)
-- Each output directory also contains `*_meta.json` files capturing episode start timestamps and alignment details for the Mineflayer actions.
-- `./camera/output_alpha/camera_alpha.mp4` - Camera recording of Alpha
-- `./camera/output_bravo/camera_bravo.mp4` - Camera recording of Bravo
-
-To change the world seed or generator settings, edit `server.env` and restart the stack. The default configuration spawns a flat world for deterministic bot interaction.
-
-### 5. Access Aligned Camera Recordings
-
-When the stack shuts down, `run_stack.sh` automatically trims each camera
-recording using the metadata generated by the camera containers and the
-Mineflayer action traces. Aligned videos and frame/action mappings are
-written to `aligned/<bot>/` (e.g. `aligned/alpha/000000_Alpha_instance_000_camera.mp4`).
-
-Need to rerun manually (for example after editing action files)?
-
-```bash
-python3 postprocess/auto_align.py --output-root aligned --margin-start 0.5 --margin-end 0.5
-```
-
-The script internally calls `postprocess/align_camera_video.py` for Alpha and
-Bravo, adding a small margin before/after the action window and exporting a
-JSON mapping of action indices to video frames. Each aligned metadata file also
-records the first/last action epoch so downstream consumers can verify timing.
-
-## Parallel Data Collection
-
-For large-scale data collection, you can run multiple independent instances in parallel using the provided orchestration tools.
-
-### 1. Generate Docker Compose Configurations
-
-Use `generate_compose.py` to create multiple instance configurations:
-
-```bash
-# Generate 10 parallel instances
-python3 generate_compose.py --instances 10
-
-# Generate 32 instances with custom settings
-python3 generate_compose.py \
-    --instances 32 \
-    --base-port 25565 \
-    --base-rcon-port 25675 \
-    --num_episodes 5 \
-    --bootstrap_wait_time 60
-```
-
-**Available Options:**
-
-- `--instances`: Number of parallel instances (default: 32)
-- `--compose-dir`: Directory for generated compose files (default: compose_configs)
-- `--base-port`: Starting Minecraft server port (default: 25565)
-- `--base-rcon-port`: Starting RCON port (default: 25675)
-- `--receiver-port`: Receiver service port (default: 8090)
-- `--coord-port`: Bot coordination port (default: 8100)
-- `--data-dir`: Base directory for server data (default: ./data)
-- `--output-dir`: Shared output directory (default: ./output)
-- `--num_episodes`: Episodes per instance (default: 5)
-- `--episode_start_id`: Starting episode ID (default: 0)
-- `--bootstrap_wait_time`: Wait time before starting bots (default: 60)
-
-This creates:
-
-- Individual Docker Compose files in `compose_configs/`
-- Unique port assignments for each instance
-- Separate mc server data directories (`data0/`, `data1/`, etc.)
-- Varied terrain types across instances
-
-### 2. Orchestrate Multiple Instances
-
-Use `orchestrate.py` to manage all generated instances:
-
-#### Start All Instances
-
-```bash
-python3 orchestrate.py start
-```
-
-#### Check Status
-
-```bash
-python3 orchestrate.py status
-```
-
-#### View Logs
-
-```bash
-# View logs from all instances
-python3 orchestrate.py logs
-
-# View logs from specific instance
-python3 orchestrate.py logs --instance docker-compose-001
-
-# Follow logs in real-time (single instance only)
-python3 orchestrate.py logs --instance docker-compose-001 --follow
-```
-
-#### Stop All Instances
-
-```bash
-python3 orchestrate.py stop
-```
-
-### 3. Monitor Resource Usage
-
-With parallel instances, monitor system resources:
-
-```bash
-# Check Docker container resource usage
-docker stats
-```
-
-## Configuration
-
-### Environment Variables
-
-Key environment variables that can be customized:
-
-**Bot Configuration:**
-
-- `BOT_NAME`: Name of the bot (Alpha/Bravo)
-- `OTHER_BOT_NAME`: Name of the other bot
-- `BOT_RNG_SEED`: Random seed for reproducible behavior. This should be the same for two bots for them to agree on certain actions that require randomness.
-- `EPISODES_NUM`: Number of episodes to run
-- `CAMERA_READY_RETRIES`: Number of attempts to check for camera clients before timing out (default: 30)
-- `CAMERA_READY_CHECK_INTERVAL`: Milliseconds between camera ready checks (default: 2000)
-- `BOOTSTRAP_WAIT_TIME`: Seconds to wait after cameras join for UI popups to clear before starting recording (default: 10)
-
-**Network Configuration:**
-
-- `MC_HOST`/`MC_PORT`: Minecraft server connection
-- `RCON_HOST`/`RCON_PORT`: RCON server connection
-- `RECEIVER_HOST`/`RECEIVER_PORT`: Data receiver connection
-- `COORD_PORT`: Bot coordination port
-
-**Data Configuration:**
-
-- `INSTANCE_ID`: Unique identifier for this instance
-- `EPISODE_START_ID`: Starting episode number
-- `COLOR`: Bot display color (red/blue)
-
-### Terrain Types
-
-The system automatically varies terrain across instances:
-
-- Plains with grass blocks
-- Windswept hills with grass blocks
-- Snowy plains with snow blocks
-- Desert with sand blocks
-- Desert with red sand blocks
-
-## Bot Interaction Phases Mechanism
-
-The system implements a phases-based coordination mechanism that allows two bots (Alpha and Bravo) to interact synchronously during gameplay episodes. This mechanism ensures both bots remain synchronized while performing various activities like teleporting, walking, looking at each other, and recording data.
-
-### Architecture Overview
-
-The phases mechanism is built around three core components:
-
-1. **BotCoordinator Class**: Manages TCP-based communication between bots
-2. **Shared Random Number Generator**: Ensures deterministic, synchronized behavior
-3. **Event-Driven Phase System**: Coordinates bot actions through sequential phases
-
-### Bot Coordination System
-
-Each bot runs a `BotCoordinator` instance that:
-
-- **Server Component**: Listens on a designated port for messages from the other bot
-- **Client Component**: Connects to the other bot's server port
-- **Event System**: Uses Node.js EventEmitter to handle phase transitions
-- **Message Protocol**: Exchanges JSON messages containing event names and parameters
-
-The coordinator establishes bidirectional TCP connections between bots, allowing them to send position updates and phase synchronization signals.
-
-### Synchronization Mechanism
-
-Bots achieve synchronization through:
-
-- **Shared RNG Seed**: Both bots use the same random seed (`BOT_RNG_SEED`) to generate identical random sequences. It's needed for them to know what random number the other will use without communicating it, for example what location to teleport to.
-- **Deterministic Decision Making**: All random choices (positions, walking modes, action counts) use the shared RNG
-- **Event-Based Handshaking**: Each phase waits for confirmation from both bots before proceeding
-
-### Phase Sequence
-
-Each episode follows this structured phase sequence:
-
-#### 1. Teleport Phase (`teleportPhase`)
-
-- **Purpose**: Position bots at optimal distance for interaction
-- **Process**:
-  - Generate random point within teleport radius using shared RNG
-  - Calculate desired distance between bots (9-10 blocks)
-  - Position bots on opposite sides of the random point
-  - Use RCON to teleport bots to calculated positions
-  - Both bots look at each other's computed position
-  - Start episode recording with initial buffer time
-
-#### 2. Walk and Look Phase (`walkAndLookPhase_N`)
-
-- **Purpose**: Create varied interaction scenarios
-- **Process**:
-  - Determine action count (3-5 actions) using shared RNG
-  - Select walking mode using shared RNG:
-    - `both_bots_walk`: Both bots perform walking actions
-    - `lower_name_walks`: Only the bot with lexicographically smaller name walks
-    - `bigger_name_walks`: Only the bot with lexicographically larger name walks
-  - Active bot(s) perform walking sequences while inactive bot(s) observe
-  - Each bot looks at the other bot's position at the start of the phase
-- **Iteration**: This phase repeats multiple times per episode (configurable)
-
-#### 3. Stop Phase (`stopPhase`)
-
-- **Purpose**: Cleanly end episode recording
-- **Process**:
-  - Signal end of episode recording
-  - Wait for video/data streams to close properly
-  - Prepare for next episode or program termination
-
-#### 4. Stopped Phase (`stoppedPhase`)
-
-- **Purpose**: Final synchronization before next episode
-- **Process**:
-  - Confirm both bots have stopped recording
-  - Brief pause before starting next episode
-  - Resolve episode promise to proceed to next iteration
-
-### Walking Behavior Details
-
-During walking phases, active bots perform:
-
-- **Random Walking**: Move in cardinal directions (forward/back/left/right) for 3-4 blocks
-- **Return Behavior**: Walk back to starting position after each movement
-- **Jump Actions**: Random jumping with 25% probability, lasting 1-3 seconds
-- **Sleep Intervals**: 1.5-3 second pauses between actions
-- **Smooth Camera Movement**: Look at other bot at 30°/second
-
-### Message Flow Example
-
-For a typical phase transition:
+1. Create the conda env (for postprocessing scripts):
 
 ```
-Bot Alpha                           Bot Bravo
-   |                                   |
-   |-- teleportPhase event --------->  |
-   |<-- teleportPhase confirmation --  |
-   |                                   |
-   |-- walkAndLookPhase_0 event ----> |
-   |<-- walkAndLookPhase_0 confirm -- |
-   |                                   |
-   |-- stopPhase event ------------->  |
-   |<-- stopPhase confirmation -----  |
+conda env create -f env.yaml
 ```
 
-### Configuration Parameters
-
-Key parameters controlling the phases mechanism:
-
-- `BOT_RNG_SEED`: Shared random seed for deterministic behavior
-- `teleport_radius`: Maximum distance from center for teleportation (default: 500)
-- `COORD_PORT` / `OTHER_COORD_PORT`: TCP ports for bot coordination
-
-### Error Handling
-
-The system includes robust error handling:
-
-- **Connection Retries**: Automatic reconnection if communication fails
-- **Timeout Protection**: Walk actions have configurable timeouts
-- **Graceful Degradation**: Continues if individual actions fail
-- **State Recovery**: Can resume from failed phases
-
-This phases mechanism ensures that both bots generate synchronized, high-quality interaction data suitable for machine learning applications while maintaining deterministic and reproducible behavior across multiple episodes.
-
-## Data Output
-
-Each instance generates:
-
-### Video Files
-
-- `*.mp4`: H.264 encoded video of bot perspective
-- Frame rate: 20 FPS
-- Resolution: Configurable (default based on Minecraft client)
-
-### JSON Metadata
-
-- Player positions (x, y, z coordinates)
-- Camera orientation (yaw, pitch)
-- Frame timestamps and counts
-- Game state information
-- Bot interaction events
-
-### File Structure
+1. Collect training data
 
 ```
-output/
-├── Alpha_episode_0_*.mp4
-├── Alpha_episode_0_*.json
-├── Bravo_episode_0_*.mp4
-├── Bravo_episode_0_*.json
-└── ...
+./run.sh
 ```
 
-## Analysis Tools
+1. Collect eval data
 
-The project includes analysis utilities:
-
-```bash
-# Analyze collected JSON data
-python3 analyze/analyze_json_data.py
-
-# Count frame mismatches
-python3 analyze/count_mismatched_ticks.py
-
-# Align two videos from two bots to view as a single video
-python3 align_videos.py
 ```
+./run_evals.sh
+```
+
+The `run.sh`/`run_evals.sh` will generate a folder with the Docker Compose files for two units, build the local Docker images, gather the recording outputs in `./output/data_collection/`, and prepare the final datasets in `./output/datasets/`.
