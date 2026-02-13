@@ -1,185 +1,170 @@
 # Controller
 
-The Controller component of `SolarisEngine` is JavaScript program built on top of [Mineflayer](https://github.com/PrismarineJS/mineflayer). It connects via TCP to the controller bots of other players and through communication and the high level API of Mineflayer makes the bots engage in collaborative gameplay. To ensure diversity and good coverage of various game mechanics, it has a collection of 14 programmed episode types defined in [episode-handlers/](episode-handlers/) [222](controller/episode-handlers/)
+The Controller component of `SolarisEngine` is JavaScript program built on top of [Mineflayer](https://github.com/PrismarineJS/mineflayer). It connects via TCP to the controller bots of other players and through communication and the high level API of Mineflayer makes the bots engage in collaborative gameplay. To ensure diversity and good coverage of various game mechanics, it has a collection of 14 programmed episode types defined in [episode-handlers/](episode-handlers/). It currently supports only two players.
 
 ## Design
 
-Through out the life of the controller program, it establishes the connection with the server and creates a `mineflayer.Bot()` instance just once at startup. After that, it reuses the same `bot` instance to collect as many episodes as specified in the `--episodes_num` CLI arg. The entry point to the controller is the `getOnSpawnFn()` function in `episode-handlers/index.js` which Mineflayer calls when the bot has connected to the server. The function runs in a loop sampling random episodes, executing them, and sending actions to the separate `action_recorder` process to be saved as json files on disk.
+Through out the life of the controller program, it establishes a connection with the server and creates a `mineflayer.Bot()` instance just once at startup. After that, it reuses the same `bot` instance to collect as many episodes as specified in the `--episodes_num` CLI arg. The entry point to the controller is the `getOnSpawnFn()` function in `episode-handlers/index.js` which Mineflayer calls when the bot has connected to the server. The function runs in a loop sampling random episodes, executing them, and sending actions to the separate `action_recorder` process to be saved as json files on disk.
 
-On every loop iteration, the controller draws Before every episode, the controller teleports
-which Bot is a JavaScript program build on top of Mineflayer. It connects to the Minecraft Server, and drives the behavior of the player. To ensure collaboration, it communicates with the Controller instances of other players connected to the same server. It features a set of high-level, reusable game play primitives and a modular system of various episode types focusing on different aspects of the game. See [`controller/README.md`](controller/README.md) for more details.
+Controllers of player share the same random generator, `sharedBotRng` that they use to sample the same episode type randomly on every loop iteration. To ensure that the episode starts in a clean state and in a new terrain, the controller teleports the players to a new random location and resets their inventories before starting to record the episode.
 
-- forked repos
-- inner working of controller
-  - the loop, setup, teleport
-  - phases
-  - communication
-  - base class
-  - episode types
-  - primitives
-  - eval
+The episode loop has a error handling mechanism where it catches any error the might occur during the episode execution and notifies other players about it. They collectively abort the current episode and progress to the next one.
 
-The `controller/` package is the **Mineflayer-based agent runtime** that joins a Minecraft server as a bot (e.g. `Alpha` / `Bravo`), coordinates with its peer bot, and executes scripted “episodes” while emitting recording events and metadata.
+To ensure the data collection doesn't get interrupted with the player dying, the controller gives the players infinite resistance, water breathing, and no fall damage via RCON at the program startup.
 
-This document explains:
+All episode types inherit `BaseEpisode` defined in `episode-handlers/base-episode.js`. An episode consists of multiple phases. At the beginning and end of a phase all players wait for each other an exchange arbitrary values needed for the phase progression. This phasing mechanism, combined with the `sharedBotRng` ensure the bots progress through the episode in synchronization. All episodes types are an instance of a concrete game scenario that runs from start to finish. They are build on top of primitives that provide reusable API like `building`, `digging`, `fighting`, or `moving`. They are defined in [primitives](primitives/).
 
-- the controller process model and entrypoint,
-- how Alpha/Bravo coordinate phases,
-- how episodes are selected and executed,
-- what files get written to disk,
-- how to add a new episode type.
+## Episode types
 
-## Entry point and process model
+Episode handlers live in `controller/episode-handlers/`. Episode type selection is controlled via the `EPISODE_TYPES` environment variable:
 
-In Docker Compose, each controller service runs:
+- **Default**: if `EPISODE_TYPES` is unset (or set to `all`), the controller samples from its built-in default list.
+- **Custom list**: set `EPISODE_TYPES` to a comma-separated list of episode type strings, e.g. `EPISODE_TYPES=walkLook,chase,pvp`.
 
-- `controller/entrypoint.sh`: starts `Xvfb` (virtual display) and then `node controller/main.js ...`
-- `controller/main.js`: parses args, creates the Mineflayer bot, creates a `BotCoordinator`, and registers the spawn handler.
+Below are the **14 main episode types** (the default “non-eval” scenarios) and what they do.
 
-Key files:
+### `straightLineWalk` (`episode-handlers/straight-line-episode.js`)
 
-- `main.js`: wires together `parseArgs()` + `makeBot()` + `BotCoordinator` + `getOnSpawnFn()`.
-- `config/args.js`: CLI arg parsing (`minimist`) and defaults.
-- `utils/bot-factory.js`: Mineflayer bot + plugins (pathfinder, pvp, tool).
+- **What**: One bot walks in a straight line *past* the other bot while keeping gaze; the other bot stays put and looks.
+- **Roles**: Decided each phase using shared RNG; either the lexicographically lower-name bot walks, or the higher-name bot walks.
+- **Notable parameters**:
+  - Walk past target by **4–8 blocks**.
+  - Pathfinding timeout: **20s**.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-### Configuration sources
+### `chase` (`episode-handlers/chase-episode.js`)
 
-The controller reads configuration from two places:
+- **What**: One bot chases, the other runs away using pathfinder (with digging/placing allowed for the runner).
+- **Roles**: `decidePrimaryBot(...)` picks chaser vs runner (shared RNG, symmetric).
+- **Notable parameters**:
+  - Chase duration: **5–15s**.
+  - Runner sets a single deterministic escape goal **~100 blocks** away (directly away from the chaser’s initial position).
+  - Chaser updates `GoalNear` roughly once per second and keeps the runner in view periodically.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-- **CLI args**: passed by `controller/entrypoint.sh` and parsed by `config/args.js`.
-- **Environment variables**: some behavior is gated by env vars directly in code (notably `EPISODE_TYPES`).
+### `orbit` (`episode-handlers/orbit-episode.js`)
 
-Important settings you’ll see in generated compose files:
+- **What**: Both bots “orbit” the shared midpoint by visiting checkpoints on a circle; at each checkpoint they stop and look at each other.
+- **How it works**: Midpoint is computed from both bots’ positions; radius is **half** their separation; checkpoints are generated from the bot’s starting angle.
+- **Notable parameters**:
+  - Checkpoints: **8**.
+  - Reach distance: **1.5 blocks**, per-checkpoint timeout **5s**.
+  - Eye contact at each checkpoint: **1s**.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-- **Minecraft connection**: `MC_HOST`, `MC_PORT`, `MC_VERSION`
-- **RCON**: `RCON_HOST`, `RCON_PORT`, `RCON_PASSWORD`
-- **Coordination TCP**: `COORD_PORT`, `OTHER_COORD_HOST`, `OTHER_COORD_PORT`
-- **Act recorder**: `ACT_RECORDER_HOST`, `ACT_RECORDER_PORT`
-- **Outputs**: `OUTPUT_DIR`, `INSTANCE_ID`, `EPISODE_START_ID`
-- **Episode selection**: `EPISODES_NUM`, `EPISODE_TYPES`, `SMOKE_TEST`, `WORLD_TYPE`
-- **Recording / performance**: `VIEWER_RENDERING_DISABLED`, `VIEWER_RECORDING_INTERVAL`
+### `walkLook` (`episode-handlers/walk-look-episode.js`)
 
-## Coordination: Alpha/Bravo phase protocol
+- **What**: Short random-walk bursts while looking at the partner at the start of each phase.
+- **Roles**: Per-iteration mode is sampled with shared RNG:
+  - Both bots walk, or only the lexicographically lower-name bot walks, or only the higher-name bot walks.
+- **Notable parameters**:
+  - Iterations per episode: **3**.
+  - Random-walk actions per iteration: **2–4** (`primitives/random-movement.run`), with `lookAway=false`.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-Alpha and Bravo coordinate via TCP sockets using `utils/coordination.js`:
+### `walkLookAway` (`episode-handlers/walk-look-away-episode.js`)
 
-- Each bot starts a TCP **server** on `coord_port`.
-- Each bot also starts a TCP **client** that connects to the peer (`other_coord_host:other_coord_port`).
-- Messages are newline-delimited JSON objects: `{ eventName, eventParams }`.
-- Event names are **scoped by episode number**:
+- **What**: Similar to `walkLook`, but the moving bot executes movement with “look away” behavior enabled.
+- **Roles**: Only one bot walks per iteration (lower-name or higher-name), chosen via shared RNG.
+- **Notable parameters**:
+  - Iterations per episode: **3**.
+  - Actions per iteration: **1** (fixed), with `lookAway=true`.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-`episode_<episodeNum>_<phaseName>`
+### `pvp` (`episode-handlers/pvp-episode.js`)
 
-The coordinator provides:
+- **What**: Player-vs-player melee combat using the `mineflayer-pvp` plugin (`bot.pvp.attack(...)`).
+- **Setup**: Bots are provisioned with a random sword before the episode starts.
+- **Notable parameters**:
+  - Spawn distance constraints: **8–15 blocks** (`INIT_MIN_BOTS_DISTANCE` / `INIT_MAX_BOTS_DISTANCE`).
+  - Combat duration: **10–15s**.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-- `sendToOtherBot(phaseName, params, episodeNum, locationTag)`
-- `onceEvent(phaseName, episodeNum, handler)` (wraps the handler and tracks in-flight phase handlers)
-- `waitForAllPhasesToFinish()` (used to ensure all asynchronous phase handlers settle before teardown)
-- `syncBots(episodeNum)` (a simple barrier at end of episode)
+### `pve` (`episode-handlers/pve-episode.js`)
 
-### Typical phase order (per episode)
+- **What**: Player-vs-environment fighting loop against hostile mobs (with symmetric coordination).
+- **Setup**:
+  - Temporarily sets server difficulty to **easy** during setup; resets back to **peaceful** in teardown.
+  - Provisions a random sword.
+- **Notable parameters**:
+  - Spawn distance constraints: **15–25 blocks**.
+  - Number of mobs per episode: **2–5**.
+  - If no hostile mob is in forward FOV, a hostile mob may be spawned via RCON (`summon ...`) in front of the bot.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-The main episode orchestration lives in `episode-handlers/index.js` and follows a repeated phase pattern:
+### `buildStructure` (`episode-handlers/build-structure-episode.js`)
 
-1. **teleportPhase**  
-   One bot (deterministically: `bot.username < other_bot_name`) performs teleporting via RCON commands (primarily `spreadplayers`).
+- **What**: Builds one randomly chosen small structure type: `wall`, `tower`, or `platform`.
+- **Collaboration**:
+  - `wall` / `tower`: each bot builds its own structure at its spawn location.
+  - `platform`: bots build one shared platform at the midpoint; work is split by X-axis.
+- **Notable parameters**:
+  - Spawn distance constraints: **8–15 blocks**.
+  - Block types sampled with shared RNG from: `stone`, `cobblestone`, `oak_planks`, `bricks`.
+  - Placement delay: **300ms** per block.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-2. **postTeleportPhase**  
-   Post-TP synchronization and state capture.
+### `buildTower` (`episode-handlers/build-tower-episode.js`)
 
-3. **setupEpisodePhase**  
-   Episode-specific setup runs via `episodeInstance.setupEpisode(...)` (optional override).
+- **What**: Each bot builds a vertical tower underneath itself (simple “pillar up” behavior).
+- **Notable parameters**:
+  - Spawn distance constraints: **8–15 blocks**.
+  - Tower height: **8–12 blocks**.
+  - Block type: `oak_planks`.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-4. **startRecordingPhase**  
-   The controller signals episode start by emitting `bot.emit("startepisode", episodeNum)`, then calls `episodeInstance.entryPoint(...)`.
+### `mine` (`episode-handlers/mine-episode.js`)
 
-5. **stopPhase / stoppedPhase**  
-   On normal completion or error, the episode stop handler triggers `bot.emit("endepisode")` and waits for an `episodeended` signal before resolving the episode’s promise.
+- **What**: Both bots dig down a small depth, then tunnel towards a shared underground midpoint using pathfinder with mining enabled.
+- **Setup**: Gives torches (for optional placement) and equips a `diamond_pickaxe` during the episode.
+- **Notable parameters**:
+  - Initial dig-down depth: **1 block** (`UNDERGROUND_DEPTH`).
+  - Pathfinder-with-mining timeout: **60s**.
+  - Torch placement is effectively disabled for short runs (`TORCH_PLACEMENT_INTERVAL = 999` blocks).
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-Errors are handled by notifying the peer (`peerErrorPhase_<episodeNum>`) and forcing both bots into a coordinated stop.
+### `towerBridge` (`episode-handlers/tower-bridge-episode.js`)
 
-## Episode selection and execution
+- **What**: Each bot builds a fixed-height tower, then (while sneaking) builds a bridge towards a shared target point near the midpoint.
+- **How it chooses the target**: Snaps to a shared cardinal axis (X or Z) based on which separation is larger, so both bots converge on the same line.
+- **Notable parameters**:
+  - Spawn distance constraints: **12–20 blocks**.
+  - Tower height: **8 blocks**.
+  - Bridge build timeout: **60s**.
+  - Block type: `oak_planks`.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-Episodes are implemented as classes in `episode-handlers/` and `episode-handlers/eval/`.
+### `buildHouse` (`episode-handlers/build-house-episode.js`)
 
-### Episode type lists
+- **What**: Collaborative **5×5** house build at the midpoint between bots, then both bots exit and “admire” the house.
+- **Collaboration**: For each build phase (floor/walls/roof), targets are split by X-axis with a proximity-based tie-breaker.
+- **Notable parameters**:
+  - Spawn distance constraints: **10–20 blocks**.
+  - Placement delay: **200ms** per block.
+  - Setup provisions **2×** required materials to account for scaffolding consumption.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-`episode-handlers/index.js` maintains:
+### `collector` (`episode-handlers/collector-episode.js`)
 
-- `episodeClassMap`: mapping from string type → class implementation
-- `defaultEpisodeTypes`: the default list
+- **What**: Multi-cycle mining/collection behavior: mine visible ores, then perform a “directional” or “staircase” mining task, repeating tasks twice.
+- **Modes**: Supports leader/follower vs independent; currently configured to always use **leader/follower** (`LEADER_FOLLOWER_PROBABILITY = 1.0`).
+  - **Leader**: chooses and executes mining tasks.
+  - **Follower**: follows the leader and periodically places torches.
+- **Notable parameters**:
+  - Spawn distance constraints: `INIT_MIN_BOTS_DISTANCE = 0` (teleport can place bots close).
+  - Mining cycles: up to **10** (`MAX_MINING_CYCLES`).
+  - Provisions torches: **128**.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
 
-Episode types can be restricted at runtime via the **environment variable**:
+### `placeAndMine` (`episode-handlers/place-and-mine-episode.js`)
 
-- `EPISODE_TYPES=all` (default behavior)
-- `EPISODE_TYPES=walkLook,chase,orbit` (comma-separated explicit list)
-
-### Sampling behavior
-
-For non-smoke-test runs, episode types are sampled by `utils/episode-weights.js`:
-
-- Default weight is \(1/\sqrt{\text{typical length}}\) so short episodes are sampled more often.
-- When the default episode list is used, eval episodes are typically filtered out for training-style runs.
-
-For smoke tests (`SMOKE_TEST=1`), the controller cycles deterministically through eligible episode types in alphabetical order.
-
-### Flat vs normal world
-
-Eligibility depends on `WORLD_TYPE`:
-
-- in a **flat** world, all configured types are eligible
-- in a **normal** world, only episode classes with:
-
-`static WORKS_IN_NON_FLAT_WORLD = true`
-
-are eligible (see `episode-handlers/base-episode.js`).
-
-## Recording and outputs
-
-The controller produces several artifacts.
-
-### Action trace + prismarine-rendered video (act recorder)
-
-The controller uses a headless prismarine viewer (`prismarine-viewer-colalab`) to stream per-frame state to the act recorder:
-
-- `controller/act_recorder/act_recorder.py` listens on a TCP port and writes:
-  - `<timestamp>_<episode>_<bot>_instance_<id>.json` (per-frame state with timestamps)
-  - `<timestamp>_<episode>_<bot>_instance_<id>_meta.json` (timing/fps metadata)
-  - `<timestamp>_<episode>_<bot>_instance_<id>.mp4` (only if `VIEWER_RENDERING_DISABLED=0`)
-
-All act-recorder outputs go into the compose-mounted `OUTPUT_DIR` (typically the batch `.../output/` directory).
-
-### Episode info metadata (controller)
-
-After each episode, the controller writes an `*_episode_info.json` file into `output_dir` containing:
-
-- episode number/type, instance id, world type
-- error flags (`encountered_error`, `peer_encountered_error`, `bot_died`)
-- whether recording started
-- optional eval metadata for eval episodes
-
-### Camera readiness gating
-
-If `ENABLE_CAMERA_WAIT=1`, controllers will block until both `CameraAlpha` and `CameraBravo` have joined the server (checked via RCON `list`), using `utils/camera-ready.js`.
-
-## Adding a new episode
-
-To add a new episode type end-to-end:
-
-1. **Create an episode class**
-   - Add a new file under `episode-handlers/` (or `episode-handlers/eval/` for eval episodes).
-   - Implement `entryPoint(...)` (required).
-   - Optionally implement `setupEpisode(...)` and/or `tearDownEpisode(...)`.
-   - If it works in non-flat worlds, set:
-     - `static WORKS_IN_NON_FLAT_WORLD = true`
-
-2. **Register it**
-   - Import the class in `episode-handlers/index.js`.
-   - Add it to `episodeClassMap`.
-   - Add its string name to `defaultEpisodeTypes` if you want it enabled by default.
-
-3. **Add typical length**
-   - Add the type to `utils/episode-weights.js` (`episodeTypicalLengths`) so sampling works.
-
-4. **(If eval episode) include in eval detection**
-   - Add the class to `evalEpisodeClasses` in `episode-handlers/index.js` if it should be treated as an eval episode for eval-specific behavior (like `EVAL_TIME_SET_DAY`).
+- **What**: A structured “builder vs miner” interaction.
+  - **Builder**: places 1–5 blocks per round in simple patterns around a build center.
+  - **Miner**: watches the builder, then mines exactly the placed blocks.
+- **Setup**: Searches for a suitable flat-enough build location near the midpoint and **repositions bots via RCON teleport** around the build center.
+- **Notable parameters**:
+  - Spawn distance constraints: **4–8 blocks**.
+  - Rounds per episode: **7–10**.
+  - Build center offset for roles: **2 blocks** from center.
+  - Block types include: `stone`, `oak_planks`, `bricks`, `dirt`, `smooth_sandstone`.
+- **World support**: `WORKS_IN_NON_FLAT_WORLD = true`.
