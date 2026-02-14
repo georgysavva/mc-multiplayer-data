@@ -18,12 +18,18 @@ for BATCH_NAME in "${EVAL_TYPES[@]}"; do
     NUM_FLATLAND_WORLD=2
     NUM_NORMAL_WORLD=0
     NUM_EPISODES=16
+    FLATLAND_WORLD_DISABLE_STRUCTURES=0
 
     # Override config for turnToLookEval and turnToLookOppositeEval: use 1 normal worldinstance with fixed seed
     if [ "$BATCH_NAME" == "turnToLookEval" ] || [ "$BATCH_NAME" == "turnToLookOppositeEval" ]; then
         NUM_FLATLAND_WORLD=0
         NUM_NORMAL_WORLD=1
         NUM_EPISODES=32
+    fi
+
+    # Disable background structures for structureEval and structureNoPlaceEval to avoid confusing background structures
+    if [ "$BATCH_NAME" == "structureEval" ] || [ "$BATCH_NAME" == "structureNoPlaceEval" ]; then
+        FLATLAND_WORLD_DISABLE_STRUCTURES=1
     fi
 
     rm -r compose_configs  # remove old compose configs
@@ -50,8 +56,8 @@ for BATCH_NAME in "${EVAL_TYPES[@]}"; do
         --enable_gpu 1 \
         --gpu_count 1 \
         --gpu_mode egl \
-        --eval_time_set_day $EVAL_TIME_SET_DAY #\
-        #--flatland_world_disable_structures 1  # This is manually enabled for only structureEval to avoid confusing background structures 
+        --eval_time_set_day $EVAL_TIME_SET_DAY \
+        --flatland_world_disable_structures $FLATLAND_WORLD_DISABLE_STRUCTURES
 
     python3 orchestrate.py start --build --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
     python3 orchestrate.py status --logs-dir "$BASE_DATA_DIR/$BATCH_NAME/logs"
