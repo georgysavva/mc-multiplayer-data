@@ -1,11 +1,8 @@
 # SolarisEngine docs (Sphinx)
 
-This folder builds a static documentation website from the repository READMEs:
+This folder builds a static documentation website.
 
-- `../README.md`
-- `../controller/README.md`
-
-The Sphinx pages in `docs/source/` **include** those Markdown files, so updating the READMEs updates the website automatically.
+The pages in `docs/source/` were initialized from the former repository README files, but are now maintained independently inside `docs/`.
 
 ## Setup (in your `SolarisEngine` conda env)
 
