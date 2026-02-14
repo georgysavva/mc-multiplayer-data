@@ -130,12 +130,29 @@ const episodeTypes = isCustomEpisodeTypes
   : defaultEpisodeTypes;
 
 function formatDateForFilename(date) {
+  /**
+   * Left-pad a value with zeros.
+   * @param {number|string} value - Value to pad.
+   * @param {number} [length=2] - Target width.
+   * @returns {string} Padded string.
+   */
   const pad = (value, length = 2) => String(value).padStart(length, "0");
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(
     date.getDate(),
   )}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
+/**
+ * Persist per-episode metadata to disk (one JSON file per episode).
+ *
+ * @param {Object} params - Parameters bag.
+ * @param {Object} params.args - CLI/config args. Must include `output_dir` and `bot_name`.
+ * @param {*} params.bot - Mineflayer bot instance.
+ * @param {*} params.episodeInstance - Episode instance (used for error/eval flags).
+ * @param {number} params.episodeNum - Episode number.
+ * @param {string} params.episodeType - Episode type key.
+ * @returns {Promise<void>} Resolves once the file is written.
+ */
 async function saveEpisodeInfo({
   args,
   bot,
@@ -177,14 +194,17 @@ async function saveEpisodeInfo({
     `[${bot.username}] Saved episode info to ${filePath} (encountered_error=${payload.encountered_error}, peer_encountered_error=${payload.peer_encountered_error}, bot_died=${payload.bot_died})`,
   );
 }
+
 /**
  * Run a single episode
  * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
  * @param {Function} sharedBotRng - Shared random number generator
  * @param {*} coordinator - Bot coordinator instance
  * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance for this run
  * @param {Object} args - Configuration arguments
- * @returns {Promise} Promise that resolves when episode completes
+ * @returns {Promise<Function>} Resolves with a cleanup function for episode-scoped handlers.
  */
 async function runSingleEpisode(
   bot,
@@ -206,6 +226,16 @@ async function runSingleEpisode(
 
     // Episode-scoped error handler that captures this episode number
     let episodeErrorHandled = false;
+
+    /**
+     * Handle any episode-scoped error (unhandled rejection/exception).
+     *
+     * Captures the episode number and ensures we only perform the stop/notify
+     * sequence once per episode.
+     *
+     * @param {unknown} err - Error value.
+     * @returns {Promise<void>} Resolves once peer has been notified and stop initiated.
+     */
     const handleAnyError = async (err) => {
       if (episodeErrorHandled) {
         console.log(
@@ -226,12 +256,22 @@ async function runSingleEpisode(
         err,
       );
     };
+
+    /**
+     * Mark that the bot died during this episode.
+     * @returns {void}
+     */
     const handleBotDeath = () => {
       console.warn(
         `[${bot.username}] Episode ${episodeNum} detected bot death`,
       );
       episodeInstance._botDied = true;
     };
+
+    /**
+     * Remove all episode-scoped handlers/listeners.
+     * @returns {void}
+     */
     const cleanupEpisodeScopedHandlers = () => {
       process.removeListener("unhandledRejection", handleAnyError);
       process.removeListener("unhandledException", handleAnyError);
@@ -244,6 +284,10 @@ async function runSingleEpisode(
     // Ensure we clean up episode-scoped handlers when the episode resolves
     // Return the cleanup function to the caller so it can be invoked
     // after all pending phase handlers finish.
+    /**
+     * Resolve the episode promise with the cleanup function.
+     * @returns {void}
+     */
     bot._currentEpisodeResolve = () => {
       resolve(cleanupEpisodeScopedHandlers);
     };
@@ -295,6 +339,19 @@ async function runSingleEpisode(
   });
 }
 
+/**
+ * Notify the peer bot of an episode error and initiate the stop phase locally.
+ *
+ * @param {*} bot - Mineflayer bot instance.
+ * @param {*} rcon - RCON connection instance.
+ * @param {Function} sharedBotRng - Shared RNG instance.
+ * @param {*} coordinator - Bot coordinator instance.
+ * @param {number} episodeNum - Episode number.
+ * @param {*} episodeInstance - Episode instance.
+ * @param {Object} args - Configuration args.
+ * @param {unknown} error - Error value.
+ * @returns {Promise<void>} Resolves when peer is notified and stop is scheduled.
+ */
 async function notifyPeerErrorAndStop(
   bot,
   rcon,
@@ -448,6 +505,13 @@ async function setupBotAndCameraForEpisode(bot, rcon, args) {
   await unequipHand(bot);
 }
 
+/**
+ * Clear all items from the bot's inventory.
+ *
+ * @param {*} bot - Mineflayer bot instance.
+ * @param {*} rcon - RCON connection instance.
+ * @returns {Promise<void>} Resolves when the `/clear` command completes.
+ */
 async function clearBotInventory(bot, rcon) {
   // /clear <name> with no item argument deletes ALL items
   const cmd = `clear ${bot.username}`;
@@ -675,10 +739,13 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
 /**
  * Get teleport phase handler function
  * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
  * @param {Function} sharedBotRng - Shared random number generator
  * @param {*} coordinator - Bot coordinator instance
  * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
+ * @param {Object} phaseDataOur - Our phase data payload
  * @returns {Function} Teleport phase handler
  */
 function getOnTeleportPhaseFn(
@@ -735,6 +802,19 @@ function getOnTeleportPhaseFn(
     );
   };
 }
+
+/**
+ * Get post-teleport phase handler.
+ *
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
+ * @param {Function} sharedBotRng - Shared RNG
+ * @param {*} coordinator - Bot coordinator
+ * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance
+ * @param {Object} args - Configuration args
+ * @returns {Function} Post-teleport phase handler
+ */
 function getOnPostTeleportPhaseFn(
   bot,
   rcon,
@@ -782,6 +862,20 @@ function getOnPostTeleportPhaseFn(
     );
   };
 }
+
+/**
+ * Get setup-episode phase handler.
+ *
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
+ * @param {Function} sharedBotRng - Shared RNG
+ * @param {*} coordinator - Bot coordinator
+ * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance
+ * @param {Object} args - Configuration args
+ * @param {Object} phaseDataOur - Our phase payload (expects `position`)
+ * @returns {Function} Setup-episode phase handler
+ */
 function getOnSetupEpisodeFn(
   bot,
   rcon,
@@ -849,6 +943,19 @@ function getOnSetupEpisodeFn(
     );
   };
 }
+
+/**
+ * Get start-recording phase handler.
+ *
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
+ * @param {Function} sharedBotRng - Shared RNG
+ * @param {*} coordinator - Bot coordinator
+ * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance
+ * @param {Object} args - Configuration args
+ * @returns {Function} Start-recording phase handler
+ */
 function getOnStartRecordingFn(
   bot,
   rcon,
@@ -888,6 +995,23 @@ function getOnStartRecordingFn(
     );
   };
 }
+
+/**
+ * Teleport both bots to a randomized location (or episode-specific fixed points).
+ *
+ * Uses `spreadplayers` to place both bots within the configured distance bounds.
+ * For some eval episodes, applies special-case teleporting.
+ *
+ * @param {*} bot - Mineflayer bot instance.
+ * @param {*} rcon - RCON connection instance.
+ * @param {Object} args - Configuration args.
+ * @param {*} ourPosition - Our current position (vec3-like).
+ * @param {*} otherBotPosition - Peer current position (vec3-like).
+ * @param {*} episodeInstance - Episode instance (used for min/max distances and eval detection).
+ * @param {Function} sharedBotRng - Shared RNG (currently unused; reserved for future determinism).
+ * @param {number} episodeNum - Episode number (for logging/commands).
+ * @returns {Promise<void>} Resolves when teleport attempt finishes.
+ */
 async function teleport(
   bot,
   rcon,
@@ -1016,6 +1140,20 @@ async function teleport(
   }
 }
 
+/**
+ * Get peer-error phase handler for a specific episode.
+ *
+ * When the peer reports an error, mark `_peerError` and schedule the stop phase.
+ *
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
+ * @param {Function} sharedBotRng - Shared RNG
+ * @param {*} coordinator - Bot coordinator
+ * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance
+ * @param {Object} args - Configuration args
+ * @returns {Function} Peer-error phase handler
+ */
 function getOnPeerErrorPhaseFn(
   bot,
   rcon,
