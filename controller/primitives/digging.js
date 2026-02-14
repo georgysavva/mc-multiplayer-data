@@ -50,6 +50,12 @@ async function digWithTimeout(bot, block, options = {}) {
   }
 }
 
+/**
+ * Dig a block at a world position, if present.
+ * @param {*} bot - Mineflayer bot instance
+ * @param {Vec3} blockPos - Block position to dig
+ * @returns {Promise<boolean>} True if the block was air/dug successfully; false on error
+ */
 async function digBlock(bot, blockPos) {
   try {
     const block = bot.blockAt(blockPos);

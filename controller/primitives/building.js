@@ -2489,19 +2489,42 @@ async function buildBridge(
   }
 }
 
+/**
+ * Local air-like predicate used by the custom placement helpers below.
+ * @param {*} block - Block to check
+ * @returns {boolean} True if block is missing/air/empty-bounding-box
+ */
 function isAirLikeLocal(block) {
   return !block || block.name === "air" || block.boundingBox === "empty";
 }
 
+/**
+ * Get maximum block reach distance for the bot given its game mode.
+ * @param {*} bot - Mineflayer bot instance
+ * @returns {number} Maximum reach distance in blocks
+ */
 function reachMax(bot) {
   return bot.game && bot.game.gameMode === 1 ? 6 : 4.5;
 }
 
+/**
+ * Check whether a position is within reach, using local reach rules.
+ * @param {*} bot - Mineflayer bot instance
+ * @param {Vec3} pos - Position to check
+ * @param {number} [max=reachMax(bot)] - Maximum reach distance
+ * @returns {boolean} True if the position is within reach
+ */
 function inReachLocal(bot, pos, max = reachMax(bot)) {
   const center = pos.offset(0.5, 0.5, 0.5);
   return bot.entity.position.distanceTo(center) <= max;
 }
 
+/**
+ * Compute the center point of a specific face on a reference block.
+ * @param {*} refBlock - Reference block to click/place against
+ * @param {Vec3} faceVec - Face normal vector
+ * @returns {Vec3} World position of the face center
+ */
 function faceCenterOf(refBlock, faceVec) {
   return refBlock.position.offset(
     0.5 + faceVec.x * 0.5,
@@ -2510,12 +2533,24 @@ function faceCenterOf(refBlock, faceVec) {
   );
 }
 
+/**
+ * Compute an appropriate tick delay between block placements for a structure size.
+ * @param {number} blockCount - Number of blocks in the structure being placed
+ * @returns {number} Delay in ticks between placements
+ */
 const getBlockPlaceDelayTicks = (blockCount) => {
   if (blockCount === 2) return 4; // tower: 0.55 seconds (15 ticks)
   if (blockCount === 4) return 4; // wall: 0.6 seconds (12 ticks) - REDUCED
   return 4; // Default: 0.55 seconds (15 ticks)
 };
 
+/**
+ * Lightweight line-of-sight test from bot eye to a specific face center.
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} refBlock - Reference block
+ * @param {Vec3} faceVec - Face normal vector
+ * @returns {boolean} True if the ray is not obstructed by solid blocks
+ */
 function hasLineOfSightToFaceLocal(bot, refBlock, faceVec) {
   try {
     const eye = bot.entity.position.offset(0, bot.entity.height ?? 1.62, 0);
@@ -2542,6 +2577,12 @@ function hasLineOfSightToFaceLocal(bot, refBlock, faceVec) {
   }
 }
 
+/**
+ * Find a reference block and face that are both reachable and visible for placement.
+ * @param {*} bot - Mineflayer bot instance
+ * @param {Vec3} targetPos - Target position where a block will be placed
+ * @returns {{refBlock: *, faceVec: Vec3} | null} Placement reference or null if none found
+ */
 function findVisibleReachablePlaceReferenceLocal(bot, targetPos) {
   for (const face of CARDINALS) {
     const refPos = targetPos.plus(face);
@@ -2557,6 +2598,20 @@ function findVisibleReachablePlaceReferenceLocal(bot, targetPos) {
   return null;
 }
 
+/**
+ * Attempt to place a block using an explicit reference block and face vector.
+ * This is a low-overhead placement helper used by `placeMultipleWithDelay`.
+ * @param {*} bot - Mineflayer bot instance
+ * @param {Vec3} targetPos - Target position where a block should appear
+ * @param {string} itemName - Item/block name to place
+ * @param {*} refBlock - Reference block to place against
+ * @param {Vec3} faceVec - Face vector (normal direction) to click on reference block
+ * @param {Object} [options={}] - Placement options
+ * @param {boolean} [options.useSneak=true] - Whether to sneak while placing
+ * @param {number} [options.tries=2] - Number of placement attempts
+ * @param {Object} [options.args=null] - Episode args (e.g., RCON config)
+ * @returns {Promise<boolean>} True if the block is placed/confirmed
+ */
 async function tryPlaceAtUsingLocal(
   bot,
   targetPos,
