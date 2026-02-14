@@ -18,3 +18,4 @@ postprocess/__pycache__/
 compose_configs/
 docs/build/
 docs/source/_build/
+node_modules/

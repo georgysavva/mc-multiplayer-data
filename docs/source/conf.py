@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import date
+import os
+from pathlib import Path
 
 project = "SolarisEngine"
 author = "SolarisEngine contributors"
@@ -8,7 +10,23 @@ copyright = f"{date.today().year}, {author}"
 
 extensions = [
     "myst_parser",
+    "sphinx_js",
+
 ]
+
+# sphinx-js configuration (https://pypi.org/project/sphinx-js/)
+#
+#
+# sphinx-js scans `js_source_path` entries *non-recursively* by default, so we
+# point it directly at the directories we want to document.
+js_source_path = [
+    "../../controller/episode-handlers",
+    "../../controller/primitives",
+]
+
+# When multiple `js_source_path` entries are set, sphinx-js requires an explicit
+# root so relative paths (./, ../) are unambiguous.
+root_for_relative_js_paths = "../../controller"
 
 # Keep this list small to avoid extra dependencies in the conda env.
 myst_enable_extensions = [
