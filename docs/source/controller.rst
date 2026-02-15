@@ -5,8 +5,9 @@ The Controller component of ``SolarisEngine`` is JavaScript program built on top
 `Mineflayer <https://github.com/PrismarineJS/mineflayer>`_. It connects via TCP to the
 controller bots of other players and through communication and the high level API of
 Mineflayer makes the bots engage in collaborative gameplay. To ensure diversity and
-good coverage of various game mechanics, it has a collection of 14 programmed episode
-types defined in ``controller/episode-handlers/``. It currently supports only two players.
+good coverage of various game mechanics, it has a collection of 14 :ref:`training episode types <training-episode-types>` and 7 :ref:`eval episode types <eval-episode-types>`. 
+All episodes types currently support only two players.
+
 
 Design
 ------
@@ -35,16 +36,13 @@ To ensure the data collection doesn't get interrupted with the player dying, the
 controller gives the players infinite resistance, water breathing, and no fall damage
 via RCON at the program startup.
 
-All episode types inherit ``BaseEpisode`` defined in ``episode-handlers/base-episode.js``.
+All episode types inherit :js:class:`base-episode.BaseEpisode` that provides them with the basic episode lifecycle: setupEpisode, entryPoint, tearDownEpisode, and stop-phase coordination.
 An episode consists of multiple phases. At the beginning and end of a phase all players
 wait for each other an exchange arbitrary values needed for the phase progression. This
 phasing mechanism, combined with the ``sharedBotRng`` ensure the bots progress through
 the episode in synchronization. All episodes types are an instance of a concrete game
 scenario that runs from start to finish. They are build on top of primitives that
-provide reusable API like ``building``, ``digging``, ``fighting``, or ``moving``. They
-are defined in ``controller/primitives/``.
-
-For the list of episode types and their behavior, see :doc:`controller_episodes`.
+provide reusable API like :ref:`building <api-building>`, :ref:`digging <api-digging>`, :ref:`fighting <api-fighting>`, or :ref:`moving <api-movement>`. 
 
 .. toctree::
    :maxdepth: 1

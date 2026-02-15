@@ -43,11 +43,13 @@ All episode handlers extend :js:class:`base-episode.BaseEpisode` and implement
 :js:meth:`base-episode.BaseEpisode.setupEpisode` and
 :js:meth:`base-episode.BaseEpisode.tearDownEpisode`).
 
-base
+Base
 ^^^^
 
 .. js:autoclass:: base-episode.BaseEpisode
    :members:
+
+.. _api-training-episodes:
 
 Training episodes
 ^^^^^^^^^^^^^^^^^
@@ -122,7 +124,9 @@ Eval episodes
 Primitives
 ~~~~~~~~~~
 
-building
+.. _api-building:
+
+Building
 ^^^^^^^^
 
 .. js:autofunction:: building.makeHouseBlueprint5x5
@@ -193,7 +197,9 @@ building
 
 .. js:autofunction:: building.getBlockPlaceDelayTicks
 
-digging
+.. _api-digging:
+
+Digging
 ^^^^^^^
 
 .. js:autofunction:: digging.digWithTimeout
@@ -208,7 +214,9 @@ digging
 
 .. js:autofunction:: digging.isBlockVisible
 
-fighting
+.. _api-fighting:
+
+Fighting
 ^^^^^^^^
 
 .. js:autofunction:: fighting.giveRandomSword
@@ -217,7 +225,7 @@ fighting
 
 .. js:autofunction:: fighting.isInForwardFOV
 
-items
+Items
 ^^^^^
 
 .. js:autofunction:: items.unequipHand
@@ -226,7 +234,9 @@ items
 
 .. js:autofunction:: items.ensureItemInHand
 
-movement
+.. _api-movement:
+
+Movement
 ^^^^^^^^
 
 .. js:autofunction:: movement.stopAll
@@ -279,7 +289,7 @@ movement
 
 .. js:autofunction:: movement.getScaffoldingBlockIds
 
-random-movement
+Random-movement
 ^^^^^^^^^^^^^^^
 
 .. js:autofunction:: random-movement.walk

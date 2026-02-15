@@ -9,8 +9,15 @@ controlled via the ``EPISODE_TYPES`` environment variable:
 - **Custom list**: set ``EPISODE_TYPES`` to a comma-separated list of episode type
   strings, e.g. ``EPISODE_TYPES=walkLook,chase,pvp``.
 
-Below are the **14 main episode types** (the default "non-eval" scenarios) and what
-they do.
+Episode types are split into **Training** (default non-eval scenarios) and **Eval**
+(episodes used for evaluation). Eval handlers live under ``controller/episode-handlers/eval/``.
+
+.. _training-episode-types:
+
+Training
+--------
+
+Below are the **14 main training episode types** and what they do.
 
 ``straightLineWalk`` (``episode-handlers/straight-line-episode.js``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -240,5 +247,129 @@ they do.
   - Build center offset for roles: **2 blocks** from center.
   - Block types include: ``stone``, ``oak_planks``, ``bricks``, ``dirt``,
     ``smooth_sandstone``.
+
+- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+
+.. _eval-episode-types:
+
+Eval
+----
+
+Eval episode types are used for evaluation runs. Handlers live in
+``controller/episode-handlers/eval/``.
+
+``structureEval`` (``episode-handlers/eval/structureEval.js``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **What**: Independent structure building and evaluation: one bot (builder) builds a
+  small structure at its spawn; the other bot (observer) watches. Used to evaluate
+  structure-building and observation.
+- **Roles**: Builder vs observer chosen with shared RNG (``alpha_builds`` or
+  ``bravo_builds``).
+- **Notable parameters**:
+
+  - Structure types: ``wall_2x2``, ``wall_4x1``, ``tower_2x1`` (from
+    ``ALL_STRUCTURE_TYPES``).
+  - Block type: **stone** only.
+  - Spawn distance: **6 blocks** (``INIT_MIN_BOTS_DISTANCE`` / ``INIT_MAX_BOTS_DISTANCE``).
+  - Minimum episode ticks: **300**.
+
+- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+
+``translationEval`` (``episode-handlers/eval/translation-eval-episode.js``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **What**: One bot (by episode number) aligns to the other along one principal axis,
+  then walks using ``run()``; used to evaluate movement/translation.
+- **Roles**: Which bot walks alternates by episode number (``lower_name_walks`` or
+  ``bigger_name_walks``); the non-walking bot stays. One bot may align to the other
+  before the phase (Bravo aligns to Alpha along X or Z).
+- **Notable parameters**:
+
+  - Spawn distance: **10–12 blocks**.
+  - Walk: **1** action per iteration (``MIN_RUN_ACTIONS`` / ``MAX_RUN_ACTIONS``).
+  - Movement: ``MIN_WALK_DISTANCE`` 6, ``MAX_WALK_DISTANCE`` 9, no jump.
+  - Minimum episode ticks: **300**.
+
+- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+
+``bothLookAwayEval`` (``episode-handlers/eval/both-look-away-eval-episode.js``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **What**: Both bots look at each other, then both look away by the same random
+  direction/offset; used to evaluate joint look-away behavior.
+- **Roles**: Mode is fixed to ``both_look_away`` (both bots look away).
+- **Notable parameters**:
+
+  - Spawn distance: **10–12 blocks**.
+  - Look-away duration: **1s** (``MIN_LOOK_AWAY_DURATION_SEC`` /
+    ``MAX_LOOK_AWAY_DURATION_SEC``).
+  - Look-away offset: **90° ± 22.5°** (left or right).
+  - Iterations per episode: **1**.
+  - Minimum episode ticks: **300**.
+
+- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+
+``oneLooksAwayEval`` (``episode-handlers/eval/one-looks-away-eval-episode.js``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **What**: One bot (lower or higher name, by episode number) looks away by a random
+  offset after initial eye contact; the other keeps looking. Used to evaluate
+  look-away behavior.
+- **Roles**: Alternates by episode number: ``lower_name_looks_away`` or
+  ``bigger_name_looks_away``.
+- **Notable parameters**:
+
+  - Spawn distance: **10–12 blocks**.
+  - Look-away duration: **1s**.
+  - Look-away offset: **90° ± 22.5°**.
+  - Iterations per episode: **1**.
+  - Minimum episode ticks: **300**.
+
+- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+
+``rotationEval`` (``episode-handlers/eval/rotation-eval-episode.js``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **What**: One bot (alpha or bravo, by episode number) rotates yaw by a fixed angle
+  while the other stays; used to evaluate camera rotation.
+- **Roles**: Which bot rotates is determined by ``episodeNum % 6``: cases 0–2 alpha
+  rotates (+40°, -40°, or 180°), cases 3–5 bravo rotates (same angles).
+- **Notable parameters**:
+
+  - Spawn distance: **10–12 blocks**.
+  - Rotation angles: **+40°, -40°, 180°** (per case).
+  - Camera speed: **30°/s**.
+  - Minimum episode ticks: **300**.
+
+- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+
+``turnToLookEval`` (``episode-handlers/eval/turn-to-look-eval-episode.js``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **What**: Bots look at each other, then one (by name order) faces sideways (90° left
+  or right); used to evaluate turning to look at the other bot.
+- **Roles**: Lexicographically lower-name bot rotates one direction, higher-name bot
+  the opposite (``dir = bot.username < otherName ? 1 : -1``), so they face different
+  sides.
+- **Notable parameters**:
+
+  - Camera speed: **30°/s** for initial look, **90°/s** for turn.
+  - Minimum episode ticks: **300**.
+
+- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+
+``turnToLookOppositeEval`` (``episode-handlers/eval/turn-to-look-opposite-eval-episode.js``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **What**: Same as ``turnToLookEval`` but both bots rotate the same direction, so they
+  end up facing opposite directions; used to evaluate turn-to-look in the opposite
+  configuration.
+- **Roles**: Both use the same rotation direction (``dir = 1``), resulting in
+  opposite facing directions because their "toward each other" vectors are opposite.
+- **Notable parameters**:
+
+  - Camera speed: **30°/s** for initial look, **90°/s** for turn.
+  - Minimum episode ticks: **300**.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
