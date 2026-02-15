@@ -317,6 +317,11 @@ function getOnChasePhaseFn(
   };
 }
 
+/**
+ * Episode where one bot chases the other using pathfinder; roles (chaser/runner) are decided
+ * by shared RNG. Chase duration is random within a range.
+ * @extends BaseEpisode
+ */
 class ChaseEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
@@ -364,9 +369,4 @@ class ChaseEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  chaseRunner,
-  runFromChaser,
-  getOnChasePhaseFn,
-  ChaseEpisode,
-};
+module.exports = { ChaseEpisode };

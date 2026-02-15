@@ -493,7 +493,9 @@ function getOnStructureEvalPhaseFn(
 }
 
 /**
- * StructureEvalEpisode - Episode class for independent structure building and evaluation
+ * Eval episode for independent structure building: each bot builds a small structure (wall_2x2,
+ * wall_4x1, or tower_2x1) at a fixed distance, with eye contact and admire phases for evaluation.
+ * @extends BaseEpisode
  */
 class StructureEvalEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 6;
@@ -567,24 +569,4 @@ class StructureEvalEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  buildStructure,
-  generateWallPositions,
-  generateTowerPositions,
-  generatePlatformPositions,
-  getStructureCenterForViewing,
-  getOnStructureEvalPhaseFn,
-  StructureEvalEpisode,
-  // Constants
-  ALL_STRUCTURE_TYPES,
-  BUILD_BLOCK_TYPES,
-  EPISODE_MIN_TICKS,
-  PLACEMENT_STANDOFF_BLOCKS,
-  ADJACENT_GOAL_RADIUS,
-  CARDINALS,
-  // Timing functions
-  getInitialEyeContactTicks,
-  getBlockPlaceDelayTicks,
-  getBuilderAdmireTicks,
-  // Local helper functions
-};
+module.exports = { StructureEvalEpisode };

@@ -121,6 +121,11 @@ function getOnWalkLookPhaseFn(
   };
 }
 
+/**
+ * Episode with multiple iterations: bots look at each other, then either both walk, or only
+ * the lower/bigger name bot walks (mode chosen by shared RNG). Uses random-movement run().
+ * @extends BaseEpisode
+ */
 class WalkLookEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
@@ -167,7 +172,4 @@ class WalkLookEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  getOnWalkLookPhaseFn,
-  WalkLookEpisode,
-};
+module.exports = { WalkLookEpisode };

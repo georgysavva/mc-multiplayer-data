@@ -134,7 +134,9 @@ function getOnBuildTowerPhaseFn(
 }
 
 /**
- * BuildTowerEpisode - Episode class for individual tower building
+ * Episode for individual tower building. Each bot builds a tower of random height (8–12 blocks)
+ * at their spawn position, with initial and final eye contact.
+ * @extends BaseEpisode
  */
 class BuildTowerEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 8;
@@ -203,10 +205,4 @@ class BuildTowerEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  getOnBuildTowerPhaseFn,
-  MIN_TOWER_HEIGHT,
-  MAX_TOWER_HEIGHT,
-  TOWER_BLOCK_TYPE,
-  BuildTowerEpisode,
-};
+module.exports = { BuildTowerEpisode };

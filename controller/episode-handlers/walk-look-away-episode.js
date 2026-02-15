@@ -114,6 +114,11 @@ function getOnWalkLookAwayPhaseFn(
   };
 }
 
+/**
+ * Episode similar to WalkLook but with look-away: one bot (lower or bigger name, by shared RNG)
+ * walks while looking away; the other stays. Single run action per iteration.
+ * @extends BaseEpisode
+ */
 class WalkLookAwayEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
@@ -160,7 +165,4 @@ class WalkLookAwayEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  getOnWalkLookAwayPhaseFn,
-  WalkLookAwayEpisode,
-};
+module.exports = { WalkLookAwayEpisode };

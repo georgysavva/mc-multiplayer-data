@@ -381,7 +381,9 @@ function getOnBuildHousePhaseFn(
 }
 
 /**
- * BuildHouseEpisode - Episode class for collaborative 5x5 house building
+ * Episode for collaborative 5x5 house building. Both bots coordinate to build a shared house
+ * at the midpoint between them, splitting work by X-axis.
+ * @extends BaseEpisode
  */
 class BuildHouseEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 10;
@@ -492,7 +494,4 @@ class BuildHouseEpisode extends BaseEpisode {
 
 module.exports = {
   BuildHouseEpisode,
-  getOnBuildHouseSetupPhaseFn,
-  getOnBuildHousePhaseFn,
-  MATERIALS,
 };

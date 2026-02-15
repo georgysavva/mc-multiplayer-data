@@ -375,6 +375,11 @@ function getOnPVEPhaseFn(
   };
 }
 
+/**
+ * Episode where both bots fight hostile mobs (spawned via RCON). Each bot guards a position,
+ * engages nearby hostiles with mineflayer-pvp, then returns and looks at the other bot.
+ * @extends BaseEpisode
+ */
 class PveEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 15;
   static INIT_MAX_BOTS_DISTANCE = 25;
@@ -451,7 +456,4 @@ class PveEpisode extends BaseEpisode {
     );
   }
 }
-module.exports = {
-  getOnPVEPhaseFn,
-  PveEpisode,
-};
+module.exports = { PveEpisode };

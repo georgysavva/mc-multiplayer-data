@@ -438,7 +438,9 @@ function getOnBuildPhaseFn(
 }
 
 /**
- * BuildStructureEpisode - Episode class for collaborative structure building
+ * Episode for collaborative structure building (wall, tower, or platform). Structure type is
+ * chosen per episode via shared RNG; wall/tower are built individually, platform is split by X-axis.
+ * @extends BaseEpisode
  */
 class BuildStructureEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 8;
@@ -533,10 +535,4 @@ class BuildStructureEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  makeWallBlueprint,
-  makeTowerBlueprint,
-  makePlatformBlueprint,
-  getOnBuildPhaseFn,
-  BuildStructureEpisode,
-};
+module.exports = { BuildStructureEpisode };

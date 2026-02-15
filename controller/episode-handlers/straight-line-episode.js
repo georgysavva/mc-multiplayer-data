@@ -201,6 +201,11 @@ function getOnStraightLineWalkPhaseFn(
   };
 }
 
+/**
+ * Episode where one bot walks in a straight line past the other (or both stay); who walks
+ * is determined by shared RNG (lower/bigger name). The walker pathfinds past the other bot.
+ * @extends BaseEpisode
+ */
 class StraightLineEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
   async entryPoint(
@@ -247,8 +252,4 @@ class StraightLineEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  walkStraightWhileLooking,
-  getOnStraightLineWalkPhaseFn,
-  StraightLineEpisode,
-};
+module.exports = { StraightLineEpisode };

@@ -450,7 +450,9 @@ function getOnMinePhaseFn(
 }
 
 /**
- * MineEpisode - Simplified episode class using pathfinder for mining
+ * Episode where both bots dig down, then mine toward a shared midpoint using pathfinder with
+ * torch placement. Uses diamond pickaxe and pathfinder-based navigation.
+ * @extends BaseEpisode
  */
 class MineEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
@@ -529,12 +531,4 @@ class MineEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  getOnMinePhaseFn,
-  mineTowardsTargetWithTorchPlacement,
-  TOOL_TYPE,
-  TORCH_TYPE,
-  TORCH_PLACEMENT_INTERVAL,
-  MineEpisode,
-  digDownToUnderground,
-};
+module.exports = { MineEpisode };
