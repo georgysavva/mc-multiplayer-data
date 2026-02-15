@@ -1,7 +1,59 @@
-# Base data directory and batch configuration
-BASE_DATA_DIR=${BASE_DATA_DIR:-"output2"}
+# Defaults
+BASE_DATA_DIR="output2"
+NUM_BATCHES=2
+NUM_FLAT_WORLD=1
+NUM_NORMAL_WORLD=1
+NUM_EPISODES=2
+DATASET_NAME="duet"
+
+# Parse CLI args
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --output-dir)
+      BASE_DATA_DIR="$2"
+      shift 2
+      ;;
+    --num-batches)
+      NUM_BATCHES="$2"
+      shift 2
+      ;;
+    --num-flat-world)
+      NUM_FLAT_WORLD="$2"
+      shift 2
+      ;;
+    --num-normal-world)
+      NUM_NORMAL_WORLD="$2"
+      shift 2
+      ;;
+    --num-episodes)
+      NUM_EPISODES="$2"
+      shift 2
+      ;;
+    --dataset-name)
+      DATASET_NAME="$2"
+      shift 2
+      ;;
+    -h|--help)
+      echo "Usage: $0 [OPTIONS]"
+      echo "  --output-dir DIR       Base data directory (default: output2)"
+      echo "  --num-batches N        Number of batches (default: 2)"
+      echo "  --num-flat-world N     Number of flat worlds per batch (default: 1)"
+      echo "  --num-normal-world N   Number of normal worlds per batch (default: 1)"
+      echo "  --num-episodes N       Number of episodes (default: 2)"
+      echo "  --dataset-name NAME    Dataset name (default: duet)"
+      echo "  -h, --help             Show this help"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      echo "Use --help for usage"
+      exit 1
+      ;;
+  esac
+done
+
 BASE_DATA_COLLECTION_DIR=$BASE_DATA_DIR/data_collection/train
-for i in {0..1}; do
+for ((i=0; i<NUM_BATCHES; i++)); do
     BATCH_NAME="batch_$i"
     BATCH_DIR="$BASE_DATA_COLLECTION_DIR/$BATCH_NAME"
     COMPOSE_DIR="$BATCH_DIR/compose_configs"
@@ -19,9 +71,9 @@ for i in {0..1}; do
         --camera_data_alpha_base "$BATCH_DIR/camera/data_alpha" \
         --camera_data_bravo_base "$BATCH_DIR/camera/data_bravo" \
         --smoke_test 0 \
-        --num_flatland_world 1 \
-        --num_normal_world 1 \
-        --num_episodes 2 \
+        --num_flatland_world $NUM_FLAT_WORLD \
+        --num_normal_world $NUM_NORMAL_WORLD \
+        --num_episodes $NUM_EPISODES \
         --eval_time_set_day 0 \
         --viewer_rendering_disabled 1 \
         --gpu_mode egl
@@ -32,8 +84,6 @@ for i in {0..1}; do
     python3 orchestrate.py stop --compose-dir "$COMPOSE_DIR"
     python3 orchestrate.py postprocess --compose-dir "$COMPOSE_DIR" --workers 32 --comparison-video --output-dir "$BATCH_DIR/aligned"
 done
-
-DATASET_NAME="duet"
 
 echo "Preparing train dataset"
 python3 postprocess/prepare_train_dataset.py --source-dir $BASE_DATA_COLLECTION_DIR --destination-dir $BASE_DATA_DIR/datasets/$DATASET_NAME

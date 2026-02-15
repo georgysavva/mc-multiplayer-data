@@ -1,7 +1,29 @@
 #!/bin/bash
 
-# Base data directory configuration
-BASE_DATA_DIR=${BASE_DATA_DIR:-"output2"}
+# Defaults
+BASE_DATA_DIR="output2"
+
+# Parse CLI args
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --output-dir)
+            BASE_DATA_DIR="$2"
+            shift 2
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo "  --output-dir DIR   Base data directory (default: output2)"
+            echo "  -h, --help         Show this help"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            echo "Use --help for usage"
+            exit 1
+            ;;
+    esac
+done
+
 BASE_DATA_COLLECTION_DIR=$BASE_DATA_DIR/data_collection/eval
 # Set time to "day" at beginning of all eval episodes
 EVAL_TIME_SET_DAY=${EVAL_TIME_SET_DAY:-1}
