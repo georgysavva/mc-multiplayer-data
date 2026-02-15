@@ -49,6 +49,8 @@ All episode handlers extend :js:class:`episode-handlers/base-episode.BaseEpisode
 Base
 ^^^^
 
+.. _api-base-episode:
+
 .. js:autoclass:: episode-handlers/base-episode.BaseEpisode
    :members:
 

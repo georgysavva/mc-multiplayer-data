@@ -10,7 +10,7 @@ This page describes the main command-line entry points for data collection: ``ru
 
 `[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/run.sh>`_
 
-runs the full training data collection pipeline: it generates compose configs, starts Minecraft instances per batch, collects episodes, stops them, postprocesses (including comparison videos), then prepares and splits the train dataset and annotates some test videos.
+runs the full training data collection pipeline: it generates compose configs, starts Minecraft instances per batch, collects episodes, stops them, postprocesses, then prepares and splits the train dataset and annotates some test videos.
 
 Usage
 ~~~~~

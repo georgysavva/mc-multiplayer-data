@@ -46,7 +46,11 @@ const {
 } = require("./episode-handlers/eval/turn-to-look-opposite-eval-episode");
 const turnToLookEvalTpPoints = require("./episode-handlers/eval/turn-to-look-eval-episode-tp-points.json");
 
-// Map episode type strings to their class implementations
+/**
+ * Map of episode type string keys to their episode class constructors.
+ * Used to instantiate episodes by type name (e.g. from config or env).
+ * @type {Object<string, typeof import('./episode-handlers/base-episode').BaseEpisode>}
+ */
 const episodeClassMap = {
   straightLineWalk: StraightLineEpisode,
   chase: ChaseEpisode,
@@ -72,7 +76,11 @@ const episodeClassMap = {
   turnToLookOppositeEval: TurnToLookOppositeEvalEpisode,
 };
 
-// List of eval episode classes for generic eval episode detection
+/**
+ * Array of eval episode classes used to detect whether an episode instance
+ * is an eval episode (e.g. in {@link isEvalEpisode}).
+ * @type {Array<typeof import('./episode-handlers/base-episode').BaseEpisode>}
+ */
 const evalEpisodeClasses = [
   StructureEvalEpisode,
   TranslationEvalEpisode,
@@ -96,8 +104,11 @@ function isEvalEpisode(episodeInstance) {
 
 // Import episode-specific handlers
 
-// Add episode type selection - Enable multiple types for diverse data collection
-// Default episode types list
+/**
+ * Default list of episode type keys to run when EPISODE_TYPES is not set.
+ * Each string must be a key of {@link episodeClassMap}.
+ * @type {string[]}
+ */
 const defaultEpisodeTypes = [
   "straightLineWalk",
   "chase",
