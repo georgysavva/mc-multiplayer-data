@@ -6,7 +6,7 @@
  */
 
 const { parseArgs } = require("./config/args");
-const { getOnSpawnFn } = require("./episode-handlers");
+const { getOnSpawnFn } = require("./episodes-loop");
 const { makeBot } = require("./utils/bot-factory");
 const { BotCoordinator } = require("./utils/coordination");
 const { sleep } = require("./utils/helpers");

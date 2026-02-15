@@ -5,46 +5,46 @@ const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const { Rcon } = require("rcon-client");
 const seedrandom = require("seedrandom");
 
-const { sleep } = require("../utils/helpers");
-const { waitForCameras } = require("../utils/camera-ready");
-const { DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC } = require("../utils/constants");
+const { sleep } = require("./utils/helpers");
+const { waitForCameras } = require("./utils/camera-ready");
+const { DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC } = require("./utils/constants");
 const {
   directTeleport,
   lookAtSmooth,
   stopAll,
-} = require("../primitives/movement");
-const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
-const { selectWeightedEpisodeType } = require("../utils/episode-weights");
+} = require("./primitives/movement");
+const { ensureBotHasEnough, unequipHand } = require("./primitives/items");
+const { selectWeightedEpisodeType } = require("./utils/episode-weights");
 
 // Import episode classes
-const { StraightLineEpisode } = require("./straight-line-episode");
-const { ChaseEpisode } = require("./chase-episode");
-const { OrbitEpisode } = require("./orbit-episode");
-const { WalkLookEpisode } = require("./walk-look-episode");
-const { WalkLookAwayEpisode } = require("./walk-look-away-episode");
-const { PvpEpisode } = require("./pvp-episode");
-const { BuildStructureEpisode } = require("./build-structure-episode");
-const { BuildTowerEpisode } = require("./build-tower-episode");
-const { MineEpisode } = require("./mine-episode");
-const { PveEpisode } = require("./pve-episode");
-const { TowerBridgeEpisode } = require("./tower-bridge-episode");
-const { BuildHouseEpisode } = require("./build-house-episode");
-const { CollectorEpisode } = require("./collector-episode");
-const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
-const { StructureEvalEpisode } = require("./eval/structureEval");
-const { TranslationEvalEpisode } = require("./eval/translation-eval-episode");
+const { StraightLineEpisode } = require("./episode-handlers/straight-line-episode");
+const { ChaseEpisode } = require("./episode-handlers/chase-episode");
+const { OrbitEpisode } = require("./episode-handlers/orbit-episode");
+const { WalkLookEpisode } = require("./episode-handlers/walk-look-episode");
+const { WalkLookAwayEpisode } = require("./episode-handlers/walk-look-away-episode");
+const { PvpEpisode } = require("./episode-handlers/pvp-episode");
+const { BuildStructureEpisode } = require("./episode-handlers/build-structure-episode");
+const { BuildTowerEpisode } = require("./episode-handlers/build-tower-episode");
+const { MineEpisode } = require("./episode-handlers/mine-episode");
+const { PveEpisode } = require("./episode-handlers/pve-episode");
+const { TowerBridgeEpisode } = require("./episode-handlers/tower-bridge-episode");
+const { BuildHouseEpisode } = require("./episode-handlers/build-house-episode");
+const { CollectorEpisode } = require("./episode-handlers/collector-episode");
+const { PlaceAndMineEpisode } = require("./episode-handlers/place-and-mine-episode");
+const { StructureEvalEpisode } = require("./episode-handlers/eval/structureEval");
+const { TranslationEvalEpisode } = require("./episode-handlers/eval/translation-eval-episode");
 const {
   BothLookAwayEvalEpisode,
-} = require("./eval/both-look-away-eval-episode");
+} = require("./episode-handlers/eval/both-look-away-eval-episode");
 const {
   OneLooksAwayEvalEpisode,
-} = require("./eval/one-looks-away-eval-episode");
-const { RotationEvalEpisode } = require("./eval/rotation-eval-episode");
-const { TurnToLookEvalEpisode } = require("./eval/turn-to-look-eval-episode");
+} = require("./episode-handlers/eval/one-looks-away-eval-episode");
+const { RotationEvalEpisode } = require("./episode-handlers/eval/rotation-eval-episode");
+const { TurnToLookEvalEpisode } = require("./episode-handlers/eval/turn-to-look-eval-episode");
 const {
   TurnToLookOppositeEvalEpisode,
-} = require("./eval/turn-to-look-opposite-eval-episode");
-const turnToLookEvalTpPoints = require("./eval/turn-to-look-eval-episode-tp-points.json");
+} = require("./episode-handlers/eval/turn-to-look-opposite-eval-episode");
+const turnToLookEvalTpPoints = require("./episode-handlers/eval/turn-to-look-eval-episode-tp-points.json");
 
 // Map episode type strings to their class implementations
 const episodeClassMap = {
