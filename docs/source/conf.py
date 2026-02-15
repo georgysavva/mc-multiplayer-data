@@ -17,17 +17,14 @@ extensions = [
 # sphinx-js configuration (https://pypi.org/project/sphinx-js/)
 #
 #
-# sphinx-js scans `js_source_path` entries *non-recursively* by default, so we
-# point it directly at the directories we want to document.
+# sphinx-js scans `js_source_path` entries non-recursively, so we list each
+# directory to document. Paths in directives are relative to root_for_relative_js_paths.
 js_source_path = [
     "../../controller",
     "../../controller/episode-handlers",
     "../../controller/episode-handlers/eval",
     "../../controller/primitives",
 ]
-
-# When multiple `js_source_path` entries are set, sphinx-js requires an explicit
-# root so relative paths (./, ../) are unambiguous.
 root_for_relative_js_paths = "../../controller"
 
 # Keep this list small to avoid extra dependencies in the conda env.
@@ -36,6 +33,7 @@ myst_enable_extensions = [
     "tasklist",
 ]
 myst_heading_anchors = 3
+
 
 # The README pages include links to repo files/folders (not Sphinx pages).
 # Silence those warnings to keep builds clean.

@@ -3,6 +3,7 @@ API reference
 
 Episodes loop
 ~~~~~~~~~~~~~
+`[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/controller/episodes-loop.js>`_
 
 .. js:autofunction:: episodes-loop.getOnSpawnFn
 
@@ -38,15 +39,17 @@ Episodes loop
 Episode classes
 ~~~~~~~~~~~~~~~
 
-All episode handlers extend :js:class:`base-episode.BaseEpisode` and implement
-:js:meth:`base-episode.BaseEpisode.entryPoint` (and optionally
-:js:meth:`base-episode.BaseEpisode.setupEpisode` and
-:js:meth:`base-episode.BaseEpisode.tearDownEpisode`).
+`[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/controller/episode-handlers>`_
+
+All episode handlers extend :js:class:`episode-handlers/base-episode.BaseEpisode` and implement
+:js:meth:`episode-handlers/base-episode.BaseEpisode.entryPoint` (and optionally
+:js:meth:`episode-handlers/base-episode.BaseEpisode.setupEpisode` and
+:js:meth:`episode-handlers/base-episode.BaseEpisode.tearDownEpisode`).
 
 Base
 ^^^^
 
-.. js:autoclass:: base-episode.BaseEpisode
+.. js:autoclass:: episode-handlers/base-episode.BaseEpisode
    :members:
 
 .. _api-training-episodes:
@@ -54,246 +57,248 @@ Base
 Training episodes
 ^^^^^^^^^^^^^^^^^
 
-.. js:autoclass:: build-house-episode.BuildHouseEpisode
+.. js:autoclass:: episode-handlers/build-house-episode.BuildHouseEpisode
    :members:
 
-.. js:autoclass:: build-structure-episode.BuildStructureEpisode
+.. js:autoclass:: episode-handlers/build-structure-episode.BuildStructureEpisode
    :members:
 
-.. js:autoclass:: build-tower-episode.BuildTowerEpisode
+.. js:autoclass:: episode-handlers/build-tower-episode.BuildTowerEpisode
    :members:
 
-.. js:autoclass:: chase-episode.ChaseEpisode
+.. js:autoclass:: episode-handlers/chase-episode.ChaseEpisode
    :members:
 
-.. js:autoclass:: collector-episode.CollectorEpisode
+.. js:autoclass:: episode-handlers/collector-episode.CollectorEpisode
    :members:
 
-.. js:autoclass:: mine-episode.MineEpisode
+.. js:autoclass:: episode-handlers/mine-episode.MineEpisode
    :members:
 
-.. js:autoclass:: orbit-episode.OrbitEpisode
+.. js:autoclass:: episode-handlers/orbit-episode.OrbitEpisode
    :members:
 
-.. js:autoclass:: place-and-mine-episode.PlaceAndMineEpisode
+.. js:autoclass:: episode-handlers/place-and-mine-episode.PlaceAndMineEpisode
    :members:
 
-.. js:autoclass:: pve-episode.PveEpisode
+.. js:autoclass:: episode-handlers/pve-episode.PveEpisode
    :members:
 
-.. js:autoclass:: pvp-episode.PvpEpisode
+.. js:autoclass:: episode-handlers/pvp-episode.PvpEpisode
    :members:
 
-.. js:autoclass:: straight-line-episode.StraightLineEpisode
+.. js:autoclass:: episode-handlers/straight-line-episode.StraightLineEpisode
    :members:
 
-.. js:autoclass:: tower-bridge-episode.TowerBridgeEpisode
+.. js:autoclass:: episode-handlers/tower-bridge-episode.TowerBridgeEpisode
    :members:
 
-.. js:autoclass:: walk-look-episode.WalkLookEpisode
+.. js:autoclass:: episode-handlers/walk-look-episode.WalkLookEpisode
    :members:
 
-.. js:autoclass:: walk-look-away-episode.WalkLookAwayEpisode
+.. js:autoclass:: episode-handlers/walk-look-away-episode.WalkLookAwayEpisode
    :members:
 
 Eval episodes
 ^^^^^^^^^^^^^
 
-.. js:autoclass:: both-look-away-eval-episode.BothLookAwayEvalEpisode
+.. js:autoclass:: episode-handlers/eval/both-look-away-eval-episode.BothLookAwayEvalEpisode
    :members:
 
-.. js:autoclass:: one-looks-away-eval-episode.OneLooksAwayEvalEpisode
+.. js:autoclass:: episode-handlers/eval/one-looks-away-eval-episode.OneLooksAwayEvalEpisode
    :members:
 
-.. js:autoclass:: rotation-eval-episode.RotationEvalEpisode
+.. js:autoclass:: episode-handlers/eval/rotation-eval-episode.RotationEvalEpisode
    :members:
 
-.. js:autoclass:: structureEval.StructureEvalEpisode
+.. js:autoclass:: episode-handlers/eval/structureEval.StructureEvalEpisode
    :members:
 
-.. js:autoclass:: translation-eval-episode.TranslationEvalEpisode
+.. js:autoclass:: episode-handlers/eval/translation-eval-episode.TranslationEvalEpisode
    :members:
 
-.. js:autoclass:: turn-to-look-eval-episode.TurnToLookEvalEpisode
+.. js:autoclass:: episode-handlers/eval/turn-to-look-eval-episode.TurnToLookEvalEpisode
    :members:
 
-.. js:autoclass:: turn-to-look-opposite-eval-episode.TurnToLookOppositeEvalEpisode
+.. js:autoclass:: episode-handlers/eval/turn-to-look-opposite-eval-episode.TurnToLookOppositeEvalEpisode
    :members:
 
 
 Primitives
 ~~~~~~~~~~
 
+`[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/controller/primitives>`_
+
 .. _api-building:
 
 Building
 ^^^^^^^^
 
-.. js:autofunction:: building.makeHouseBlueprint5x5
+.. js:autofunction:: primitives/building.makeHouseBlueprint5x5
 
-.. js:autofunction:: building.rotateLocalToWorld
+.. js:autofunction:: primitives/building.rotateLocalToWorld
 
-.. js:autofunction:: building.splitWorkByXAxis
+.. js:autofunction:: primitives/building.splitWorkByXAxis
 
-.. js:autofunction:: building.calculateMaterialCounts
+.. js:autofunction:: primitives/building.calculateMaterialCounts
 
-.. js:autofunction:: building.buildPhase
+.. js:autofunction:: primitives/building.buildPhase
 
-.. js:autofunction:: building.buildBridge
+.. js:autofunction:: primitives/building.buildBridge
 
-.. js:autofunction:: building.cleanupScaffolds
+.. js:autofunction:: primitives/building.cleanupScaffolds
 
-.. js:autofunction:: building.admireHouse
+.. js:autofunction:: primitives/building.admireHouse
 
-.. js:autofunction:: building.calculateFloorPlacementOrder
+.. js:autofunction:: primitives/building.calculateFloorPlacementOrder
 
-.. js:autofunction:: building.getPerimeterPosition
+.. js:autofunction:: primitives/building.getPerimeterPosition
 
-.. js:autofunction:: building.calculateWallPlacementOrder
+.. js:autofunction:: primitives/building.calculateWallPlacementOrder
 
-.. js:autofunction:: building.calculateRoofPlacementOrder
+.. js:autofunction:: primitives/building.calculateRoofPlacementOrder
 
-.. js:autofunction:: building.isBotCollidingWithBlock
+.. js:autofunction:: primitives/building.isBotCollidingWithBlock
 
-.. js:autofunction:: building.placeAt
+.. js:autofunction:: primitives/building.placeAt
 
-.. js:autofunction:: building.placeMultiple
+.. js:autofunction:: primitives/building.placeMultiple
 
-.. js:autofunction:: building.isAirLike
+.. js:autofunction:: primitives/building.isAirLike
 
-.. js:autofunction:: building.inReach
+.. js:autofunction:: primitives/building.inReach
 
-.. js:autofunction:: building.findPlaceReference
+.. js:autofunction:: primitives/building.findPlaceReference
 
-.. js:autofunction:: building.ensureReachAndSight
+.. js:autofunction:: primitives/building.ensureReachAndSight
 
-.. js:autofunction:: building.fastPlaceBlock
+.. js:autofunction:: primitives/building.fastPlaceBlock
 
-.. js:autofunction:: building.buildTowerUnderneath
+.. js:autofunction:: primitives/building.buildTowerUnderneath
 
-.. js:autofunction:: building.scoreFace
+.. js:autofunction:: primitives/building.scoreFace
 
-.. js:autofunction:: building.findBestPlaceReference
+.. js:autofunction:: primitives/building.findBestPlaceReference
 
-.. js:autofunction:: building.raycastToPosition
+.. js:autofunction:: primitives/building.raycastToPosition
 
-.. js:autofunction:: building.isBlockObstructed
+.. js:autofunction:: primitives/building.isBlockObstructed
 
-.. js:autofunction:: building.canSeeFace
+.. js:autofunction:: primitives/building.canSeeFace
 
-.. js:autofunction:: building.isPositionSafe
+.. js:autofunction:: primitives/building.isPositionSafe
 
-.. js:autofunction:: building.calculateOptimalPosition
+.. js:autofunction:: primitives/building.calculateOptimalPosition
 
-.. js:autofunction:: building.moveToPlacementPosition
+.. js:autofunction:: primitives/building.moveToPlacementPosition
 
-.. js:autofunction:: building.hasAdjacentSupport
+.. js:autofunction:: primitives/building.hasAdjacentSupport
 
-.. js:autofunction:: building.sortByBuildability
+.. js:autofunction:: primitives/building.sortByBuildability
 
-.. js:autofunction:: building.prepareForPlacement
+.. js:autofunction:: primitives/building.prepareForPlacement
 
-.. js:autofunction:: building.buildStructure
+.. js:autofunction:: primitives/building.buildStructure
 
-.. js:autofunction:: building.getBlockPlaceDelayTicks
+.. js:autofunction:: primitives/building.getBlockPlaceDelayTicks
 
 .. _api-digging:
 
 Digging
 ^^^^^^^
 
-.. js:autofunction:: digging.digWithTimeout
+.. js:autofunction:: primitives/digging.digWithTimeout
 
-.. js:autofunction:: digging.digBlock
+.. js:autofunction:: primitives/digging.digBlock
 
-.. js:autofunction:: digging.placeTorchOnFloor
+.. js:autofunction:: primitives/digging.placeTorchOnFloor
 
-.. js:autofunction:: digging.placeTorch
+.. js:autofunction:: primitives/digging.placeTorch
 
-.. js:autofunction:: digging.findVisibleOres
+.. js:autofunction:: primitives/digging.findVisibleOres
 
-.. js:autofunction:: digging.isBlockVisible
+.. js:autofunction:: primitives/digging.isBlockVisible
 
 .. _api-fighting:
 
 Fighting
 ^^^^^^^^
 
-.. js:autofunction:: fighting.giveRandomSword
+.. js:autofunction:: primitives/fighting.giveRandomSword
 
-.. js:autofunction:: fighting.equipSword
+.. js:autofunction:: primitives/fighting.equipSword
 
-.. js:autofunction:: fighting.isInForwardFOV
+.. js:autofunction:: primitives/fighting.isInForwardFOV
 
 Items
 ^^^^^
 
-.. js:autofunction:: items.unequipHand
+.. js:autofunction:: primitives/items.unequipHand
 
-.. js:autofunction:: items.ensureBotHasEnough
+.. js:autofunction:: primitives/items.ensureBotHasEnough
 
-.. js:autofunction:: items.ensureItemInHand
+.. js:autofunction:: primitives/items.ensureItemInHand
 
 .. _api-movement:
 
 Movement
 ^^^^^^^^
 
-.. js:autofunction:: movement.stopAll
+.. js:autofunction:: primitives/movement.stopAll
 
-.. js:autofunction:: movement.setControls
+.. js:autofunction:: primitives/movement.setControls
 
-.. js:autofunction:: movement.enableSprint
+.. js:autofunction:: primitives/movement.enableSprint
 
-.. js:autofunction:: movement.disableSprint
+.. js:autofunction:: primitives/movement.disableSprint
 
-.. js:autofunction:: movement.initializePathfinder
+.. js:autofunction:: primitives/movement.initializePathfinder
 
-.. js:autofunction:: movement.stopPathfinder
+.. js:autofunction:: primitives/movement.stopPathfinder
 
-.. js:autofunction:: movement.gotoWithTimeout
+.. js:autofunction:: primitives/movement.gotoWithTimeout
 
-.. js:autofunction:: movement.moveDirection
+.. js:autofunction:: primitives/movement.moveDirection
 
-.. js:autofunction:: movement.moveToward
+.. js:autofunction:: primitives/movement.moveToward
 
-.. js:autofunction:: movement.moveAway
+.. js:autofunction:: primitives/movement.moveAway
 
-.. js:autofunction:: movement.lookAtSmooth
+.. js:autofunction:: primitives/movement.lookAtSmooth
 
-.. js:autofunction:: movement.lookSmooth
+.. js:autofunction:: primitives/movement.lookSmooth
 
-.. js:autofunction:: movement.lookAtBot
+.. js:autofunction:: primitives/movement.lookAtBot
 
-.. js:autofunction:: movement.lookDirection
+.. js:autofunction:: primitives/movement.lookDirection
 
-.. js:autofunction:: movement.sleep
+.. js:autofunction:: primitives/movement.sleep
 
-.. js:autofunction:: movement.distanceTo
+.. js:autofunction:: primitives/movement.distanceTo
 
-.. js:autofunction:: movement.horizontalDistanceTo
+.. js:autofunction:: primitives/movement.horizontalDistanceTo
 
-.. js:autofunction:: movement.getDirectionTo
+.. js:autofunction:: primitives/movement.getDirectionTo
 
-.. js:autofunction:: movement.isNearPosition
+.. js:autofunction:: primitives/movement.isNearPosition
 
-.. js:autofunction:: movement.isNearBot
+.. js:autofunction:: primitives/movement.isNearBot
 
-.. js:autofunction:: movement.land_pos
+.. js:autofunction:: primitives/movement.land_pos
 
-.. js:autofunction:: movement.jump
+.. js:autofunction:: primitives/movement.jump
 
-.. js:autofunction:: movement.sneak
+.. js:autofunction:: primitives/movement.sneak
 
-.. js:autofunction:: movement.directTeleport
+.. js:autofunction:: primitives/movement.directTeleport
 
-.. js:autofunction:: movement.getScaffoldingBlockIds
+.. js:autofunction:: primitives/movement.getScaffoldingBlockIds
 
 Random-movement
 ^^^^^^^^^^^^^^^
 
-.. js:autofunction:: random-movement.walk
+.. js:autofunction:: primitives/random-movement.walk
 
-.. js:autofunction:: random-movement.run
+.. js:autofunction:: primitives/random-movement.run
 
-.. js:autofunction:: random-movement.getRandomDirection
+.. js:autofunction:: primitives/random-movement.getRandomDirection
