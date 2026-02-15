@@ -5,6 +5,6 @@ SolarisEngine
    :maxdepth: 2
    :caption: Contents
 
-   solarisengine
+   getting_started
+   system_overview
    controller
-   api

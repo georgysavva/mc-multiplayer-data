@@ -20,7 +20,9 @@ extensions = [
 # sphinx-js scans `js_source_path` entries *non-recursively* by default, so we
 # point it directly at the directories we want to document.
 js_source_path = [
+    "../../controller",
     "../../controller/episode-handlers",
+    "../../controller/episode-handlers/eval",
     "../../controller/primitives",
 ]
 

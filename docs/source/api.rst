@@ -1,38 +1,122 @@
 API reference
 =============
 
-Episode handlers index
-~~~~~~~~~~~~~~~~~~~~~~
+Episodes loop
+~~~~~~~~~~~~~
 
-.. js:autofunction:: index.getOnSpawnFn
+.. js:autofunction:: episodes-loop.getOnSpawnFn
 
-.. js:autofunction:: index.isEvalEpisode
+.. js:autofunction:: episodes-loop.isEvalEpisode
 
-.. js:autofunction:: index.saveEpisodeInfo
+.. js:autofunction:: episodes-loop.saveEpisodeInfo
 
-.. js:autofunction:: index.runSingleEpisode
+.. js:autofunction:: episodes-loop.runSingleEpisode
 
-.. js:autofunction:: index.notifyPeerErrorAndStop
+.. js:autofunction:: episodes-loop.notifyPeerErrorAndStop
 
-.. js:autofunction:: index.setupBotAndWorldOnce
+.. js:autofunction:: episodes-loop.setupBotAndWorldOnce
 
-.. js:autofunction:: index.setupCameraPlayerOnce
+.. js:autofunction:: episodes-loop.setupCameraPlayerOnce
 
-.. js:autofunction:: index.setupBotAndCameraForEpisode
+.. js:autofunction:: episodes-loop.setupBotAndCameraForEpisode
 
-.. js:autofunction:: index.clearBotInventory
+.. js:autofunction:: episodes-loop.clearBotInventory
 
-.. js:autofunction:: index.getOnTeleportPhaseFn
+.. js:autofunction:: episodes-loop.getOnTeleportPhaseFn
 
-.. js:autofunction:: index.getOnPostTeleportPhaseFn
+.. js:autofunction:: episodes-loop.getOnPostTeleportPhaseFn
 
-.. js:autofunction:: index.getOnSetupEpisodeFn
+.. js:autofunction:: episodes-loop.getOnSetupEpisodeFn
 
-.. js:autofunction:: index.getOnStartRecordingFn
+.. js:autofunction:: episodes-loop.getOnStartRecordingFn
 
-.. js:autofunction:: index.teleport
+.. js:autofunction:: episodes-loop.teleport
 
-.. js:autofunction:: index.getOnPeerErrorPhaseFn
+.. js:autofunction:: episodes-loop.getOnPeerErrorPhaseFn
+
+
+Episode classes
+~~~~~~~~~~~~~~~
+
+All episode handlers extend :js:class:`base-episode.BaseEpisode` and implement
+:js:meth:`base-episode.BaseEpisode.entryPoint` (and optionally
+:js:meth:`base-episode.BaseEpisode.setupEpisode` and
+:js:meth:`base-episode.BaseEpisode.tearDownEpisode`).
+
+base
+^^^^
+
+.. js:autoclass:: base-episode.BaseEpisode
+   :members:
+
+Training episodes
+^^^^^^^^^^^^^^^^^
+
+.. js:autoclass:: build-house-episode.BuildHouseEpisode
+   :members:
+
+.. js:autoclass:: build-structure-episode.BuildStructureEpisode
+   :members:
+
+.. js:autoclass:: build-tower-episode.BuildTowerEpisode
+   :members:
+
+.. js:autoclass:: chase-episode.ChaseEpisode
+   :members:
+
+.. js:autoclass:: collector-episode.CollectorEpisode
+   :members:
+
+.. js:autoclass:: mine-episode.MineEpisode
+   :members:
+
+.. js:autoclass:: orbit-episode.OrbitEpisode
+   :members:
+
+.. js:autoclass:: place-and-mine-episode.PlaceAndMineEpisode
+   :members:
+
+.. js:autoclass:: pve-episode.PveEpisode
+   :members:
+
+.. js:autoclass:: pvp-episode.PvpEpisode
+   :members:
+
+.. js:autoclass:: straight-line-episode.StraightLineEpisode
+   :members:
+
+.. js:autoclass:: tower-bridge-episode.TowerBridgeEpisode
+   :members:
+
+.. js:autoclass:: walk-look-episode.WalkLookEpisode
+   :members:
+
+.. js:autoclass:: walk-look-away-episode.WalkLookAwayEpisode
+   :members:
+
+Eval episodes
+^^^^^^^^^^^^^
+
+.. js:autoclass:: both-look-away-eval-episode.BothLookAwayEvalEpisode
+   :members:
+
+.. js:autoclass:: one-looks-away-eval-episode.OneLooksAwayEvalEpisode
+   :members:
+
+.. js:autoclass:: rotation-eval-episode.RotationEvalEpisode
+   :members:
+
+.. js:autoclass:: structureEval.StructureEvalEpisode
+   :members:
+
+.. js:autoclass:: translation-eval-episode.TranslationEvalEpisode
+   :members:
+
+.. js:autoclass:: turn-to-look-eval-episode.TurnToLookEvalEpisode
+   :members:
+
+.. js:autoclass:: turn-to-look-opposite-eval-episode.TurnToLookOppositeEvalEpisode
+   :members:
 
 
 Primitives
