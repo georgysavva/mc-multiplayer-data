@@ -27,6 +27,6 @@ How to Run
 
       ./run_evals.sh
 
-The ``run.sh``/``run_evals.sh`` will generate and store training and eval datasets in ``./output/datasets/``.
+The :ref:`run.sh <run-sh>` and :ref:`run_evals.sh <run-evals-sh>` will generate and store training and eval datasets in ``./output/datasets/``.
 
 See :doc:`system_overview` for the explanation of what happens under the hood.

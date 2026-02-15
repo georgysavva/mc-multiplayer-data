@@ -12,6 +12,56 @@ controlled via the ``EPISODE_TYPES`` environment variable:
 Episode types are split into **Training** (default non-eval scenarios) and **Eval**
 (episodes used for evaluation). Eval handlers live under ``controller/episode-handlers/eval/``.
 
+.. _adding-new-episode-type:
+
+Adding a new episode type
+-------------------------
+
+To add a new episode type:
+
+1. **Create the handler module** in ``controller/episode-handlers/`` (or
+   ``controller/episode-handlers/eval/`` for eval episodes). The module must export a
+   class that extends ``BaseEpisode`` from ``./base-episode.js``.
+
+2. **Implement the episode class**:
+
+   - Override **``entryPoint(bot, rcon, sharedBotRng, coordinator, iterationID, episodeNum, args)``**
+     (required). This is the main episode logic; use ``coordinator.onceEvent()`` and
+     ``coordinator.sendToOtherBot()`` to synchronize phases between the two bots.
+   - Override **``setupEpisode(...)``** and/or **``tearDownEpisode(...)``** if you need
+     pre/post hooks (e.g. teleport, equip items, reset world state). Both receive
+     ``botPosition`` and ``otherBotPosition``; return ``{ botPositionNew, otherBotPositionNew }``
+     if you change positions.
+   - Set **``static WORKS_IN_NON_FLAT_WORLD = true``** if the episode supports
+     non-flat worlds (optional; default is ``false``).
+   - Optionally override **``static INIT_MIN_BOTS_DISTANCE``** / **``INIT_MAX_BOTS_DISTANCE``**
+     for spawn distance constraints.
+
+3. **Register the episode in** ``controller/episodes-loop.js``:
+
+   - Add a ``require()`` for your episode class.
+   - Add an entry to **``episodeClassMap``** mapping the episode type string (e.g.
+     ``myNewEpisode``) to your class.
+   - For **eval** episodes only: add your class to the **``evalEpisodeClasses``** array
+     (used for ``isEvalEpisode()``).
+   - To include it in the default set when ``EPISODE_TYPES`` is unset, add the type
+     string to **``defaultEpisodeTypes``**.
+
+4. **Add a typical length** in ``controller/utils/episode-weights.js``: add your
+   episode type key and a typical duration in seconds to **``episodeTypicalLengths``**.
+   This is used for weighted sampling (shorter episodes are sampled more often). If
+   the type is missing, ``selectWeightedEpisodeType()`` will throw.
+
+5. **Use the new type** by setting ``EPISODE_TYPES`` to a comma-separated list that
+   includes your type (e.g. ``EPISODE_TYPES=walkLook,myNewEpisode``), or leave
+   ``EPISODE_TYPES`` unset and add the type to ``defaultEpisodeTypes``.
+
+For phase synchronization, follow the pattern used in existing handlers: one bot
+registers ``coordinator.onceEvent("phaseName", episodeNum, handlerFn)`` and both
+call ``coordinator.sendToOtherBot("phaseName", position, episodeNum, message)`` so
+the other bot’s handler runs. Use ``episodeInstance.getOnStopPhaseFn(...)`` for the
+standard stop/teardown phase.
+
 .. _training-episode-types:
 
 Training

@@ -8,7 +8,7 @@ annotated with their corresponding actions.
 Data Collection Workflow
 ------------------------
 
-The sole entry point to the data collection workflow is the ``run.sh``/``run_evals.sh`` scripts that generate the training and eval datasets. 
+The sole entry point to the data collection workflow is the :ref:`run.sh <run-sh>`/:ref:`run_evals.sh <run-evals-sh>` scripts that generate the training and eval datasets. 
 They generate Docker Compose files tying together the system components: Controller Bot, Camera Bot, Minecraft Server Plugin, Spectator Bot, 
 execute the docker compose units in isolation in parallel, 
 and run the postprocessing scripts on the host to produce the final datasets.

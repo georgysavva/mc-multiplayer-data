@@ -8,3 +8,4 @@ SolarisEngine
    getting_started
    system_overview
    controller
+   cli
