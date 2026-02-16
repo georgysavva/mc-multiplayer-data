@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run camera alignment and generate side-by-side comparison videos."""
+"""Run camera alignment."""
 from __future__ import annotations
 
 import argparse
@@ -538,11 +538,6 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         help="Optional base directory for outputs (default: ./aligned/<bot>)",
     )
     parser.add_argument(
-        "--comparison-video",
-        action="store_true",
-        help="Generate side-by-side comparison video (slower, default: skip)",
-    )
-    parser.add_argument(
         "--episode-file",
         type=Path,
         default=None,
@@ -610,86 +605,10 @@ def ensure_metadata(meta_path: Path) -> None:
         raise FileNotFoundError(f"Camera metadata missing: {meta_path}")
 
 
-def expected_prismarine_video(actions_path: Path) -> Path:
-    return actions_path.with_suffix(".mp4")
-
-
-def _resize_to_height(frame: np.ndarray, target_height: int) -> np.ndarray:
-    if frame.shape[0] == target_height:
-        return frame
-    if target_height <= 0:
-        return frame
-    scale = target_height / frame.shape[0]
-    new_width = max(1, int(round(frame.shape[1] * scale)))
-    return cv2.resize(frame, (new_width, target_height), interpolation=cv2.INTER_AREA)
-
-
-def build_side_by_side(
-    prismarine: Path, aligned: Path, output_path: Path
-) -> Tuple[int, float, float]:
-    left = cv2.VideoCapture(str(prismarine))
-    if not left.isOpened():
-        raise RuntimeError(f"Failed to open prismarine video {prismarine}")
-
-    right = cv2.VideoCapture(str(aligned))
-    if not right.isOpened():
-        raise RuntimeError(f"Failed to open aligned video {aligned}")
-
-    left_fps = float(left.get(cv2.CAP_PROP_FPS)) or 0.0
-    right_fps = float(right.get(cv2.CAP_PROP_FPS)) or 0.0
-    fps = right_fps if right_fps > 0 else left_fps if left_fps > 0 else 30.0
-
-    left_height = int(left.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 0
-    right_height = int(right.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 0
-    target_height = right_height if right_height > 0 else left_height
-    if target_height <= 0:
-        raise RuntimeError("Unable to determine frame dimensions for comparison video")
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    writer: Optional[cv2.VideoWriter] = None
-    frames_written = 0
-
-    mismatched_length = False
-
-    while True:
-        left_ok, left_frame = left.read()
-        right_ok, right_frame = right.read()
-        if not left_ok or not right_ok:
-            mismatched_length = left_ok != right_ok
-            break
-
-        left_frame = _resize_to_height(left_frame, target_height)
-        right_frame = _resize_to_height(right_frame, target_height)
-
-        combined = np.hstack((left_frame, right_frame))
-
-        if writer is None:
-            height, width = combined.shape[:2]
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            writer = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
-        writer.write(combined)
-        frames_written += 1
-
-    if writer is not None:
-        writer.release()
-    left.release()
-    right.release()
-
-    if frames_written == 0:
-        output_path.unlink(missing_ok=True)
-        raise RuntimeError("No overlapping frames to build comparison video")
-
-    return (
-        frames_written,
-        left_fps,
-        right_fps if not mismatched_length else -abs(right_fps),
-    )
-
 
 def process_actions(
     actions_dir: Path,
     configs: Dict[str, BotConfig],
-    generate_comparison: bool = False,
 ) -> int:
     actions_processed = 0
     for actions_path in sorted(actions_dir.glob("*.json")):
@@ -723,26 +642,6 @@ def process_actions(
             continue
         align_time = time.time() - align_start
 
-        metadata["comparison_video_path"] = None
-
-        if generate_comparison and expected_prismarine_video(actions_path).exists():
-            comparison_path = config.output_dir / f"{actions_path.stem}_comparison.mp4"
-            compare_start = time.time()
-            try:
-                frames_written, left_fps, right_fps = build_side_by_side(
-                    expected_prismarine_video(actions_path),
-                    Path(metadata["aligned_video_path"]),
-                    comparison_path,
-                )
-                compare_time = time.time() - compare_start
-                metadata["comparison_video_path"] = str(comparison_path)
-                print(
-                    f"[compare] wrote {comparison_path} ({frames_written} frames, "
-                    f"prismarine_fps={left_fps:.2f}, aligned_fps={right_fps:.2f}, time={compare_time:.1f}s)",
-                )
-            except Exception as exc:
-                print(f"[compare] failed: {exc}", file=sys.stderr)
-                comparison_path.unlink(missing_ok=True)
 
         with output_meta.open("w", encoding="utf-8") as fh:
             json.dump(metadata, fh)
@@ -758,7 +657,6 @@ def process_actions(
 def process_single_episode(
     episode_path: Path,
     configs: Dict[str, BotConfig],
-    generate_comparison: bool = False,
 ) -> bool:
     """Process a single episode file. Returns True if successful."""
     if episode_path.name.endswith("_meta.json"):
@@ -789,22 +687,7 @@ def process_single_episode(
         metadata = align_recording(alignment_input)
         align_time = time.time() - align_start
 
-        metadata["comparison_video_path"] = None
         
-        if generate_comparison and expected_prismarine_video(episode_path).exists():
-            comparison_path = config.output_dir / f"{episode_path.stem}_comparison.mp4"
-            compare_start = time.time()
-            frames_written, left_fps, right_fps = build_side_by_side(
-                expected_prismarine_video(episode_path),
-                Path(metadata["aligned_video_path"]),
-                comparison_path,
-            )
-            compare_time = time.time() - compare_start
-            metadata["comparison_video_path"] = str(comparison_path)
-            print(
-                f"[compare] wrote {comparison_path} ({frames_written} frames, "
-                f"prismarine_fps={left_fps:.2f}, aligned_fps={right_fps:.2f}, time={compare_time:.1f}s)",
-            )
 
         with output_meta.open("w", encoding="utf-8") as fh:
             json.dump(metadata, fh)
@@ -834,13 +717,13 @@ def main(argv: Iterable[str]) -> int:
             print(f"[align] episode file not found: {episode_path}", file=sys.stderr)
             return 1
         processed = process_single_episode(
-            episode_path, configs, args.comparison_video,
+            episode_path, configs
         )
         return 0 if processed else 1
 
     # Otherwise process all episodes under --actions-dir
     processed = process_actions(
-        actions_dir, configs, args.comparison_video,
+        actions_dir, configs
     )
     if processed == 0:
         print("[align] no action traces found; nothing to do")
