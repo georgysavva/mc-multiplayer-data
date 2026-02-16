@@ -1,6 +1,9 @@
 CLI
 ===
 
+Entry Point
+-----------
+
 This page describes the main command-line entry points for data collection: ``run.sh`` (training data) and ``run_evals.sh`` (evaluation data).
 
 .. _run-sh:
@@ -57,7 +60,7 @@ Output layout
 Data is written under ``<output-dir>/``:
 
 - ``data_collection/train/batch_<i>/`` — per-batch compose configs, logs, and aligned outputs
-- ``datasets/<dataset-name>/`` — prepared train dataset (after postprocess and split); some test split videos are annotated by ``annotate_video_batch.py``
+- ``datasets/<dataset-name>/`` — prepared train dataset (after postprocess and split); some test split videos are annotated by `postprocess/annotate_video_batch.py <https://github.com/georgysavva/mc-multiplayer-data/tree/release/postprocess/annotate_video_batch.py>`_
 
 .. _run-evals-sh:
 
@@ -116,4 +119,420 @@ Output layout
 ~~~~~~~~~~~~~
 
 - ``<output-dir>/data_collection/eval/<eval_type>/`` — per-type compose configs, logs, and aligned outputs
-- ``<output-dir>/datasets/eval/`` — prepared eval datasets (from ``postprocess/prepare_eval_datasets.py``); some videos are annotated by ``annotate_video_batch.py``
+- ``<output-dir>/datasets/eval/`` — prepared eval datasets (from `postprocess/prepare_eval_datasets.py <https://github.com/georgysavva/mc-multiplayer-data/tree/release/postprocess/prepare_eval_datasets.py>`_); some videos are annotated by `postprocess/annotate_video_batch.py <https://github.com/georgysavva/mc-multiplayer-data/tree/release/postprocess/annotate_video_batch.py>`_
+
+Postprocessing
+--------------
+
+This section covers the postprocessing utilities that turn raw camera recordings and action traces into final train/eval datasets and optional annotated videos.
+
+.. _process-recordings-py:
+
+``process_recordings.py``
+-------------------------
+
+`[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/postprocess/process_recordings.py>`_
+
+Aligns camera recordings with Mineflayer action traces for a single bot (Alpha or Bravo), producing per-episode aligned camera videos and rich alignment metadata. It can operate on a full directory of episodes or a single episode file, and optionally generate side‑by‑side comparison videos with the original Prismarine recording.
+
+Usage
+~~~~~
+
+.. code-block:: bash
+
+   python postprocess/process_recordings.py --actions-dir ACTIONS_DIR --camera-prefix CAMERA_DIR --bot {Alpha,Bravo} [OPTIONS]
+
+Options
+~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Option
+     - Default
+     - Description
+   * - ``--actions-dir PATH``
+     - (required)
+     - Directory containing Mineflayer action traces (``*.json``).
+   * - ``--camera-prefix PATH``
+     - (required)
+     - Directory containing camera outputs (expects ``output_alpha/`` or ``output_bravo/``).
+   * - ``--bot {Alpha,Bravo}``
+     - (required)
+     - Which bot to process.
+   * - ``--output-dir PATH``
+     - ``./aligned/<bot>``
+     - Base directory for aligned videos and metadata.
+   * - ``--comparison-video``
+     - ``False``
+     - If set, also build side‑by‑side comparison videos.
+   * - ``--episode-file PATH``
+     - ``None``
+     - Process a single episode JSON instead of scanning ``--actions-dir``.
+
+Output layout
+~~~~~~~~~~~~~
+
+- ``<output-dir>/<episode>_camera.mp4`` — aligned camera video per episode.
+- ``<output-dir>/<episode>_camera_meta.json`` — alignment metadata and diagnostics (including per‑frame mappings and quality stats).
+
+.. _prepare-train-dataset-py:
+
+``prepare_train_dataset.py``
+-----------------------------
+
+`[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/postprocess/prepare_train_dataset.py>`_
+
+Validates and consolidates aligned camera videos and action JSONs into a single ``final_dataset`` directory for training. It filters for episodes where both Alpha and Bravo have consistent video/action pairs and enforces one‑to‑one alignment between frames and actions.
+
+Usage
+~~~~~
+
+.. code-block:: bash
+
+   python postprocess/prepare_train_dataset.py --source-dir SOURCE_DIR --destination-dir DEST_DIR [OPTIONS]
+
+Options
+~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Option
+     - Default
+     - Description
+   * - ``--source-dir PATH``
+     - (required)
+     - Directory that contains one or more episode runs with ``aligned/`` and ``output/`` subdirs.
+   * - ``--instance-ids IDS``
+     - ``None``
+     - Optional list of instance IDs to include (space‑ or comma‑separated).
+   * - ``--file-prefix STR``
+     - ``""``
+     - Optional prefix prepended to destination filenames.
+   * - ``--destination-dir PATH``
+     - (required)
+     - Target directory where the consolidated ``final_dataset`` is written.
+   * - ``--bot1-name NAME``
+     - ``Alpha``
+     - Name used to identify the first bot in file paths.
+   * - ``--bot2-name NAME``
+     - ``Bravo``
+     - Name used to identify the second bot in file paths.
+
+Output layout
+~~~~~~~~~~~~~
+
+All validated per‑episode files (videos and JSONs for both players) are copied into ``<destination-dir>/`` with timestamp prefixes stripped and an optional prefix applied. Only episodes where frame counts match action counts for both bots are included.
+
+.. _split-train-test-py:
+
+``split_train_test.py``
+-----------------------
+
+`[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/postprocess/split_train_test.py>`_
+
+Splits a consolidated ``final_dataset`` directory into global train/test splits by (episode, instance), moving all per‑episode files together so that no episode is partially in both splits.
+
+Usage
+~~~~~
+
+.. code-block:: bash
+
+   python postprocess/split_train_test.py FINAL_DIR [OPTIONS]
+
+Options
+~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Option
+     - Default
+     - Description
+   * - ``final_dir``
+     - (required)
+     - Path to ``final_dataset`` produced by ``prepare_train_dataset.py``.
+   * - ``--test-percent PCT``
+     - ``1.0``
+     - Percentage of (episode, instance) keys assigned to the test split.
+   * - ``--seed N``
+     - ``42``
+     - Random seed for deterministic splitting.
+   * - ``--dry-run``
+     - ``False``
+     - Print the planned split without moving any files.
+
+Output layout
+~~~~~~~~~~~~~
+
+Creates ``<final_dir>/train/`` and ``<final_dir>/test/`` and moves entire episode‑instance groups into one of the two subdirectories.
+
+.. _prepare-eval-datasets-py:
+
+``prepare_eval_datasets.py``
+-----------------------------
+
+`[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/postprocess/prepare_eval_datasets.py>`_
+
+Prepares evaluation datasets from aligned eval episodes, mirroring the structure expected by Solaris model code. It filters, validates, and reshapes eval episodes into a unified directory layout.
+
+Usage
+~~~~~
+
+.. code-block:: bash
+
+   python postprocess/prepare_eval_datasets.py --source-dir SOURCE_DIR --destination-dir DEST_DIR [OPTIONS]
+
+Options
+~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Option
+     - Default
+     - Description
+   * - ``--source-dir PATH``
+     - (required)
+     - Directory with eval runs (aligned videos and action JSONs).
+   * - ``--destination-dir PATH``
+     - (required)
+     - Output directory for prepared eval datasets.
+
+.. _annotate-video-batch-py:
+
+``annotate_video_batch.py``
+---------------------------
+
+`[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/postprocess/annotate_video_batch.py>`_
+
+Batch annotates aligned camera videos with overlaid action information and vertically concatenates Alpha/Bravo views into a single debug video per episode. It can run on a single videos directory or over multiple subdirectories and supports parallel processing.
+
+Usage
+~~~~~
+
+.. code-block:: bash
+
+   python postprocess/annotate_video_batch.py VIDEOS_DIR [OPTIONS]
+
+Options
+~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Option
+     - Default
+     - Description
+   * - ``videos_dir``
+     - (required)
+     - Directory that has ``aligned/`` and ``output/`` (or already split ``test/``) subdirectories, or a parent directory with multiple such subdirectories.
+   * - ``--workers N``
+     - ``8``
+     - Number of parallel workers.
+   * - ``--output-dir PATH``
+     - ``<videos_dir>/annotated``
+     - Where to write annotated videos (per directory or per subdirectory).
+   * - ``--limit N``
+     - ``10``
+     - Maximum number of video pairs to process (stratified across instances).
+
+Output layout
+~~~~~~~~~~~~~
+
+Writes combined debug videos (Alpha on top, Bravo on bottom) under an ``annotated/`` subdirectory (or the directory specified via ``--output-dir``).
+
+Docker Orchestration
+--------------------
+
+This section documents the Python tools that generate and orchestrate the Docker Compose units used by ``run.sh``/``run_evals.sh``.
+
+.. _generate-compose-py:
+
+``generate_compose.py``
+-----------------------
+
+`[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/generate_compose.py>`_
+
+Generates multiple Docker Compose files, each describing a full SolarisEngine stack (Minecraft server, controller bots, camera bots, spectators, and helper containers) for a single instance. It supports mixed flat/normal worlds, GPU‑backed camera rendering, and a wide range of tuning options for episodes, ports, and performance.
+
+Usage
+~~~~~
+
+.. code-block:: bash
+
+   python generate_compose.py --data-dir DATA_DIR --output_dir OUTPUT_DIR \
+       --camera_output_alpha_base ALPHA_OUT --camera_output_bravo_base BRAVO_OUT [OPTIONS]
+
+Options
+~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Option
+     - Default
+     - Description
+   * - ``--instances N``
+     - ``15``
+     - Number of instances to generate when world counts are not overridden.
+   * - ``--num_flatland_world N``
+     - ``0``
+     - Number of flat‑world instances (overrides ``--instances`` when > 0).
+   * - ``--num_normal_world N``
+     - ``0``
+     - Number of normal‑world instances (overrides ``--instances`` when > 0).
+   * - ``--compose_dir DIR``
+     - ``compose_configs``
+     - Directory to store generated ``docker-compose-XXX.yml`` files.
+   * - ``--base_port PORT``
+     - ``25565``
+     - Base Minecraft server port (one per instance, contiguous range).
+   * - ``--base_rcon_port PORT``
+     - ``25675``
+     - Base RCON port (one per instance, contiguous range).
+   * - ``--act_recorder_port PORT``
+     - ``8090``
+     - Act recorder port used inside the bridge network.
+   * - ``--coord_port PORT``
+     - ``8100``
+     - Coordination port used by controller bots.
+   * - ``--data_dir DIR``
+     - (required)
+     - Base directory for per‑instance Minecraft server data.
+   * - ``--output_dir DIR``
+     - (required)
+     - Shared output directory for controller/act_recorder episode outputs.
+   * - ``--camera_output_alpha_base DIR``
+     - (required)
+     - Absolute base directory for per‑instance Camera Alpha outputs.
+   * - ``--camera_output_bravo_base DIR``
+     - (required)
+     - Absolute base directory for per‑instance Camera Bravo outputs.
+   * - ``--camera_data_alpha_base DIR``
+     - project default
+     - Base directory for Camera Alpha home/data (defaults under ``camera/data_alpha``).
+   * - ``--camera_data_bravo_base DIR``
+     - project default
+     - Base directory for Camera Bravo home/data (defaults under ``camera/data_bravo``).
+   * - ``--num_episodes N``
+     - ``5``
+     - Number of episodes to run per instance.
+   * - ``--episode_start_id N``
+     - ``0``
+     - Starting episode ID.
+   * - ``--bootstrap_wait_time SEC``
+     - ``60``
+     - Time for servers/plugins to bootstrap before controllers start.
+   * - ``--episode_category STR``
+     - ``look``
+     - High‑level episode category name.
+   * - ``--episode_types STR``
+     - ``all``
+     - Comma‑separated episode types for controllers.
+   * - ``--viewer_rendering_disabled {0,1}``
+     - ``1``
+     - Disable viewer rendering for controller/act_recorder (recommended for speed).
+   * - ``--smoke_test {0,1}``
+     - ``0``
+     - If set, enable smoke‑test mode that exercises all episode types.
+   * - ``--eval_time_set_day {0,1}``
+     - ``0``
+     - If set, force eval episodes to start at day time.
+   * - ``--flatland_world_disable_structures {0,1}``
+     - ``0``
+     - Disable structure generation in flat worlds.
+   * - ``--render_distance N``
+     - ``8``
+     - Minecraft render distance (chunks) for camera clients.
+   * - ``--simulation_distance N``
+     - ``4``
+     - Minecraft simulation distance (chunks).
+   * - ``--graphics_mode {0,1,2}``
+     - ``1``
+     - Minecraft graphics mode (Fast, Fancy, Fabulous).
+   * - ``--gpu_mode {egl,x11,auto}``
+     - ``egl``
+     - GPU rendering mode for camera containers.
+
+Output layout
+~~~~~~~~~~~~~
+
+- ``<compose_dir>/docker-compose-XXX.yml`` — one Docker Compose file per instance.
+- Per‑instance data and camera output/data directories are created under ``--data_dir`` and the camera base paths; ``--output_dir`` is created as the shared controller output root.
+
+.. _orchestrate-py:
+
+``orchestrate.py``
+------------------
+
+`[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/orchestrate.py>`_
+
+Orchestrates one or more generated Docker Compose instances: starting/stopping them, capturing logs, inspecting status, and optionally running postprocessing over their outputs. It is the main automation layer around the compose configs produced by ``generate_compose.py``.
+
+Usage
+~~~~~
+
+.. code-block:: bash
+
+   python orchestrate.py {start,stop,status,logs,postprocess} [OPTIONS]
+
+Options
+~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Option
+     - Default
+     - Description
+   * - ``command``
+     - (required)
+     - One of ``start``, ``stop``, ``status``, ``logs``, or ``postprocess``.
+   * - ``--compose-dir DIR``
+     - ``compose_configs``
+     - Directory containing the ``docker-compose-XXX.yml`` files.
+   * - ``--build``
+     - ``False``
+     - If set with ``start``, build images before starting (otherwise they are pulled).
+   * - ``--logs-dir DIR``
+     - ``logs``
+     - Directory where per‑service logs are stored.
+   * - ``--instance PATTERN``
+     - ``None``
+     - Filter for a subset of instances when showing logs.
+   * - ``--follow``, ``-f``
+     - ``False``
+     - Follow logs (for the ``logs`` command when targeting a single instance).
+   * - ``--tail N``
+     - ``50``
+     - Number of lines to show from saved logs.
+   * - ``--workers N``
+     - ``4``
+     - Parallel workers for the ``postprocess`` command.
+   * - ``--comparison-video``
+     - ``False``
+     - When running ``postprocess``, also build side‑by‑side comparison videos.
+   * - ``--debug``
+     - ``False``
+     - Extra logging for ``postprocess`` episode discovery.
+   * - ``--output-dir PATH``
+     - ``None``
+     - Base ``aligned`` directory to postprocess (see ``postprocess_recordings`` docstring).
+
+Behavior summary
+~~~~~~~~~~~~~~~~
+
+- ``start`` — starts all compose instances in parallel, waits for controller completion, captures per‑service logs, then shuts everything down.
+- ``stop`` — stops all running instances and tears down volumes.
+- ``status`` — reports how many instances have running containers.
+- ``logs`` — tails saved per‑service logs (or falls back to ``docker compose logs`` if none are saved yet).
+- ``postprocess`` — runs camera alignment over all episodes under a given ``--output-dir`` using the postprocessing pipeline.

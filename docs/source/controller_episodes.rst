@@ -1,7 +1,7 @@
 Episode Types
 =============
 
-Episode handlers live in ``controller/episode-handlers/``. Episode type selection is
+Episode handlers live in `controller/episode-handlers/ <https://github.com/georgysavva/mc-multiplayer-data/tree/release/controller/episode-handlers>`_. Episode type selection is
 controlled via the ``EPISODE_TYPES`` environment variable:
 
 - **Default**: if ``EPISODE_TYPES`` is unset (or set to ``all``), the controller samples
@@ -10,7 +10,7 @@ controlled via the ``EPISODE_TYPES`` environment variable:
   strings, e.g. ``EPISODE_TYPES=walkLook,chase,pvp``.
 
 Episode types are split into **Training** (default non-eval scenarios) and **Eval**
-(episodes used for evaluation). Eval handlers live under ``controller/episode-handlers/eval/``.
+(episodes used for evaluation). Eval handlers live under `controller/episode-handlers/eval/ <https://github.com/georgysavva/mc-multiplayer-data/tree/release/controller/episode-handlers/eval>`_.
 
 .. _adding-new-episode-type:
 
@@ -19,16 +19,16 @@ Adding a new episode type
 
 To add a new episode type:
 
-1. **Create the handler module** in ``controller/episode-handlers/`` (or
-   ``controller/episode-handlers/eval/`` for eval episodes). The module must export a
-   class that extends :ref:`episode-handlers.base-episode.BaseEpisode <api-base-episode>`.
+1. **Create the handler module** in `controller/episode-handlers/ <https://github.com/georgysavva/mc-multiplayer-data/tree/release/controller/episode-handlers>`_ (or
+   `controller/episode-handlers/eval/ <https://github.com/georgysavva/mc-multiplayer-data/tree/release/controller/episode-handlers/eval>`_ for eval episodes). The module must export a
+   class that extends :js:class:`episode-handlers.base-episode.BaseEpisode`.
 
-2. **Register the episode in** ``controller/episodes-loop.js``:
+2. **Register the episode in** `controller/episodes-loop.js <https://github.com/georgysavva/mc-multiplayer-data/tree/release/controller/episodes-loop.js>`_:
    - Add an entry to ``episodeClassMap`` mapping the episode type string (e.g. ``myNewEpisode``) to your class.
    - For eval episodes only: add your class to the ``evalEpisodeClasses`` array.
    - To include it in the default set when ``EPISODE_TYPES`` is unset, add the type string to ``defaultEpisodeTypes``.
 
-3. **Add a typical length** in ``controller/utils/episode-weights.js``: add your
+3. **Add a typical length** in `controller/utils/episode-weights.js <https://github.com/georgysavva/mc-multiplayer-data/tree/release/controller/utils/episode-weights.js>`_: add your
    episode type key and a typical duration in seconds to ``episodeTypicalLengths``.
    This is used for weighted sampling (shorter episodes are sampled more often). If
    the type is missing, ``selectWeightedEpisodeType()`` will throw.
@@ -41,7 +41,7 @@ Training
 
 Below are the **14 main training episode types** and what they do.
 
-``straightLineWalk`` (``episode-handlers/straight-line-episode.js``)
+:js:class:`straightLineWalk <episode-handlers.straight-line-episode.StraightLineEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: One bot walks in a straight line *past* the other bot while keeping gaze;
@@ -55,7 +55,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``chase`` (``episode-handlers/chase-episode.js``)
+:js:class:`chase <episode-handlers.chase-episode.ChaseEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: One bot chases, the other runs away using pathfinder (with digging/placing
@@ -71,7 +71,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``orbit`` (``episode-handlers/orbit-episode.js``)
+:js:class:`orbit <episode-handlers.orbit-episode.OrbitEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Both bots "orbit" the shared midpoint by visiting checkpoints on a circle;
@@ -86,7 +86,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``walkLook`` (``episode-handlers/walk-look-episode.js``)
+:js:class:`walkLook <episode-handlers.walk-look-episode.WalkLookEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Short random-walk bursts while looking at the partner at the start of each
@@ -104,7 +104,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``walkLookAway`` (``episode-handlers/walk-look-away-episode.js``)
+:js:class:`walkLookAway <episode-handlers.walk-look-away-episode.WalkLookAwayEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Similar to ``walkLook``, but the moving bot executes movement with "look
@@ -118,7 +118,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``pvp`` (``episode-handlers/pvp-episode.js``)
+:js:class:`pvp <episode-handlers.pvp-episode.PvpEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Player-vs-player melee combat using the ``mineflayer-pvp`` plugin
@@ -132,7 +132,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``pve`` (``episode-handlers/pve-episode.js``)
+:js:class:`pve <episode-handlers.pve-episode.PveEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Player-vs-environment fighting loop against hostile mobs (with symmetric
@@ -152,7 +152,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``buildStructure`` (``episode-handlers/build-structure-episode.js``)
+:js:class:`buildStructure <episode-handlers.build-structure-episode.BuildStructureEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Builds one randomly chosen small structure type: ``wall``, ``tower``, or
@@ -172,7 +172,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``buildTower`` (``episode-handlers/build-tower-episode.js``)
+:js:class:`buildTower <episode-handlers.build-tower-episode.BuildTowerEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Each bot builds a vertical tower underneath itself (simple "pillar up"
@@ -185,7 +185,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``mine`` (``episode-handlers/mine-episode.js``)
+:js:class:`mine <episode-handlers.mine-episode.MineEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Both bots dig down a small depth, then tunnel towards a shared underground
@@ -201,7 +201,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``towerBridge`` (``episode-handlers/tower-bridge-episode.js``)
+:js:class:`towerBridge <episode-handlers.tower-bridge-episode.TowerBridgeEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Each bot builds a fixed-height tower, then (while sneaking) builds a bridge
@@ -217,7 +217,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``buildHouse`` (``episode-handlers/build-house-episode.js``)
+:js:class:`buildHouse <episode-handlers.build-house-episode.BuildHouseEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Collaborative **5×5** house build at the midpoint between bots, then both
@@ -232,8 +232,9 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``collector`` (``episode-handlers/collector-episode.js``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:js:class:`collector <episode-handlers.collector-episode.CollectorEpisode>`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Multi-cycle mining/collection behavior: mine visible ores, then perform a
   "directional" or "staircase" mining task, repeating tasks twice.
@@ -252,7 +253,7 @@ Below are the **14 main training episode types** and what they do.
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``placeAndMine`` (``episode-handlers/place-and-mine-episode.js``)
+:js:class:`placeAndMine <episode-handlers.place-and-mine-episode.PlaceAndMineEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: A structured "builder vs miner" interaction.
@@ -278,10 +279,10 @@ Eval
 ----
 
 Eval episode types are used for evaluation runs. Handlers live in
-``controller/episode-handlers/eval/``.
+`controller/episode-handlers/eval/ <https://github.com/georgysavva/mc-multiplayer-data/tree/release/controller/episode-handlers/eval>`_.
 
-``structureEval`` (``episode-handlers/eval/structureEval.js``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+:js:class:`structureEval <episode-handlers.eval.structure-eval-episode.StructureEvalEpisode>`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Independent structure building and evaluation: one bot (builder) builds a
   small structure at its spawn; the other bot (observer) watches. Used to evaluate
@@ -298,7 +299,7 @@ Eval episode types are used for evaluation runs. Handlers live in
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``translationEval`` (``episode-handlers/eval/translation-eval-episode.js``)
+:js:class:`translationEval <episode-handlers.eval.translation-eval-episode.TranslationEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: One bot (by episode number) aligns to the other along one principal axis,
@@ -315,7 +316,7 @@ Eval episode types are used for evaluation runs. Handlers live in
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``bothLookAwayEval`` (``episode-handlers/eval/both-look-away-eval-episode.js``)
+:js:class:`bothLookAwayEval <episode-handlers.eval.both-look-away-eval-episode.BothLookAwayEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Both bots look at each other, then both look away by the same random
@@ -332,7 +333,7 @@ Eval episode types are used for evaluation runs. Handlers live in
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``oneLooksAwayEval`` (``episode-handlers/eval/one-looks-away-eval-episode.js``)
+:js:class:`oneLooksAwayEval <episode-handlers.eval.one-looks-away-eval-episode.OneLooksAwayEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: One bot (lower or higher name, by episode number) looks away by a random
@@ -350,7 +351,7 @@ Eval episode types are used for evaluation runs. Handlers live in
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``rotationEval`` (``episode-handlers/eval/rotation-eval-episode.js``)
+:js:class:`rotationEval <episode-handlers.eval.rotation-eval-episode.RotationEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: One bot (alpha or bravo, by episode number) rotates yaw by a fixed angle
@@ -366,7 +367,7 @@ Eval episode types are used for evaluation runs. Handlers live in
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``turnToLookEval`` (``episode-handlers/eval/turn-to-look-eval-episode.js``)
+:js:class:`turnToLookEval <episode-handlers.eval.turn-to-look-eval-episode.TurnToLookEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Bots look at each other, then one (by name order) faces sideways (90° left
@@ -381,7 +382,7 @@ Eval episode types are used for evaluation runs. Handlers live in
 
 - **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
-``turnToLookOppositeEval`` (``episode-handlers/eval/turn-to-look-opposite-eval-episode.js``)
+:js:class:`turnToLookOppositeEval <episode-handlers.eval.turn-to-look-opposite-eval-episode.TurnToLookOppositeEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Same as ``turnToLookEval`` but both bots rotate the same direction, so they

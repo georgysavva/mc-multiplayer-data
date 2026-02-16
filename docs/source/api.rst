@@ -59,44 +59,72 @@ Base
 Training episodes
 ^^^^^^^^^^^^^^^^^
 
+.. _api-episode-buildHouse:
+
 .. js:autoclass:: episode-handlers/build-house-episode.BuildHouseEpisode
    :members:
+
+.. _api-episode-buildStructure:
 
 .. js:autoclass:: episode-handlers/build-structure-episode.BuildStructureEpisode
    :members:
 
+.. _api-episode-buildTower:
+
 .. js:autoclass:: episode-handlers/build-tower-episode.BuildTowerEpisode
    :members:
+
+.. _api-episode-chase:
 
 .. js:autoclass:: episode-handlers/chase-episode.ChaseEpisode
    :members:
 
+.. _api-episode-collector:
+
 .. js:autoclass:: episode-handlers/collector-episode.CollectorEpisode
    :members:
+
+.. _api-episode-mine:
 
 .. js:autoclass:: episode-handlers/mine-episode.MineEpisode
    :members:
 
+.. _api-episode-orbit:
+
 .. js:autoclass:: episode-handlers/orbit-episode.OrbitEpisode
    :members:
+
+.. _api-episode-placeAndMine:
 
 .. js:autoclass:: episode-handlers/place-and-mine-episode.PlaceAndMineEpisode
    :members:
 
+.. _api-episode-pve:
+
 .. js:autoclass:: episode-handlers/pve-episode.PveEpisode
    :members:
+
+.. _api-episode-pvp:
 
 .. js:autoclass:: episode-handlers/pvp-episode.PvpEpisode
    :members:
 
+.. _api-episode-straightLineWalk:
+
 .. js:autoclass:: episode-handlers/straight-line-episode.StraightLineEpisode
    :members:
+
+.. _api-episode-towerBridge:
 
 .. js:autoclass:: episode-handlers/tower-bridge-episode.TowerBridgeEpisode
    :members:
 
+.. _api-episode-walkLook:
+
 .. js:autoclass:: episode-handlers/walk-look-episode.WalkLookEpisode
    :members:
+
+.. _api-episode-walkLookAway:
 
 .. js:autoclass:: episode-handlers/walk-look-away-episode.WalkLookAwayEpisode
    :members:
@@ -104,23 +132,37 @@ Training episodes
 Eval episodes
 ^^^^^^^^^^^^^
 
+.. _api-episode-bothLookAwayEval:
+
 .. js:autoclass:: episode-handlers/eval/both-look-away-eval-episode.BothLookAwayEvalEpisode
    :members:
+
+.. _api-episode-oneLooksAwayEval:
 
 .. js:autoclass:: episode-handlers/eval/one-looks-away-eval-episode.OneLooksAwayEvalEpisode
    :members:
 
+.. _api-episode-rotationEval:
+
 .. js:autoclass:: episode-handlers/eval/rotation-eval-episode.RotationEvalEpisode
    :members:
 
-.. js:autoclass:: episode-handlers/eval/structureEval.StructureEvalEpisode
+.. _api-episode-structureEval:
+
+.. js:autoclass:: episode-handlers/eval/structure-eval-episode.StructureEvalEpisode
    :members:
+
+.. _api-episode-translationEval:
 
 .. js:autoclass:: episode-handlers/eval/translation-eval-episode.TranslationEvalEpisode
    :members:
 
+.. _api-episode-turnToLookEval:
+
 .. js:autoclass:: episode-handlers/eval/turn-to-look-eval-episode.TurnToLookEvalEpisode
    :members:
+
+.. _api-episode-turnToLookOppositeEval:
 
 .. js:autoclass:: episode-handlers/eval/turn-to-look-opposite-eval-episode.TurnToLookOppositeEvalEpisode
    :members:

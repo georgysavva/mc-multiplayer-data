@@ -36,7 +36,7 @@ To ensure the data collection doesn't get interrupted with the player dying, the
 controller gives the players infinite resistance, water breathing, and no fall damage
 via RCON at the program startup.
 
-All episode types inherit :ref:`episode-handlers.base-episode.BaseEpisode <api-base-episode>` that provides them with the basic episode lifecycle: setupEpisode, entryPoint, tearDownEpisode, and stop-phase coordination.
+All episode types inherit :js:class:`episode-handlers.base-episode.BaseEpisode` that provides them with the basic episode lifecycle: setupEpisode, entryPoint, tearDownEpisode, and stop-phase coordination.
 An episode consists of multiple phases. At the beginning and end of a phase all players
 wait for each other an exchange arbitrary values needed for the phase progression. This
 phasing mechanism, combined with the ``sharedBotRng`` ensure the bots progress through

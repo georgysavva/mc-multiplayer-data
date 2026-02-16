@@ -48,7 +48,7 @@ Postprocessing
 --------------
 
 After all the controller and camera processes finish, ``SolarisEngine`` cuts the single, raw camera output of a player into episodes, 
-according to the episode action json files produced by the controller. The postprocessing script, ``postprocess/process_recordings.py``, 
+according to the episode action json files produced by the controller. The postprocessing script :ref:`process_recordings.py <process-recordings-py>` 
 uses ``ffprobe`` to extract frames corresponding to their actions based on the per-frame wallclock timestamps.
 
 TODO: @daohanlu you can probably talk more about the new frame extraction here.
@@ -56,10 +56,10 @@ TODO: @daohanlu you can probably talk more about the new frame extraction here.
 An episode always consists of ``N`` actions and ``N`` observations, with the observation at index ``t`` being a physics tick (~``50ms``) after the action at index ``t``, 
 making the observation a causal consequence of applying the action.
 
-``postprocess/prepare_train_dataset.py``, ``postprocess/split_train_test.py``, and ``postprocess/prepare_eval_datasets.py`` validate and transform the output of ``SolarisEngine`` 
+The scripts :ref:`prepare_train_dataset.py <prepare-train-dataset-py>`, :ref:`split_train_test.py <split-train-test-py>`, and :ref:`prepare_eval_datasets.py <prepare-eval-datasets-py>` validate and transform the output of ``SolarisEngine`` 
 to the final training and evaluation dataset formats Solaris model code expects.
 
-``postprocess/annotate_video_batch.py`` is an optional script that stitches the videos of all players into one and overlays them with visualized actions.
+The optional script :ref:`annotate_video_batch.py <annotate-video-batch-py>` stitches the videos of all players into one and overlays them with visualized actions.
  It's a helpful debug tool to see how well all bots behave in an episode and that their actions are properly aligned with the observations.
 
 TODO: Document filter water episodes
@@ -73,7 +73,7 @@ All in all, for two players, it's ``2 * 4 + 1 = 9`` long running Docker containe
 A Docker Compose unit also has two additional procedural Docker containers, ``plugin_starter`` and ``prep_data``, 
 that run at startup to set up the Minecraft server and the server-side plugin.
 
-The outer layer of Python scripts, ``generate_compose.py`` and ``orchestrate.py``, generates a configurable number of such Docker Compose units and executes them in parallel, 
+The outer layer of Python scripts, :ref:`generate_compose.py <generate-compose-py>` and :ref:`orchestrate.py <orchestrate-py>`, generates a configurable number of such Docker Compose units and executes them in parallel, 
 enabling data collection at scale.
 
 The camera bot has a dedicated Docker image, ``solaris-engine-camera``, configured with a Java runtime and the official Minecraft Java client running headless. 
@@ -84,4 +84,4 @@ TODO: @daohanlu add more details.
 The controller bot, spectator bot, and ``act_recording`` all share the ``solaris-engine-base`` Docker image that has both Node and Python environments set up. 
 The Minecraft server uses the publicly available ``itzg/minecraft-server`` Docker image.
 
-All postprocessing after all Docker Compose units finish happens on the host inside the conda environment created by ``env.yaml`` file.
+All postprocessing after all Docker Compose units finish happens on the host inside the conda environment created by `env.yaml <https://github.com/georgysavva/mc-multiplayer-data/tree/release/env.yaml>`_ file.
