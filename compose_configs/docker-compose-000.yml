@@ -13,7 +13,7 @@ services:
       ] && [ -n "$(ls -A /source_skins 2>/dev/null)" ]; then   cp -r /source_skins/.
       /data/skins/; fi; chmod -R 777 /data/plugins /data/skins
     volumes:
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/data/0:/data
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/data/0:/data
     - /home/tmeehan/snap/snapd-desktop-integration/315/Repos/mc-multiplayer-data/plugins:/source_plugins:ro
     - /home/tmeehan/snap/snapd-desktop-integration/315/Repos/mc-multiplayer-data/skins:/source_skins:ro
     restart: 'no'
@@ -34,7 +34,7 @@ services:
       ALLOW_FLIGHT: true
       ONLINE_MODE: false
       SPAWN_PROTECTION: 0
-      SEED: 01770783720
+      SEED: '01771031651'
       ENFORCE_SECURE_PROFILE: false
       OPS: Pengulu,Ahrae,timwm
       RCON_PASSWORD: research
@@ -51,7 +51,7 @@ services:
           "biome": "minecraft:plains"
         }
     volumes:
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/data/0:/data
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/data/0:/data
     healthcheck:
       test:
       - CMD-SHELL
@@ -70,7 +70,7 @@ services:
       receiver_alpha_instance_0:
         condition: service_started
     volumes:
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/output:/output
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/output:/output
     environment:
       BOT_NAME: Alpha
       OTHER_BOT_NAME: Bravo
@@ -80,7 +80,7 @@ services:
       OTHER_COORD_HOST: sender_bravo_instance_0
       OTHER_COORD_PORT: 8120
       BOT_RNG_SEED: '12345'
-      EPISODES_NUM: 3
+      EPISODES_NUM: 16
       EPISODE_START_ID: 0
       EPISODE_TYPES: translationEval
       MC_HOST: host.docker.internal
@@ -94,7 +94,7 @@ services:
       CAMERA_READY_CHECK_INTERVAL: 2000
       ITERATIONS_NUM_PER_EPISODE: 1
       MC_VERSION: '1.21'
-      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RENDERING_DISABLED: 0
       VIEWER_RECORDING_INTERVAL: 50
       WALK_TIMEOUT: 5
       TELEPORT: 1
@@ -124,7 +124,7 @@ services:
       sender_alpha_instance_0:
         condition: service_started
     volumes:
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/output:/output
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/output:/output
     environment:
       BOT_NAME: Bravo
       OTHER_BOT_NAME: Alpha
@@ -134,7 +134,7 @@ services:
       OTHER_COORD_HOST: sender_alpha_instance_0
       OTHER_COORD_PORT: 8120
       BOT_RNG_SEED: '12345'
-      EPISODES_NUM: 3
+      EPISODES_NUM: 16
       EPISODE_START_ID: 0
       EPISODE_TYPES: translationEval
       MC_HOST: host.docker.internal
@@ -148,7 +148,7 @@ services:
       CAMERA_READY_CHECK_INTERVAL: 2000
       ITERATIONS_NUM_PER_EPISODE: 1
       MC_VERSION: '1.21'
-      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RENDERING_DISABLED: 0
       VIEWER_RECORDING_INTERVAL: 50
       WALK_TIMEOUT: 5
       TELEPORT: 1
@@ -172,10 +172,10 @@ services:
       NAME: Alpha
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
-      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RENDERING_DISABLED: 0
     tty: true
     volumes:
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/output:/output
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/output:/output
     networks:
     - mc_network_0
     command: ./entrypoint_receiver.sh
@@ -186,10 +186,10 @@ services:
       NAME: Bravo
       INSTANCE_ID: 0
       EPISODE_START_ID: 0
-      VIEWER_RENDERING_DISABLED: 1
+      VIEWER_RENDERING_DISABLED: 0
     tty: true
     volumes:
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/output:/output
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/output:/output
     networks:
     - mc_network_0
     command: ./entrypoint_receiver.sh
@@ -224,8 +224,8 @@ services:
       NVIDIA_VISIBLE_DEVICES: 0
     runtime: nvidia
     volumes:
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/camera/data_alpha/0:/root
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/camera/output_alpha/0:/output
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/camera/data_alpha/0:/root
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/camera/output_alpha/0:/output
   episode_starter_instance_0:
     image: node:20
     network_mode: host
@@ -285,8 +285,8 @@ services:
       NVIDIA_VISIBLE_DEVICES: 0
     runtime: nvidia
     volumes:
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/camera/data_bravo/0:/root
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/camera/output_bravo/0:/output
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/camera/data_bravo/0:/root
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/camera/output_bravo/0:/output
   camera_demo_instance_0:
     image: ojmichel/mineflayer-spectator-client:gpu
     build:
@@ -321,8 +321,8 @@ services:
       NVIDIA_VISIBLE_DEVICES: 0
     runtime: nvidia
     volumes:
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/camera/data_demo/0:/root
-    - /mnt/data/tmeehan/mc_multiplayer_demo/translationEval2/camera/output_demo/0:/output
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/camera/data_demo/0:/root
+    - /mnt/data/tmeehan/mc_multiplayer_demo/translation_extra/camera/output_demo/0:/output
   spectator_alpha_instance_0:
     image: ojmichel/mc-multiplayer-base:latest
     build:

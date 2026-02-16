@@ -93,6 +93,7 @@ function computeCameraFromBots(bot, otherBotName, episodeInstance = null, args =
   );
   const isRotationEpisode = episodeInstance && episodeInstance instanceof RotationEvalEpisode;
   const isBothLookAwayEpisode = episodeInstance && episodeInstance instanceof BothLookAwayEvalEpisode;
+  const isOneLooksAwayEpisode = episodeInstance && episodeInstance instanceof OneLooksAwayEvalEpisode;
   const isTranslationEpisode = episodeInstance && episodeInstance instanceof TranslationEvalEpisode;
   const isStructureEpisode = episodeInstance && (
     episodeInstance instanceof StructureEvalEpisode ||
@@ -134,8 +135,8 @@ function computeCameraFromBots(bot, otherBotName, episodeInstance = null, args =
     
     console.log(`[${bot.username}] TurnToLook: camera at angle behind bots (yaw=${yaw.toFixed(1)}°)`);
     
-  } else if (isRotationEpisode || isBothLookAwayEpisode) {
-    // Rotation/BothLookAway: Camera in line with bot axis, over shoulder view
+  } else if (isRotationEpisode || isBothLookAwayEpisode || isOneLooksAwayEpisode) {
+    // Rotation/BothLookAway/OneLooksAway: Camera behind one bot, rotated counterclockwise for angled view
     const dx = otherPos.x - myPos.x;
     const dz = otherPos.z - myPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
@@ -144,25 +145,39 @@ function computeCameraFromBots(bot, otherBotName, episodeInstance = null, args =
     const dirX = dx / distance;
     const dirZ = dz / distance;
     
-    // Position camera along the axis, offset above one bot
-    const alongAxis = distance * 0.3; // 30% along from myBot toward otherBot
-    const sideOffset = 3; // Small side offset for over-shoulder effect
+    // Position camera behind myPos bot
+    const behindDistance = 6;
+    const heightOffset = 2;
     
-    // Perpendicular vector for side offset
-    const perpX = -dirZ;
-    const perpZ = dirX;
+    // Calculate base position (directly behind)
+    const baseCameraX = myPos.x - dirX * behindDistance;
+    const baseCameraZ = myPos.z - dirZ * behindDistance;
     
-    cameraX = myPos.x + dirX * alongAxis + perpX * sideOffset;
-    cameraZ = myPos.z + dirZ * alongAxis + perpZ * sideOffset;
-    cameraY = centerY + 6; // Higher for overhead view
+    // Rotate counterclockwise around the center point by 30 degrees
+    const rotationAngle = 30 * (Math.PI / 180); // 30 degrees in radians
+    const centerX = (myPos.x + otherPos.x) / 2;
+    const centerZ = (myPos.z + otherPos.z) / 2;
     
-    // Calculate yaw to look toward the other bot
-    const toLookX = otherPos.x - cameraX;
-    const toLookZ = otherPos.z - cameraZ;
+    // Vector from center to base camera position
+    const toCameraX = baseCameraX - centerX;
+    const toCameraZ = baseCameraZ - centerZ;
+    
+    // Rotate counterclockwise
+    const rotatedX = toCameraX * Math.cos(rotationAngle) - toCameraZ * Math.sin(rotationAngle);
+    const rotatedZ = toCameraX * Math.sin(rotationAngle) + toCameraZ * Math.cos(rotationAngle);
+    
+    // Final camera position
+    cameraX = centerX + rotatedX;
+    cameraZ = centerZ + rotatedZ;
+    cameraY = myPos.y + heightOffset;
+    
+    // Look at the center point
+    const toLookX = centerX - cameraX;
+    const toLookZ = centerZ - cameraZ;
     yaw = (Math.atan2(-toLookX, toLookZ) * 180) / Math.PI;
-    pitch = 25; // Slightly steeper for overhead
+    pitch = 12;
     
-    console.log(`[${bot.username}] Rotation/BothLookAway: over-shoulder view along bot axis`);
+    console.log(`[${bot.username}] Rotation/BothLookAway/OneLooksAway: camera rotated 30° counterclockwise for angled view`);
     
   } else if (isTranslationEpisode) {
     // Translation: Camera directly behind observer bot, looking at moving bot
@@ -177,7 +192,7 @@ function computeCameraFromBots(bot, otherBotName, episodeInstance = null, args =
     
     // Position camera directly behind the observer bot (opposite to direction of moving bot)
     const behindDistance = 6; // Distance behind observer
-    const heightOffset = 3;   // Height above observer for clear view
+    const heightOffset = 3.5; // Raised by 1.5 blocks (was 2, now 3.5)
     
     cameraX = myPos.x - dirX * behindDistance;
     cameraZ = myPos.z - dirZ * behindDistance;
@@ -185,40 +200,54 @@ function computeCameraFromBots(bot, otherBotName, episodeInstance = null, args =
     
     // Look directly toward the moving bot (through the observer)
     yaw = (Math.atan2(-dirX, dirZ) * 180) / Math.PI;
-    pitch = 12; // Very gentle angle for nearly level view
+    pitch = 18; // Increased from 12° to look down more
     
-    console.log(`[${bot.username}] Translation: camera directly behind observer (distance=${behindDistance}, height=${heightOffset})`);
+    console.log(`[${bot.username}] Translation: camera behind observer (distance=${behindDistance}, height=${heightOffset}, pitch=${pitch})`);
     
   } else if (isStructureEpisode) {
-    // Structure: Camera behind viewer bot, offset to side, looking at structure
+    // Structure: Camera behind spectator bot, rotated counterclockwise for shallow angled view
+    // Similar to oneLooksAway but with half the rotation (15° instead of 30°)
     const dx = otherPos.x - myPos.x;
     const dz = otherPos.z - myPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
     
-    // Normalize direction
+    // Normalize direction vector
     const dirX = dx / distance;
     const dirZ = dz / distance;
     
-    // Position behind myBot (viewer) with side offset
-    const behindDistance = 4;
-    const sideOffset = 3;
-    const heightOffset = 3;
+    // Position camera behind myPos bot (spectator)
+    const behindDistance = 6;
+    const heightOffset = 2;
     
-    // Perpendicular vector for side offset
-    const perpX = -dirZ;
-    const perpZ = dirX;
+    // Calculate base position (directly behind)
+    const baseCameraX = myPos.x - dirX * behindDistance;
+    const baseCameraZ = myPos.z - dirZ * behindDistance;
     
-    cameraX = myPos.x - dirX * behindDistance + perpX * sideOffset;
-    cameraZ = myPos.z - dirZ * behindDistance + perpZ * sideOffset;
+    // Rotate counterclockwise around the center point by 15 degrees (half of oneLooksAway)
+    const rotationAngle = 15 * (Math.PI / 180); // 15 degrees in radians
+    const centerX = (myPos.x + otherPos.x) / 2;
+    const centerZ = (myPos.z + otherPos.z) / 2;
+    
+    // Vector from center to base camera position
+    const toCameraX = baseCameraX - centerX;
+    const toCameraZ = baseCameraZ - centerZ;
+    
+    // Rotate counterclockwise
+    const rotatedX = toCameraX * Math.cos(rotationAngle) - toCameraZ * Math.sin(rotationAngle);
+    const rotatedZ = toCameraX * Math.sin(rotationAngle) + toCameraZ * Math.cos(rotationAngle);
+    
+    // Final camera position
+    cameraX = centerX + rotatedX;
+    cameraZ = centerZ + rotatedZ;
     cameraY = myPos.y + heightOffset;
     
-    // Look toward the structure (other bot)
-    const toLookX = otherPos.x - cameraX;
-    const toLookZ = otherPos.z - cameraZ;
+    // Look at the center point
+    const toLookX = centerX - cameraX;
+    const toLookZ = centerZ - cameraZ;
     yaw = (Math.atan2(-toLookX, toLookZ) * 180) / Math.PI;
-    pitch = 18; // Gentle angle for clear structure view
+    pitch = 12;
     
-    console.log(`[${bot.username}] Structure: over-shoulder behind viewer, looking at structure`);
+    console.log(`[${bot.username}] Structure: camera rotated 15° counterclockwise for shallow angled view`);
     
   } else {
     // Default: Flat world episodes or other types - closer and lower angle
