@@ -13,8 +13,9 @@ const Rcon = require("rcon-client").Rcon;
 const { BaseEpisode } = require("./base-episode");
 
 // Constants for PVP behavior
-const PVP_DURATION_MS_MIN = 10000; // 5 seconds of combat
-const PVP_DURATION_MS_MAX = 15000; // 15 seconds of combat
+// WARNING: Change this back for release 
+const PVP_DURATION_MS_MIN = 20000; // 20 seconds of combat
+const PVP_DURATION_MS_MAX = 25000; // 25 seconds of combat
 const ATTACK_COOLDOWN_MS = 500; // 0.5s between attacks
 const MELEE_RANGE = 3; // Attack range in blocks
 const APPROACH_DISTANCE = 2; // Pathfinder target distance
@@ -64,8 +65,22 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
     console.log(`[${bot.username}] 🎯 Target acquired: ${targetBotName}`);
     console.log(`[${bot.username}] 🤖 Starting pvp plugin attack...`);
 
+    // Ensure we're not currently pathfinding/combat from a previous step
+    await bot.pvp.stop();
+    bot.pathfinder.setGoal(null);
+    initializePathfinder(bot, {
+      allowSprinting: false,
+      allowParkour: true,
+      canDig: true,
+      allowEntityDetection: true,
+    });
+
     // Start PVP plugin attack - it handles pathfinding, following, and attacking
     bot.pvp.attack(targetEntity);
+
+    // Track position for stall detection and re-engage
+    let lastPosition = bot.entity.position.clone();
+    let lastMoveTime = Date.now();
 
     // Monitor combat for the specified duration
     while (Date.now() - startTime < durationMs) {
@@ -89,6 +104,25 @@ async function pvpCombatLoop(bot, targetBotName, durationMs) {
       if (!targetEntity.isValid) {
         console.log(`[${bot.username}] ⚠️ Target entity no longer valid`);
         break;
+      }
+
+      // Detect if bot has stalled and re-engage PVP
+      const currentPos = bot.entity.position;
+      if (!currentPos.equals(lastPosition)) {
+        lastPosition = currentPos.clone();
+        lastMoveTime = Date.now();
+      }
+
+      const distToTarget = bot.entity.position.distanceTo(targetEntity.position);
+
+      if (distToTarget > bot.pvp.attackRange &&
+          Date.now() - lastMoveTime > 1000) {
+        console.log(
+          `[${bot.username}] ⚠️ Bot stalled at ${distToTarget.toFixed(2)} blocks from target - re-engaging PVP`
+        );
+        bot.pvp.forceStop();
+        bot.pvp.attack(targetEntity);
+        lastMoveTime = Date.now();
       }
 
       await sleep(COMBAT_LOOP_INTERVAL_MS);

@@ -5,6 +5,8 @@ Prepare demo episodes for evaluation: copies/renames files and generates eval me
 Outputs:
   - episode_type_mapping.json: post-rename episode -> episode type
   - eval_ids.json: [(ep_idx, alpha_start, alpha_end, bravo_start, bravo_end), ...]
+    Note: start/end use exclusive end semantics (e.g., [0, 257] means frames 0-256, 257 frames total)
+  - segment_mapping.json: segment index -> episode details (1:1 correspondence with eval_ids)
   - demo_segments/: segmented Demo camera videos (using alpha start/end times from eval_ids)
 """
 
@@ -14,6 +16,7 @@ import os
 import re
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -24,14 +27,14 @@ from prepare_episodes_for_eval import process_episodes_dir
 FPS = 20  # Minecraft recording FPS
 
 
-def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_size: int = 256,
+def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_size: int = 257,
                         default_stride: int = 40, long_video_stride: int = 120, long_video_threshold: int = 1200):
     """Build eval metadata from an episodes directory.
     
     Args:
         episodes_dir: Path to the episodes directory
         ignore_first_episode: Whether to skip episode 000000
-        segment_size: Length of each segment in frames (default: 256)
+        segment_size: Length of each segment in frames (default: 257)
         default_stride: Stride between segment starts for short videos (default: 40)
         long_video_stride: Stride for videos longer than long_video_threshold (default: 120)
         long_video_threshold: Frame count threshold for using long_video_stride (default: 1200)
@@ -40,7 +43,7 @@ def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_s
     aligned_dir = Path(episodes_dir) / "aligned"
     
     if not output_dir.exists() or not aligned_dir.exists():
-        return {}, [], []
+        return {}, [], [], []
     
     # Build (episode_num, instance_id) -> episode_type from episode_info.json files
     type_mapping = {}
@@ -108,8 +111,9 @@ def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_s
         
         valid_episodes.append(key)
     
-    # Generate eval_ids and episode_demo_videos (list indexed by ep_idx)
+    # Generate eval_ids, segment_mapping, and episode_demo_videos (list indexed by ep_idx)
     eval_ids = []
+    segment_mapping = []
     episode_demo_videos = []
     
     for ep_idx, (episode_num, instance_id) in enumerate(valid_episodes):
@@ -129,53 +133,65 @@ def build_eval_metadata(episodes_dir: str, ignore_first_episode: bool, segment_s
         while start + segment_size <= min_frames:
             end = start + segment_size
             eval_ids.append((ep_idx, start, end, start, end))
+            segment_mapping.append({
+                'episode_name': f"{episode_num}_instance_{instance_id}",
+                'episode_type': type_mapping.get(key, 'unknown'),
+                'alpha_episode': pair['Alpha']['post_rename'],
+                'bravo_episode': pair['Bravo']['post_rename'],
+                'start_frame': start,
+                'end_frame': end,
+            })
             start += stride
     
-    return episode_type_mapping, eval_ids, episode_demo_videos
+    return episode_type_mapping, eval_ids, episode_demo_videos, segment_mapping
 
 
-def segment_demo_videos(eval_ids: list, episode_demo_videos: list, output_dir: Path):
+def _segment_one(args):
+    """Extract one demo segment. Returns (segment_idx, success)."""
+    segment_idx, (ep_idx, alpha_start, alpha_end, _, _), episode_demo_videos, output_dir = args
+    if ep_idx >= len(episode_demo_videos) or episode_demo_videos[ep_idx] is None:
+        return segment_idx, False
+    src_video = episode_demo_videos[ep_idx]
+    start_time = alpha_start / FPS
+    duration = (alpha_end - alpha_start) / FPS
+    out_fname = f"segment_{segment_idx:06d}.mp4"
+    out_path = output_dir / out_fname
+    if out_path.exists():
+        return segment_idx, True
+    cmd = [
+        'ffmpeg', '-y', '-ss', str(start_time), '-i', str(src_video),
+        '-t', str(duration), '-c:v', 'libx264', '-preset', 'fast',
+        '-crf', '18', '-an', str(out_path)
+    ]
+    try:
+        subprocess.run(cmd, capture_output=True, check=True)
+        return segment_idx, True
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: Failed to create segment {segment_idx} from {src_video.name}: {e.stderr.decode()[:200]}")
+        return segment_idx, False
+
+
+def segment_demo_videos(eval_ids: list, episode_demo_videos: list, output_dir: Path, workers: int = 4):
     """Segment Demo camera videos based on eval_ids using alpha start/end times.
     
     Args:
         eval_ids: List of (ep_idx, alpha_start, alpha_end, bravo_start, bravo_end)
         episode_demo_videos: List where index is ep_idx and value is demo video path
         output_dir: Directory to save segmented videos
+        workers: Number of parallel ffmpeg workers (default 4)
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+    task_args = [
+        (segment_idx, eid, episode_demo_videos, output_dir)
+        for segment_idx, eid in enumerate(eval_ids)
+    ]
     segments_created = 0
-    for segment_idx, (ep_idx, alpha_start, alpha_end, _, _) in enumerate(tqdm(eval_ids, desc="Segmenting demo videos", unit="segment")):
-        if ep_idx >= len(episode_demo_videos) or episode_demo_videos[ep_idx] is None:
-            continue
-        
-        src_video = episode_demo_videos[ep_idx]
-        
-        # Calculate time range from alpha start/end
-        start_time = alpha_start / FPS
-        duration = (alpha_end - alpha_start) / FPS
-        
-        # Output filename: segment_000000.mp4
-        out_fname = f"segment_{segment_idx:06d}.mp4"
-        out_path = output_dir / out_fname
-        
-        if out_path.exists():
-            segments_created += 1
-            continue
-        
-        # Use ffmpeg to extract segment
-        cmd = [
-            'ffmpeg', '-y', '-ss', str(start_time), '-i', str(src_video),
-            '-t', str(duration), '-c:v', 'libx264', '-preset', 'fast',
-            '-crf', '18', '-an', str(out_path)
-        ]
-        
-        try:
-            subprocess.run(cmd, capture_output=True, check=True)
-            segments_created += 1
-        except subprocess.CalledProcessError as e:
-            print(f"Warning: Failed to create segment {segment_idx} from {src_video.name}: {e.stderr.decode()[:200]}")
-    
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(_segment_one, a): a[0] for a in task_args}
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Segmenting demo videos", unit="segment"):
+            _, success = future.result()
+            if success:
+                segments_created += 1
     return segments_created
 
 
@@ -184,18 +200,19 @@ def main():
     parser.add_argument("--episodes-dir", required=True, help="Episodes directory or parent of multiple")
     parser.add_argument("--destination-dir", required=True, help="Output directory")
     parser.add_argument("--ignore-first-episode", action="store_true")
-    parser.add_argument("--segment-size", type=int, default=256, help="Length of each segment in frames")
+    parser.add_argument("--segment-size", type=int, default=257, help="Length of each segment in frames")
     parser.add_argument("--default-stride", type=int, default=40, help="Stride between segment starts for short videos")
     parser.add_argument("--long-video-stride", type=int, default=120, help="Stride for videos longer than threshold")
     parser.add_argument("--long-video-threshold", type=int, default=1200, help="Frame count threshold for long video stride (1200 = 1 minute at 20 FPS)")
     parser.add_argument("--skip-demo-segments", action="store_true", help="Skip segmenting Demo camera videos")
+    parser.add_argument("--workers", type=int, default=4, help="Parallel ffmpeg workers for demo segments (default: 4)")
     args = parser.parse_args()
 
     if not os.path.isdir(args.episodes_dir):
         sys.exit(f"Error: Directory not found: {args.episodes_dir}")
 
     is_single = os.path.isdir(os.path.join(args.episodes_dir, "output"))
-    all_type_mapping, all_eval_ids = {}, []
+    all_type_mapping, all_eval_ids, all_segment_mapping = {}, [], []
     all_episode_demo_videos = []  # List indexed by global ep_idx
     total_copied = 0
 
@@ -212,7 +229,7 @@ def main():
             total_copied += result[0]
             print(f"Processed: {prefix or 'episodes'} -> {result[0]} file pairs")
         
-        type_map, eval_ids, episode_demo_videos = build_eval_metadata(
+        type_map, eval_ids, episode_demo_videos, segment_mapping = build_eval_metadata(
             src, args.ignore_first_episode, args.segment_size,
             args.default_stride, args.long_video_stride, args.long_video_threshold
         )
@@ -223,6 +240,11 @@ def main():
             all_type_mapping[f"{prefix}/{k}" if prefix else k] = v
         for e in eval_ids:
             all_eval_ids.append((e[0] + ep_offset, e[1], e[2], e[3], e[4]))
+        for s in segment_mapping:
+            s_new = {**s, 'segment_idx': len(all_segment_mapping)}
+            if prefix:
+                s_new.update({k: f"{prefix}/{s[k]}" for k in ['episode_name', 'alpha_episode', 'bravo_episode']})
+            all_segment_mapping.append(s_new)
         
         # Append demo video paths (indexed by ep_idx)
         all_episode_demo_videos.extend(episode_demo_videos)
@@ -234,6 +256,9 @@ def main():
             padding_needed = 32 - remainder
             last_eval_id = all_eval_ids[-1]
             all_eval_ids.extend([last_eval_id] * padding_needed)
+            last_segment = all_segment_mapping[-1]
+            for _ in range(padding_needed):
+                all_segment_mapping.append({**last_segment, 'segment_idx': len(all_segment_mapping)})
             print(f"Padded eval_ids with {padding_needed} repeats of last segment to reach {len(all_eval_ids)} (multiple of 32)")
 
     # Save outputs
@@ -249,7 +274,7 @@ def main():
     if not args.skip_demo_segments and all_episode_demo_videos:
         demo_segments_dir = Path(args.destination_dir) / "demo_segments"
         segments_created = segment_demo_videos(
-            all_eval_ids, all_episode_demo_videos, demo_segments_dir
+            all_eval_ids, all_episode_demo_videos, demo_segments_dir, workers=args.workers
         )
         print(f"Created {segments_created} demo segments in {demo_segments_dir}")
 
