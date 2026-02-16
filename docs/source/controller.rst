@@ -4,8 +4,12 @@ Controller
 The Controller component of ``SolarisEngine`` is JavaScript program built on top of
 `Mineflayer <https://github.com/PrismarineJS/mineflayer>`_. It connects via TCP to the
 controller bots of other players and through communication and the high level API of
-Mineflayer makes the bots engage in collaborative gameplay. To ensure diversity and
-good coverage of various game mechanics, it has a collection of 14 :ref:`training episode types <training-episode-types>` and 7 :ref:`eval episode types <eval-episode-types>`. 
+Mineflayer makes the bots engage in collaborative gameplay. The controller is built around episode types. 
+An episode type represents a specific multiplayer scenario the bots engage in. To ensure diversity and
+good coverage of various game mechanics, 
+it has a collection of :ref:`14 training episode types <training-episode-types>`. 
+For evaluation it has a collection of separate :ref:`7 eval episode types <eval-episode-types>`,
+featuring core multiplayer mechanics. 
 All episodes types currently support only two players.
 
 
