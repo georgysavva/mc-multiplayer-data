@@ -39,360 +39,236 @@ To add a new episode type:
 Training
 --------
 
-Below are the **14 main training episode types** and what they do.
+Below are the 14 training episode types and what they do.
 
 :js:class:`straightLineWalk <episode-handlers.straight-line-episode.StraightLineEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: One bot walks in a straight line *past* the other bot while keeping gaze;
-  the other bot stays put and looks.
-- **Roles**: Decided each phase using shared RNG; either the lexicographically
-  lower-name bot walks, or the higher-name bot walks.
+- **What**: One bot runs towards and past the other bot, then spins to look at it.
 - **Notable parameters**:
 
-  - Walk past target by **4–8 blocks**.
-  - Pathfinding timeout: **20s**.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Walk past target by 4–8 blocks.
+  - Pathfinding timeout: 20s.
 
 :js:class:`chase <episode-handlers.chase-episode.ChaseEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: One bot chases, the other runs away using pathfinder (with digging/placing
-  allowed for the runner).
-- **Roles**: ``decidePrimaryBot(...)`` picks chaser vs runner (shared RNG, symmetric).
+- **What**: One bot runs away in a zig-zag pattern and the other bot pursues it.
 - **Notable parameters**:
 
-  - Chase duration: **5–15s**.
-  - Runner sets a single deterministic escape goal **~100 blocks** away (directly away
+  - Chase duration: 5–15s.
+  - Runner sets a single deterministic escape goal ~100 blocks away (directly away
     from the chaser's initial position).
-  - Chaser updates ``GoalNear`` roughly once per second and keeps the runner in view
+  - Chaser updates GoalNear roughly once per second and keeps the runner in view
     periodically.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
 :js:class:`orbit <episode-handlers.orbit-episode.OrbitEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Both bots "orbit" the shared midpoint by visiting checkpoints on a circle;
-  at each checkpoint they stop and look at each other.
-- **How it works**: Midpoint is computed from both bots' positions; radius is **half**
-  their separation; checkpoints are generated from the bot's starting angle.
+- **What**: Bots move in a circular trajectory around a shared center, visiting checkpoints on the circle. At each checkpoint, they stop and look at each other.
 - **Notable parameters**:
 
-  - Checkpoints: **8**.
-  - Reach distance: **1.5 blocks**, per-checkpoint timeout **5s**.
-  - Eye contact at each checkpoint: **1s**.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Checkpoints: 8.
+  - Reach distance: 1.5 blocks, per-checkpoint timeout 5s.
+  - Eye contact at each checkpoint: 1s.
 
 :js:class:`walkLook <episode-handlers.walk-look-episode.WalkLookEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Short random-walk bursts while looking at the partner at the start of each
-  phase.
-- **Roles**: Per-iteration mode is sampled with shared RNG:
-
-  - Both bots walk, or only the lexicographically lower-name bot walks, or only the
-    higher-name bot walks.
-
+- **What**: The episode consists of iterations where one or both bots move in a random direction with just WASD actions in front of each other.
 - **Notable parameters**:
 
-  - Iterations per episode: **3**.
-  - Random-walk actions per iteration: **2–4** (``primitives/random-movement.run``),
-    with ``lookAway=false``.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Iterations per episode: 3.
+  - Random-walk actions per iteration: 2–4.
 
 :js:class:`walkLookAway <episode-handlers.walk-look-away-episode.WalkLookAwayEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Similar to ``walkLook``, but the moving bot executes movement with "look
-  away" behavior enabled.
-- **Roles**: Only one bot walks per iteration (lower-name or higher-name), chosen via
-  shared RNG.
+- **What**: The episode consists of iterations where one bot moves in a random direction, looks away, looks back at the other bot. The other observes.
 - **Notable parameters**:
 
-  - Iterations per episode: **3**.
-  - Actions per iteration: **1** (fixed), with ``lookAway=true``.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Iterations per episode: 3.
+  - Actions per iteration: 1.
 
 :js:class:`pvp <episode-handlers.pvp-episode.PvpEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Player-vs-player melee combat using the ``mineflayer-pvp`` plugin
-  (``bot.pvp.attack(...)``).
+- **What**: Bots fight each other in melee combat with swords.
 - **Setup**: Bots are provisioned with a random sword before the episode starts.
 - **Notable parameters**:
 
-  - Spawn distance constraints: **8–15 blocks** (``INIT_MIN_BOTS_DISTANCE`` /
-    ``INIT_MAX_BOTS_DISTANCE``).
-  - Combat duration: **10–15s**.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Spawn distance constraints: 8–15 blocks.
+  - Combat duration: 10–15s.
 
 :js:class:`pve <episode-handlers.pve-episode.PveEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Player-vs-environment fighting loop against hostile mobs (with symmetric
-  coordination).
+- **What**: Bots defend two random positions on the ground, facing each other against spawning mobs.
 - **Setup**:
 
-  - Temporarily sets server difficulty to **easy** during setup; resets back to
-    **peaceful** in teardown.
+  - Temporarily sets server difficulty to ``easy`` during setup to make mobs attack players; resets back to ``peaceful`` in teardown.
   - Provisions a random sword.
 
 - **Notable parameters**:
 
-  - Spawn distance constraints: **15–25 blocks**.
-  - Number of mobs per episode: **2–5**.
-  - If no hostile mob is in forward FOV, a hostile mob may be spawned via RCON
-    (``summon ...``) in front of the bot.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Spawn distance constraints: 15–25 blocks.
+  - Number of mobs per episode: 2–5.
 
 :js:class:`buildStructure <episode-handlers.build-structure-episode.BuildStructureEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Builds one randomly chosen small structure type: ``wall``, ``tower``, or
-  ``platform``.
-- **Collaboration**:
-
-  - ``wall`` / ``tower``: each bot builds its own structure at its spawn location.
-  - ``platform``: bots build one shared platform at the midpoint; work is split by
-    X-axis.
-
+- **What**: Each bot builds a wall or in front of each other, or build a platform together at midpoint. 
+- **Setup**: Gives blocks for building.
 - **Notable parameters**:
 
-  - Spawn distance constraints: **8–15 blocks**.
+  - Spawn distance constraints: 8–15 blocks.
   - Block types sampled with shared RNG from: ``stone``, ``cobblestone``, ``oak_planks``,
     ``bricks``.
-  - Placement delay: **300ms** per block.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Placement delay: 300ms per block.
 
 :js:class:`buildTower <episode-handlers.build-tower-episode.BuildTowerEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Each bot builds a vertical tower underneath itself (simple "pillar up"
-  behavior).
+- **What**: Both bots build a tall 1-block tower by jumping and placing blocks underneath themselves.
+- **Setup**: Gives blocks for building.
 - **Notable parameters**:
 
-  - Spawn distance constraints: **8–15 blocks**.
-  - Tower height: **8–12 blocks**.
+  - Spawn distance constraints: 8–15 blocks.
+  - Tower height: 8–12 blocks.
   - Block type: ``oak_planks``.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
 :js:class:`mine <episode-handlers.mine-episode.MineEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Both bots dig down a small depth, then tunnel towards a shared underground
-  midpoint using pathfinder with mining enabled.
-- **Setup**: Gives torches (for optional placement) and equips a ``diamond_pickaxe``
-  during the episode.
+- **What**: Agent bots dig 1 block underground and mine their way towards each other.
+- **Setup**: Gives torches and a ``diamond_pickaxe``.
 - **Notable parameters**:
 
-  - Initial dig-down depth: **1 block** (``UNDERGROUND_DEPTH``).
-  - Pathfinder-with-mining timeout: **60s**.
-  - Torch placement is effectively disabled for short runs
-    (``TORCH_PLACEMENT_INTERVAL = 999`` blocks).
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Initial dig-down depth: 1 block.
+  - Pathfinder-with-mining timeout: 60s.
 
 :js:class:`towerBridge <episode-handlers.tower-bridge-episode.TowerBridgeEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Each bot builds a fixed-height tower, then (while sneaking) builds a bridge
-  towards a shared target point near the midpoint.
-- **How it chooses the target**: Snaps to a shared cardinal axis (X or Z) based on
-  which separation is larger, so both bots converge on the same line.
+- **What**: Bots build a 1-block tower by jumping, then build a bridge connecting the two towers, and meet.
+- **Setup**: Gives blocks for building.
 - **Notable parameters**:
 
-  - Spawn distance constraints: **12–20 blocks**.
-  - Tower height: **8 blocks**.
-  - Bridge build timeout: **60s**.
+  - Spawn distance constraints: 12–20 blocks.
+  - Tower height: 8 blocks.
+  - Bridge build timeout: 60s.
   - Block type: ``oak_planks``.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
 :js:class:`buildHouse <episode-handlers.build-house-episode.BuildHouseEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Collaborative **5×5** house build at the midpoint between bots, then both
+- **What**: Collaborative 5×5 house build at the midpoint between bots, then both
   bots exit and "admire" the house.
-- **Collaboration**: For each build phase (floor/walls/roof), targets are split by
-  X-axis with a proximity-based tie-breaker.
+- **Setup**: Gives building materials.
 - **Notable parameters**:
 
-  - Spawn distance constraints: **10–20 blocks**.
-  - Placement delay: **200ms** per block.
-  - Setup provisions **2×** required materials to account for scaffolding consumption.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Spawn distance constraints: 10–20 blocks.
+  - Placement delay: 200ms per block.
 
 
 :js:class:`collector <episode-handlers.collector-episode.CollectorEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Multi-cycle mining/collection behavior: mine visible ores, then perform a
-  "directional" or "staircase" mining task, repeating tasks twice.
-- **Modes**: Supports leader/follower vs independent; currently configured to always
-  use **leader/follower** (``LEADER_FOLLOWER_PROBABILITY = 1.0``).
-
-  - **Leader**: chooses and executes mining tasks.
-  - **Follower**: follows the leader and periodically places torches.
-
+- **What**: One bot mines underground searching for ores, the other bot follows, placing torches.
+- **Setup**: Gives torches.
 - **Notable parameters**:
-
-  - Spawn distance constraints: ``INIT_MIN_BOTS_DISTANCE = 0`` (teleport can place bots
-    close).
-  - Mining cycles: up to **10** (``MAX_MINING_CYCLES``).
-  - Provisions torches: **128**.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Mining cycles: up to 10.
+  - Provisions torches: 128.
 
 :js:class:`placeAndMine <episode-handlers.place-and-mine-episode.PlaceAndMineEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: A structured "builder vs miner" interaction.
-
-  - **Builder**: places 1–5 blocks per round in simple patterns around a build center.
-  - **Miner**: watches the builder, then mines exactly the placed blocks.
-
-- **Setup**: Searches for a suitable flat-enough build location near the midpoint and
-  **repositions bots via RCON teleport** around the build center.
+- **What**: Episode consists of rounds. In every round, bots stand facing each other. One bot places blocks, and the other one destroys them.
 - **Notable parameters**:
 
-  - Spawn distance constraints: **4–8 blocks**.
-  - Rounds per episode: **7–10**.
-  - Build center offset for roles: **2 blocks** from center.
+  - Spawn distance constraints: 4–8 blocks.
+  - Rounds per episode: 7–10.
   - Block types include: ``stone``, ``oak_planks``, ``bricks``, ``dirt``,
     ``smooth_sandstone``.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
 
 .. _eval-episode-types:
 
 Eval
 ----
 
-Eval episode types are used for evaluation runs. Handlers live in
-`controller/episode-handlers/eval/ <https://github.com/georgysavva/mc-multiplayer-data/tree/release/controller/episode-handlers/eval>`_.
+Below are the 7 eval episode types and what they do.
 
 :js:class:`structureEval <episode-handlers.eval.structure-eval-episode.StructureEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Independent structure building and evaluation: one bot (builder) builds a
-  small structure at its spawn; the other bot (observer) watches. Used to evaluate
-  structure-building and observation.
-- **Roles**: Builder vs observer chosen with shared RNG (``alpha_builds`` or
-  ``bravo_builds``).
+- **What**: One bot, builder, builds a small structure at its spawn location. The other bot, observer, watches.
 - **Notable parameters**:
 
-  - Structure types: ``wall_2x2``, ``wall_4x1``, ``tower_2x1`` (from
-    ``ALL_STRUCTURE_TYPES``).
-  - Block type: **stone** only.
-  - Spawn distance: **6 blocks** (``INIT_MIN_BOTS_DISTANCE`` / ``INIT_MAX_BOTS_DISTANCE``).
-  - Minimum episode ticks: **300**.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Structure types: ``wall_2x2``, ``wall_4x1``, ``tower_2x1``.
+  - Block type: stone only.
+  - Spawn distance: 6 blocks.
+  - Minimum episode ticks: 300.
 
 :js:class:`translationEval <episode-handlers.eval.translation-eval-episode.TranslationEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: One bot (by episode number) aligns to the other along one principal axis,
-  then walks using ``run()``; used to evaluate movement/translation.
-- **Roles**: Which bot walks alternates by episode number (``lower_name_walks`` or
-  ``bigger_name_walks``); the non-walking bot stays. One bot may align to the other
-  before the phase (Bravo aligns to Alpha along X or Z).
+- **What**: One bot runs left/right/forward/backward using WASD keys, the other bot stays.
 - **Notable parameters**:
 
-  - Spawn distance: **10–12 blocks**.
-  - Walk: **1** action per iteration (``MIN_RUN_ACTIONS`` / ``MAX_RUN_ACTIONS``).
-  - Movement: ``MIN_WALK_DISTANCE`` 6, ``MAX_WALK_DISTANCE`` 9, no jump.
-  - Minimum episode ticks: **300**.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Spawn distance: 10–12 blocks.
+  - Walk: 1 action per iteration.
+  - Movement: 6–9 blocks.
+  - Minimum episode ticks: 300.
 
 :js:class:`bothLookAwayEval <episode-handlers.eval.both-look-away-eval-episode.BothLookAwayEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **What**: Both bots look at each other, then both look away by the same random
-  direction/offset; used to evaluate joint look-away behavior.
-- **Roles**: Mode is fixed to ``both_look_away`` (both bots look away).
+  direction/offset so that they disappear from view of each other.
 - **Notable parameters**:
 
-  - Spawn distance: **10–12 blocks**.
-  - Look-away duration: **1s** (``MIN_LOOK_AWAY_DURATION_SEC`` /
-    ``MAX_LOOK_AWAY_DURATION_SEC``).
-  - Look-away offset: **90° ± 22.5°** (left or right).
-  - Iterations per episode: **1**.
-  - Minimum episode ticks: **300**.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Spawn distance: 10–12 blocks.
+  - Look-away duration: 1s.
+  - Look-away offset: 90° ± 22.5° (left or right).
+  - Iterations per episode: 1.
+  - Minimum episode ticks: 300.
 
 :js:class:`oneLooksAwayEval <episode-handlers.eval.one-looks-away-eval-episode.OneLooksAwayEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: One bot (lower or higher name, by episode number) looks away by a random
-  offset after initial eye contact; the other keeps looking. Used to evaluate
-  look-away behavior.
-- **Roles**: Alternates by episode number: ``lower_name_looks_away`` or
-  ``bigger_name_looks_away``.
+- **What**: One bot looks away by a random offset after initial eye contact so that the other bot disappears from view. The other keeps looking.
 - **Notable parameters**:
 
-  - Spawn distance: **10–12 blocks**.
-  - Look-away duration: **1s**.
-  - Look-away offset: **90° ± 22.5°**.
-  - Iterations per episode: **1**.
-  - Minimum episode ticks: **300**.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Spawn distance: 10–12 blocks.
+  - Look-away duration: 1s.
+  - Look-away offset: 90° ± 22.5°.
+  - Minimum episode ticks: 300.
 
 :js:class:`rotationEval <episode-handlers.eval.rotation-eval-episode.RotationEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: One bot (alpha or bravo, by episode number) rotates yaw by a fixed angle
-  while the other stays; used to evaluate camera rotation.
-- **Roles**: Which bot rotates is determined by ``episodeNum % 6``: cases 0–2 alpha
-  rotates (+40°, -40°, or 180°), cases 3–5 bravo rotates (same angles).
+- **What**: One bot rotates yaw by a fixed angle while the other stays.
 - **Notable parameters**:
 
-  - Spawn distance: **10–12 blocks**.
-  - Rotation angles: **+40°, -40°, 180°** (per case).
-  - Camera speed: **30°/s**.
-  - Minimum episode ticks: **300**.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Spawn distance: 10–12 blocks.
+  - Rotation angles: +40°, -40°, 180°.
+  - Camera speed: 30°/s.
+  - Minimum episode ticks: 300.
 
 :js:class:`turnToLookEval <episode-handlers.eval.turn-to-look-eval-episode.TurnToLookEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Bots look at each other, then one (by name order) faces sideways (90° left
-  or right); used to evaluate turning to look at the other bot.
-- **Roles**: Lexicographically lower-name bot rotates one direction, higher-name bot
-  the opposite (``dir = bot.username < otherName ? 1 : -1``), so they face different
-  sides.
+- **What**: Bots spawn close to each other (1 block away), facing each other. They both look sideways in the same direction, 90° left or right.
 - **Notable parameters**:
 
-  - Camera speed: **30°/s** for initial look, **90°/s** for turn.
-  - Minimum episode ticks: **300**.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Camera speed: 30°/s for initial look, 90°/s for turn.
+  - Minimum episode ticks: 300.
 
 :js:class:`turnToLookOppositeEval <episode-handlers.eval.turn-to-look-opposite-eval-episode.TurnToLookOppositeEvalEpisode>`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **What**: Same as ``turnToLookEval`` but both bots rotate the same direction, so they
-  end up facing opposite directions; used to evaluate turn-to-look in the opposite
-  configuration.
-- **Roles**: Both use the same rotation direction (``dir = 1``), resulting in
-  opposite facing directions because their "toward each other" vectors are opposite.
+- **What**: Bots spawn close to each other (1 block away), facing each other. They both look sideways in the opposite direction, 90° left or right.
 - **Notable parameters**:
 
-  - Camera speed: **30°/s** for initial look, **90°/s** for turn.
-  - Minimum episode ticks: **300**.
-
-- **World support**: ``WORKS_IN_NON_FLAT_WORLD = true``.
+  - Camera speed: 30°/s for initial look, 90°/s for turn.
+  - Minimum episode ticks: 300.
