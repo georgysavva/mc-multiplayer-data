@@ -42,6 +42,7 @@ function parseArgs() {
       world_type: "flat",
       eval_time_set_day: 0,
       enable_demo_mode: 0,
+      enable_demo_camera: 0,
     },
   });
 }

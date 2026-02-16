@@ -265,8 +265,7 @@ def main():
     os.makedirs(args.destination_dir, exist_ok=True)
     
     for name, data in [('episode_type_mapping.json', all_type_mapping),
-                       ('eval_ids.json', all_eval_ids),
-                       ('segment_mapping.json', all_segment_mapping)]:
+                       ('eval_ids.json', all_eval_ids)]:
         with open(os.path.join(args.destination_dir, name), 'w') as f:
             json.dump(data, f, indent=2)
         print(f"Saved {name}: {len(data)} entries")
