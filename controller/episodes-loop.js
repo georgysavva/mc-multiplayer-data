@@ -17,30 +17,48 @@ const { ensureBotHasEnough, unequipHand } = require("./primitives/items");
 const { selectWeightedEpisodeType } = require("./utils/episode-weights");
 
 // Import episode classes
-const { StraightLineEpisode } = require("./episode-handlers/straight-line-episode");
+const {
+  StraightLineEpisode,
+} = require("./episode-handlers/straight-line-episode");
 const { ChaseEpisode } = require("./episode-handlers/chase-episode");
 const { OrbitEpisode } = require("./episode-handlers/orbit-episode");
 const { WalkLookEpisode } = require("./episode-handlers/walk-look-episode");
-const { WalkLookAwayEpisode } = require("./episode-handlers/walk-look-away-episode");
+const {
+  WalkLookAwayEpisode,
+} = require("./episode-handlers/walk-look-away-episode");
 const { PvpEpisode } = require("./episode-handlers/pvp-episode");
-const { BuildStructureEpisode } = require("./episode-handlers/build-structure-episode");
+const {
+  BuildStructureEpisode,
+} = require("./episode-handlers/build-structure-episode");
 const { BuildTowerEpisode } = require("./episode-handlers/build-tower-episode");
 const { MineEpisode } = require("./episode-handlers/mine-episode");
 const { PveEpisode } = require("./episode-handlers/pve-episode");
-const { TowerBridgeEpisode } = require("./episode-handlers/tower-bridge-episode");
+const {
+  TowerBridgeEpisode,
+} = require("./episode-handlers/tower-bridge-episode");
 const { BuildHouseEpisode } = require("./episode-handlers/build-house-episode");
 const { CollectorEpisode } = require("./episode-handlers/collector-episode");
-const { PlaceAndMineEpisode } = require("./episode-handlers/place-and-mine-episode");
-const { StructureEvalEpisode } = require("./episode-handlers/eval/structureEval");
-const { TranslationEvalEpisode } = require("./episode-handlers/eval/translation-eval-episode");
+const {
+  PlaceAndMineEpisode,
+} = require("./episode-handlers/place-and-mine-episode");
+const {
+  StructureEvalEpisode,
+} = require("./episode-handlers/eval/structure-eval-episode");
+const {
+  TranslationEvalEpisode,
+} = require("./episode-handlers/eval/translation-eval-episode");
 const {
   BothLookAwayEvalEpisode,
 } = require("./episode-handlers/eval/both-look-away-eval-episode");
 const {
   OneLooksAwayEvalEpisode,
 } = require("./episode-handlers/eval/one-looks-away-eval-episode");
-const { RotationEvalEpisode } = require("./episode-handlers/eval/rotation-eval-episode");
-const { TurnToLookEvalEpisode } = require("./episode-handlers/eval/turn-to-look-eval-episode");
+const {
+  RotationEvalEpisode,
+} = require("./episode-handlers/eval/rotation-eval-episode");
+const {
+  TurnToLookEvalEpisode,
+} = require("./episode-handlers/eval/turn-to-look-eval-episode");
 const {
   TurnToLookOppositeEvalEpisode,
 } = require("./episode-handlers/eval/turn-to-look-opposite-eval-episode");
