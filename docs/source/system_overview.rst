@@ -10,7 +10,7 @@ Data Collection Workflow
 
 The sole entry point to the data collection workflow is the :ref:`run.sh <run-sh>`/:ref:`run_evals.sh <run-evals-sh>` scripts that generate the training and eval datasets. 
 They generate Docker Compose files tying together the system components: Controller Bot, Camera Bot, Minecraft Server Plugin, Spectator Bot, 
-execute the docker compose units in isolation in parallel, 
+execute the docker compose instances in isolation in parallel, 
 and run the postprocessing scripts on the host to produce the final datasets.
 
 Controller
@@ -69,11 +69,11 @@ Docker
 
 ``SolarisEngine`` uses Docker and Docker Compose to manage its components. The controller bot, camera bot, spectator bot, and Minecraft server are separate Docker containers. 
 The controller bot has the additional ``act_recorder`` Python process for writing actions to disk that runs in a separate Docker container. 
-All in all, for two players, it's ``2 * 4 + 1 = 9`` long running Docker containers total. They are bundled in Docker Compose, forming a unit, which allows them to run in isolation. 
-A Docker Compose unit also has two additional procedural Docker containers, ``plugin_starter`` and ``prep_data``, 
+All in all, for two players, it's ``2 * 4 + 1 = 9`` long running Docker containers total. They are bundled in Docker Compose, forming a instance, which allows them to run in isolation. 
+A Docker Compose instance also has two additional procedural Docker containers, ``plugin_starter`` and ``prep_data``, 
 that run at startup to set up the Minecraft server and the server-side plugin.
 
-The outer layer of Python scripts, :ref:`generate_compose.py <generate-compose-py>` and :ref:`orchestrate.py <orchestrate-py>`, generates a configurable number of such Docker Compose units and executes them in parallel, 
+The outer layer of Python scripts, :ref:`generate_compose.py <generate-compose-py>` and :ref:`orchestrate.py <orchestrate-py>`, generates a configurable number of such Docker Compose instances and executes them in parallel, 
 enabling data collection at scale.
 
 The camera bot has a dedicated Docker image, ``solaris-engine-camera``, configured with a Java runtime and the official Minecraft Java client running headless. 
@@ -84,4 +84,4 @@ TODO: @daohanlu add more details.
 The controller bot, spectator bot, and ``act_recording`` all share the ``solaris-engine-base`` Docker image that has both Node and Python environments set up. 
 The Minecraft server uses the publicly available ``itzg/minecraft-server`` Docker image.
 
-All postprocessing after all Docker Compose units finish happens on the host inside the conda environment created by `env.yaml <https://github.com/georgysavva/mc-multiplayer-data/tree/release/env.yaml>`_ file.
+All postprocessing after all Docker Compose instances finish happens on the host inside the conda environment created by `env.yaml <https://github.com/georgysavva/mc-multiplayer-data/tree/release/env.yaml>`_ file.

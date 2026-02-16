@@ -124,7 +124,7 @@ Output layout
 Postprocessing
 --------------
 
-This section covers the postprocessing utilities that turn raw camera recordings and action traces into final train/eval datasets and optional annotated videos.
+This section covers the postprocessing utilities that run as part of :ref:`run.sh <run-sh>` and :ref:`run_evals.sh <run-evals-sh>`, and turn raw camera recordings and action files into final train/eval datasets and optional annotated videos.
 
 .. _process-recordings-py:
 
@@ -133,7 +133,7 @@ This section covers the postprocessing utilities that turn raw camera recordings
 
 `[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/postprocess/process_recordings.py>`_
 
-Aligns camera recordings with Mineflayer action traces for a single bot (Alpha or Bravo), producing per-episode aligned camera videos and rich alignment metadata. It can operate on a full directory of episodes or a single episode file, and optionally generate side‑by‑side comparison videos with the original Prismarine recording.
+Aligns raw Minecraft camera recordings with Mineflayer action episode files for a single bot, producing per-episode aligned camera videos. It can operate on a full directory of episodes or a single episode file.
 
 Usage
 ~~~~~
@@ -154,7 +154,7 @@ Options
      - Description
    * - ``--actions-dir PATH``
      - (required)
-     - Directory containing Mineflayer action traces (``*.json``).
+     - Directory containing Mineflayer action files (``*.json``).
    * - ``--camera-prefix PATH``
      - (required)
      - Directory containing camera outputs (expects ``output_alpha/`` or ``output_bravo/``).
@@ -164,9 +164,6 @@ Options
    * - ``--output-dir PATH``
      - ``./aligned/<bot>``
      - Base directory for aligned videos and metadata.
-   * - ``--comparison-video``
-     - ``False``
-     - If set, also build side‑by‑side comparison videos.
    * - ``--episode-file PATH``
      - ``None``
      - Process a single episode JSON instead of scanning ``--actions-dir``.
@@ -184,7 +181,7 @@ Output layout
 
 `[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/postprocess/prepare_train_dataset.py>`_
 
-Validates and consolidates aligned camera videos and action JSONs into a single ``final_dataset`` directory for training. It filters for episodes where both Alpha and Bravo have consistent video/action pairs and enforces one‑to‑one alignment between frames and actions.
+Validates and consolidates aligned camera videos and action JSONs into a single final dataset directory for training. It filters for episodes where both Alpha and Bravo have consistent video/action pairs and enforces one‑to‑one alignment between frames and actions.
 
 Usage
 ~~~~~
@@ -214,7 +211,7 @@ Options
      - Optional prefix prepended to destination filenames.
    * - ``--destination-dir PATH``
      - (required)
-     - Target directory where the consolidated ``final_dataset`` is written.
+     - Target directory where the consolidated final dataset is written.
    * - ``--bot1-name NAME``
      - ``Alpha``
      - Name used to identify the first bot in file paths.
@@ -234,7 +231,7 @@ All validated per‑episode files (videos and JSONs for both players) are copied
 
 `[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/postprocess/split_train_test.py>`_
 
-Splits a consolidated ``final_dataset`` directory into global train/test splits by (episode, instance), moving all per‑episode files together so that no episode is partially in both splits.
+Splits a consolidated final dataset directory into train/test splits.
 
 Usage
 ~~~~~
@@ -255,7 +252,7 @@ Options
      - Description
    * - ``final_dir``
      - (required)
-     - Path to ``final_dataset`` produced by ``prepare_train_dataset.py``.
+     - Path to final dataset produced by ``prepare_train_dataset.py``.
    * - ``--test-percent PCT``
      - ``1.0``
      - Percentage of (episode, instance) keys assigned to the test split.
@@ -351,7 +348,7 @@ Writes combined debug videos (Alpha on top, Bravo on bottom) under an ``annotate
 Docker Orchestration
 --------------------
 
-This section documents the Python tools that generate and orchestrate the Docker Compose units used by ``run.sh``/``run_evals.sh``.
+This section documents the Python tools that generate and orchestrate the Docker Compose instances used by :ref:`run.sh <run-sh>`/:ref:`run_evals.sh <run-evals-sh>`.
 
 .. _generate-compose-py:
 
@@ -360,7 +357,7 @@ This section documents the Python tools that generate and orchestrate the Docker
 
 `[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/generate_compose.py>`_
 
-Generates multiple Docker Compose files, each describing a full SolarisEngine stack (Minecraft server, controller bots, camera bots, spectators, and helper containers) for a single instance. It supports mixed flat/normal worlds, GPU‑backed camera rendering, and a wide range of tuning options for episodes, ports, and performance.
+Generates multiple Docker Compose files, each describing a full ``SolarisEngine``(Minecraft server, controller bots, camera bots, spectators, and helper containers) for a single instance. It supports mixed flat/normal worlds, GPU‑backed camera rendering, and a wide range of episode customization options.
 
 Usage
 ~~~~~
@@ -475,7 +472,7 @@ Output layout
 
 `[Source] <https://github.com/georgysavva/mc-multiplayer-data/tree/release/orchestrate.py>`_
 
-Orchestrates one or more generated Docker Compose instances: starting/stopping them, capturing logs, inspecting status, and optionally running postprocessing over their outputs. It is the main automation layer around the compose configs produced by ``generate_compose.py``.
+Orchestrates one or more generated Docker Compose instances produced by :ref:`generate_compose.py <generate-compose-py>`. The script starts/stops them, captures logs, inspects status, and optionally runs postprocessing over their outputs.
 
 Usage
 ~~~~~
