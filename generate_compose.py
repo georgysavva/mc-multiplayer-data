@@ -189,13 +189,25 @@ def generate_compose_config(
     launch_host = os.path.join(project_root, "camera", "launch_minecraft.py")
     camera_package_json_host = os.path.join(project_root, "camera", "package.json")
     # If demo mode is enabled, use the fixed seed "solaris-figures"
-    # If the only episode type is turnToLookEval, use the fixed seed "solaris"
+    # If all episode types are turnToLook eval variants, use the fixed seed "solaris"
+    def _parse_episode_types(value: str) -> list[str]:
+        if not value or value == "all":
+            return []
+        return [t.strip() for t in str(value).split(",") if t.strip()]
+
+    def _is_turn_to_look_only(value: str) -> bool:
+        types = _parse_episode_types(value)
+        if not types:
+            return False
+        allowed = {"turnToLookEval", "turnToLookOppositeEval"}
+        return all(t in allowed for t in types)
+
     if enable_demo_mode:
         seed = "solaris-figures"
         print(f"Demo mode enabled. Using fixed seed 'solaris-figures' for all instances.")
-    elif episode_types == "turnToLookEval" or episode_types == "turnToLookOppositeEval":
+    elif _is_turn_to_look_only(episode_types):
         seed = "solaris"
-        print(f"turnToLookEval episode type passsed. Using fixed seed 'solaris' for all instances.")
+        print("TurnToLook eval-only run. Using fixed seed 'solaris' for all instances.")
     else:
         seed = str(instance_id) + str(int(time.time()))
     config = {
