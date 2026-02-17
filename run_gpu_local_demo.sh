@@ -22,7 +22,7 @@ python3 generate_compose.py \
  --num_normal_world 1 \
  --num_episodes 24 \
  --iterations_num_per_episode 1 \
- --eval_time_set_day 0 \
+ --eval_time_set_day 1 \
  --viewer_rendering_disabled 1 \
  --enable_gpu 1 \
  --gpu_count 1 \
