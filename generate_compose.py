@@ -646,7 +646,7 @@ def generate_compose_config(
                         "command": ["node", "spectator/spectator.js"],
                     },
                 }
-                if not (enable_demo_mode or enable_demo_camera) else {}
+                if not demo_camera_enabled else {}
             ),
             # Passive spectator bravo (only when not in demo mode)
             **(
@@ -675,7 +675,7 @@ def generate_compose_config(
                         "command": ["node", "spectator/spectator.js"],
                     },
                 }
-                if not (enable_demo_mode or enable_demo_camera) else {}
+                if not demo_camera_enabled else {}
             ),
         },
     }
