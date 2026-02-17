@@ -56,8 +56,6 @@ try {
   // File doesn't exist or is invalid - demo mode disabled
 }
 
-const SPECTATOR_NAMES = ["SpectatorAlpha", "SpectatorBravo"];
-
 /**
  * Compute camera position from bot positions (center of Alpha and Bravo + offset)
  * @param {Object} bot - Mineflayer bot instance
@@ -278,29 +276,6 @@ function computeCameraFromBots(bot, otherBotName, episodeInstance = null, args =
     yaw,
     pitch,
   };
-}
-
-async function teleportSpectatorsFromBots(rcon, bot, otherBotName) {
-  const camera = computeCameraFromBots(bot, otherBotName);
-  if (!camera) {
-    return;
-  }
-  for (const name of SPECTATOR_NAMES) {
-    // Make spectator invisible
-    try {
-      await rcon.send(`effect give ${name} minecraft:invisibility 999999 0 true`);
-    } catch (err) {
-      console.warn(`[${bot.username}] Failed to make ${name} invisible: ${err.message}`);
-    }
-    
-    const tpCmd = `tp ${name} ${camera.x} ${camera.y} ${camera.z} ${camera.yaw} ${camera.pitch}`;
-    console.log(`[${bot.username}] Spectator tp: ${tpCmd}`);
-    try {
-      await rcon.send(tpCmd);
-    } catch (err) {
-      console.warn(`[${bot.username}] Failed to teleport ${name}: ${err.message}`);
-    }
-  }
 }
 
 async function teleportDemoCameraFromBots(rcon, bot, otherBotName, episodeInstance = null, args = null) {
@@ -668,13 +643,6 @@ async function setupBotAndWorldOnce(bot, rcon) {
  */
 async function setupCameraPlayerOnce(bot, rcon) {
   const cameraUsername = `Camera${bot.username}`;
-  
-  // Make camera invisible
-  const invisEffectResCamera = await rcon.send(
-    `effect give ${cameraUsername} minecraft:invisibility 999999 0 true`
-  );
-  console.log(`[${cameraUsername}] invisEffectRes=${invisEffectResCamera}`);
-  
   const resistEffectResCamera = await rcon.send(
     `effect give ${cameraUsername} minecraft:resistance 999999 255 true`
   );
@@ -689,16 +657,6 @@ async function setupCameraPlayerOnce(bot, rcon) {
     `attribute ${cameraUsername} minecraft:fall_damage_multiplier base set 0`
   );
   console.log(`[${cameraUsername}] fallDamageRes=${fallDamageResCamera}`);
-  
-  // Make CameraDemo invisible too
-  try {
-    const invisDemoRes = await rcon.send(
-      `effect give CameraDemo minecraft:invisibility 999999 0 true`
-    );
-    console.log(`[CameraDemo] invisEffectRes=${invisDemoRes}`);
-  } catch (err) {
-    console.log(`[CameraDemo] invisibility not applied (may not exist yet)`);
-  }
 }
 
 /**
@@ -1212,11 +1170,9 @@ async function teleport(
         turnToLookEvalTpPoints
       );
       
-      // Teleport spectators and demo camera after bots are positioned
+      // Teleport demo camera after bots are positioned
       if (!args.enable_demo_mode && isEvalEpisode(episodeInstance)) {
         await sleep(500); // Wait for positions to update
-        // Spectators disabled for turnToLook episodes
-        // await teleportSpectatorsFromBots(rcon, bot, args.other_bot_name);
         if (args.enable_demo_camera) {
           await teleportDemoCameraFromBots(rcon, bot, args.other_bot_name, episodeInstance, args);
         }
@@ -1331,10 +1287,8 @@ async function teleport(
       success = true;
       await sleep(5000);
       
-      // Teleport spectators and demo camera after bots are positioned
+      // Teleport demo camera after bots are positioned
       if (!args.enable_demo_mode && isEvalEpisode(episodeInstance)) {
-        // Spectators disabled for eval episodes
-        // await teleportSpectatorsFromBots(rcon, bot, args.other_bot_name);
         if (args.enable_demo_camera) {
           await teleportDemoCameraFromBots(rcon, bot, args.other_bot_name, episodeInstance, args);
         }
