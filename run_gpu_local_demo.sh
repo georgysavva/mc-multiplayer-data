@@ -28,7 +28,7 @@ python3 generate_compose.py \
  --episode_types_flat "structureEval,structureNoPlaceEval" \
  --iterations_num_per_episode 1 \
  --eval_time_set_day 1 \
- --viewer_rendering_disabled 0 \
+ --viewer_rendering_disabled 1 \
  --enable_gpu 1 \
  --gpu_count 1 \
  --gpu_mode egl \
