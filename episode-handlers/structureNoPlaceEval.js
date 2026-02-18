@@ -459,7 +459,7 @@ function getOnStructureNoPlaceEvalPhaseFn(
       
       if (viewPosition) {
         console.log(`[${bot.username}] 👁️ Looking at structure from front...`);
-        await lookAtSmooth(bot, viewPosition, 90, { randomized: false, useEasing: false });
+        await lookAtSmooth(bot, viewPosition, 171.8873, { randomized: false, useEasing: false });
         await bot.waitForTicks(getBuilderAdmireTicks(positions.length));
         console.log(`[${bot.username}] ✅ Admired structure from front position`);
       }

@@ -2,7 +2,7 @@ const { lookAtSmooth, lookSmooth, sneak } = require("../utils/movement");
 const { sleep } = require("../utils/helpers");
 const { BaseEpisode } = require("./base-episode");
 
-const CAMERA_SPEED_DEGREES_PER_SEC = 30;
+const CAMERA_SPEED_DEGREES_PER_SEC = 171.8873;
 const ITERATIONS_NUM_PER_EPISODE = 1;
 const MIN_LOOK_AWAY_DURATION_SEC = 1.0;
 const MAX_LOOK_AWAY_DURATION_SEC = 1.0;
@@ -64,7 +64,7 @@ function getOnBothLookAwayPhaseFn(
     const lookAwayDirection = sharedBotRng() < 0.5 ? -1 : 1;
     // pick a look away offset randomly between 90 +/- 22.5 degrees.
     const lookAwayOffsetDeg = 90 * lookAwayDirection + sharedBotRng() * 45 - 22.5;
-    const freezeTicks = 20;
+    const freezeTicks = 60;
     
     episodeInstance._evalMetadata = {
       bots_chosen: botsChosen,
