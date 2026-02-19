@@ -14,4 +14,5 @@ videos/
 .gitignore
 *.md
 compose_configs/
+test_output/
 
