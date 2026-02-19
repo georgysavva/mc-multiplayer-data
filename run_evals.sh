@@ -30,7 +30,7 @@ EVAL_TIME_SET_DAY=${EVAL_TIME_SET_DAY:-1}
 
 # List of eval episode types to run
 # structureNoPlaceEval is used for debugging, but not part of the eval dataset
-EVAL_TYPES=("rotationEval" "translationEval" "structureEval" "turnToLookEval" "turnToLookOppositeEval" "bothLookAwayEval" "oneLooksAwayEval")
+EVAL_TYPES=("rotationEval" "translationEval" "structureEval" "turnToLookEval" "turnToLookOppositeEval" "bothLookAwayEval" "oneLooksAwayEval" "turnToSeeEval" "asymmetricTurnEval" "wallBreakEval" "wallWalkEval")
 
 for BATCH_NAME in "${EVAL_TYPES[@]}"; do
     echo "=========================================="
@@ -45,7 +45,7 @@ for BATCH_NAME in "${EVAL_TYPES[@]}"; do
     NUM_EPISODES=16
 
     # Override config for turnToLookEval and turnToLookOppositeEval: use 1 normal worldinstance with fixed seed
-    if [ "$BATCH_NAME" == "turnToLookEval" ] || [ "$BATCH_NAME" == "turnToLookOppositeEval" ]; then
+    if [ "$BATCH_NAME" == "turnToLookEval" ] || [ "$BATCH_NAME" == "turnToLookOppositeEval" ] || [ "$BATCH_NAME" == "turnToSeeEval" ]; then
         NUM_FLATLAND_WORLD=0
         NUM_NORMAL_WORLD=1
         NUM_EPISODES=32

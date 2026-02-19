@@ -62,6 +62,18 @@ const {
 const {
   TurnToLookOppositeEvalEpisode,
 } = require("./episode-handlers/eval/turn-to-look-opposite-eval-episode");
+const {
+  TurnToSeeEvalEpisode,
+} = require("./episode-handlers/eval/turn-to-see-eval-episode");
+const {
+  AsymmetricTurnEvalEpisode,
+} = require("./episode-handlers/eval/asymmetric-turn-eval-episode");
+const {
+  WallBreakEvalEpisode,
+} = require("./episode-handlers/eval/wall-break-eval-episode");
+const {
+  WallWalkEvalEpisode,
+} = require("./episode-handlers/eval/wall-walk-eval-episode");
 const turnToLookEvalTpPoints = require("./episode-handlers/eval/turn-to-look-eval-episode-tp-points.json");
 
 /**
@@ -92,6 +104,10 @@ const episodeClassMap = {
   rotationEval: RotationEvalEpisode,
   turnToLookEval: TurnToLookEvalEpisode,
   turnToLookOppositeEval: TurnToLookOppositeEvalEpisode,
+  turnToSeeEval: TurnToSeeEvalEpisode,
+  asymmetricTurnEval: AsymmetricTurnEvalEpisode,
+  wallBreakEval: WallBreakEvalEpisode,
+  wallWalkEval: WallWalkEvalEpisode,
 };
 
 /**
@@ -107,6 +123,10 @@ const evalEpisodeClasses = [
   RotationEvalEpisode,
   TurnToLookEvalEpisode,
   TurnToLookOppositeEvalEpisode,
+  TurnToSeeEvalEpisode,
+  AsymmetricTurnEvalEpisode,
+  WallBreakEvalEpisode,
+  WallWalkEvalEpisode,
 ];
 
 /**
@@ -149,6 +169,10 @@ const defaultEpisodeTypes = [
   "rotationEval",
   "turnToLookEval",
   "turnToLookOppositeEval",
+  "turnToSeeEval",
+  "asymmetricTurnEval",
+  "wallBreakEval",
+  "wallWalkEval",
 ];
 
 const isCustomEpisodeTypes =
@@ -1062,7 +1086,8 @@ async function teleport(
   // Custom TP logic for TurnToLookEpisode
   if (
     episodeInstance instanceof TurnToLookEvalEpisode ||
-    episodeInstance instanceof TurnToLookOppositeEvalEpisode
+    episodeInstance instanceof TurnToLookOppositeEvalEpisode ||
+    episodeInstance instanceof TurnToSeeEvalEpisode
   ) {
     if (turnToLookEvalTpPoints && turnToLookEvalTpPoints.length > 0) {
       await directTeleport(

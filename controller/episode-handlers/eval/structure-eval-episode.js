@@ -578,4 +578,4 @@ class StructureEvalEpisode extends BaseEpisode {
   }
 }
 
-module.exports = { StructureEvalEpisode };
+module.exports = { StructureEvalEpisode, generateWallPositions };
