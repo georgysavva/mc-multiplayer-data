@@ -2,8 +2,9 @@ const { MAX_BOTS_DISTANCE, MIN_BOTS_DISTANCE } = require("../utils/constants");
 const { sleep } = require("../utils/helpers");
 
 /**
- * BaseEpisode provides a common lifecycle for episodes.
- * Subclasses should override execute().
+ * Base episode lifecycle: setupEpisode, entryPoint, tearDownEpisode, and stop-phase coordination.
+ * Subclasses override entryPoint (required), and optionally setupEpisode and tearDownEpisode.
+ * @abstract
  */
 class BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = MIN_BOTS_DISTANCE;

@@ -193,6 +193,11 @@ function getOnBothLookAwayPhaseFn(
   };
 }
 
+/**
+ * Eval episode where both bots look away after initial eye contact (same random direction/offset);
+ * used to evaluate joint look-away behavior.
+ * @extends BaseEpisode
+ */
 class BothLookAwayEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
   static INIT_MIN_BOTS_DISTANCE = 10; // Override: bots spawn 10-12 blocks apart
@@ -230,7 +235,4 @@ class BothLookAwayEvalEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  getOnBothLookAwayPhaseFn,
-  BothLookAwayEvalEpisode,
-};
+module.exports = { BothLookAwayEvalEpisode };

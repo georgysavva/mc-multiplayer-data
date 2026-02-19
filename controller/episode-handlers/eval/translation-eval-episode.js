@@ -175,6 +175,11 @@ function getOnWalkLookPhaseFn(
   };
 }
 
+/**
+ * Eval episode for translation: one bot (by episode number) aligns to the other along one axis,
+ * then walks using run(); used to evaluate movement/translation.
+ * @extends BaseEpisode
+ */
 class TranslationEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
   static INIT_MIN_BOTS_DISTANCE = 10; // Override: bots spawn 10-12 blocks apart
@@ -272,7 +277,4 @@ class TranslationEvalEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  getOnWalkLookPhaseFn,
-  TranslationEvalEpisode,
-};
+module.exports = { TranslationEvalEpisode };

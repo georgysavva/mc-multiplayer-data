@@ -296,6 +296,11 @@ function getOnOrbitPhaseFn(
   };
 }
 
+/**
+ * Episode where both bots orbit around their shared midpoint, visiting checkpoints and making
+ * eye contact at each. Orbit radius is half the distance between bots.
+ * @extends BaseEpisode
+ */
 class OrbitEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
@@ -371,9 +376,4 @@ class OrbitEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  calculateOrbitCheckpoints,
-  executeOrbitWithCheckpoints,
-  getOnOrbitPhaseFn,
-  OrbitEpisode,
-};
+module.exports = { OrbitEpisode };

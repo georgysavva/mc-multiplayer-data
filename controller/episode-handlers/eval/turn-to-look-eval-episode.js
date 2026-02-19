@@ -118,6 +118,11 @@ function getOnTurnToLookPhaseFn(
   };
 }
 
+/**
+ * Eval episode: bots look at each other, then one (by name order) faces sideways; used to
+ * evaluate turning to look at the other bot.
+ * @extends BaseEpisode
+ */
 class TurnToLookEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
@@ -153,7 +158,4 @@ class TurnToLookEvalEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  getOnTurnToLookPhaseFn,
-  TurnToLookEvalEpisode,
-};
+module.exports = { TurnToLookEvalEpisode };

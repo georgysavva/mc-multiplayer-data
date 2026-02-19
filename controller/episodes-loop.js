@@ -5,48 +5,70 @@ const mineflayerViewerhl = require("prismarine-viewer-colalab").headless;
 const { Rcon } = require("rcon-client");
 const seedrandom = require("seedrandom");
 
-const { sleep } = require("../utils/helpers");
-const { waitForCameras } = require("../utils/camera-ready");
-const { DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC } = require("../utils/constants");
+const { sleep } = require("./utils/helpers");
+const { waitForCameras } = require("./utils/camera-ready");
+const { DEFAULT_CAMERA_SPEED_DEGREES_PER_SEC } = require("./utils/constants");
 const {
   directTeleport,
   lookAtSmooth,
   stopAll,
-} = require("../primitives/movement");
-const { ensureBotHasEnough, unequipHand } = require("../primitives/items");
-const { selectWeightedEpisodeType } = require("../utils/episode-weights");
+} = require("./primitives/movement");
+const { ensureBotHasEnough, unequipHand } = require("./primitives/items");
+const { selectWeightedEpisodeType } = require("./utils/episode-weights");
 
 // Import episode classes
-const { StraightLineEpisode } = require("./straight-line-episode");
-const { ChaseEpisode } = require("./chase-episode");
-const { OrbitEpisode } = require("./orbit-episode");
-const { WalkLookEpisode } = require("./walk-look-episode");
-const { WalkLookAwayEpisode } = require("./walk-look-away-episode");
-const { PvpEpisode } = require("./pvp-episode");
-const { BuildStructureEpisode } = require("./build-structure-episode");
-const { BuildTowerEpisode } = require("./build-tower-episode");
-const { MineEpisode } = require("./mine-episode");
-const { PveEpisode } = require("./pve-episode");
-const { TowerBridgeEpisode } = require("./tower-bridge-episode");
-const { BuildHouseEpisode } = require("./build-house-episode");
-const { CollectorEpisode } = require("./collector-episode");
-const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
-const { StructureEvalEpisode } = require("./eval/structureEval");
-const { TranslationEvalEpisode } = require("./eval/translation-eval-episode");
+const {
+  StraightLineEpisode,
+} = require("./episode-handlers/straight-line-episode");
+const { ChaseEpisode } = require("./episode-handlers/chase-episode");
+const { OrbitEpisode } = require("./episode-handlers/orbit-episode");
+const { WalkLookEpisode } = require("./episode-handlers/walk-look-episode");
+const {
+  WalkLookAwayEpisode,
+} = require("./episode-handlers/walk-look-away-episode");
+const { PvpEpisode } = require("./episode-handlers/pvp-episode");
+const {
+  BuildStructureEpisode,
+} = require("./episode-handlers/build-structure-episode");
+const { BuildTowerEpisode } = require("./episode-handlers/build-tower-episode");
+const { MineEpisode } = require("./episode-handlers/mine-episode");
+const { PveEpisode } = require("./episode-handlers/pve-episode");
+const {
+  TowerBridgeEpisode,
+} = require("./episode-handlers/tower-bridge-episode");
+const { BuildHouseEpisode } = require("./episode-handlers/build-house-episode");
+const { CollectorEpisode } = require("./episode-handlers/collector-episode");
+const {
+  PlaceAndMineEpisode,
+} = require("./episode-handlers/place-and-mine-episode");
+const {
+  StructureEvalEpisode,
+} = require("./episode-handlers/eval/structure-eval-episode");
+const {
+  TranslationEvalEpisode,
+} = require("./episode-handlers/eval/translation-eval-episode");
 const {
   BothLookAwayEvalEpisode,
-} = require("./eval/both-look-away-eval-episode");
+} = require("./episode-handlers/eval/both-look-away-eval-episode");
 const {
   OneLooksAwayEvalEpisode,
-} = require("./eval/one-looks-away-eval-episode");
-const { RotationEvalEpisode } = require("./eval/rotation-eval-episode");
-const { TurnToLookEvalEpisode } = require("./eval/turn-to-look-eval-episode");
+} = require("./episode-handlers/eval/one-looks-away-eval-episode");
+const {
+  RotationEvalEpisode,
+} = require("./episode-handlers/eval/rotation-eval-episode");
+const {
+  TurnToLookEvalEpisode,
+} = require("./episode-handlers/eval/turn-to-look-eval-episode");
 const {
   TurnToLookOppositeEvalEpisode,
-} = require("./eval/turn-to-look-opposite-eval-episode");
-const turnToLookEvalTpPoints = require("./eval/turn-to-look-eval-episode-tp-points.json");
+} = require("./episode-handlers/eval/turn-to-look-opposite-eval-episode");
+const turnToLookEvalTpPoints = require("./episode-handlers/eval/turn-to-look-eval-episode-tp-points.json");
 
-// Map episode type strings to their class implementations
+/**
+ * Map of episode type string keys to their episode class constructors.
+ * Used to instantiate episodes by type name (e.g. from config or env).
+ * @type {Object<string, typeof import('./episode-handlers/base-episode').BaseEpisode>}
+ */
 const episodeClassMap = {
   straightLineWalk: StraightLineEpisode,
   chase: ChaseEpisode,
@@ -72,7 +94,11 @@ const episodeClassMap = {
   turnToLookOppositeEval: TurnToLookOppositeEvalEpisode,
 };
 
-// List of eval episode classes for generic eval episode detection
+/**
+ * Array of eval episode classes used to detect whether an episode instance
+ * is an eval episode (e.g. in {@link isEvalEpisode}).
+ * @type {Array<typeof import('./episode-handlers/base-episode').BaseEpisode>}
+ */
 const evalEpisodeClasses = [
   StructureEvalEpisode,
   TranslationEvalEpisode,
@@ -96,8 +122,11 @@ function isEvalEpisode(episodeInstance) {
 
 // Import episode-specific handlers
 
-// Add episode type selection - Enable multiple types for diverse data collection
-// Default episode types list
+/**
+ * Default list of episode type keys to run when EPISODE_TYPES is not set.
+ * Each string must be a key of {@link episodeClassMap}.
+ * @type {string[]}
+ */
 const defaultEpisodeTypes = [
   "straightLineWalk",
   "chase",
@@ -130,12 +159,29 @@ const episodeTypes = isCustomEpisodeTypes
   : defaultEpisodeTypes;
 
 function formatDateForFilename(date) {
+  /**
+   * Left-pad a value with zeros.
+   * @param {number|string} value - Value to pad.
+   * @param {number} [length=2] - Target width.
+   * @returns {string} Padded string.
+   */
   const pad = (value, length = 2) => String(value).padStart(length, "0");
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(
     date.getDate(),
   )}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
+/**
+ * Persist per-episode metadata to disk (one JSON file per episode).
+ *
+ * @param {Object} params - Parameters bag.
+ * @param {Object} params.args - CLI/config args. Must include `output_dir` and `bot_name`.
+ * @param {*} params.bot - Mineflayer bot instance.
+ * @param {*} params.episodeInstance - Episode instance (used for error/eval flags).
+ * @param {number} params.episodeNum - Episode number.
+ * @param {string} params.episodeType - Episode type key.
+ * @returns {Promise<void>} Resolves once the file is written.
+ */
 async function saveEpisodeInfo({
   args,
   bot,
@@ -177,14 +223,17 @@ async function saveEpisodeInfo({
     `[${bot.username}] Saved episode info to ${filePath} (encountered_error=${payload.encountered_error}, peer_encountered_error=${payload.peer_encountered_error}, bot_died=${payload.bot_died})`,
   );
 }
+
 /**
  * Run a single episode
  * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
  * @param {Function} sharedBotRng - Shared random number generator
  * @param {*} coordinator - Bot coordinator instance
  * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance for this run
  * @param {Object} args - Configuration arguments
- * @returns {Promise} Promise that resolves when episode completes
+ * @returns {Promise<Function>} Resolves with a cleanup function for episode-scoped handlers.
  */
 async function runSingleEpisode(
   bot,
@@ -206,6 +255,16 @@ async function runSingleEpisode(
 
     // Episode-scoped error handler that captures this episode number
     let episodeErrorHandled = false;
+
+    /**
+     * Handle any episode-scoped error (unhandled rejection/exception).
+     *
+     * Captures the episode number and ensures we only perform the stop/notify
+     * sequence once per episode.
+     *
+     * @param {unknown} err - Error value.
+     * @returns {Promise<void>} Resolves once peer has been notified and stop initiated.
+     */
     const handleAnyError = async (err) => {
       if (episodeErrorHandled) {
         console.log(
@@ -226,12 +285,22 @@ async function runSingleEpisode(
         err,
       );
     };
+
+    /**
+     * Mark that the bot died during this episode.
+     * @returns {void}
+     */
     const handleBotDeath = () => {
       console.warn(
         `[${bot.username}] Episode ${episodeNum} detected bot death`,
       );
       episodeInstance._botDied = true;
     };
+
+    /**
+     * Remove all episode-scoped handlers/listeners.
+     * @returns {void}
+     */
     const cleanupEpisodeScopedHandlers = () => {
       process.removeListener("unhandledRejection", handleAnyError);
       process.removeListener("unhandledException", handleAnyError);
@@ -244,6 +313,10 @@ async function runSingleEpisode(
     // Ensure we clean up episode-scoped handlers when the episode resolves
     // Return the cleanup function to the caller so it can be invoked
     // after all pending phase handlers finish.
+    /**
+     * Resolve the episode promise with the cleanup function.
+     * @returns {void}
+     */
     bot._currentEpisodeResolve = () => {
       resolve(cleanupEpisodeScopedHandlers);
     };
@@ -295,6 +368,19 @@ async function runSingleEpisode(
   });
 }
 
+/**
+ * Notify the peer bot of an episode error and initiate the stop phase locally.
+ *
+ * @param {*} bot - Mineflayer bot instance.
+ * @param {*} rcon - RCON connection instance.
+ * @param {Function} sharedBotRng - Shared RNG instance.
+ * @param {*} coordinator - Bot coordinator instance.
+ * @param {number} episodeNum - Episode number.
+ * @param {*} episodeInstance - Episode instance.
+ * @param {Object} args - Configuration args.
+ * @param {unknown} error - Error value.
+ * @returns {Promise<void>} Resolves when peer is notified and stop is scheduled.
+ */
 async function notifyPeerErrorAndStop(
   bot,
   rcon,
@@ -448,6 +534,13 @@ async function setupBotAndCameraForEpisode(bot, rcon, args) {
   await unequipHand(bot);
 }
 
+/**
+ * Clear all items from the bot's inventory.
+ *
+ * @param {*} bot - Mineflayer bot instance.
+ * @param {*} rcon - RCON connection instance.
+ * @returns {Promise<void>} Resolves when the `/clear` command completes.
+ */
 async function clearBotInventory(bot, rcon) {
   // /clear <name> with no item argument deletes ALL items
   const cmd = `clear ${bot.username}`;
@@ -675,10 +768,13 @@ function getOnSpawnFn(bot, host, actRecorderPort, coordinator, args) {
 /**
  * Get teleport phase handler function
  * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
  * @param {Function} sharedBotRng - Shared random number generator
  * @param {*} coordinator - Bot coordinator instance
  * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance
  * @param {Object} args - Configuration arguments
+ * @param {Object} phaseDataOur - Our phase data payload
  * @returns {Function} Teleport phase handler
  */
 function getOnTeleportPhaseFn(
@@ -735,6 +831,19 @@ function getOnTeleportPhaseFn(
     );
   };
 }
+
+/**
+ * Get post-teleport phase handler.
+ *
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
+ * @param {Function} sharedBotRng - Shared RNG
+ * @param {*} coordinator - Bot coordinator
+ * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance
+ * @param {Object} args - Configuration args
+ * @returns {Function} Post-teleport phase handler
+ */
 function getOnPostTeleportPhaseFn(
   bot,
   rcon,
@@ -782,6 +891,20 @@ function getOnPostTeleportPhaseFn(
     );
   };
 }
+
+/**
+ * Get setup-episode phase handler.
+ *
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
+ * @param {Function} sharedBotRng - Shared RNG
+ * @param {*} coordinator - Bot coordinator
+ * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance
+ * @param {Object} args - Configuration args
+ * @param {Object} phaseDataOur - Our phase payload (expects `position`)
+ * @returns {Function} Setup-episode phase handler
+ */
 function getOnSetupEpisodeFn(
   bot,
   rcon,
@@ -849,6 +972,19 @@ function getOnSetupEpisodeFn(
     );
   };
 }
+
+/**
+ * Get start-recording phase handler.
+ *
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
+ * @param {Function} sharedBotRng - Shared RNG
+ * @param {*} coordinator - Bot coordinator
+ * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance
+ * @param {Object} args - Configuration args
+ * @returns {Function} Start-recording phase handler
+ */
 function getOnStartRecordingFn(
   bot,
   rcon,
@@ -888,6 +1024,23 @@ function getOnStartRecordingFn(
     );
   };
 }
+
+/**
+ * Teleport both bots to a randomized location (or episode-specific fixed points).
+ *
+ * Uses `spreadplayers` to place both bots within the configured distance bounds.
+ * For some eval episodes, applies special-case teleporting.
+ *
+ * @param {*} bot - Mineflayer bot instance.
+ * @param {*} rcon - RCON connection instance.
+ * @param {Object} args - Configuration args.
+ * @param {*} ourPosition - Our current position (vec3-like).
+ * @param {*} otherBotPosition - Peer current position (vec3-like).
+ * @param {*} episodeInstance - Episode instance (used for min/max distances and eval detection).
+ * @param {Function} sharedBotRng - Shared RNG (currently unused; reserved for future determinism).
+ * @param {number} episodeNum - Episode number (for logging/commands).
+ * @returns {Promise<void>} Resolves when teleport attempt finishes.
+ */
 async function teleport(
   bot,
   rcon,
@@ -1016,6 +1169,20 @@ async function teleport(
   }
 }
 
+/**
+ * Get peer-error phase handler for a specific episode.
+ *
+ * When the peer reports an error, mark `_peerError` and schedule the stop phase.
+ *
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance
+ * @param {Function} sharedBotRng - Shared RNG
+ * @param {*} coordinator - Bot coordinator
+ * @param {number} episodeNum - Episode number
+ * @param {*} episodeInstance - Episode instance
+ * @param {Object} args - Configuration args
+ * @returns {Function} Peer-error phase handler
+ */
 function getOnPeerErrorPhaseFn(
   bot,
   rcon,

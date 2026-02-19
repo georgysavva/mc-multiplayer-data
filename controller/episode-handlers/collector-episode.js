@@ -598,7 +598,9 @@ function getCyclePhaseFn(
 }
 
 /**
- * Collector Episode Class
+ * Episode where both bots perform mining cycles (leader-follower or independent). Leader-follower
+ * mode has one bot mine while the other follows and places torches; mode and roles use shared RNG.
+ * @extends BaseEpisode
  */
 class CollectorEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
@@ -678,9 +680,4 @@ class CollectorEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  CollectorEpisode,
-  mineAsLeader,
-  followAndPlaceTorches,
-  independentMining,
-};
+module.exports = { CollectorEpisode };

@@ -569,6 +569,11 @@ function getOnClearingCompletePhaseFn(
   };
 }
 
+/**
+ * Episode where one bot (builder) places blocks in patterns and the other (miner) watches then
+ * mines them. Roles and build location are chosen in setup; rounds repeat for a random number of times.
+ * @extends BaseEpisode
+ */
 class PlaceAndMineEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 4;
   static INIT_MAX_BOTS_DISTANCE = 8;

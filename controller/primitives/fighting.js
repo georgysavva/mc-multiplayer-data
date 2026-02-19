@@ -10,6 +10,13 @@
 // EXPORTS
 // ============================================================================
 const FOV_DEGREES = 90; // total FOV in front of the bot
+
+/**
+ * Give the bot a randomly selected sword via RCON.
+ * @param {*} bot - Mineflayer bot instance
+ * @param {*} rcon - RCON connection instance (must support send())
+ * @returns {Promise<void>}
+ */
 async function giveRandomSword(bot, rcon) {
   const swords = [
     "minecraft:wooden_sword",
@@ -26,6 +33,11 @@ async function giveRandomSword(bot, rcon) {
   );
 }
 
+/**
+ * Equip the first sword found in the bot's inventory.
+ * @param {*} bot - Mineflayer bot instance
+ * @returns {Promise<void>}
+ */
 async function equipSword(bot) {
   const swordItem = bot.inventory
     .items()

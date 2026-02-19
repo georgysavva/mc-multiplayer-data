@@ -127,6 +127,11 @@ function getOnRotatePhaseFn(
   };
 }
 
+/**
+ * Eval episode for rotation: one bot (alpha or bravo, by episode number) rotates yaw by a fixed
+ * angle (+40°, -40°, or 180°) while the other stays; used to evaluate camera rotation.
+ * @extends BaseEpisode
+ */
 class RotationEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
   static INIT_MIN_BOTS_DISTANCE = 10;
@@ -163,7 +168,4 @@ class RotationEvalEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  getOnRotatePhaseFn,
-  RotationEvalEpisode,
-};
+module.exports = { RotationEvalEpisode };

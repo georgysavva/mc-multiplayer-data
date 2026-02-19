@@ -16,3 +16,6 @@ server/plugins/SkinsRestorer/recommendations.json
 server/episode-manager-plugin/target/*
 postprocess/__pycache__/
 compose_configs/
+docs/build/
+docs/source/_build/
+node_modules/

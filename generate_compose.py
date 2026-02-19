@@ -151,7 +151,7 @@ def generate_compose_config(
 
     project_root = str(Path(__file__).resolve().parent)
 
-    camera_package_json_host = os.path.join(project_root, "camera", "package.json")
+    plugin_starter_package_json_host = os.path.join(project_root, "server", "plugin-starter", "package.json")
     # If the only episode type is turnToLookEval, use the fixed seed "solaris"
     if episode_types == "turnToLookEval" or episode_types == "turnToLookOppositeEval":
         seed = "solaris"
@@ -415,8 +415,8 @@ def generate_compose_config(
                     f"{cam_paths['alpha_output_host']}:/output",
                 ],
             },
-            # Episode starter: waits for all players then triggers episode start
-            f"episode_starter_instance_{instance_id}": {
+            # Plugin starter: waits for all players then triggers episode start
+            f"plugin_starter_instance_{instance_id}": {
                 "image": "node:20",
                 "network_mode": "host",
                 **({"cpuset": cpuset} if cpuset else {}),
@@ -436,13 +436,13 @@ def generate_compose_config(
                     "EPISODE_START_COMMAND": "episode start Alpha CameraAlpha technoblade.png Bravo CameraBravo test.png",
                 },
                 "volumes": [
-                    f"{os.path.join(project_root, 'camera', 'episode_starter.js')}:/app/episode_starter.js:ro",
-                    f"{camera_package_json_host}:/app/package.json:ro",
+                    f"{os.path.join(project_root, 'server', 'plugin-starter', 'plugin_starter.js')}:/app/plugin_starter.js:ro",
+                    f"{plugin_starter_package_json_host}:/app/package.json:ro",
                 ],
                 "command": [
                     "sh",
                     "-c",
-                    "npm install --omit=dev --no-progress && node episode_starter.js",
+                    "npm install --omit=dev --no-progress && node plugin_starter.js",
                 ],
             },
             # Camera bravo: recording client

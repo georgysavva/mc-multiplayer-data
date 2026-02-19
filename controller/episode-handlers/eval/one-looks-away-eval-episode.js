@@ -194,6 +194,11 @@ function getOnOneLooksAwayPhaseFn(
   };
 }
 
+/**
+ * Eval episode where one bot (lower or bigger name, by episode number) looks away by a random
+ * offset after initial eye contact; used to evaluate look-away behavior.
+ * @extends BaseEpisode
+ */
 class OneLooksAwayEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
   static INIT_MIN_BOTS_DISTANCE = 10; // Override: bots spawn 10-12 blocks apart
@@ -231,7 +236,4 @@ class OneLooksAwayEvalEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  getOnOneLooksAwayPhaseFn,
-  OneLooksAwayEvalEpisode,
-};
+module.exports = { OneLooksAwayEvalEpisode };

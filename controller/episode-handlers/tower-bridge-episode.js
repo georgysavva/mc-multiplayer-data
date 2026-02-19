@@ -300,7 +300,9 @@ function getOnTowerBridgePhaseFn(
 }
 
 /**
- * TowerBridgeEpisode - Episode class for tower building and bridging
+ * Episode where both bots build a tower, then bridge toward the midpoint between them.
+ * Sneak is used on the tower to avoid falling; bridge target is on a shared cardinal axis.
+ * @extends BaseEpisode
  */
 class TowerBridgeEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 12;
@@ -366,11 +368,4 @@ class TowerBridgeEpisode extends BaseEpisode {
   ) {}
 }
 
-module.exports = {
-  getOnTowerBridgePhaseFn,
-  buildBridgeWithPathfinder: buildBridge,
-  TOWER_HEIGHT,
-  TOWER_BLOCK_TYPE,
-  BRIDGE_BLOCK_TYPE,
-  TowerBridgeEpisode,
-};
+module.exports = { TowerBridgeEpisode };

@@ -264,7 +264,9 @@ function getOnPvpPhaseFn(
 }
 
 /**
- * PvpEpisode - Episode class for player vs player combat
+ * Episode for player-vs-player combat. Both bots equip a random sword, make eye contact, then
+ * fight for a random duration using the mineflayer-pvp plugin.
+ * @extends BaseEpisode
  */
 class PvpEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = MIN_SPAWN_DISTANCE;
@@ -334,8 +336,4 @@ class PvpEpisode extends BaseEpisode {
   ) {}
 }
 
-module.exports = {
-  pvpCombatLoop,
-  getOnPvpPhaseFn,
-  PvpEpisode,
-};
+module.exports = { PvpEpisode };

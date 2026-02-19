@@ -118,6 +118,11 @@ function getOnTurnToLookOppositePhaseFn(
   };
 }
 
+/**
+ * Eval episode: same as TurnToLook but both bots rotate the same direction so they end up
+ * facing opposite directions; used to evaluate turn-to-look in opposite configuration.
+ * @extends BaseEpisode
+ */
 class TurnToLookOppositeEvalEpisode extends BaseEpisode {
   static WORKS_IN_NON_FLAT_WORLD = true;
 
@@ -153,7 +158,4 @@ class TurnToLookOppositeEvalEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  getOnTurnToLookOppositePhaseFn,
-  TurnToLookOppositeEvalEpisode,
-};
+module.exports = { TurnToLookOppositeEvalEpisode };

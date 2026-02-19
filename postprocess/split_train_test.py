@@ -56,7 +56,7 @@ def parse_episode_and_instance(filename: str) -> Optional[EpisodeKey]:
 
 
 def collect_files_by_key(final_dir: Path) -> Dict[EpisodeKey, List[Path]]:
-    """Group files in final_dataset by (episode, instance).
+    """Group files in the final dataset by (episode, instance).
 
     Only top-level files in `final_dir` are considered; subdirectories are
     ignored. Files that do not contain both an episode id and an instance id
@@ -76,7 +76,7 @@ def collect_files_by_key(final_dir: Path) -> Dict[EpisodeKey, List[Path]]:
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Split an already-processed 'final_dataset' directory into global "
+            "Split an already-processed final dataset directory into global "
             "train/test subdirectories by episode+instance."
         )
     )
@@ -183,7 +183,7 @@ def main() -> None:
             else:
                 moved_train += 1
 
-    print("\nCompleted splitting final_dataset into train/test.")
+    print("\nCompleted splitting final dataset into train/test.")
     print(f"Files moved -> train: {moved_train}")
     print(f"Files moved -> test:  {moved_test}")
 

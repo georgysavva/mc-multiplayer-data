@@ -1,10 +1,19 @@
-// structureEval.js - Independent structure building and evaluation episode
+// structure-eval-episode.js - Independent structure building and evaluation episode
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 const { Vec3 } = require("vec3");
 
-const { buildStructure, getBlockPlaceDelayTicks } = require("../../primitives/building");
+const {
+  buildStructure,
+  getBlockPlaceDelayTicks,
+} = require("../../primitives/building");
 const { ensureBotHasEnough, unequipHand } = require("../../primitives/items");
-const { gotoWithTimeout, initializePathfinder, lookAtSmooth, sneak, stopPathfinder } = require("../../primitives/movement");
+const {
+  gotoWithTimeout,
+  initializePathfinder,
+  lookAtSmooth,
+  sneak,
+  stopPathfinder,
+} = require("../../primitives/movement");
 const { BaseEpisode } = require("../base-episode");
 
 // Constants for building behavior
@@ -493,7 +502,9 @@ function getOnStructureEvalPhaseFn(
 }
 
 /**
- * StructureEvalEpisode - Episode class for independent structure building and evaluation
+ * Eval episode for independent structure building: each bot builds a small structure (wall_2x2,
+ * wall_4x1, or tower_2x1) at a fixed distance, with eye contact and admire phases for evaluation.
+ * @extends BaseEpisode
  */
 class StructureEvalEpisode extends BaseEpisode {
   static INIT_MIN_BOTS_DISTANCE = 6;
@@ -567,24 +578,4 @@ class StructureEvalEpisode extends BaseEpisode {
   }
 }
 
-module.exports = {
-  buildStructure,
-  generateWallPositions,
-  generateTowerPositions,
-  generatePlatformPositions,
-  getStructureCenterForViewing,
-  getOnStructureEvalPhaseFn,
-  StructureEvalEpisode,
-  // Constants
-  ALL_STRUCTURE_TYPES,
-  BUILD_BLOCK_TYPES,
-  EPISODE_MIN_TICKS,
-  PLACEMENT_STANDOFF_BLOCKS,
-  ADJACENT_GOAL_RADIUS,
-  CARDINALS,
-  // Timing functions
-  getInitialEyeContactTicks,
-  getBlockPlaceDelayTicks,
-  getBuilderAdmireTicks,
-  // Local helper functions
-};
+module.exports = { StructureEvalEpisode };

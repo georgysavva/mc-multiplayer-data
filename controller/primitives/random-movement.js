@@ -27,6 +27,16 @@ function getRandomDirection() {
   return directions[Math.floor(Math.random() * directions.length)];
 }
 
+/**
+ * Perform a single randomized walk action (optionally looking away) and return.
+ * @param {*} bot - Mineflayer bot instance
+ * @param {number} distance - Distance to walk before returning
+ * @param {boolean} lookAway - If true, rotate camera away while walking
+ * @param {boolean} flipCameraInReturn - If true, flip camera and reuse same dir on return
+ * @param {*} args - Episode args (expects walk_timeout)
+ * @param {Object} [customConstants={}] - Optional per-episode constant overrides
+ * @returns {Promise<void>}
+ */
 async function walk(
   bot,
   distance,
@@ -185,6 +195,15 @@ async function walk(
   }
 }
 
+/**
+ * Run a sequence of randomized movement actions.
+ * @param {*} bot - Mineflayer bot instance
+ * @param {number} actionCount - Number of actions to execute
+ * @param {boolean} lookAway - If true, include "look away" variants of actions
+ * @param {*} args - Episode args (expects walk_timeout)
+ * @param {Object} [customConstants={}] - Optional per-episode constant overrides
+ * @returns {Promise<void>}
+ */
 async function run(bot, actionCount, lookAway, args, customConstants = {}) {
   // Allow overriding constants per episode type
   const minWalkDist = customConstants.MIN_WALK_DISTANCE ?? MIN_WALK_DISTANCE;
