@@ -1,7 +1,7 @@
 const { GoalNear } = require("mineflayer-pathfinder").goals;
 const { Vec3 } = require("vec3");
 
-const { buildStructure } = require("../../primitives/building");
+const { placeMultiple } = require("../../primitives/building");
 const { ensureBotHasEnough } = require("../../primitives/items");
 const {
   lookAtSmooth,
@@ -18,8 +18,7 @@ const EPISODE_MIN_TICKS = 300;
 const WALL_WIDTH = 5;
 const WALL_HEIGHT = 3;
 const BLOCK_TYPE = "stone";
-const PLACEMENT_STANDOFF_BLOCKS = 1;
-const ADJACENT_GOAL_RADIUS = 1.0;
+const WALL_DISTANCE = 2; // blocks in front of builder to place wall
 const WALK_PAST_DISTANCE = 4; // How far past the wall end to walk
 
 function getOnWallWalkPhaseFn(
@@ -81,37 +80,39 @@ function getOnWallWalkPhaseFn(
     await sneak(bot);
     const startTick = bot.time.age;
 
-    // ---- Phase 3: Compute wall position at midpoint ----
-    const midX = (me.x + them.x) / 2;
-    const midZ = (me.z + them.z) / 2;
+    // ---- Phase 3: Compute wall position near the builder ----
+    const builderPos = isBuilder ? me : them;
+    const observerPos = isBuilder ? them : me;
 
-    // Wall direction: perpendicular to the line between bots
-    const vx = them.x - me.x;
-    const vz = them.z - me.z;
-    const mag = Math.sqrt(vx * vx + vz * vz) || 1;
+    // Direction from builder toward observer
+    const dx = observerPos.x - builderPos.x;
+    const dz = observerPos.z - builderPos.z;
+    const dist = Math.sqrt(dx * dx + dz * dz) || 1;
 
-    // Perpendicular direction for the wall
-    const perpX = -vz / mag;
-    const perpZ = vx / mag;
+    // Wall center: WALL_DISTANCE blocks in front of builder
+    const wallCenterX = builderPos.x + (dx / dist) * WALL_DISTANCE;
+    const wallCenterZ = builderPos.z + (dz / dist) * WALL_DISTANCE;
 
-    // Determine wall axis
+    // Perpendicular direction for wall extent (snap to cardinal)
+    const perpX = -dz / dist;
+    const perpZ = dx / dist;
     const useXAxis = Math.abs(perpX) >= Math.abs(perpZ);
     const wallDirection = useXAxis ? "x" : "z";
 
-    // Wall start position: center the wall at the midpoint
+    // Wall start position: center the wall at the computed position
     const halfWidth = Math.floor(WALL_WIDTH / 2);
     let wallStartPos;
     if (useXAxis) {
       wallStartPos = new Vec3(
-        Math.floor(midX) - halfWidth,
-        Math.floor(me.y),
-        Math.floor(midZ),
+        Math.floor(wallCenterX) - halfWidth,
+        Math.floor(builderPos.y),
+        Math.floor(wallCenterZ),
       );
     } else {
       wallStartPos = new Vec3(
-        Math.floor(midX),
-        Math.floor(me.y),
-        Math.floor(midZ) - halfWidth,
+        Math.floor(wallCenterX),
+        Math.floor(builderPos.y),
+        Math.floor(wallCenterZ) - halfWidth,
       );
     }
 
@@ -123,7 +124,7 @@ function getOnWallWalkPhaseFn(
     );
 
     console.log(
-      `[${bot.username}] Wall: ${WALL_WIDTH}x${WALL_HEIGHT} at midpoint, direction=${wallDirection}, ${wallPositions.length} blocks`,
+      `[${bot.username}] Wall: ${WALL_WIDTH}x${WALL_HEIGHT} near builder, direction=${wallDirection}, ${wallPositions.length} blocks`,
     );
 
     episodeInstance._evalMetadata = {
@@ -134,21 +135,18 @@ function getOnWallWalkPhaseFn(
       block_type: BLOCK_TYPE,
     };
 
-    // ---- Phase 4: Builder builds the wall ----
+    // ---- Phase 4: Builder places wall without moving, observer waits ----
     if (isBuilder) {
-      console.log(`[${bot.username}] Building wall...`);
-      await buildStructure(
-        bot,
-        wallPositions,
-        BLOCK_TYPE,
-        PLACEMENT_STANDOFF_BLOCKS,
-        ADJACENT_GOAL_RADIUS,
-        args,
-      );
-      console.log(`[${bot.username}] Wall built`);
+      console.log(`[${bot.username}] Placing wall (staying still)...`);
+      await placeMultiple(bot, wallPositions, BLOCK_TYPE, {
+        delayMs: 300,
+        useBuildOrder: true,
+        useSmartPositioning: false,
+      });
+      console.log(`[${bot.username}] Wall placed`);
     } else {
-      // Observer waits while wall is being built
-      console.log(`[${bot.username}] Waiting for wall to be built...`);
+      // Observer waits while wall is being placed
+      console.log(`[${bot.username}] Waiting for wall to be placed...`);
       const estimatedBuildTicks = wallPositions.length * 15;
       await bot.waitForTicks(estimatedBuildTicks);
     }
