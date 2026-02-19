@@ -1,12 +1,13 @@
 # Base data directory and batch configuration
 BASE_DATA_DIR=${BASE_DATA_DIR:-"/mnt/data/dl3957/mc_multiplayer_v2_demo_evals"}
-BATCH_NAME="rotationEval_new_mirror"
+BATCH_NAME="turnToLookEval_new_mirror"
 
 # ENABLE_DEMO_MODE=0 -> Camera position calculated algorithmically from bot positions
 # ENABLE_DEMO_CAMERA=1 -> Enables CameraDemo spectator with algorithmic positioning
 ENABLE_DEMO_MODE=0
 ENABLE_DEMO_CAMERA=1
 
+rm -r compose_configs
 python3 generate_compose.py \
  --compose_dir ./compose_configs \
  --base_port 25590 \
@@ -20,12 +21,13 @@ python3 generate_compose.py \
  --camera_data_alpha_base $BASE_DATA_DIR/$BATCH_NAME/camera/data_alpha \
  --camera_data_bravo_base $BASE_DATA_DIR/$BATCH_NAME/camera/data_bravo \
  --smoke_test 0 \
- --num_flatland_world 1 \
- --num_normal_world 0 \
- --num_episodes 6 \
- --num_episodes_normal 0 \
- --num_episodes_flat 16 \
- --episode_types_flat "rotationEval" \
+ --num_flatland_world 0 \
+ --num_normal_world 1 \
+ --num_episodes 8 \
+ --num_episodes_normal 8 \
+ --num_episodes_flat 8 \
+ --episode_types_flat "" \
+ --episode_types_normal "turnToLookEval" \
  --iterations_num_per_episode 1 \
  --eval_time_set_day 1 \
  --viewer_rendering_disabled 1 \

@@ -500,7 +500,7 @@ def generate_compose_config(
                     "RCON_PASSWORD": "research",
                     "EPISODE_START_RETRIES": "300",
                     "EPISODE_REQUIRED_PLAYERS": (
-                        "Alpha,CameraAlpha,Bravo,CameraBravo,CameraDemo,SpectatorAlpha,SpectatorBravo"
+                        "Alpha,CameraAlpha,Bravo,CameraBravo,CameraDemo"
                         if demo_camera_enabled
                         else "Alpha,CameraAlpha,Bravo,CameraBravo,SpectatorAlpha,SpectatorBravo"
                     ),
