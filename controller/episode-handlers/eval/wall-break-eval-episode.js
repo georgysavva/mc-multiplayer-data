@@ -17,7 +17,7 @@ const { generateWallPositions } = require("./structure-eval-episode");
 const CAMERA_SPEED_DEGREES_PER_SEC = 30;
 const EPISODE_MIN_TICKS = 300;
 const WALL_WIDTH = 3;
-const WALL_HEIGHT = 3;
+const WALL_HEIGHT = 2;
 const BLOCK_TYPE = "stone";
 const WALL_DISTANCE = 2; // blocks in front of builder to place wall
 
