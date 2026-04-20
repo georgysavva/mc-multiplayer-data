@@ -67,8 +67,18 @@ def process_episodes_dir(episodes_dir, destination_dir, ignore_first_episode):
         episode_id = parts[2]
         bot_name = parts[3] if len(parts) > 3 else None
 
-        # --- Skip Demo camera (video-only, no action JSON) ---
+        # --- Skip Demo camera actions (video-only, no action JSON) ---
         if bot_name == "Demo":
+            src_video_path = os.path.join(output_aligned_dir, video_fname)
+            new_base_name = "_".join(parts[2:])
+            new_video_fname = new_base_name + "_camera.mp4"
+            dest_video_path = os.path.join(destination_dir, new_video_fname)
+            try:
+                shutil.copy2(src_video_path, dest_video_path)
+                copied_count += 1
+            except (IOError, os.error) as e:
+                print(f"  Error copying {base_with_timestamp}: {e}", file=sys.stderr)
+                skipped_count += 1
             continue
 
         # --- Check for episode 0 ignore rule ---
