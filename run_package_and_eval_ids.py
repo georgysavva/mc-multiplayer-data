@@ -19,6 +19,7 @@ import argparse
 import json
 import logging
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -179,12 +180,25 @@ def main():
     logging.info("=" * 50)
     DatasetMultiplayer, DatasetProcessor = load_jax_oasis(args.jax_oasis_dir)
 
+    mirror_test = args.skip_packaging and read_dir != dest_dir
+
     batches_processed = 0
     for subdir in sorted(p for p in read_dir.iterdir() if p.is_dir()):
         test_dir = subdir / "test"
         if not test_dir.is_dir():
             continue
         logging.info(f"--- {subdir.name} ---")
+
+        if mirror_test:
+            dest_test = dest_dir / subdir.name / "test"
+            dest_test.parent.mkdir(parents=True, exist_ok=True)
+            if dest_test.is_symlink():
+                dest_test.unlink()
+            elif dest_test.exists():
+                shutil.rmtree(dest_test)
+            shutil.copytree(test_dir, dest_test)
+            logging.info(f"  Copied test/ from {test_dir} -> {dest_test}")
+
         out_path = dest_dir / subdir.name / "eval_ids.json"
         n = compute_eval_ids(
             test_dir, out_path, args.num_frames,
