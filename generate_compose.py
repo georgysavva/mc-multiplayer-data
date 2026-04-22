@@ -201,7 +201,7 @@ def generate_compose_config(
                         "condition": "service_completed_successfully"
                     }
                 },
-                "image": "itzg/minecraft-server",
+                "image": "itzg/minecraft-server:java21",
                 "tty": True,
                 "network_mode": "host",
                 **({"cpuset": cpuset} if cpuset else {}),
