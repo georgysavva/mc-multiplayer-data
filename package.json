@@ -3,5 +3,8 @@
     "canvas": "^3.1.0",
     "node-canvas-webgl": "^0.3.0",
     "seedrandom": "^3.0.5"
+  },
+  "overrides": {
+    "minecraft-data": "3.105.0"
   }
 }

@@ -38,7 +38,7 @@ RUN npm i rcon-client
 RUN echo "52" && npm install github:georgysavva/mineflayer
 RUN echo "52" && npm install github:daohanlu/mineflayer-pathfinder
 RUN echo "52" && npm install github:georgysavva/prismarine-viewer-colalab
-RUN echo "50" && npm install minecraft-data
+RUN echo "51" && npm install --save-exact minecraft-data@3.105.0
 RUN npm install --save mineflayer-pvp
 RUN npm install --save mineflayer-tool
 RUN set -eux; \
