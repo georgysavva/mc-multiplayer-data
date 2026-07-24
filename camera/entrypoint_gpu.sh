@@ -156,7 +156,10 @@ EOF
   echo "[client] recording metadata saved to ${RECORDING_META_PATH}"
   
   # Use GPU-accelerated encoding if available (NVENC)
-  if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q h264_nvenc; then
+  # DISABLE_NVENC=1 forces CPU encoding: the ffmpeg check only detects that the
+  # encoder is compiled in, which passes on GPUs without NVENC silicon (e.g. A100)
+  # where actual encoding would fail at runtime.
+  if [ "${DISABLE_NVENC:-0}" != "1" ] && ffmpeg -hide_banner -encoders 2>/dev/null | grep -q h264_nvenc; then
     echo "[client] Using NVENC hardware encoding (MKV)"
     ffmpeg -hide_banner -loglevel info -y \
       -video_size "${WIDTH}x${HEIGHT}" -framerate "$FPS" \
