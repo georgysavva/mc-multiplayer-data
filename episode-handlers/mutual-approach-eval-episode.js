@@ -19,7 +19,7 @@ const SIDESTEP_TIMEOUT_TICKS = 100;
 // the approach phase (before the sidestep handshake), so the sidestep phase is
 // a fixed-length freeze followed by the strafe — keeping the strafes of the
 // two bots simultaneous.
-const FREEZE_TICKS = 60;
+const FREEZE_TICKS = 20;
 
 function xzDistance(a, b) {
   const dx = a.x - b.x;

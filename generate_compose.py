@@ -806,6 +806,16 @@ def main():
     else:
         args.camera_data_bravo_base = absdir(args.camera_data_bravo_base)
 
+    # Evals that need a clean flatland background (random villages/houses would
+    # confuse the judge): auto-enable structure disabling for them.
+    STRUCTURE_FREE_EVAL_TYPES = {"structureEval", "structureNoPlaceEval", "mutualApproachEval"}
+    if args.episode_types in STRUCTURE_FREE_EVAL_TYPES and not args.flatland_world_disable_structures:
+        args.flatland_world_disable_structures = 1
+        print(
+            f"Episode type {args.episode_types} needs a clean background: "
+            f"enabling --flatland_world_disable_structures automatically."
+        )
+
     # Create compose directory
     compose_dir = Path(args.compose_dir)
     compose_dir.mkdir(exist_ok=True)
