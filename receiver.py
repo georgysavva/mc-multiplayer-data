@@ -56,11 +56,12 @@ def process_frame_worker(frame_queue, output_path, viewer_rendering_disabled, ep
             pos["epochTime"] = epoch_time
             pos["episode_id"] = episode_id
 
-            pos["x"] = round(pos["x"], 3)
-            pos["y"] = round(pos["y"], 3)
-            pos["z"] = round(pos["z"], 3)
-            pos["yaw"] = round(pos["yaw"], 3)
-            pos["pitch"] = round(pos["pitch"], 3)
+            # Convert yaw/pitch to fp32 to match Minecraft protocol precision.
+            # Leave x/y/z at full fp64 precision.
+            pos["yaw"] = float(np.float32(pos["yaw"]))
+            pos["pitch"] = float(np.float32(pos["pitch"]))
+            cam = pos.get("action", {}).get("camera", [0.0, 0.0])
+            pos["action"]["camera"] = [float(np.float32(cam[0])), float(np.float32(cam[1]))]
 
             pos["extra_info"] = {
                 "seed": 42,

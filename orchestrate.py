@@ -496,7 +496,7 @@ class InstanceManager:
         else:
             print("  (none)")
 
-    def _process_single_recording(self, job, comparison_video, output_dir=None, delay_video_by=0.0):
+    def _process_single_recording(self, job, comparison_video, output_dir=None):
         """Process a single episode recording."""
         script_path = Path(__file__).parent / "postprocess" / "process_recordings.py"
 
@@ -508,7 +508,6 @@ class InstanceManager:
             "--camera-prefix", str(job['camera_prefix']),
             "--episode-file", str(job['episode_file']),
             "--output-dir", output_dir or "/mnt/disks/storage/data/mc_multiplayer_v1/batch1/aligned",
-            "--delay-video-by", str(delay_video_by),
         ]
 
         if comparison_video:
@@ -543,7 +542,7 @@ class InstanceManager:
             return int(match.group(1))
         return 0
 
-    def postprocess_recordings(self, workers=4, comparison_video=False, debug=False, output_dir=None, delay_video_by=0.0):
+    def postprocess_recordings(self, workers=4, comparison_video=False, debug=False, output_dir=None):
         """Process camera recordings for all instances in parallel.
 
         Infers directory structure from output_dir:
@@ -628,7 +627,6 @@ class InstanceManager:
                     job,
                     comparison_video,
                     output_dir,
-                    delay_video_by
                 ): job
                 for job in jobs
             }
@@ -717,13 +715,6 @@ def main():
         type=str,
         help="Directory for processed video outputs (default: batch1/aligned)",
     )
-    parser.add_argument(
-        "--delay-video-by",
-        type=float,
-        default=0,
-        help="Delay video by this many seconds (default: 0)",
-    )
-
     args = parser.parse_args()
 
     manager = InstanceManager(args.compose_dir, build_images=args.build, logs_dir=args.logs_dir)
@@ -739,7 +730,7 @@ def main():
     elif args.command == "recordings":
         manager.recordings()
     elif args.command == "postprocess":
-        manager.postprocess_recordings(args.workers, args.comparison_video, args.debug, args.output_dir, args.delay_video_by)
+        manager.postprocess_recordings(args.workers, args.comparison_video, args.debug, args.output_dir)
 
 
 if __name__ == "__main__":
