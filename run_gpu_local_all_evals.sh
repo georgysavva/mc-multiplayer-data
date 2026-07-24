@@ -7,7 +7,7 @@ EVAL_TIME_SET_DAY=${EVAL_TIME_SET_DAY:-1}
 
 # List of eval episode types to run
 # structureNoPlaceEval is used for debugging, but not part of the eval dataset
-EVAL_TYPES=("rotationEval" "translationEval" "structureEval" "structureNoPlaceEval" "turnToLookEval" "turnToLookOppositeEval" "bothLookAwayEval" "oneLooksAwayEval")
+EVAL_TYPES=("rotationEval" "translationEval" "structureEval" "structureNoPlaceEval" "turnToLookEval" "turnToLookOppositeEval" "bothLookAwayEval" "oneLooksAwayEval" "mutualApproachEval")
 
 for BATCH_NAME in "${EVAL_TYPES[@]}"; do
     echo "=========================================="
