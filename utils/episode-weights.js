@@ -18,6 +18,7 @@ const episodeTypicalLengths = {
   structureEval: 60,
   structureNoPlaceEval: 60,
   translationEval: 60,
+  mutualApproachEval: 60,
   bothLookAwayEval: 60,
   oneLooksAwayEval: 60,
   rotationEval: 60,
