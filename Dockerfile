@@ -37,7 +37,16 @@ RUN npm i rcon-client
 # These echo numbers are needed to trigger a rebuild of this image in the case a downstream dependency has changed.
 RUN echo "52" && npm install github:georgysavva/mineflayer
 RUN echo "52" && npm install github:daohanlu/mineflayer-pathfinder
-RUN echo "52" && npm install github:georgysavva/prismarine-viewer-colalab
+# Install the viewer from a local clone instead of github: so we can pin webpack.
+# Its prepare script floats on webpack ^5, and webpack 5.109.0 (2026-07-23)
+# breaks the browser-bundle build with resolver ENOENT errors; git deps build in
+# an isolated temp dir where no override from this package.json can reach them.
+RUN echo "53" && git clone --depth 1 https://github.com/georgysavva/prismarine-viewer-colalab /opt/prismarine-viewer-colalab \
+  && cd /opt/prismarine-viewer-colalab \
+  && npm pkg set devDependencies.webpack=5.108.4 \
+  && npm install \
+  && cd /usr/src/app \
+  && npm install /opt/prismarine-viewer-colalab
 RUN echo "51" && npm install --save-exact minecraft-data@3.105.0
 RUN npm install --save mineflayer-pvp
 RUN npm install --save mineflayer-tool
