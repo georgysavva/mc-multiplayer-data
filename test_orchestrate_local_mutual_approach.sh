@@ -9,7 +9,8 @@
 set -euo pipefail
 
 PROJECT_ROOT=$(pwd)
-SMOKE_DIR=$PROJECT_ROOT/smoke_mutual_approach
+SMOKE_DIR=${SMOKE_DIR:-$PROJECT_ROOT/smoke_mutual_approach}
+NUM_EPISODES=${NUM_EPISODES:-4}
 COMPOSE_PROJECT=mutual-approach-smoke
 COMPOSE_FILE=$PROJECT_ROOT/compose_configs/docker-compose-000.yml
 # GPU 0 is busy with another job; use an idle GPU for the camera containers.
@@ -38,7 +39,7 @@ python3 "$PROJECT_ROOT/generate_compose.py" \
  --smoke_test 0 \
  --num_flatland_world 1 \
  --num_normal_world 0 \
- --num_episodes 4 \
+ --num_episodes $NUM_EPISODES \
  --episode_types mutualApproachEval \
  --iterations_num_per_episode 1 \
  --viewer_rendering_disabled 1 \
