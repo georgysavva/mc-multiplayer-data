@@ -11,17 +11,32 @@ const MARKER_BLOCK_TYPE = "minecraft:stone";
 // leaving a ~2x gap between the bots.
 const STOP_XZ_DISTANCE_FROM_MARKER = 4;
 const APPROACH_TIMEOUT_TICKS = 200;
-// After approaching, each bot independently sidesteps this far to its own left or right.
+// After approaching, each bot sidesteps this far to its own left or right.
 const SIDESTEP_XZ_DISTANCE = 3;
 const SIDESTEP_TIMEOUT_TICKS = 100;
 // Hold still between the approach and the sidestep so the two sub-tasks are
-// cleanly separable in the video.
+// cleanly separable in the video. Both bots re-face each other at the END of
+// the approach phase (before the sidestep handshake), so the sidestep phase is
+// a fixed-length freeze followed by the strafe — keeping the strafes of the
+// two bots simultaneous.
 const FREEZE_TICKS = 60;
 
 function xzDistance(a, b) {
   const dx = a.x - b.x;
   const dz = a.z - b.z;
   return Math.sqrt(dx * dx + dz * dz);
+}
+
+// Scan down at (x, z) for the ground surface and return the y of the air block
+// on top of it (a valid standing/marker y). Returns null if no ground found.
+function findSurfaceY(bot, x, z, scanTopY, scanDepth = 10) {
+  for (let y = scanTopY; y >= scanTopY - scanDepth; y--) {
+    const block = bot.blockAt(new Vec3(x, y, z));
+    if (block && block.boundingBox === "block") {
+      return y + 1;
+    }
+  }
+  return null;
 }
 
 function getOnMutualApproachPhaseFn(
@@ -41,11 +56,11 @@ function getOnMutualApproachPhaseFn(
       "mutualApproachPhase beginning"
     );
 
-    // Each bot picks its sidestep direction independently, but both draws come
-    // from the shared RNG (alpha's first, bravo's second) so both processes
-    // agree on both choices and the episode is reproducible from the seed.
-    const alphaGoesRight = sharedBotRng() < 0.5;
-    const bravoGoesRight = sharedBotRng() < 0.5;
+    // Deterministic sidestep directions: episodeNum % 4 cycles through all
+    // four (alpha, bravo) combinations: LL, LR, RL, RR.
+    const caseNum = episodeNum % 4;
+    const alphaGoesRight = caseNum >= 2;
+    const bravoGoesRight = caseNum % 2 === 1;
     const isAlpha = bot.username < args.other_bot_name;
     const alphaName = isAlpha ? bot.username : args.other_bot_name;
     const bravoName = isAlpha ? args.other_bot_name : bot.username;
@@ -60,6 +75,8 @@ function getOnMutualApproachPhaseFn(
       camera_speed_degrees_per_sec: CAMERA_SPEED_DEGREES_PER_SEC,
       marker_block: MARKER_BLOCK_TYPE,
       marker_position: { x: markerPos.x, y: markerPos.y, z: markerPos.z },
+      lineup_axis: episodeInstance._lineupAxis,
+      case_num: caseNum,
       stop_xz_distance_from_marker: STOP_XZ_DISTANCE_FROM_MARKER,
       sidestep_xz_distance: SIDESTEP_XZ_DISTANCE,
       freeze_ticks: FREEZE_TICKS,
@@ -86,10 +103,9 @@ function getOnMutualApproachPhaseFn(
     episodeInstance._evalStartTick = bot.time.age;
 
     console.log(
-      `[${bot.username}] approaching marker at (${markerPos.x}, ${markerPos.y}, ${markerPos.z}), ` +
-        `will stop ${STOP_XZ_DISTANCE_FROM_MARKER} blocks away, then sidestep ${
-          thisBotGoesRight ? "right" : "left"
-        }`
+      `[${bot.username}] approaching marker at (${markerPos.x}, ${markerPos.y}, ${markerPos.z}) ` +
+        `along ${episodeInstance._lineupAxis} axis, will stop ${STOP_XZ_DISTANCE_FROM_MARKER} blocks away, ` +
+        `then sidestep ${thisBotGoesRight ? "right" : "left"} (case ${caseNum})`
     );
 
     // Both bots walk straight toward each other (the marker lies on that line)
@@ -119,6 +135,19 @@ function getOnMutualApproachPhaseFn(
         2
       )}), ${xzDistance(approachEndPos, markerPos).toFixed(2)} blocks from marker`
     );
+
+    // Re-face the other bot NOW (before the sidestep handshake) so both bots
+    // enter the sidestep phase already oriented and strafe simultaneously.
+    const otherEntity = bot.players[args.other_bot_name]
+      ? bot.players[args.other_bot_name].entity
+      : null;
+    const refacePos = otherEntity
+      ? otherEntity.position
+      : new Vec3(markerPos.x, approachEndPos.y, markerPos.z); // marker lies on the same line
+    await lookAtSmooth(bot, refacePos, CAMERA_SPEED_DEGREES_PER_SEC, {
+      randomized: false,
+      useEasing: false,
+    });
 
     coordinator.onceEvent(
       "sidestepPhase",
@@ -161,15 +190,9 @@ function getOnSidestepPhaseFn(
       "sidestepPhase beginning"
     );
 
-    // Re-face the other bot at its post-approach position so left/right are
-    // well-defined relative to the line between the bots, then hold still so
-    // the approach and sidestep are visually separable.
-    await lookAtSmooth(
-      bot,
-      new Vec3(otherBotPosition.x, otherBotPosition.y, otherBotPosition.z),
-      CAMERA_SPEED_DEGREES_PER_SEC,
-      { randomized: false, useEasing: false }
-    );
+    // Both bots are already facing each other (re-face happened at the end of
+    // the approach phase); a fixed-length freeze keeps the strafes simultaneous
+    // and makes the approach and sidestep visually separable.
     await bot.waitForTicks(FREEZE_TICKS);
 
     const direction = thisBotGoesRight ? "right" : "left";
@@ -260,30 +283,58 @@ class MutualApproachEvalEpisode extends BaseEpisode {
     botPosition,
     otherBotPosition
   ) {
-    // Both bots compute the same midpoint from the exchanged positions;
-    // only the alpha bot issues the setblock commands.
-    const midX = Math.floor((botPosition.x + otherBotPosition.x) / 2);
-    const midZ = Math.floor((botPosition.z + otherBotPosition.z) / 2);
+    const isAlpha = bot.username < args.other_bot_name;
+    const alphaPos = isAlpha ? botPosition : otherBotPosition;
+    const bravoPos = isAlpha ? otherBotPosition : botPosition;
 
-    // Find the ground surface at the midpoint so the marker sits on top of it
-    const scanTop = Math.floor(Math.max(botPosition.y, otherBotPosition.y)) + 2;
-    let markerY = null;
-    for (let y = scanTop; y >= scanTop - 10; y--) {
-      const block = bot.blockAt(new Vec3(midX, y, midZ));
-      if (block && block.boundingBox === "block") {
-        markerY = y + 1;
-        break;
-      }
+    // Line the bots up along a random principal axis: keep alpha in place and
+    // teleport bravo so both share the other coordinate, preserving the current
+    // distance and relative direction. Both bots compute the same plan from the
+    // exchanged positions and the shared RNG; only bravo teleports itself.
+    const axis = sharedBotRng() < 0.5 ? "x" : "z";
+    this._lineupAxis = axis;
+    const dist = xzDistance(alphaPos, bravoPos);
+    let bravoTargetX, bravoTargetZ;
+    if (axis === "x") {
+      const sign = bravoPos.x >= alphaPos.x ? 1 : -1;
+      bravoTargetX = alphaPos.x + sign * dist;
+      bravoTargetZ = alphaPos.z;
+    } else {
+      const sign = bravoPos.z >= alphaPos.z ? 1 : -1;
+      bravoTargetX = alphaPos.x;
+      bravoTargetZ = alphaPos.z + sign * dist;
     }
+    const scanTop = Math.floor(Math.max(alphaPos.y, bravoPos.y)) + 2;
+    const bravoTargetY =
+      findSurfaceY(bot, Math.floor(bravoTargetX), Math.floor(bravoTargetZ), scanTop) ||
+      Math.floor(alphaPos.y);
+
+    if (!isAlpha) {
+      const tpRes = await rcon.send(
+        `tp ${bot.username} ${bravoTargetX.toFixed(2)} ${bravoTargetY} ${bravoTargetZ.toFixed(2)}`
+      );
+      console.log(
+        `[${bot.username}] aligned to ${axis} axis at (${bravoTargetX.toFixed(2)}, ${bravoTargetY}, ${bravoTargetZ.toFixed(2)}), result: ${tpRes}`
+      );
+      await bot.waitForTicks(10);
+    }
+
+    const alphaNew = new Vec3(alphaPos.x, alphaPos.y, alphaPos.z);
+    const bravoNew = new Vec3(bravoTargetX, bravoTargetY, bravoTargetZ);
+
+    // Marker at the (now axis-aligned) midpoint; only alpha places it.
+    const midX = Math.floor((alphaNew.x + bravoNew.x) / 2);
+    const midZ = Math.floor((alphaNew.z + bravoNew.z) / 2);
+    let markerY = findSurfaceY(bot, midX, midZ, scanTop);
     if (markerY === null) {
-      markerY = Math.floor(botPosition.y);
+      markerY = Math.floor(alphaPos.y);
       console.log(
         `[${bot.username}] could not find ground at midpoint, defaulting marker y to ${markerY}`
       );
     }
     this._markerPos = new Vec3(midX, markerY, midZ);
 
-    if (bot.username < args.other_bot_name) {
+    if (isAlpha) {
       const res = await rcon.send(
         `setblock ${midX} ${markerY} ${midZ} ${MARKER_BLOCK_TYPE}`
       );
@@ -293,8 +344,8 @@ class MutualApproachEvalEpisode extends BaseEpisode {
     }
 
     return {
-      botPositionNew: botPosition,
-      otherBotPositionNew: otherBotPosition,
+      botPositionNew: isAlpha ? alphaNew : bravoNew,
+      otherBotPositionNew: isAlpha ? bravoNew : alphaNew,
     };
   }
 
