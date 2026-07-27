@@ -118,7 +118,7 @@ def main():
     )
     parser.add_argument(
         "--jax-oasis-dir",
-        default=os.path.expanduser("~/GitHub/jax_oasis"),
+        default=os.path.expanduser("~/jax_oasis"),
     )
     args = parser.parse_args()
 

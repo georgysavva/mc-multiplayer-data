@@ -7,7 +7,7 @@ EVAL_TIME_SET_DAY=${EVAL_TIME_SET_DAY:-1}
 
 # List of eval episode types to run
 # structureNoPlaceEval is used for debugging, but not part of the eval dataset
-EVAL_TYPES=("rotationEval" "translationEval" "structureEval" "structureNoPlaceEval" "turnToLookEval" "turnToLookOppositeEval" "bothLookAwayEval" "oneLooksAwayEval" "mutualApproachEval")
+EVAL_TYPES=("rotationEval" "translationEval" "structureEval" "structureNoPlaceEval" "turnToLookEval" "turnToLookOppositeEval" "bothLookAwayEval" "oneLooksAwayEval" "coMovementEval" "coMovementWithDividerEval" "coMovementAlwaysRelativeMotionEval" "coMovementWithDividerAlwaysRelativeMotionEval")
 
 for BATCH_NAME in "${EVAL_TYPES[@]}"; do
     echo "=========================================="
@@ -27,8 +27,9 @@ for BATCH_NAME in "${EVAL_TYPES[@]}"; do
         NUM_EPISODES=32
     fi
 
-    # Disable background structures for structureEval and structureNoPlaceEval to avoid confusing background structures
-    if [ "$BATCH_NAME" == "structureEval" ] || [ "$BATCH_NAME" == "structureNoPlaceEval" ]; then
+    # Disable background structures for structureEval, structureNoPlaceEval and the
+    # coMovement types to avoid confusing background structures
+    if [ "$BATCH_NAME" == "structureEval" ] || [ "$BATCH_NAME" == "structureNoPlaceEval" ] || [[ "$BATCH_NAME" == coMovement* ]]; then
         FLATLAND_WORLD_DISABLE_STRUCTURES=1
     fi
 

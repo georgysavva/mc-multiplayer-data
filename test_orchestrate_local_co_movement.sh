@@ -1,5 +1,10 @@
 #!/bin/bash
-# Smoke test for the mutualApproachEval episode type.
+# Smoke test for the coMovement* episode types.
+#
+# Pass the episode type as $1 (default coMovementEval); any of
+# coMovementEval, coMovementWithDividerEval,
+# coMovementAlwaysRelativeMotionEval,
+# coMovementWithDividerAlwaysRelativeMotionEval works.
 #
 # NOTE: this script deliberately does NOT use orchestrate.py start/stop.
 # orchestrate.py derives the docker compose project name from the compose file
@@ -9,9 +14,10 @@
 set -euo pipefail
 
 PROJECT_ROOT=$(pwd)
-SMOKE_DIR=${SMOKE_DIR:-$PROJECT_ROOT/smoke_mutual_approach}
+EPISODE_TYPE=${1:-coMovementEval}
+SMOKE_DIR=${SMOKE_DIR:-$PROJECT_ROOT/smoke_co_movement}
 NUM_EPISODES=${NUM_EPISODES:-4}
-COMPOSE_PROJECT=mutual-approach-smoke
+COMPOSE_PROJECT=co-movement-smoke
 COMPOSE_FILE=$PROJECT_ROOT/compose_configs/docker-compose-000.yml
 # GPU 0 is busy with another job; use an idle GPU for the camera containers.
 GPU_DEVICE=${GPU_DEVICE:-2}
@@ -40,7 +46,7 @@ python3 "$PROJECT_ROOT/generate_compose.py" \
  --num_flatland_world 1 \
  --num_normal_world 0 \
  --num_episodes $NUM_EPISODES \
- --episode_types mutualApproachEval \
+ --episode_types "$EPISODE_TYPE" \
  --iterations_num_per_episode 1 \
  --viewer_rendering_disabled 1 \
  --enable_gpu 1 \

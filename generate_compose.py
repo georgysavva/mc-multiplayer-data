@@ -130,6 +130,8 @@ def generate_compose_config(
     disable_nvenc: bool = False,
     # Eval options
     eval_time_set_day: int = 0,
+    eval_look_away_freeze_ticks: int = 60,
+    player_skins: str = "technoblade.png,test.png",
     # Flatland options
     flatland_world_disable_structures: bool = False,
 ):
@@ -161,6 +163,19 @@ def generate_compose_config(
     )
 
     project_root = str(Path(__file__).resolve().parent)
+
+    # Skins for the two players; each camera bot inherits its controller's skin.
+    skin_names = [s.strip() for s in player_skins.split(",") if s.strip()]
+    if len(skin_names) != 2:
+        raise ValueError(
+            f"--player_skins needs exactly two comma-separated names, got: {player_skins!r}"
+        )
+    alpha_skin, bravo_skin = skin_names
+    for skin in skin_names:
+        if not os.path.isfile(os.path.join(project_root, "skins", skin)):
+            raise FileNotFoundError(
+                f"Skin {skin!r} not found in {os.path.join(project_root, 'skins')}"
+            )
 
     entrypoint_host = os.path.join(project_root, "camera", "entrypoint.sh")
     launch_host = os.path.join(project_root, "camera", "launch_minecraft.py")
@@ -297,6 +312,7 @@ def generate_compose_config(
                     "INSTANCE_ID": instance_id,
                     "OUTPUT_DIR": "/output",
                     "EVAL_TIME_SET_DAY": eval_time_set_day,
+                    "EVAL_LOOK_AWAY_FREEZE_TICKS": eval_look_away_freeze_ticks,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -352,6 +368,7 @@ def generate_compose_config(
                     "INSTANCE_ID": instance_id,
                     "OUTPUT_DIR": "/output",
                     "EVAL_TIME_SET_DAY": eval_time_set_day,
+                    "EVAL_LOOK_AWAY_FREEZE_TICKS": eval_look_away_freeze_ticks,
                 },
                 "extra_hosts": ["host.docker.internal:host-gateway"],
                 "networks": [f"mc_network_{instance_id}"],
@@ -451,7 +468,10 @@ def generate_compose_config(
                     "RCON_PASSWORD": "research",
                     "EPISODE_START_RETRIES": "300",
                     "EPISODE_REQUIRED_PLAYERS": "Alpha,CameraAlpha,Bravo,CameraBravo,SpectatorAlpha,SpectatorBravo",
-                    "EPISODE_START_COMMAND": "episode start Alpha CameraAlpha technoblade.png Bravo CameraBravo test.png",
+                    "EPISODE_START_COMMAND": (
+                        f"episode start Alpha CameraAlpha {alpha_skin} "
+                        f"Bravo CameraBravo {bravo_skin}"
+                    ),
                 },
                 "volumes": [
                     f"{os.path.join(project_root, 'camera', 'episode_starter.js')}:/app/episode_starter.js:ro",
@@ -711,6 +731,21 @@ def main():
         help="Set time to day at the start of eval episodes (default: 0)",
     )
     parser.add_argument(
+        "--eval_look_away_freeze_ticks",
+        type=int,
+        default=60,
+        help="How long (in ticks, 20/sec) bots hold their gaze away in "
+        "bothLookAwayEval/oneLooksAwayEval before looking back (default: 60 = 3.0s)",
+    )
+    parser.add_argument(
+        "--player_skins",
+        type=str,
+        default="technoblade.png,test.png",
+        help="Comma-separated skin filenames from skins/ for Alpha and Bravo; each "
+        "camera bot inherits its controller's skin (default: technoblade.png,test.png). "
+        "Use 'steve.png,alex.png' for vanilla default skins.",
+    )
+    parser.add_argument(
         "--flatland_world_disable_structures",
         type=int,
         default=0,
@@ -755,6 +790,13 @@ def main():
         type=int,
         default=1,
         help="Number of GPUs available to distribute among instances (default: 1)",
+    )
+    parser.add_argument(
+        "--gpu_device_id",
+        type=int,
+        default=None,
+        help="Pin every instance to this physical GPU index instead of the "
+        "round-robin starting at GPU 0. Use when GPU 0 is busy with another job.",
     )
     parser.add_argument(
         "--gpu_mode",
@@ -808,7 +850,14 @@ def main():
 
     # Evals that need a clean flatland background (random villages/houses would
     # confuse the judge): auto-enable structure disabling for them.
-    STRUCTURE_FREE_EVAL_TYPES = {"structureEval", "structureNoPlaceEval", "mutualApproachEval"}
+    STRUCTURE_FREE_EVAL_TYPES = {
+        "structureEval",
+        "structureNoPlaceEval",
+        "coMovementEval",
+        "coMovementWithDividerEval",
+        "coMovementAlwaysRelativeMotionEval",
+        "coMovementWithDividerAlwaysRelativeMotionEval",
+    }
     if args.episode_types in STRUCTURE_FREE_EVAL_TYPES and not args.flatland_world_disable_structures:
         args.flatland_world_disable_structures = 1
         print(
@@ -870,9 +919,16 @@ def main():
     # GPU configuration summary
     if args.enable_gpu:
         print(f"GPU rendering enabled: {args.gpu_count} GPUs available, mode={args.gpu_mode}")
-        print(f"  Instances will be distributed round-robin across GPUs")
+        if args.gpu_device_id is not None:
+            print(f"  All instances pinned to GPU {args.gpu_device_id}")
+        else:
+            print(f"  Instances will be distributed round-robin across GPUs")
         for i in range(total_instances):
-            gpu_id = i % args.gpu_count
+            gpu_id = (
+                args.gpu_device_id
+                if args.gpu_device_id is not None
+                else i % args.gpu_count
+            )
             print(f"    Instance {i}: GPU {gpu_id}")
     
     print(f"Generating {total_instances} Docker Compose configurations...")
@@ -893,7 +949,12 @@ def main():
             camera_bravo_cpuset = cpuset_string_excluding(bravo_start, bravo_end, physical_core0_cpus)
         
         # Calculate GPU assignment for this instance (round-robin across available GPUs)
-        gpu_device_id = i % args.gpu_count if args.enable_gpu else None
+        if not args.enable_gpu:
+            gpu_device_id = None
+        elif args.gpu_device_id is not None:
+            gpu_device_id = args.gpu_device_id
+        else:
+            gpu_device_id = i % args.gpu_count
         
         config = generate_compose_config(
             i,
@@ -938,6 +999,8 @@ def main():
             disable_nvenc=bool(args.disable_nvenc),
             # Eval options
             eval_time_set_day=args.eval_time_set_day,
+            eval_look_away_freeze_ticks=args.eval_look_away_freeze_ticks,
+            player_skins=args.player_skins,
             # Flatland options
             flatland_world_disable_structures=bool(args.flatland_world_disable_structures),
         )

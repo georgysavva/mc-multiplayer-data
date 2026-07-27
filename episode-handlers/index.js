@@ -40,7 +40,12 @@ const { PlaceAndMineEpisode } = require("./place-and-mine-episode");
 const { StructureEvalEpisode } = require("./structureEval");
 const { StructureNoPlaceEvalEpisode } = require("./structureNoPlaceEval");
 const { TranslationEvalEpisode } = require("./translation-eval-episode");
-const { MutualApproachEvalEpisode } = require("./mutual-approach-eval-episode");
+const {
+  CoMovementEvalEpisode,
+  CoMovementWithDividerEvalEpisode,
+  CoMovementAlwaysRelativeMotionEvalEpisode,
+  CoMovementWithDividerAlwaysRelativeMotionEvalEpisode,
+} = require("./co-movement-eval-episode");
 const { BothLookAwayEvalEpisode } = require("./both-look-away-eval-episode");
 const { OneLooksAwayEvalEpisode } = require("./one-looks-away-eval-episode");
 const { RotationEvalEpisode } = require("./rotation-eval-episode");
@@ -67,7 +72,11 @@ const episodeClassMap = {
   structureEval: StructureEvalEpisode,
   structureNoPlaceEval: StructureNoPlaceEvalEpisode,
   translationEval: TranslationEvalEpisode,
-  mutualApproachEval: MutualApproachEvalEpisode,
+  coMovementEval: CoMovementEvalEpisode,
+  coMovementWithDividerEval: CoMovementWithDividerEvalEpisode,
+  coMovementAlwaysRelativeMotionEval: CoMovementAlwaysRelativeMotionEvalEpisode,
+  coMovementWithDividerAlwaysRelativeMotionEval:
+    CoMovementWithDividerAlwaysRelativeMotionEvalEpisode,
   bothLookAwayEval: BothLookAwayEvalEpisode,
   oneLooksAwayEval: OneLooksAwayEvalEpisode,
   rotationEval: RotationEvalEpisode,
@@ -80,7 +89,8 @@ const evalEpisodeClasses = [
   StructureEvalEpisode,
   StructureNoPlaceEvalEpisode,
   TranslationEvalEpisode,
-  MutualApproachEvalEpisode,
+  CoMovementEvalEpisode,
+  CoMovementWithDividerEvalEpisode,
   BothLookAwayEvalEpisode,
   OneLooksAwayEvalEpisode,
   RotationEvalEpisode,
@@ -119,7 +129,10 @@ const defaultEpisodeTypes = [
   "structureEval",
   "structureNoPlaceEval",
   "translationEval",
-  "mutualApproachEval",
+  "coMovementEval",
+  "coMovementWithDividerEval",
+  "coMovementAlwaysRelativeMotionEval",
+  "coMovementWithDividerAlwaysRelativeMotionEval",
   "bothLookAwayEval",
   "oneLooksAwayEval",
   "rotationEval",

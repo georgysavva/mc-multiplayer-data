@@ -4,8 +4,9 @@ const { BaseEpisode } = require("./base-episode");
 
 const CAMERA_SPEED_DEGREES_PER_SEC = 171.8873;
 const ITERATIONS_NUM_PER_EPISODE = 1;
-const MIN_LOOK_AWAY_DURATION_SEC = 1.0;
-const MAX_LOOK_AWAY_DURATION_SEC = 1.0;
+// How long the bot holds its gaze away before looking back. Overridable via
+// --eval_look_away_freeze_ticks so an eval set can use a longer hold.
+const DEFAULT_LOOK_AWAY_FREEZE_TICKS = 60;
 const EPISODE_MIN_TICKS = 300;
 
 function getOnOneLooksAwayPhaseFn(
@@ -64,7 +65,8 @@ function getOnOneLooksAwayPhaseFn(
     const lookAwayDirection = sharedBotRng() < 0.5 ? -1 : 1;
     // pick a look away offset randomly between 90 +/- 22.5 degrees.
     const lookAwayOffsetDeg = 90 * lookAwayDirection + sharedBotRng() * 45 - 22.5;
-    const freezeTicks = 60;
+    const freezeTicks =
+      Number(args.eval_look_away_freeze_ticks) || DEFAULT_LOOK_AWAY_FREEZE_TICKS;
     
     episodeInstance._evalMetadata = {
       bots_chosen: botsChosen,
