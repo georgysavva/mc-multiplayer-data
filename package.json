@@ -5,6 +5,7 @@
     "seedrandom": "^3.0.5"
   },
   "overrides": {
-    "minecraft-data": "3.105.0"
+    "minecraft-data": "3.105.0",
+    "prismarine-chunk": "1.40.0"
   }
 }
