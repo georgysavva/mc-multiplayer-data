@@ -64,4 +64,5 @@ exec node senders.js \
   --output_dir "${OUTPUT_DIR:-/output}" \
   --eval_time_set_day "${EVAL_TIME_SET_DAY:-0}" \
   --enable_demo_mode "${ENABLE_DEMO_MODE:-0}" \
-  --enable_demo_camera "${ENABLE_DEMO_CAMERA:-0}"
+  --enable_demo_camera "${ENABLE_DEMO_CAMERA:-0}" \
+  --eval_look_away_freeze_ticks "${EVAL_LOOK_AWAY_FREEZE_TICKS:-60}"

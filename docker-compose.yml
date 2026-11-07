@@ -24,7 +24,7 @@ services:
     depends_on:
       prep_data:
         condition: service_completed_successfully
-    image: itzg/minecraft-server
+    image: itzg/minecraft-server:java21
     tty: true
     network_mode: host # this is needed because otherwise it cannot download the server zip file on certain machines
     environment:
